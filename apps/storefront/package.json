@@ -1,0 +1,31 @@
+{
+  "name": "storefront",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3002",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "next typegen && tsc --noEmit",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@repo/logger": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "16.3.4",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.4.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "eslint": "10.9.1",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  }
+}
