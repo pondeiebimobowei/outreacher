@@ -5,8 +5,10 @@ export interface ApiErrorResponse {
   message?: string | string[];
   code?: string;
   error?: string;
+  requestId?: string;
   timestamp?: string;
   path?: string;
+  details?: Record<string, unknown>;
 }
 
 export class ApiError extends Error {
@@ -14,9 +16,15 @@ export class ApiError extends Error {
   public readonly code: string;
   public readonly errorDetails?: string;
   public readonly path?: string;
+  public readonly requestId?: string;
   public readonly rawMessage: string | string[];
 
-  constructor(status: number, data?: ApiErrorResponse | null, defaultMsg?: string) {
+  constructor(
+    status: number,
+    data?: ApiErrorResponse | null,
+    defaultMsg?: string,
+    headerRequestId?: string | null,
+  ) {
     const rawMsg = data?.message ?? defaultMsg ?? 'An unexpected network error occurred';
     const displayMessage = Array.isArray(rawMsg) ? rawMsg.join(', ') : rawMsg;
     super(displayMessage);
@@ -25,6 +33,8 @@ export class ApiError extends Error {
     this.code = data?.code ?? 'UNKNOWN_ERROR';
     this.errorDetails = data?.error;
     this.path = data?.path;
+    // Canonical source: response header x-request-id; fallback: response JSON requestId
+    this.requestId = headerRequestId || data?.requestId || undefined;
     this.rawMessage = rawMsg;
   }
 }
@@ -90,10 +100,12 @@ export class ApiClient {
       } catch {
         // Fallback for non-JSON error bodies
       }
+      const headerRequestId = response.headers?.get?.('x-request-id');
       throw new ApiError(
         response.status,
         errorData,
         `HTTP ${response.status} ${response.statusText}`,
+        headerRequestId,
       );
     }
 

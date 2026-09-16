@@ -6,5 +6,8 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "transformIgnorePatterns": ["/node_modules/(?!(\\.pnpm|@nestjs))"]
+  "transformIgnorePatterns": ["/node_modules/(?!(\\.pnpm|@nestjs))"],
+  "moduleNameMapper": {
+    "^@repo/db$": "<rootDir>/../src/__mocks__/@repo/db.ts"
+  }
 }

@@ -8,6 +8,7 @@ import {
 import { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { getRequestId } from '../middleware/request-id.middleware';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -20,18 +21,24 @@ export class LoggingInterceptor implements NestInterceptor {
 
     const method = req?.method ?? 'GET';
     const rawUrl = req?.url ?? req?.path ?? '/';
-    // Strip query string parameters to ensure sensitive query tokens/secrets are never logged
+    // Primary safety defense: Strip query string parameters completely
     const sanitizedPath = rawUrl.split('?')[0];
+    const requestId = getRequestId(req);
 
     const startTime = Date.now();
 
     return next.handle().pipe(
-      tap(() => {
-        const duration = Date.now() - startTime;
-        const statusCode = res?.statusCode ?? 200;
-        this.logger.log(
-          `${method} ${sanitizedPath} ${statusCode} +${duration}ms`,
-        );
+      tap({
+        next: () => {
+          const duration = Date.now() - startTime;
+          const statusCode = res?.statusCode ?? 200;
+          // Only log successful completions (< 400); exceptions are owned exclusively by HttpExceptionFilter
+          if (statusCode < 400) {
+            this.logger.log(
+              `${method} ${sanitizedPath} ${statusCode} +${duration}ms [${requestId}]`,
+            );
+          }
+        },
       }),
     );
   }

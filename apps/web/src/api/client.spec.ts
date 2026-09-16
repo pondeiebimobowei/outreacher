@@ -113,6 +113,69 @@ describe('ApiClient', () => {
     }
   });
 
+  it('should capture x-request-id header as canonical correlation ID on error', async () => {
+    const errorPayload = {
+      statusCode: 502,
+      message: 'Email provider unavailable',
+      code: 'PROVIDER_FAILURE',
+      requestId: 'json-fallback-id',
+    };
+
+    const mockHeaders = new Headers({
+      'x-request-id': 'canonical-header-request-id-123',
+    });
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      statusText: 'Bad Gateway',
+      headers: mockHeaders,
+      json: async () => errorPayload,
+    } as unknown as Response);
+
+    const client = new ApiClient('http://localhost:3000');
+
+    try {
+      await client.post('/email/send', {});
+      fail('Expected post to throw');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      const apiErr = err as ApiError;
+      expect(apiErr.statusCode).toBe(502);
+      expect(apiErr.code).toBe('PROVIDER_FAILURE');
+      // Response header is canonical
+      expect(apiErr.requestId).toBe('canonical-header-request-id-123');
+    }
+  });
+
+  it('should fallback to JSON requestId when x-request-id header is absent', async () => {
+    const errorPayload = {
+      statusCode: 409,
+      message: 'Workspace conflict',
+      code: 'CONFLICT',
+      requestId: 'json-fallback-id-999',
+    };
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: 'Conflict',
+      headers: new Headers(),
+      json: async () => errorPayload,
+    } as unknown as Response);
+
+    const client = new ApiClient('http://localhost:3000');
+
+    try {
+      await client.post('/workspaces', {});
+      fail('Expected post to throw');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      const apiErr = err as ApiError;
+      expect(apiErr.requestId).toBe('json-fallback-id-999');
+    }
+  });
+
   it('should handle network connection failure as ApiError', async () => {
     global.fetch = jest.fn().mockRejectedValue(new Error('Failed to fetch'));
 
