@@ -11,5 +11,5 @@ dist-ssr
 .env.local
 .cache
 server/dist
-
 docs
+packages/db/generated/

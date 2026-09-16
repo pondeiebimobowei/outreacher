@@ -10,7 +10,11 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
-    "typecheck": "turbo run check-types"
+    "typecheck": "turbo run check-types",
+    "db:generate": "pnpm --filter @repo/db run prisma:generate",
+    "db:migrate:dev": "pnpm --filter @repo/db run prisma:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @repo/db run prisma:migrate:deploy",
+    "db:studio": "pnpm --filter @repo/db run prisma:studio"
   },
   "devDependencies": {
     "prettier": "3.9.6",
