@@ -8,6 +8,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+}
+
 enum WorkspaceRole {
   OWNER
 }
@@ -128,9 +133,26 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   workspaceMembers WorkspaceMember[]
+  authIdentities   AuthIdentity[]
   recordedOutcomes Outcome[]
 
   @@map("users")
+}
+
+model AuthIdentity {
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  provider       AuthProvider
+  providerUserId String       @map("provider_user_id")
+  email          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("auth_identities")
 }
 
 model Workspace {
