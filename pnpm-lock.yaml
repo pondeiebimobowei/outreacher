@@ -274,12 +274,21 @@ importers:
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../config-eslint
+      '@repo/jest-presets':
+        specifier: workspace:*
+        version: link:../jest-presets
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../config-typescript
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
       eslint:
         specifier: 10.9.1
         version: 10.9.1(jiti@2.7.0)(supports-color@8.1.1)
+      jest:
+        specifier: 30.5.1
+        version: 30.5.1(supports-color@8.1.1)
       typescript:
         specifier: 5.7.3
         version: 5.7.3
@@ -335,12 +344,21 @@ importers:
       '@repo/eslint-config':
         specifier: workspace:*
         version: link:../config-eslint
+      '@repo/jest-presets':
+        specifier: workspace:*
+        version: link:../jest-presets
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../config-typescript
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
       eslint:
         specifier: 10.9.1
         version: 10.9.1(jiti@2.7.0)(supports-color@8.1.1)
+      jest:
+        specifier: 30.5.1
+        version: 30.5.1(supports-color@8.1.1)
       typescript:
         specifier: 5.7.3
         version: 5.7.3

@@ -1,0 +1,96 @@
+name: CI Baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Monorepo Quality Gate & Testing Pipeline
+    runs-on: ubuntu-latest
+
+    env:
+      CI: 'true'
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/outreacher_dev?schema=public'
+      TEST_DATABASE_URL: 'postgresql://user:pass@localhost:5432/outreacher_test?schema=public'
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: outreacher_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Wait for PostgreSQL TCP readiness
+        run: |
+          node -e '
+            const net = require("net");
+            const start = Date.now();
+            const check = () => {
+              const socket = net.createConnection(5432, "localhost", () => {
+                console.log("PostgreSQL port 5432 is open and accepting TCP connections.");
+                socket.end();
+                process.exit(0);
+              });
+              socket.on("error", () => {
+                if (Date.now() - start > 30000) {
+                  console.error("Timeout waiting for PostgreSQL TCP readiness on port 5432.");
+                  process.exit(1);
+                }
+                setTimeout(check, 1000);
+              });
+            };
+            check();
+          '
+
+      - name: Code format check
+        run: pnpm format:check
+
+      - name: Lint codebase
+        run: pnpm lint
+
+      - name: Typecheck TypeScript packages
+        run: pnpm typecheck
+
+      - name: Build monorepo packages and applications
+        run: pnpm build
+
+      - name: Deploy database migrations to test database
+        run: pnpm db:migrate:deploy
+
+      - name: Run Unit tests
+        run: pnpm test
+
+      - name: Run Integration tests
+        run: pnpm test:integration
+
+      - name: Run E2E tests
+        run: pnpm test:e2e

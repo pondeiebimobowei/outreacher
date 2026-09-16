@@ -6,7 +6,7 @@
     "^@repo/db$": "<rootDir>/../../packages/db/dist/cjs/src/index.js"
   },
   "testEnvironment": "node",
-  "testRegex": ".*\\.e2e-spec\\.ts$",
+  "testRegex": ".*\\.integration-spec\\.ts$",
   "transform": {
     "^.+\\.(t|j|mj)s$": "ts-jest"
   },

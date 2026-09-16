@@ -8,12 +8,16 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "jest"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
+    "@repo/jest-presets": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/jest": "^30.0.0",
     "eslint": "10.9.1",
+    "jest": "30.5.1",
     "typescript": "5.7.3"
   }
 }

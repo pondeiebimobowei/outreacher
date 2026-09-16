@@ -3,17 +3,19 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/cjs/src/index.js",
+  "module": "./dist/es/src/index.js",
+  "types": "./dist/es/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js",
-      "default": "./dist/src/index.js"
+      "types": "./dist/es/src/index.d.ts",
+      "import": "./dist/es/src/index.js",
+      "require": "./dist/cjs/src/index.js",
+      "default": "./dist/es/src/index.js"
     }
   },
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "build": "prisma generate && tsc -p tsconfig.es.json && tsc -p tsconfig.cjs.json && node -e \"fs.mkdirSync('./dist/cjs',{recursive:true});fs.writeFileSync('./dist/cjs/package.json','{\\\"type\\\":\\\"commonjs\\\"}');const f='./dist/cjs/generated/prisma/client.js';if(fs.existsSync(f)){let c=fs.readFileSync(f,'utf8');c=c.replace('import.meta.url','require(\\\"url\\\").pathToFileURL(__filename).toString()');fs.writeFileSync(f,c);}\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",

@@ -9,6 +9,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,js,mjs}\"",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "turbo run test:e2e",
     "check-types": "turbo run check-types",
     "typecheck": "turbo run check-types",
     "db:generate": "pnpm --filter @repo/db run prisma:generate",
