@@ -11,6 +11,5 @@ dist-ssr
 .env.local
 .cache
 server/dist
-public/dist
 
 docs
