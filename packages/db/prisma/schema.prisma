@@ -144,6 +144,7 @@ model AuthIdentity {
   userId         String       @map("user_id")
   provider       AuthProvider
   providerUserId String       @map("provider_user_id")
+  passwordHash   String?      @map("password_hash")
   email          String?
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
