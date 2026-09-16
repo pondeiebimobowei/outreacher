@@ -6,3 +6,6 @@ node_modules
 coverage
 pnpm-lock.yaml
 .turbo
+*.gen.ts
+routeTree.gen.ts
+
