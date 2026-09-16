@@ -1,7 +1,7 @@
-import pluginReactHooks from "eslint-plugin-react-hooks";
-import pluginReact from "eslint-plugin-react";
-import globals from "globals";
-import { config as baseConfig } from "./index.js";
+import pluginReactHooks from 'eslint-plugin-react-hooks';
+import pluginReact from 'eslint-plugin-react';
+import globals from 'globals';
+import { config as baseConfig } from './index.js';
 
 /**
  * A custom ESLint configuration for libraries that use React.
@@ -9,7 +9,7 @@ import { config as baseConfig } from "./index.js";
 export const config = [
   ...baseConfig,
   pluginReact.configs.flat.recommended,
-  pluginReact.configs.flat["jsx-runtime"],
+  pluginReact.configs.flat['jsx-runtime'],
   {
     languageOptions: {
       ...pluginReact.configs.flat.recommended.languageOptions,
