@@ -84,7 +84,7 @@ jobs:
         run: pnpm build
 
       - name: Deploy database migrations to test database
-        run: pnpm db:migrate:deploy
+        run: DATABASE_URL="$TEST_DATABASE_URL" pnpm db:migrate:deploy
 
       - name: Run Unit tests
         run: pnpm test
