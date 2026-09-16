@@ -3,11 +3,17 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    }
   },
   "scripts": {
-    "build": "prisma generate",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
