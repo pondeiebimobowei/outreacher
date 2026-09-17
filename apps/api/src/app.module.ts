@@ -14,6 +14,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { WorkspaceModule } from './modules/workspaces/workspace.module';
 import { CompanyModule } from './modules/company/company.module';
+import { ResearchModule } from './modules/research/research.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CompanyModule } from './modules/company/company.module';
     WorkspaceModule,
     ProfileModule,
     CompanyModule,
+    ResearchModule,
   ],
   controllers: [AppController],
   providers: [

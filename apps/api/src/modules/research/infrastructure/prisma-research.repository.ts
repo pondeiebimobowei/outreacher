@@ -14,6 +14,7 @@ import { OpportunityReconciler } from '../domain/opportunity-reconciler';
 import { ResearchFreshnessLimitException } from '../domain/research-freshness.exception';
 import { CompanyResearchResult } from '../domain/research.provider.interface';
 import {
+  CompanyResearchDetails,
   IResearchRepository,
   StartResearchOptions,
   StartResearchResult,
@@ -322,5 +323,60 @@ export class PrismaResearchRepository implements IResearchRepository {
         },
       });
     });
+  }
+
+  async findResearchDetails(
+    workspaceId: string,
+    companyId: string,
+  ): Promise<CompanyResearchDetails> {
+    const company = await this.prisma.company.findFirst({
+      where: { id: companyId, workspaceId, status: CompanyStatus.ACTIVE },
+    });
+
+    if (!company) {
+      throw new AppNotFoundException('Company');
+    }
+
+    const run = await this.prisma.researchRun.findFirst({
+      where: { workspaceId, companyId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const opportunities = await this.prisma.opportunity.findMany({
+      where: { workspaceId, companyId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const evidence = await this.prisma.evidence.findMany({
+      where: { workspaceId, companyId },
+      orderBy: { collectedAt: 'desc' },
+    });
+
+    const pendingOrRunningJobs = await this.prisma.job.findMany({
+      where: {
+        workspaceId,
+        type: 'RESEARCH_COMPANY',
+        status: { in: ['PENDING', 'RUNNING'] },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const activeJob = pendingOrRunningJobs.find((j: Job) => {
+      const payload = j.payload as Record<string, unknown> | null;
+      return payload?.companyId === companyId;
+    });
+
+    const isMock =
+      process.env.NODE_ENV === 'test' || process.env.MOCK_RESEARCH === 'true';
+
+    return {
+      run,
+      opportunities,
+      evidence,
+      status:
+        (run?.status as CompanyResearchDetails['status']) ?? 'NOT_STARTED',
+      jobStatus: activeJob?.status ?? null,
+      mock: isMock,
+    };
   }
 }

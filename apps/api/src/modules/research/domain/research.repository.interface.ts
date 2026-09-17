@@ -1,4 +1,4 @@
-import { ResearchRun } from '@repo/db';
+import { Evidence, Opportunity, ResearchRun } from '@repo/db';
 import { CompanyResearchResult } from './research.provider.interface';
 
 export interface StartResearchOptions {
@@ -10,6 +10,16 @@ export interface StartResearchOptions {
 export interface StartResearchResult {
   researchRun: ResearchRun;
   reused: boolean;
+}
+
+export interface CompanyResearchDetails {
+  run: ResearchRun | null;
+  opportunities: Opportunity[];
+  evidence: Evidence[];
+  status:
+    'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
+  jobStatus: string | null;
+  mock: boolean;
 }
 
 export const RESEARCH_REPOSITORY_TOKEN = 'RESEARCH_REPOSITORY';
@@ -56,4 +66,12 @@ export interface IResearchRepository {
     researchRunId: string,
     result: CompanyResearchResult,
   ): Promise<ResearchRun>;
+
+  /**
+   * Returns complete research details for a company including opportunities and evidence.
+   */
+  findResearchDetails(
+    workspaceId: string,
+    companyId: string,
+  ): Promise<CompanyResearchDetails>;
 }
