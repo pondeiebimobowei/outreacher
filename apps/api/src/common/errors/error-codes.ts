@@ -7,6 +7,7 @@ export const ErrorCode = {
   PROVIDER_FAILURE: 'PROVIDER_FAILURE',
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   COMPANY_DUPLICATE_NAME: 'COMPANY_DUPLICATE_NAME',
+  RATE_LIMITED: 'RATE_LIMITED',
 } as const;
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
