@@ -11,6 +11,7 @@ import { validateEnv } from './config/env.config';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ProfileModule } from './modules/profile/profile.module';
 import { WorkspaceModule } from './modules/workspaces/workspace.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { WorkspaceModule } from './modules/workspaces/workspace.module';
     HealthModule,
     AuthModule,
     WorkspaceModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [

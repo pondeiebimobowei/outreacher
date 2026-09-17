@@ -197,7 +197,7 @@ model WorkspaceMember {
 
 model CareerProfile {
   id                 String   @id @default(uuid())
-  workspaceId        String   @map("workspace_id")
+  workspaceId        String   @unique @map("workspace_id")
   headline           String?
   summary            String?
   targetRoles        String[] @default([]) @map("target_roles")
