@@ -75,12 +75,17 @@ export class ApiClient {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     const url = `${this.baseUrl}${normalizedPath}`;
 
+    const method = (options.method || 'GET').toUpperCase();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...(['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+        ? { 'X-Requested-With': 'XMLHttpRequest' }
+        : {}),
       ...(options.headers as Record<string, string>),
     };
 
     const config: RequestInit = {
+      credentials: 'include',
       ...options,
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,

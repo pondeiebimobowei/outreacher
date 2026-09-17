@@ -1,13 +1,29 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Link, Navigate, Outlet } from '@tanstack/react-router';
+import { useAuth } from '../lib/auth-context';
+import { LoadingState } from '../components/states/LoadingState';
 
 export const Route = createFileRoute('/_authed')({
   component: AuthedLayoutComponent,
 });
 
 function AuthedLayoutComponent() {
+  const { user, workspace, isLoading, logout } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <LoadingState message="Resolving authenticated session..." />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <div className="flex min-h-screen">
-      {/* Structural Sidebar Placeholder Shell */}
+      {/* Structural Sidebar Shell */}
       <aside className="w-64 border-r border-slate-200 bg-white p-4 hidden md:flex flex-col justify-between">
         <div>
           <div className="flex items-center gap-2 px-2 py-3 mb-6 border-b border-slate-100">
@@ -16,6 +32,18 @@ function AuthedLayoutComponent() {
               MVP
             </span>
           </div>
+
+          {/* Active Workspace Info */}
+          {workspace && (
+            <div className="mb-4 px-2 py-2 rounded bg-slate-50 border border-slate-200">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Workspace
+              </span>
+              <span className="text-sm font-medium text-slate-900 truncate block">
+                {workspace.name}
+              </span>
+            </div>
+          )}
 
           <nav className="space-y-1">
             <Link
@@ -57,12 +85,16 @@ function AuthedLayoutComponent() {
         </div>
 
         <div className="border-t border-slate-100 pt-3">
-          <Link
-            to="/login"
-            className="flex items-center px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+          <div className="mb-2 px-3">
+            <span className="text-xs text-slate-500 block truncate">{user.email}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="w-full text-left px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md"
           >
-            Sign In / Out
-          </Link>
+            Sign Out
+          </button>
         </div>
       </aside>
 

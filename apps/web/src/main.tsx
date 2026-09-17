@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { routeTree } from './routeTree.gen';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { queryClient } from './config/query';
+import { AuthProvider } from './lib/auth-context';
 import './index.css';
 
 const router = createRouter({
@@ -25,7 +26,9 @@ if (el) {
     <React.StrictMode>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </React.StrictMode>,
