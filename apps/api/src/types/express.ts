@@ -15,7 +15,7 @@ declare global {
   namespace Express {
     interface Request {
       requestId: string;
-      user?: RequestUser;
+      user?: User;
       workspace?: RequestWorkspace;
     }
   }

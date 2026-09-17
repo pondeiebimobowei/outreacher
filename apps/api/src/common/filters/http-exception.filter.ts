@@ -121,7 +121,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
         );
       }
     } else {
-      // Unexpected unhandled exceptions logged at ERROR with sanitized stack traces
       statusCode = Number(HttpStatus.INTERNAL_SERVER_ERROR);
       error = 'Internal Server Error';
       message = 'Internal server error';
