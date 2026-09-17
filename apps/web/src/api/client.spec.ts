@@ -59,7 +59,7 @@ describe('ApiClient', () => {
     );
   });
 
-  it('should perform POST request with JSON payload', async () => {
+  it('should perform POST request with JSON payload, credentials: include, and CSRF header', async () => {
     const mockResponse = { id: '123' };
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -76,6 +76,11 @@ describe('ApiClient', () => {
       'http://localhost:3000/api/v1/test',
       expect.objectContaining({
         method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        }),
         body: JSON.stringify(body),
       }),
     );
