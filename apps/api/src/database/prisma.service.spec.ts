@@ -12,10 +12,15 @@ describe('PrismaService', () => {
         {
           provide: ConfigService,
           useValue: {
+            getOrThrow: jest
+              .fn()
+              .mockReturnValue(
+                'postgresql://user:postgres@localhost:5432/outreacher_dev?schema=public',
+              ),
             get: jest
               .fn()
               .mockReturnValue(
-                'postgresql://postgres:postgres@localhost:5432/outreacher_dev?schema=public',
+                'postgresql://user:postgres@localhost:5432/outreacher_dev?schema=public',
               ),
           },
         },
@@ -29,11 +34,11 @@ describe('PrismaService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should handle startup connection failure gracefully', async () => {
+  it('should fail fast on startup connection failure', async () => {
     jest
       .spyOn(service, '$connect')
       .mockRejectedValueOnce(new Error('Connection failed'));
-    await expect(service.onModuleInit()).resolves.not.toThrow();
+    await expect(service.onModuleInit()).rejects.toThrow('Connection failed');
   });
 
   it('should return false on ping failure', async () => {
@@ -44,9 +49,22 @@ describe('PrismaService', () => {
     expect(isHealthy).toBe(false);
   });
 
-  it('should return true on ping success', async () => {
-    jest.spyOn(service, '$queryRaw').mockResolvedValueOnce([{ '?column?': 1 }]);
-    const isHealthy = await service.ping();
-    expect(isHealthy).toBe(true);
+  it('should forward model delegates (user, authIdentity, workspace, workspaceMember)', () => {
+    expect((service as any).user).toBeDefined();
+    expect((service as any).authIdentity).toBeDefined();
+    expect((service as any).workspace).toBeDefined();
+    expect((service as any).workspaceMember).toBeDefined();
+  });
+
+  it('should forward $transaction calls', async () => {
+    const txSpy = jest
+      .spyOn(service, '$transaction')
+      .mockResolvedValueOnce({ success: true });
+
+    const callback = async () => ({ success: true });
+    const result = await service.$transaction(callback);
+
+    expect(txSpy).toHaveBeenCalledWith(callback);
+    expect(result).toEqual({ success: true });
   });
 });

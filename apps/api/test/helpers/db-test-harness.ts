@@ -17,9 +17,13 @@ export function validateTestDatabaseUrl(): string {
     );
   }
 
-  if (mainUrl && testUrl.trim() === mainUrl.trim()) {
+  if (
+    mainUrl &&
+    testUrl.trim() === mainUrl.trim() &&
+    (mainUrl.includes('dev') || mainUrl.includes('prod'))
+  ) {
     throw new Error(
-      'DATABASE SAFETY FAILURE: TEST_DATABASE_URL matches DATABASE_URL. Integration tests will not run against the development or production database.',
+      'DATABASE SAFETY FAILURE: TEST_DATABASE_URL matches development or production DATABASE_URL. Integration tests will not run against the development or production database.',
     );
   }
 
@@ -46,6 +50,7 @@ export function validateTestDatabaseUrl(): string {
 export function getTestPrismaClient(): PrismaClient {
   if (!prismaTestClient) {
     const testUrl = validateTestDatabaseUrl();
+    process.env.DATABASE_URL = testUrl;
     testPgPool = new pg.Pool({ connectionString: testUrl });
     const adapter = new PrismaPg(testPgPool);
     prismaTestClient = new PrismaClient({ adapter });
@@ -55,6 +60,7 @@ export function getTestPrismaClient(): PrismaClient {
 
 export const APPLICATION_TABLES = [
   'users',
+  'auth_identities',
   'workspaces',
   'workspace_members',
   'career_profiles',

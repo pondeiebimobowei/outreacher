@@ -2,6 +2,7 @@
   "moduleFileExtensions": ["js", "json", "ts", "mjs"],
   "rootDir": "..",
   "modulePathIgnorePatterns": ["<rootDir>/dist"],
+  "unmockedModulePathPatterns": ["@repo/db"],
   "moduleNameMapper": {
     "^@repo/db$": "<rootDir>/../../packages/db/dist/cjs/src/index.js"
   },
