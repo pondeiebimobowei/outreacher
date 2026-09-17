@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { apiClient } from '../api/client';
+import { apiClient, ApiError } from '../api/client';
 
 export interface User {
   id: string;
@@ -13,7 +13,10 @@ export interface Workspace {
   ownerId?: string;
 }
 
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'bootstrap_error';
+
 export interface AuthContextType {
+  status: AuthStatus;
   user: User | null;
   workspace: Workspace | null;
   isLoading: boolean;
@@ -22,29 +25,37 @@ export interface AuthContextType {
   signup: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refetchAuth: () => Promise<void>;
+  retryBootstrap: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   const refetchAuth = useCallback(async () => {
-    setIsLoading(true);
+    setStatus('loading');
     setError(null);
     try {
       const res = await apiClient.get<{ user: User; workspace: Workspace }>('/auth/me');
       setUser(res.user);
       setWorkspace(res.workspace);
-    } catch (err) {
+      setStatus('authenticated');
+    } catch (err: unknown) {
       setUser(null);
       setWorkspace(null);
-      setError(err instanceof Error ? err : new Error('Authentication failed'));
-    } finally {
-      setIsLoading(false);
+
+      // Distinguish 401 (unauthenticated) from network/500 failures (bootstrap_error)
+      if (err instanceof ApiError && err.statusCode === 401) {
+        setStatus('unauthenticated');
+        setError(null);
+      } else {
+        setStatus('bootstrap_error');
+        setError(err instanceof Error ? err : new Error('Connection to server failed'));
+      }
     }
   }, []);
 
@@ -53,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refetchAuth]);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
+    setStatus('loading');
     setError(null);
     try {
       const res = await apiClient.post<{ user: User; workspace: Workspace }>('/auth/login', {
@@ -62,16 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(res.user);
       setWorkspace(res.workspace);
+      setStatus('authenticated');
     } catch (err) {
+      setStatus('unauthenticated');
       setError(err instanceof Error ? err : new Error('Login failed'));
       throw err;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signup = async (email: string, password: string, name?: string) => {
-    setIsLoading(true);
+    setStatus('loading');
     setError(null);
     try {
       const res = await apiClient.post<{ user: User; workspace: Workspace }>('/auth/signup', {
@@ -81,38 +92,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(res.user);
       setWorkspace(res.workspace);
+      setStatus('authenticated');
     } catch (err) {
+      setStatus('unauthenticated');
       setError(err instanceof Error ? err : new Error('Signup failed'));
       throw err;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const logout = async () => {
-    setIsLoading(true);
+    setStatus('loading');
     try {
       await apiClient.post('/auth/logout');
     } catch {
-      // Ignore logout API failures on client
+      // Ignore logout API network failures on client
     } finally {
       setUser(null);
       setWorkspace(null);
-      setIsLoading(false);
+      setError(null);
+      setStatus('unauthenticated');
     }
   };
 
   return (
     <AuthContext.Provider
       value={{
+        status,
         user,
         workspace,
-        isLoading,
+        isLoading: status === 'loading',
         error,
         login,
         signup,
         logout,
         refetchAuth,
+        retryBootstrap: refetchAuth,
       }}
     >
       {children}

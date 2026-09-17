@@ -1,15 +1,16 @@
 import { createFileRoute, Link, Navigate, Outlet } from '@tanstack/react-router';
 import { useAuth } from '../lib/auth-context';
 import { LoadingState } from '../components/states/LoadingState';
+import { ProfileBanner } from '../components/profile-banner';
 
 export const Route = createFileRoute('/_authed')({
   component: AuthedLayoutComponent,
 });
 
 function AuthedLayoutComponent() {
-  const { user, workspace, isLoading, logout } = useAuth();
+  const { status, user, workspace, logout, retryBootstrap, error } = useAuth();
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <LoadingState message="Resolving authenticated session..." />
@@ -17,7 +18,27 @@ function AuthedLayoutComponent() {
     );
   }
 
-  if (!user) {
+  if (status === 'bootstrap_error') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+        <div className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-xs text-center">
+          <div className="mb-3 text-red-600 font-semibold text-lg">Connection Error</div>
+          <p className="text-sm text-slate-600 mb-4">
+            {error?.message || 'Unable to connect to the authentication service.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => void retryBootstrap()}
+            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-slate-800"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -60,20 +81,18 @@ function AuthedLayoutComponent() {
             >
               Companies
             </Link>
-            <Link
-              to="/campaigns"
-              className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-              activeProps={{ className: 'bg-slate-100 text-slate-900 font-semibold' }}
-            >
-              Campaigns
-            </Link>
-            <Link
-              to="/templates"
-              className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-              activeProps={{ className: 'bg-slate-100 text-slate-900 font-semibold' }}
-            >
-              Templates
-            </Link>
+            <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span>Campaigns</span>
+              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
+                Soon
+              </span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-400 cursor-not-allowed">
+              <span>Templates</span>
+              <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
+                Soon
+              </span>
+            </div>
             <Link
               to="/settings"
               className="flex items-center px-3 py-2 text-sm font-medium rounded-md text-slate-700 hover:bg-slate-50 hover:text-slate-900"
@@ -100,6 +119,7 @@ function AuthedLayoutComponent() {
 
       {/* Main Content Area Container */}
       <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <ProfileBanner />
         <Outlet />
       </main>
     </div>

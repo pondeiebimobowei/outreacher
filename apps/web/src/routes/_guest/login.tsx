@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
+import React, { useEffect, useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 import { normalizeApiBaseUrl } from '../../api/client';
 import { webEnv } from '../../config/env.config';
@@ -8,8 +8,21 @@ export const Route = createFileRoute('/_guest/login')({
   component: LoginComponent,
 });
 
+const GOOGLE_ERROR_COPY_MAP: Record<string, string> = {
+  google_auth_failed:
+    'Google sign-in could not be completed. Please try again or sign in with email and password.',
+  account_conflict:
+    'An account with this email already exists using password authentication. Please sign in with your password.',
+  access_denied: 'Google sign-in permission was denied.',
+};
+
+function getAllowlistedErrorMessage(errorParam: string | null): string | null {
+  if (!errorParam) return null;
+  return GOOGLE_ERROR_COPY_MAP[errorParam] || 'An authentication error occurred. Please try again.';
+}
+
 function LoginComponent() {
-  const { user, login, signup, isLoading } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -19,9 +32,17 @@ function LoginComponent() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (!isLoading && user) {
-    return <Navigate to="/" replace />;
-  }
+  // Extract URL search parameters for Google OAuth error callbacks
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errParam = params.get('error');
+      const mappedMsg = getAllowlistedErrorMessage(errParam);
+      if (mappedMsg) {
+        setFormError(mappedMsg);
+      }
+    }
+  }, []);
 
   const apiBase = normalizeApiBaseUrl(webEnv.VITE_API_URL);
   const googleAuthUrl = `${apiBase}/auth/google`;
@@ -59,7 +80,10 @@ function LoginComponent() {
       </div>
 
       {formError && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+        <div
+          role="alert"
+          className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+        >
           {formError}
         </div>
       )}
@@ -73,6 +97,7 @@ function LoginComponent() {
             <input
               id="name"
               type="text"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Alex Smith"
@@ -89,6 +114,7 @@ function LoginComponent() {
             id="email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
@@ -105,6 +131,7 @@ function LoginComponent() {
             type="password"
             required
             minLength={8}
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
