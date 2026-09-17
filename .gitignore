@@ -13,3 +13,4 @@ dist-ssr
 server/dist
 docs
 packages/db/generated/
+.agents

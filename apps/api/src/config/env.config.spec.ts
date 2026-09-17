@@ -1,10 +1,14 @@
 import { validateEnv } from './env.config';
 
 describe('Environment Configuration Validation', () => {
+  const validDbUrl =
+    'postgresql://user:postgres@localhost:5432/outreacher_dev?schema=public';
+
   it('should validate valid development configuration', () => {
     const config = {
       NODE_ENV: 'development',
       PORT: '3000',
+      DATABASE_URL: validDbUrl,
       AUTH_SECRET: 'development_auth_secret_min_16_chars',
     };
 
@@ -16,6 +20,7 @@ describe('Environment Configuration Validation', () => {
 
   it('should throw clear failure when AUTH_SECRET is too short', () => {
     const config = {
+      DATABASE_URL: validDbUrl,
       AUTH_SECRET: 'short_secret',
     };
 
@@ -26,6 +31,7 @@ describe('Environment Configuration Validation', () => {
 
   it('should throw clear failure when NODE_ENV is invalid', () => {
     const config = {
+      DATABASE_URL: validDbUrl,
       NODE_ENV: 'invalid_env',
     };
 
@@ -37,6 +43,7 @@ describe('Environment Configuration Validation', () => {
   it('should throw clear failure in production when fallback AUTH_SECRET is used', () => {
     const config = {
       NODE_ENV: 'production',
+      DATABASE_URL: validDbUrl,
       AUTH_SECRET: 'development_auth_secret_min_16_chars',
     };
 
@@ -48,6 +55,7 @@ describe('Environment Configuration Validation', () => {
   it('should validate valid production configuration with explicit AUTH_SECRET', () => {
     const config = {
       NODE_ENV: 'production',
+      DATABASE_URL: validDbUrl,
       AUTH_SECRET: 'production_super_secret_key_123456789',
     };
 

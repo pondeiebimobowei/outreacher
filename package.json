@@ -19,11 +19,16 @@
     "db:studio": "pnpm --filter @repo/db run prisma:studio"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/passport-jwt": "^4.0.1",
     "prettier": "3.9.6",
     "turbo": "^2.10.13"
   },
   "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=24.20.0"
+  },
+  "dependencies": {
+    "@types/cookie-parser": "^1.4.10"
   }
 }
