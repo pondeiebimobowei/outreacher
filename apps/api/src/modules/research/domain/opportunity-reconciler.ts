@@ -1,3 +1,5 @@
+import { ResearchOpportunityInput } from './research.provider.interface';
+
 export interface ExistingOpportunityRecord {
   id: string;
   roleTitle: string | null;
@@ -7,17 +9,8 @@ export interface ExistingOpportunityRecord {
 }
 
 export interface ReconciledOpportunitiesResult {
-  toUpdate: Array<{
-    id: string;
-    roleTitle: string;
-    openingSourceUrl?: string | null;
-    opportunityType: 'CONFIRMED' | 'PROACTIVE';
-  }>;
-  toCreate: Array<{
-    roleTitle: string;
-    openingSourceUrl?: string | null;
-    opportunityType: 'CONFIRMED' | 'PROACTIVE';
-  }>;
+  toUpdate: Array<ResearchOpportunityInput & { id: string }>;
+  toCreate: ResearchOpportunityInput[];
   toSupersede: string[];
 }
 
@@ -33,11 +26,7 @@ export class OpportunityReconciler {
 
   static reconcile(
     existingActive: ExistingOpportunityRecord[],
-    incoming: Array<{
-      roleTitle: string;
-      openingSourceUrl?: string | null;
-      opportunityType: 'CONFIRMED' | 'PROACTIVE';
-    }>,
+    incoming: ResearchOpportunityInput[],
   ): ReconciledOpportunitiesResult {
     const existingMap = new Map<string, ExistingOpportunityRecord>();
     for (const opp of existingActive) {
@@ -57,10 +46,8 @@ export class OpportunityReconciler {
 
       if (matched) {
         toUpdate.push({
+          ...inc,
           id: matched.id,
-          roleTitle: inc.roleTitle,
-          openingSourceUrl: inc.openingSourceUrl,
-          opportunityType: inc.opportunityType,
         });
         matchedExistingIds.add(matched.id);
       } else {

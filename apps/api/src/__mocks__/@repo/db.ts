@@ -12,6 +12,40 @@ export enum CompanyStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export enum ResearchRunStatus {
+  QUEUED = 'QUEUED',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  PARTIAL = 'PARTIAL',
+  FAILED = 'FAILED',
+}
+
+export enum OpportunityType {
+  CONFIRMED = 'CONFIRMED',
+  PROACTIVE = 'PROACTIVE',
+  UNCLASSIFIED = 'UNCLASSIFIED',
+}
+
+export enum OpportunityStatus {
+  ACTIVE = 'ACTIVE',
+  CLOSED = 'CLOSED',
+  SUPERSEDED = 'SUPERSEDED',
+}
+
+export enum EvidenceClassification {
+  FACT = 'FACT',
+  INFERENCE = 'INFERENCE',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export enum JobStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  DEAD_LETTER = 'DEAD_LETTER',
+}
+
 export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
@@ -61,6 +95,42 @@ export class PrismaClient {
   };
 
   company = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  researchRun = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  opportunity = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  evidence = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  job = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),

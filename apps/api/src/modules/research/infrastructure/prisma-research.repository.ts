@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CompanyStatus, ResearchRun } from '@repo/db';
+import {
+  CompanyStatus,
+  Evidence,
+  Job,
+  Opportunity,
+  Prisma,
+  ResearchRun,
+} from '@repo/db';
 import { AppNotFoundException } from '../../../common/errors/application.exception';
 import { PrismaService } from '../../../database/prisma.service';
 import { EvidenceDeduplicator } from '../domain/evidence-deduplicator';
@@ -21,7 +28,7 @@ export class PrismaResearchRepository implements IResearchRepository {
   ): Promise<StartResearchResult> {
     const { companyId, workspaceId, forceRefresh = false } = options;
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Lock company row with raw query or atomic lookup to serialize admission decisions
       const company = await tx.company.findFirst({
         where: {
@@ -77,7 +84,7 @@ export class PrismaResearchRepository implements IResearchRepository {
           },
         });
 
-        const forcedRefreshCount = recentJobs.filter((job) => {
+        const forcedRefreshCount = recentJobs.filter((job: Job) => {
           const payload = job.payload as Record<string, unknown> | null;
           return (
             payload?.companyId === companyId && payload?.forceRefresh === true
@@ -167,7 +174,7 @@ export class PrismaResearchRepository implements IResearchRepository {
     researchRunId: string,
     result: CompanyResearchResult,
   ): Promise<ResearchRun> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const run = await tx.researchRun.findFirst({
         where: { id: researchRunId, workspaceId },
       });
@@ -191,7 +198,7 @@ export class PrismaResearchRepository implements IResearchRepository {
       });
 
       const oppReconciled = OpportunityReconciler.reconcile(
-        existingActiveOpps.map((o) => ({
+        existingActiveOpps.map((o: Opportunity) => ({
           id: o.id,
           roleTitle: o.roleTitle,
           openingSourceUrl: o.openingSourceUrl,
@@ -265,7 +272,7 @@ export class PrismaResearchRepository implements IResearchRepository {
       });
 
       const evDeduplicated = EvidenceDeduplicator.deduplicate(
-        existingEvidence.map((e) => ({
+        existingEvidence.map((e: Evidence) => ({
           id: e.id,
           claim: e.claim,
           classification: e.classification,
