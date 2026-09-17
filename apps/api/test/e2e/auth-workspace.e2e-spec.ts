@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { AuthProvider } from '@repo/db';
 import { AppModule } from '../../src/app.module';
 import {
   cleanTestDatabase,
@@ -15,6 +16,13 @@ jest.unmock('@repo/db');
 
 describe('Auth & Workspace Engine (e2e)', () => {
   let app: INestApplication<App>;
+
+  it('verifies AuthProvider enum runtime resolution in Jest', () => {
+    expect(AuthProvider).toEqual({
+      PASSWORD: 'PASSWORD',
+      GOOGLE: 'GOOGLE',
+    });
+  });
 
   beforeAll(async () => {
     // 1. Validate TEST_DATABASE_URL safety & initialize test DB
