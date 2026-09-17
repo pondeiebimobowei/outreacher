@@ -7,6 +7,11 @@ export enum WorkspaceRole {
   OWNER = 'OWNER',
 }
 
+export enum CompanyStatus {
+  ACTIVE = 'ACTIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
 export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
@@ -47,6 +52,15 @@ export class PrismaClient {
   };
 
   workspaceMember = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  company = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),

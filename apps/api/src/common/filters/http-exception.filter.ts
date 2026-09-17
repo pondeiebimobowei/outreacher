@@ -138,7 +138,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    const payload: StructuredErrorResponse = {
+    const resObj =
+      exception instanceof HttpException &&
+      typeof exception.getResponse() === 'object' &&
+      exception.getResponse() !== null
+        ? (exception.getResponse() as Record<string, unknown>)
+        : {};
+
+    const payload: StructuredErrorResponse & Record<string, unknown> = {
       statusCode,
       error,
       message,
@@ -147,6 +154,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: sanitizedPath,
       ...(details ? { details } : {}),
+      ...resObj,
     };
 
     response.status(statusCode).json(payload);

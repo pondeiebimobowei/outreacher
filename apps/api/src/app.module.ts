@@ -13,6 +13,7 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { WorkspaceModule } from './modules/workspaces/workspace.module';
+import { CompanyModule } from './modules/company/company.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { WorkspaceModule } from './modules/workspaces/workspace.module';
     AuthModule,
     WorkspaceModule,
     ProfileModule,
+    CompanyModule,
   ],
   controllers: [AppController],
   providers: [

@@ -9,6 +9,7 @@ export interface ApiErrorResponse {
   timestamp?: string;
   path?: string;
   details?: Record<string, unknown>;
+  existingCompanyId?: string;
 }
 
 export class ApiError extends Error {
@@ -17,6 +18,7 @@ export class ApiError extends Error {
   public readonly errorDetails?: string;
   public readonly path?: string;
   public readonly requestId?: string;
+  public readonly existingCompanyId?: string;
   public readonly rawMessage: string | string[];
 
   constructor(
@@ -33,6 +35,8 @@ export class ApiError extends Error {
     this.code = data?.code ?? 'UNKNOWN_ERROR';
     this.errorDetails = data?.error;
     this.path = data?.path;
+    this.existingCompanyId =
+      data?.existingCompanyId ?? (data?.details?.existingCompanyId as string | undefined);
     // Canonical source: response header x-request-id; fallback: response JSON requestId
     this.requestId = headerRequestId || data?.requestId || undefined;
     this.rawMessage = rawMsg;

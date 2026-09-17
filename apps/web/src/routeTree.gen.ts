@@ -17,6 +17,7 @@ import { Route as AuthedCompaniesRouteImport } from './routes/_authed/companies'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedTemplatesRouteImport } from './routes/_authed/templates'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
+import { Route as AuthedCompaniesIdRouteImport } from './routes/_authed/companies.$id'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -56,40 +57,61 @@ const GuestLoginRoute = GuestLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthedCompaniesIdRoute = AuthedCompaniesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthedCompaniesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/campaigns': typeof AuthedCampaignsRoute
-  '/companies': typeof AuthedCompaniesRoute
+  '/companies': typeof AuthedCompaniesRouteWithChildren
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
+  '/companies/$id': typeof AuthedCompaniesIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/campaigns': typeof AuthedCampaignsRoute
-  '/companies': typeof AuthedCompaniesRoute
+  '/companies': typeof AuthedCompaniesRouteWithChildren
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
+  '/companies/$id': typeof AuthedCompaniesIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
   '/_authed/campaigns': typeof AuthedCampaignsRoute
-  '/_authed/companies': typeof AuthedCompaniesRoute
+  '/_authed/companies': typeof AuthedCompaniesRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/templates': typeof AuthedTemplatesRoute
   '/_guest/login': typeof GuestLoginRoute
   '/_authed/': typeof AuthedIndexRoute
+  '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/campaigns' | '/companies' | '/settings' | '/templates' | '/login'
+    | '/'
+    | '/campaigns'
+    | '/companies'
+    | '/settings'
+    | '/templates'
+    | '/login'
+    | '/companies/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/campaigns' | '/companies' | '/settings' | '/templates' | '/login'
+  to:
+    | '/'
+    | '/campaigns'
+    | '/companies'
+    | '/settings'
+    | '/templates'
+    | '/login'
+    | '/companies/$id'
   id:
     | '__root__'
     | '/_authed'
@@ -100,6 +122,7 @@ export interface FileRouteTypes {
     | '/_authed/templates'
     | '/_guest/login'
     | '/_authed/'
+    | '/_authed/companies/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,12 +188,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestLoginRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/companies/$id': {
+      id: '/_authed/companies/$id'
+      path: '/$id'
+      fullPath: '/companies/$id'
+      preLoaderRoute: typeof AuthedCompaniesIdRouteImport
+      parentRoute: typeof AuthedCompaniesRoute
+    }
   }
 }
 
+interface AuthedCompaniesRouteChildren {
+  AuthedCompaniesIdRoute: typeof AuthedCompaniesIdRoute
+}
+
+const AuthedCompaniesRouteChildren: AuthedCompaniesRouteChildren = {
+  AuthedCompaniesIdRoute: AuthedCompaniesIdRoute,
+}
+
+const AuthedCompaniesRouteWithChildren = AuthedCompaniesRoute._addFileChildren(
+  AuthedCompaniesRouteChildren,
+)
+
 interface AuthedRouteChildren {
   AuthedCampaignsRoute: typeof AuthedCampaignsRoute
-  AuthedCompaniesRoute: typeof AuthedCompaniesRoute
+  AuthedCompaniesRoute: typeof AuthedCompaniesRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedTemplatesRoute: typeof AuthedTemplatesRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
@@ -178,7 +220,7 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedCampaignsRoute: AuthedCampaignsRoute,
-  AuthedCompaniesRoute: AuthedCompaniesRoute,
+  AuthedCompaniesRoute: AuthedCompaniesRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedTemplatesRoute: AuthedTemplatesRoute,
   AuthedIndexRoute: AuthedIndexRoute,

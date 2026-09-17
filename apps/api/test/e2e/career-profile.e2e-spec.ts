@@ -53,8 +53,10 @@ describe('Career Profile Engine (e2e)', () => {
       .send({
         email,
         password: 'Password123!',
-      });
-    const cookies = signupRes.get('Set-Cookie') || [];
+        name: 'Test User',
+      })
+      .expect(201);
+    const cookies = signupRes.get('Set-Cookie') as string[];
     return { cookies, body: signupRes.body };
   }
 
