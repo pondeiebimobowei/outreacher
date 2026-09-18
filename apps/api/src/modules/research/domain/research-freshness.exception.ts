@@ -9,7 +9,7 @@ export class ResearchFreshnessLimitException extends AppException {
     super(
       `Forced research rate limit reached for company ${companyId}. Maximum 3 forced refreshes allowed per 24-hour period.`,
       HttpStatus.TOO_MANY_REQUESTS,
-      ErrorCode.RATE_LIMITED,
+      ErrorCode.RESEARCH_FRESHNESS_LIMIT_EXCEEDED,
       { companyId },
     );
     this.companyId = companyId;
@@ -18,7 +18,7 @@ export class ResearchFreshnessLimitException extends AppException {
   override getResponse() {
     return {
       statusCode: HttpStatus.TOO_MANY_REQUESTS,
-      code: ErrorCode.RATE_LIMITED,
+      code: ErrorCode.RESEARCH_FRESHNESS_LIMIT_EXCEEDED,
       message: `Forced research rate limit reached for company ${this.companyId}. Maximum 3 forced refreshes allowed per 24-hour period.`,
       details: { companyId: this.companyId },
     };

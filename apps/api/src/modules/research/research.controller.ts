@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import express from 'express';
@@ -27,6 +28,7 @@ export class ResearchController {
   @Post()
   async startResearch(
     @Req() req: express.Request,
+    @Res({ passthrough: true }) res: express.Response,
     @Param('companyId') companyId: string,
     @Body() dto: StartResearchDto,
   ) {
@@ -34,11 +36,13 @@ export class ResearchController {
     if (!workspace?.id) {
       throw new AppUnauthorizedException('Workspace context is missing.');
     }
-    return this.startCompanyResearchUseCase.execute(
+    const result = await this.startCompanyResearchUseCase.execute(
       workspace.id,
       companyId,
       dto,
     );
+    res.status(result.reused ? 200 : 202);
+    return result;
   }
 
   @Get()

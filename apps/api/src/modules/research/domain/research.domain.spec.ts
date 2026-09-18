@@ -192,11 +192,11 @@ describe('Research Domain & Security Utilities', () => {
   });
 
   describe('ResearchFreshnessLimitException', () => {
-    it('returns HTTP 429 and RATE_LIMITED error code', () => {
+    it('returns HTTP 429 and RESEARCH_FRESHNESS_LIMIT_EXCEEDED error code', () => {
       const exception = new ResearchFreshnessLimitException('comp-123');
       expect(exception.getStatus()).toBe(429);
       const res = exception.getResponse() as any;
-      expect(res.code).toBe('RATE_LIMITED');
+      expect(res.code).toBe('RESEARCH_FRESHNESS_LIMIT_EXCEEDED');
       expect(res.message).toContain('comp-123');
     });
   });

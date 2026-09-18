@@ -94,7 +94,7 @@ describe('Research Workspace Engine (e2e)', () => {
         .set('Cookie', cookies)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({})
-        .expect(201);
+        .expect(202);
 
       expect(res.body.reused).toBe(false);
       expect(res.body.researchRun).toEqual(
@@ -138,7 +138,7 @@ describe('Research Workspace Engine (e2e)', () => {
         .set('Cookie', cookies)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: false })
-        .expect(201);
+        .expect(200);
 
       expect(res.body.reused).toBe(true);
       expect(res.body.researchRun.id).toBe(completedRun.id);
@@ -163,15 +163,14 @@ describe('Research Workspace Engine (e2e)', () => {
         .set('Cookie', cookies)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: true })
-        .expect(201);
+        .expect(202);
 
       expect(res.body.reused).toBe(false);
       expect(res.body.researchRun.status).toBe('QUEUED');
     });
 
     it('enforces 3 forced-refreshes per 24h rate limit and returns 429', async () => {
-      const { cookies, workspace } =
-        await createAuthenticatedUser('user1@example.com');
+      const { cookies } = await createAuthenticatedUser('user1@example.com');
       const company = await createCompany(cookies, 'Gamma Research Corp');
 
       // Execute 3 forced refreshes, completing each run
@@ -181,7 +180,7 @@ describe('Research Workspace Engine (e2e)', () => {
           .set('Cookie', cookies)
           .set('X-Requested-With', 'XMLHttpRequest')
           .send({ forceRefresh: true })
-          .expect(201);
+          .expect(202);
 
         // Mark run completed to allow next forced refresh
         await prisma.researchRun.update({
@@ -190,7 +189,7 @@ describe('Research Workspace Engine (e2e)', () => {
         });
       }
 
-      // 4th forced refresh should fail with 429 RATE_LIMITED
+      // 4th forced refresh should fail with 429 RESEARCH_FRESHNESS_LIMIT_EXCEEDED
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
         .set('Cookie', cookies)
@@ -201,7 +200,7 @@ describe('Research Workspace Engine (e2e)', () => {
       expect(res.body).toEqual(
         expect.objectContaining({
           statusCode: 429,
-          code: 'RATE_LIMITED',
+          code: 'RESEARCH_FRESHNESS_LIMIT_EXCEEDED',
         }),
       );
     });
