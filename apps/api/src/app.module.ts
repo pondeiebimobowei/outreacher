@@ -17,6 +17,7 @@ import { CompanyModule } from './modules/company/company.module';
 import { ResearchModule } from './modules/research/research.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { OutreachModule } from './modules/outreach/outreach.module';
+import { CampaignModule } from './modules/campaign/campaign.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { OutreachModule } from './modules/outreach/outreach.module';
     ResearchModule,
     ContactModule,
     OutreachModule,
+    CampaignModule,
   ],
   controllers: [AppController],
   providers: [
