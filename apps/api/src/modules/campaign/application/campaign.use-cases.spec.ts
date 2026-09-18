@@ -55,6 +55,8 @@ describe('CreateCampaignUseCase', () => {
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
       updateStatus: jest.fn(),
+      findExistingContactBindings: jest.fn(),
+      createContactBindings: jest.fn(),
     };
     companyRepo = {
       create: jest.fn(),
@@ -176,6 +178,8 @@ describe('GetCampaignUseCase', () => {
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
       updateStatus: jest.fn(),
+      findExistingContactBindings: jest.fn(),
+      createContactBindings: jest.fn(),
     };
     useCase = new GetCampaignUseCase(campaignRepo);
   });
@@ -219,6 +223,8 @@ describe('ListCampaignsUseCase', () => {
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
       updateStatus: jest.fn(),
+      findExistingContactBindings: jest.fn(),
+      createContactBindings: jest.fn(),
     };
     useCase = new ListCampaignsUseCase(campaignRepo);
   });

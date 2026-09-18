@@ -5,13 +5,18 @@ import {
   teardownTestDatabase,
 } from '../helpers/db-test-harness';
 import { PrismaCampaignRepository } from '../../src/modules/campaign/infrastructure/prisma-campaign.repository';
+import { PrismaContactRepository } from '../../src/modules/contact/infrastructure/prisma-contact.repository';
+import { AddCampaignContactsUseCase } from '../../src/modules/campaign/application/add-campaign-contacts.use-case';
 import { PrismaService } from '../../src/database/prisma.service';
+import { AppNotFoundException } from '../../src/common/errors/application.exception';
 
 jest.unmock('@repo/db');
 
 describe('AddCampaignContacts (PostgreSQL Integration)', () => {
   let realPrisma: PrismaClient;
   let campaignRepo: PrismaCampaignRepository;
+  let contactRepo: PrismaContactRepository;
+  let useCase: AddCampaignContactsUseCase;
 
   // Seeded entity IDs
   let workspaceId: string;
@@ -22,10 +27,10 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
 
   beforeAll(async () => {
     realPrisma = await setupTestDatabase();
-    // Provide the real PrismaClient as PrismaService (structurally compatible)
-    campaignRepo = new PrismaCampaignRepository(
-      realPrisma as unknown as PrismaService,
-    );
+    const prismaService = realPrisma as unknown as PrismaService;
+    campaignRepo = new PrismaCampaignRepository(prismaService);
+    contactRepo = new PrismaContactRepository(prismaService);
+    useCase = new AddCampaignContactsUseCase(campaignRepo, contactRepo);
   });
 
   beforeEach(async () => {
@@ -80,73 +85,50 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     await teardownTestDatabase();
   });
 
-  it('creates exactly zero CampaignContact records when the request is invalid', async () => {
-    // Attempt to bind contactId1 (valid) together with a non-existent ID (invalid)
-    // The all-or-nothing contract means we do NOT call createContactBindings in this path —
-    // the use case throws before reaching the repository. We test the lower layer directly:
-    // if we only ask the repository for a set of existing bindings before the bad ID is even looked up,
-    // we verify the DB remains clean.
+  it('creates exactly zero CampaignContact records when the request contains an invalid contact', async () => {
+    const invalidContactId = '00000000-0000-0000-0000-000000000000';
 
-    // Simulate the state after the use case validates everything is ok with contactId1 only:
-    const countBefore = await realPrisma.campaignContact.count({
+    await expect(
+      useCase.execute(workspaceId, campaignId, {
+        contactIds: [contactId1, invalidContactId],
+      }),
+    ).rejects.toThrow(AppNotFoundException);
+
+    const count = await realPrisma.campaignContact.count({
       where: { campaignId },
     });
-
-    // Attempt to create bindings with an ID that does not exist in the DB — this should
-    // succeed at the repository level (createContactBindings doesn't re-validate);
-    // the all-or-nothing guarantee lives in the use case. We test it here at the DB level
-    // by confirming createMany with valid IDs creates exactly the right count.
-    await campaignRepo.createContactBindings(workspaceId, campaignId, [
-      contactId1,
-    ]);
-    const countAfter = await realPrisma.campaignContact.count({
-      where: { campaignId },
-    });
-
-    // A single valid contact creates exactly one record
-    expect(countAfter - countBefore).toBe(1);
-
-    // Now verify the "rollback" side: if the use case had caught an invalid contact,
-    // no additional records would appear beyond the initial state.
-    const recheck = await realPrisma.campaignContact.count({
-      where: { campaignId },
-    });
-    expect(recheck).toBe(1);
+    expect(count).toBe(0);
   });
 
   it('submitting the same valid contact twice creates exactly one binding', async () => {
-    // First submission
-    await campaignRepo.createContactBindings(workspaceId, campaignId, [
-      contactId1,
-    ]);
+    const firstResult = await useCase.execute(workspaceId, campaignId, {
+      contactIds: [contactId1],
+    });
+    expect(firstResult.bound).toHaveLength(1);
+    expect(firstResult.ignoredDuplicateCount).toBe(0);
 
-    // Find existing — contact is already bound
-    const existingAfterFirst = await campaignRepo.findExistingContactBindings(
-      workspaceId,
-      campaignId,
-      [contactId1],
-    );
-    expect(existingAfterFirst.has(contactId1)).toBe(true);
-
-    // Second submission: use case filters out duplicates before calling createContactBindings,
-    // so newContactIds would be empty. We verify DB directly:
-    const countBefore = await realPrisma.campaignContact.count({
+    const countAfterFirst = await realPrisma.campaignContact.count({
       where: { campaignId },
     });
-    // Simulating the idempotency layer: no createContactBindings called for duplicates
-    const countAfter = await realPrisma.campaignContact.count({
+    expect(countAfterFirst).toBe(1);
+
+    const secondResult = await useCase.execute(workspaceId, campaignId, {
+      contactIds: [contactId1],
+    });
+    expect(secondResult.bound).toHaveLength(0);
+    expect(secondResult.ignoredDuplicateCount).toBe(1);
+
+    const countAfterSecond = await realPrisma.campaignContact.count({
       where: { campaignId },
     });
-    expect(countAfter).toBe(countBefore); // Still exactly 1
+    expect(countAfterSecond).toBe(1);
   });
 
   it('retrying an existing binding does not change status, subject, or body', async () => {
-    // Create initial binding
-    await campaignRepo.createContactBindings(workspaceId, campaignId, [
-      contactId1,
-    ]);
+    await useCase.execute(workspaceId, campaignId, {
+      contactIds: [contactId1],
+    });
 
-    // Mutate it to simulate BL-011/012 work
     const binding = await realPrisma.campaignContact.findFirst({
       where: { campaignId, contactId: contactId1 },
     });
@@ -161,29 +143,31 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
       },
     });
 
-    // Idempotency check: the existing binding is returned by findExistingContactBindings
-    const existing = await campaignRepo.findExistingContactBindings(
-      workspaceId,
-      campaignId,
-      [contactId1],
-    );
-    expect(existing.has(contactId1)).toBe(true);
+    const retryResult = await useCase.execute(workspaceId, campaignId, {
+      contactIds: [contactId1],
+    });
+    expect(retryResult.bound).toHaveLength(0);
+    expect(retryResult.ignoredDuplicateCount).toBe(1);
 
-    // The use case would NOT call createContactBindings for this contact.
-    // We verify the record is unchanged:
     const unchanged = await realPrisma.campaignContact.findFirst({
       where: { campaignId, contactId: contactId1 },
     });
     expect(unchanged!.status).toBe('READY');
     expect(unchanged!.currentSubject).toBe('Subject after review');
     expect(unchanged!.currentBody).toBe('Body after review');
+
+    const totalCount = await realPrisma.campaignContact.count({
+      where: { campaignId },
+    });
+    expect(totalCount).toBe(1);
   });
 
   it('newly created bindings always have status PENDING', async () => {
-    await campaignRepo.createContactBindings(workspaceId, campaignId, [
-      contactId1,
-      contactId2,
-    ]);
+    const result = await useCase.execute(workspaceId, campaignId, {
+      contactIds: [contactId1, contactId2],
+    });
+    expect(result.bound).toHaveLength(2);
+    expect(result.ignoredDuplicateCount).toBe(0);
 
     const bindings = await realPrisma.campaignContact.findMany({
       where: { campaignId },
@@ -196,7 +180,6 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
   });
 
   it('findExistingContactBindings returns only the subset of already-bound IDs', async () => {
-    // Bind only contactId1
     await campaignRepo.createContactBindings(workspaceId, campaignId, [
       contactId1,
     ]);
