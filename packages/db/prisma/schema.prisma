@@ -175,8 +175,9 @@ model Workspace {
   emailEvents      EmailEvent[]
   suppressions     Suppression[]
   outcomes         Outcome[]
-  emailTemplates   EmailTemplate[]
-  jobs             Job[]
+  emailTemplates           EmailTemplate[]
+  jobs                     Job[]
+  companyContactSelections CompanyContactSelection[]
 
   @@map("workspaces")
 }
@@ -235,9 +236,10 @@ model Company {
   workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contacts      Contact[]
   researchRuns  ResearchRun[]
-  opportunities Opportunity[]
-  evidence      Evidence[]
-  campaigns     Campaign[]
+  opportunities            Opportunity[]
+  evidence                 Evidence[]
+  campaigns                Campaign[]
+  companyContactSelections CompanyContactSelection[]
 
   @@unique([workspaceId, normalizedName])
   @@index([workspaceId])
@@ -302,7 +304,7 @@ model Contact {
   companyId    String      @map("company_id")
   contactKind  ContactKind @default(PERSON) @map("contact_kind")
   name         String
-  email        String
+  email        String?
   title        String?
   source       String?
   sourceUrl    String?     @map("source_url")
@@ -311,15 +313,33 @@ model Contact {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
-  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  evidence         Evidence[]
-  campaignContacts CampaignContact[]
+  workspace                Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company                  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  evidence                 Evidence[]
+  campaignContacts         CampaignContact[]
+  companyContactSelections CompanyContactSelection[]
 
   @@unique([workspaceId, companyId, email])
   @@index([workspaceId, companyId])
   @@index([workspaceId, email])
   @@map("contacts")
+}
+
+model CompanyContactSelection {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  companyId   String   @map("company_id")
+  contactId   String   @map("contact_id")
+  selectedAt  DateTime @default(now()) @map("selected_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, companyId])
+  @@index([workspaceId, companyId])
+  @@index([workspaceId, contactId])
+  @@map("company_contact_selections")
 }
 
 model Evidence {

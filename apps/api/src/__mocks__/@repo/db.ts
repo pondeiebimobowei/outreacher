@@ -38,6 +38,11 @@ export enum EvidenceClassification {
   UNKNOWN = 'UNKNOWN',
 }
 
+export enum ContactKind {
+  PERSON = 'PERSON',
+  ROLE_ADDRESS = 'ROLE_ADDRESS',
+}
+
 export enum JobStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
@@ -118,6 +123,26 @@ export class PrismaClient {
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  contact = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+  };
+
+  companyContactSelection = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
     delete: jest.fn(),
   };
 
