@@ -9,6 +9,7 @@ import { MockCompanyResearchProvider } from './infrastructure/mock-company-resea
 import { PrismaResearchRepository } from './infrastructure/prisma-research.repository';
 import { ResearchController } from './research.controller';
 import { ResearchWorker } from './worker/research.worker';
+import { ResearchWorkerRunner } from './worker/research-worker.runner';
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
@@ -25,6 +26,7 @@ import { ResearchWorker } from './worker/research.worker';
     StartCompanyResearchUseCase,
     GetCompanyResearchUseCase,
     ResearchWorker,
+    ResearchWorkerRunner,
   ],
   exports: [
     RESEARCH_REPOSITORY_TOKEN,
@@ -35,3 +37,4 @@ import { ResearchWorker } from './worker/research.worker';
   ],
 })
 export class ResearchModule {}
+

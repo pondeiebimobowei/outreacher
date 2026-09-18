@@ -25,7 +25,7 @@ jest.mock('@tanstack/react-router', () => ({
   useParams: () => ({ id: 'comp-100' }),
 }));
 
-describe('CompanyDetailRoute Component with Research Engine', () => {
+describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', () => {
   const mockGet = apiClient.get as jest.MockedFunction<typeof apiClient.get>;
   const mockPost = apiClient.post as jest.MockedFunction<typeof apiClient.post>;
 
@@ -43,6 +43,17 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
     location: 'SF',
     linkedinUrl: null,
     status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const mockProfile = {
+    id: 'prof-1',
+    workspaceId: 'ws-1',
+    targetRoles: ['Backend Engineer', 'Engineering Manager'],
+    targetIndustries: ['Technology'],
+    targetLocations: ['Remote'],
+    skills: ['TypeScript', 'NestJS'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -66,6 +77,7 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
   it('renders NOT_STARTED research status and Start Research CTA', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfile;
       if (url === '/companies/comp-100/research') {
         return {
           run: null,
@@ -92,6 +104,7 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
   it('triggers startCompanyResearch on CTA click', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfile;
       if (url === '/companies/comp-100/research') {
         return {
           run: null,
@@ -123,9 +136,10 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
     });
   });
 
-  it('renders COMPLETED research state with openings, evidence, and mock badge', async () => {
+  it('renders COMPLETED research state with decision hierarchy, evidence toggle, profile fit, and next-step preview CTA', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfile;
       if (url === '/companies/comp-100/research') {
         return {
           run: {
@@ -150,6 +164,7 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
               classification: 'FACT',
               sourceName: 'Careers Page',
               sourceUrl: 'https://acme.com/tech',
+              sourceExcerpt: 'Rebuilding core backend with NestJS and Postgres.',
               confidence: 0.95,
             },
           ],
@@ -172,19 +187,43 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
     expect(screen.getByText('CONFIRMED')).toBeInTheDocument();
     expect(screen.getByText('Uses NestJS & PostgreSQL')).toBeInTheDocument();
     expect(screen.getByText('FACT')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^refresh research$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^force refresh$/i })).toBeInTheDocument();
+
+    // Target Role Fit section checks
+    expect(screen.getByText(/Target Roles Matched/i)).toBeInTheDocument();
+
+    // Next step preview CTA check
+    expect(screen.getByRole('button', { name: /discover contacts/i })).toBeDisabled();
+
+    // Toggle evidence detail expansion
+    const toggleBtn = screen.getByRole('button', { name: /view evidence/i });
+    expect(toggleBtn).toBeInTheDocument();
+    expect(screen.queryByText(/"Rebuilding core backend with NestJS and Postgres."/i)).not.toBeInTheDocument();
+
+    fireEvent.click(toggleBtn);
+
+    expect(screen.getByText(/"Rebuilding core backend with NestJS and Postgres."/i)).toBeInTheDocument();
   });
 
-  it('renders PARTIAL RESULTS warning badge for partial research runs', async () => {
+  it('renders REFRESHING IN BACKGROUND status while preserving existing research on screen', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfile;
       if (url === '/companies/comp-100/research') {
         return {
-          run: { id: 'run-partial', status: 'PARTIAL' },
-          opportunities: [],
+          run: {
+            id: 'run-1',
+            status: 'RUNNING',
+            summary: 'Existing research summary preserved during refresh.',
+          },
+          opportunities: [
+            {
+              id: 'opp-1',
+              roleTitle: 'Existing Opportunity Title',
+              opportunityType: 'CONFIRMED',
+            },
+          ],
           evidence: [],
-          status: 'PARTIAL',
+          status: 'RUNNING',
           jobStatus: null,
           mock: true,
         };
@@ -195,13 +234,18 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
     renderWithProviders(<Component />);
 
     await waitFor(() => {
-      expect(screen.getByText('PARTIAL RESULTS')).toBeInTheDocument();
+      expect(screen.getByText('REFRESHING IN BACKGROUND')).toBeInTheDocument();
     });
+
+    // Existing findings preserved on screen
+    expect(screen.getByText('Existing research summary preserved during refresh.')).toBeInTheDocument();
+    expect(screen.getByText('Existing Opportunity Title')).toBeInTheDocument();
   });
 
   it('displays rate limit error alert when forced refresh returns 429', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfile;
       if (url === '/companies/comp-100/research') {
         return {
           run: { id: 'run-1', status: 'COMPLETED' },
@@ -219,7 +263,7 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
       new ApiError(429, {
         statusCode: 429,
         code: 'RATE_LIMITED',
-        message: 'Forced research rate limit reached.',
+        message: 'Maximum 3 forced refreshes per company per 24 hours reached.',
       }),
     );
 
@@ -235,6 +279,6 @@ describe('CompanyDetailRoute Component with Research Engine', () => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/forced research rate limit reached/i)).toBeInTheDocument();
+    expect(screen.getByText(/Maximum 3 forced refreshes per company per 24 hours reached/i)).toBeInTheDocument();
   });
 });

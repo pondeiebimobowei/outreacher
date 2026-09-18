@@ -105,16 +105,18 @@ export class ResearchWorker {
 
     try {
       // Fetch company record to provide context to provider
-      const company = await this.researchRepository.findRunById(
-        workspaceId,
-        researchRunId,
-      );
+      const company = await this.prisma.company.findFirst({
+        where: { id: companyId, workspaceId },
+      });
 
       // Invoke provider with 30s timeout outside DB transaction
       providerResult = await this.executeProviderWithTimeout({
         companyId,
         workspaceId,
-        companyName: company?.id || companyId,
+        companyName: company?.name || 'Target Company',
+        websiteUrl: company?.websiteUrl ?? undefined,
+        domain: company?.domain ?? undefined,
+        industry: company?.industry ?? undefined,
       });
     } catch (error: any) {
       this.logger.error(

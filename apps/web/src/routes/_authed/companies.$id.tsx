@@ -3,8 +3,9 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ApiError } from '../../api/client';
 import { CompanyDto, CompanyStatus, fetchCompanyById, updateCompany } from '../../api/companies';
+import { fetchCareerProfile } from '../../api/profile';
 import { fetchCompanyResearch, startCompanyResearch } from '../../api/research';
-import { EmptyState, ErrorState, LoadingState } from '../../components/states';
+import { ErrorState, LoadingState } from '../../components/states';
 
 export const Route = createFileRoute('/_authed/companies/$id')({
   component: CompanyDetailRouteComponent,
@@ -15,10 +16,9 @@ function CompanyDetailRouteComponent() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Edit / Archive Form State
   const [isEditing, setIsEditing] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-
-  // Form State
   const [nameInput, setNameInput] = useState('');
   const [websiteUrlInput, setWebsiteUrlInput] = useState('');
   const [industryInput, setIndustryInput] = useState('');
@@ -28,8 +28,10 @@ function CompanyDetailRouteComponent() {
   const [editError, setEditError] = useState<string | null>(null);
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
 
-  // Research State
+  // Research UX State
   const [researchError, setResearchError] = useState<string | null>(null);
+  const [expandedEvidenceIds, setExpandedEvidenceIds] = useState<Record<string, boolean>>({});
+  const [ariaAnnouncement, setAriaAnnouncement] = useState<string>('');
 
   const {
     data: company,
@@ -40,6 +42,11 @@ function CompanyDetailRouteComponent() {
   } = useQuery<CompanyDto>({
     queryKey: ['company', id],
     queryFn: () => fetchCompanyById(id),
+  });
+
+  const { data: careerProfile } = useQuery({
+    queryKey: ['career-profile'],
+    queryFn: fetchCareerProfile,
   });
 
   const { data: researchDetails } = useQuery({
@@ -56,19 +63,27 @@ function CompanyDetailRouteComponent() {
 
   const startResearchMutation = useMutation({
     mutationFn: (options?: { forceRefresh?: boolean }) => startCompanyResearch(id, options),
-    onSuccess: () => {
+    onSuccess: (res) => {
       setResearchError(null);
       queryClient.invalidateQueries({ queryKey: ['company-research', id] });
+      if (res.reused) {
+        setAriaAnnouncement('Research findings reused from 24 hour cache.');
+      } else {
+        setAriaAnnouncement('Research started.');
+      }
     },
     onError: (err: unknown) => {
       if (err instanceof ApiError && err.statusCode === 429) {
         setResearchError(
-          'Forced research rate limit reached. Maximum 3 forced refreshes allowed per company per 24 hours.',
+          'Maximum 3 forced refreshes per company per 24 hours reached. Existing research remains visible.',
         );
+        setAriaAnnouncement('Research refresh rate limit reached.');
       } else if (err instanceof ApiError) {
         setResearchError(err.message);
+        setAriaAnnouncement(`Research failed: ${err.message}`);
       } else {
-        setResearchError('Failed to start company research.');
+        setResearchError('Failed to execute research.');
+        setAriaAnnouncement('Research failed.');
       }
     },
   });
@@ -94,6 +109,13 @@ function CompanyDetailRouteComponent() {
       }
     },
   });
+
+  const toggleEvidenceExpanded = (evidenceId: string) => {
+    setExpandedEvidenceIds((prev) => ({
+      ...prev,
+      [evidenceId]: !prev[evidenceId],
+    }));
+  };
 
   const startEdit = () => {
     if (!company) return;
@@ -125,31 +147,26 @@ function CompanyDetailRouteComponent() {
     if (nameInput.trim() !== company.name) {
       patchPayload.name = nameInput.trim();
     }
-
     const currentWeb = company.websiteUrl ?? '';
     const newWeb = websiteUrlInput.trim();
     if (newWeb !== currentWeb) {
       patchPayload.websiteUrl = newWeb === '' ? null : newWeb;
     }
-
     const currentInd = company.industry ?? '';
     const newInd = industryInput.trim();
     if (newInd !== currentInd) {
       patchPayload.industry = newInd === '' ? null : newInd;
     }
-
     const currentLoc = company.location ?? '';
     const newLoc = locationInput.trim();
     if (newLoc !== currentLoc) {
       patchPayload.location = newLoc === '' ? null : newLoc;
     }
-
     const currentLi = company.linkedinUrl ?? '';
     const newLi = linkedinUrlInput.trim();
     if (newLi !== currentLi) {
       patchPayload.linkedinUrl = newLi === '' ? null : newLi;
     }
-
     const currentDesc = company.description ?? '';
     const newDesc = descriptionInput.trim();
     if (newDesc !== currentDesc) {
@@ -190,28 +207,56 @@ function CompanyDetailRouteComponent() {
     );
   }
 
-  const researchStatus = researchDetails?.status ?? 'NOT_STARTED';
-  const isPendingOrRunning = researchStatus === 'QUEUED' || researchStatus === 'RUNNING';
+  const rawResearchStatus = researchDetails?.status ?? 'NOT_STARTED';
+  const hasExistingData =
+    (researchDetails?.opportunities && researchDetails.opportunities.length > 0) ||
+    Boolean(researchDetails?.run?.summary) ||
+    (researchDetails?.evidence && researchDetails.evidence.length > 0);
+
+  // Distinguish REFRESHING state when polling during a refresh run vs first-run QUEUED/RUNNING
+  const isPollingBackground =
+    startResearchMutation.isPending ||
+    rawResearchStatus === 'QUEUED' ||
+    rawResearchStatus === 'RUNNING';
+
+  const isRefreshingState = isPollingBackground && hasExistingData;
+  const isFirstRunLoading = isPollingBackground && !hasExistingData;
+
+  const targetRoles = careerProfile?.targetRoles?.filter(Boolean) ?? [];
+  const hasTargetRoles = targetRoles.length > 0;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      {/* ARIA Live region for discrete status announcements */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {ariaAnnouncement}
+      </div>
+
       {/* Navigation Breadcrumb */}
       <div>
         <button
           type="button"
           onClick={() => navigate({ to: '/companies' })}
-          className="text-xs font-medium text-slate-500 hover:text-slate-900 inline-flex items-center space-x-1"
+          className="text-xs font-medium text-slate-500 hover:text-slate-900 inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1 py-0.5"
         >
           <span>&larr; Back to Target Companies</span>
         </button>
       </div>
 
-      {/* Company Header */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+      {/* 1. WHERE AM I? - Company Identity Header & Research Status */}
+      <section
+        aria-labelledby="company-identity-heading"
+        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
+      >
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{company.name}</h1>
+              <h1
+                id="company-identity-heading"
+                className="text-2xl font-bold tracking-tight text-slate-900"
+              >
+                {company.name}
+              </h1>
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold ${
                   company.status === 'ACTIVE'
@@ -235,9 +280,19 @@ function CompanyDetailRouteComponent() {
                   href={company.websiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-slate-900 hover:underline font-medium inline-flex items-center"
+                  className="text-slate-900 hover:underline font-medium inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
                 >
                   Visit Website &nearr;
+                </a>
+              )}
+              {company.linkedinUrl && (
+                <a
+                  href={company.linkedinUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-slate-900 hover:underline font-medium inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                >
+                  LinkedIn &nearr;
                 </a>
               )}
             </div>
@@ -248,7 +303,7 @@ function CompanyDetailRouteComponent() {
               <button
                 type="button"
                 onClick={startEdit}
-                className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
                 Edit Details
               </button>
@@ -256,34 +311,40 @@ function CompanyDetailRouteComponent() {
             <button
               type="button"
               onClick={() => setShowArchiveConfirm(true)}
-              className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
             >
               {company.status === 'ACTIVE' ? 'Archive Company' : 'Re-activate'}
             </button>
           </div>
         </div>
 
-        {/* Live Company Research Header Banner */}
+        {/* Live Research Banner & Controls */}
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-900">
-                Research Engine Status:
+                Research Status:
               </span>
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
-                  researchStatus === 'COMPLETED'
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                    : researchStatus === 'PARTIAL'
-                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                      : researchStatus === 'FAILED'
-                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                        : isPendingOrRunning
-                          ? 'bg-sky-100 text-sky-800 border border-sky-300 animate-pulse'
-                          : 'bg-slate-200 text-slate-700'
+                className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold ${
+                  isRefreshingState
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300 motion-reduce:animate-none animate-pulse'
+                    : rawResearchStatus === 'COMPLETED'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : rawResearchStatus === 'PARTIAL'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                        : rawResearchStatus === 'FAILED'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                          : isFirstRunLoading
+                            ? 'bg-sky-100 text-sky-800 border border-sky-300 motion-reduce:animate-none animate-pulse'
+                            : 'bg-slate-200 text-slate-700'
                 }`}
               >
-                {researchStatus === 'PARTIAL' ? 'PARTIAL RESULTS' : researchStatus}
+                {isRefreshingState
+                  ? 'REFRESHING IN BACKGROUND'
+                  : rawResearchStatus === 'PARTIAL'
+                    ? 'PARTIAL RESULTS'
+                    : rawResearchStatus}
               </span>
               {researchDetails?.mock && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
@@ -292,52 +353,55 @@ function CompanyDetailRouteComponent() {
               )}
             </div>
             <p className="text-xs text-slate-600">
-              {researchStatus === 'NOT_STARTED' &&
-                'No research run has been executed yet for this company.'}
-              {researchStatus === 'QUEUED' &&
-                'Research run queued in background. Awaiting available worker execution...'}
-              {researchStatus === 'RUNNING' &&
-                'Research provider currently analyzing website, stack signals, and openings...'}
-              {researchStatus === 'COMPLETED' &&
-                `Research completed successfully${
+              {rawResearchStatus === 'NOT_STARTED' &&
+                'Execute research to analyze company background, signals, and openings.'}
+              {isFirstRunLoading &&
+                'Research queued & running. Scanning company website, stack signals, and openings...'}
+              {isRefreshingState &&
+                'Updating research in background... Existing research findings remain visible below.'}
+              {rawResearchStatus === 'COMPLETED' &&
+                !isRefreshingState &&
+                `Research completed${
                   researchDetails?.run?.completedAt
                     ? ` on ${new Date(researchDetails.run.completedAt).toLocaleString()}`
                     : ''
                 }.`}
-              {researchStatus === 'PARTIAL' &&
+              {rawResearchStatus === 'PARTIAL' &&
+                !isRefreshingState &&
                 'Research completed with partial findings. Some provider data was incomplete.'}
-              {researchStatus === 'FAILED' &&
-                'Research run failed. Review error details below or trigger a retry.'}
+              {rawResearchStatus === 'FAILED' &&
+                !isRefreshingState &&
+                'Research run failed. Review error details or trigger a retry.'}
             </p>
           </div>
 
           <div className="flex items-center space-x-2 self-start sm:self-auto">
-            {researchStatus === 'NOT_STARTED' && (
+            {rawResearchStatus === 'NOT_STARTED' && (
               <button
                 type="button"
                 onClick={() => startResearchMutation.mutate({})}
-                disabled={startResearchMutation.isPending}
-                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors"
+                disabled={isPollingBackground}
+                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
-                {startResearchMutation.isPending ? 'Starting...' : 'Start Research'}
+                {isPollingBackground ? 'Starting...' : 'Start Research'}
               </button>
             )}
 
-            {(researchStatus === 'COMPLETED' || researchStatus === 'PARTIAL') && (
+            {(rawResearchStatus === 'COMPLETED' || rawResearchStatus === 'PARTIAL') && (
               <>
                 <button
                   type="button"
                   onClick={() => startResearchMutation.mutate({ forceRefresh: false })}
-                  disabled={startResearchMutation.isPending || isPendingOrRunning}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors"
+                  disabled={isPollingBackground}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
                 >
-                  {startResearchMutation.isPending ? 'Refreshing...' : 'Refresh Research'}
+                  {isRefreshingState ? 'Updating...' : 'Refresh Research'}
                 </button>
                 <button
                   type="button"
                   onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
-                  disabled={startResearchMutation.isPending || isPendingOrRunning}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors"
+                  disabled={isPollingBackground}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
                   title="Bypass 24h freshness cache (max 3 per company/24h)"
                 >
                   Force Refresh
@@ -345,39 +409,142 @@ function CompanyDetailRouteComponent() {
               </>
             )}
 
-            {researchStatus === 'FAILED' && (
+            {rawResearchStatus === 'FAILED' && (
               <button
                 type="button"
                 onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
-                disabled={startResearchMutation.isPending}
-                className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors"
+                disabled={isPollingBackground}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
-                {startResearchMutation.isPending ? 'Retrying...' : 'Retry Research'}
+                {isPollingBackground ? 'Retrying...' : 'Retry Research'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Research Rate Limit or Execution Error Alert */}
+        {/* Rate Limit or Execution Alert */}
         {researchError && (
           <div
             role="alert"
             className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-800"
           >
             <div className="flex items-center space-x-2">
-              <span className="font-bold">Research Alert:</span>
+              <span className="font-bold">Notice:</span>
               <span>{researchError}</span>
             </div>
             <button
               type="button"
               onClick={() => setResearchError(null)}
-              className="text-rose-600 hover:text-rose-900 font-semibold"
+              className="text-rose-600 hover:text-rose-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
             >
               Dismiss
             </button>
           </div>
         )}
-      </div>
+
+        {/* Editing Inline Form */}
+        {isEditing && (
+          <form onSubmit={handleSaveEdit} className="space-y-4 pt-4 border-t border-slate-100">
+            {editError && (
+              <div
+                role="alert"
+                className="p-3 bg-rose-50 border border-rose-200 rounded-md text-xs text-rose-800 space-y-2"
+              >
+                <p className="font-medium">{editError}</p>
+                {duplicateId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      navigate({
+                        to: '/companies/$id',
+                        params: { id: duplicateId },
+                      });
+                    }}
+                    className="inline-flex items-center px-2 py-1 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded"
+                  >
+                    View Existing Company &rarr;
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Website URL</label>
+                <input
+                  type="url"
+                  value={websiteUrlInput}
+                  onChange={(e) => setWebsiteUrlInput(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Industry</label>
+                <input
+                  type="text"
+                  value={industryInput}
+                  onChange={(e) => setIndustryInput(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value)}
+                  className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Description / Notes
+              </label>
+              <textarea
+                rows={2}
+                value={descriptionInput}
+                onChange={(e) => setDescriptionInput(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
 
       {/* Archive Confirmation Dialog */}
       {showArchiveConfirm && (
@@ -387,7 +554,7 @@ function CompanyDetailRouteComponent() {
               Confirm {company.status === 'ACTIVE' ? 'Archiving' : 'Re-activating'}:
             </span>{' '}
             {company.status === 'ACTIVE'
-              ? 'Archiving hides this company from default active lists while preserving historical evidence and outreach records.'
+              ? 'Archiving hides this company from default active lists while preserving historical evidence.'
               : 'Re-activating returns this company to your active workspace list.'}
           </div>
           <div className="flex items-center space-x-2">
@@ -410,354 +577,309 @@ function CompanyDetailRouteComponent() {
         </div>
       )}
 
-      {/* 5 Workspace Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Column (2/3 width) */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Section 1: Overview & Fit */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900">
-                1. Company Overview & Fit Context
-              </h2>
-            </div>
-
-            {isEditing ? (
-              <form onSubmit={handleSaveEdit} className="space-y-4">
-                {editError && (
-                  <div
-                    role="alert"
-                    className="p-3 bg-rose-50 border border-rose-200 rounded-md text-xs text-rose-800 space-y-2"
-                  >
-                    <p className="font-medium">{editError}</p>
-                    {duplicateId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditing(false);
-                          navigate({
-                            to: '/companies/$id',
-                            params: { id: duplicateId },
-                          });
-                        }}
-                        className="inline-flex items-center px-2 py-1 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded"
-                      >
-                        View Existing Company &rarr;
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Website URL (Leave blank to clear website & domain)
-                  </label>
-                  <input
-                    type="url"
-                    value={websiteUrlInput}
-                    onChange={(e) => setWebsiteUrlInput(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Industry
-                    </label>
-                    <input
-                      type="text"
-                      value={industryInput}
-                      onChange={(e) => setIndustryInput(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={locationInput}
-                      onChange={(e) => setLocationInput(e.target.value)}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    LinkedIn URL
-                  </label>
-                  <input
-                    type="url"
-                    value={linkedinUrlInput}
-                    onChange={(e) => setLinkedinUrlInput(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Description / Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={descriptionInput}
-                    onChange={(e) => setDescriptionInput(e.target.value)}
-                    className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end space-x-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="px-3.5 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm"
-                  >
-                    {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-500 block">Industry:</span>
-                    <span className="font-medium text-slate-900">
-                      {company.industry || 'Not specified'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Location:</span>
-                    <span className="font-medium text-slate-900">
-                      {company.location || 'Not specified'}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <span className="text-xs text-slate-500 block mb-1">Description & Context:</span>
-                  <p className="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    {company.description || 'No custom description added yet for this company.'}
-                  </p>
-                </div>
-
-                {company.linkedinUrl && (
-                  <div>
-                    <a
-                      href={company.linkedinUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-slate-900 hover:underline inline-flex items-center font-medium"
-                    >
-                      View LinkedIn Profile &nearr;
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Section 2: Opportunity Status & Discovered Openings */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900">
-                2. Discovered Openings & Opportunities
-              </h2>
-              <span className="text-xs text-slate-500">
-                {researchDetails?.opportunities.length ?? 0} active openings
-              </span>
-            </div>
-
-            {researchDetails?.opportunities && researchDetails.opportunities.length > 0 ? (
-              <div className="space-y-3">
-                {researchDetails.opportunities.map((opp) => (
-                  <div
-                    key={opp.id}
-                    className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2 hover:border-slate-300 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-slate-900">{opp.roleTitle}</h3>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                        {opp.opportunityType}
-                      </span>
-                    </div>
-
-                    {opp.roleLocation && (
-                      <p className="text-xs text-slate-500 font-medium">
-                        Location: {opp.roleLocation}
-                      </p>
-                    )}
-
-                    {opp.roleDescription && (
-                      <p className="text-xs text-slate-700 leading-relaxed bg-white p-2.5 rounded border border-slate-100">
-                        {opp.roleDescription}
-                      </p>
-                    )}
-
-                    {opp.openingSourceUrl && (
-                      <div className="pt-1">
-                        <a
-                          href={opp.openingSourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-slate-900 hover:underline font-semibold inline-flex items-center"
-                        >
-                          Visit Job Opening &nearr;
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                <p className="text-xs font-medium text-slate-700">
-                  No Discovered Openings Available
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {researchStatus === 'NOT_STARTED'
-                    ? 'Start company research to scan for active role openings.'
-                    : 'Research run yielded no active open positions.'}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Section 3: Recommended Contacts */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-3 mb-4">
-              3. Recommended Contacts
-            </h2>
-            <EmptyState
-              title="No Contacts Discovered Yet"
-              description="Relevant company contact discovery will be enabled in the Contact Discovery milestone."
-            />
-          </div>
+      {/* 2. WHAT DID THE SYSTEM FIND? - Executive Summary & Key Findings */}
+      <section
+        aria-labelledby="research-summary-heading"
+        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
+      >
+        <div className="border-b border-slate-100 pb-3">
+          <h2
+            id="research-summary-heading"
+            className="text-sm font-semibold uppercase tracking-wider text-slate-900"
+          >
+            2. Executive Research Summary & Key Findings
+          </h2>
         </div>
 
-        {/* Sidebar Column (1/3 width) */}
-        <div className="space-y-6">
-          {/* Section 4: Key Evidence & Findings */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900">
-                4. Key Evidence & Research Signals
-              </h2>
-              <span className="text-xs text-slate-500">
-                {researchDetails?.evidence.length ?? 0} evidence items
+        {researchDetails?.run?.summary ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+              <span className="font-bold text-slate-900 block uppercase tracking-wider text-[11px]">
+                Summary
               </span>
+              <p className="text-slate-700 leading-relaxed">{researchDetails.run.summary}</p>
             </div>
 
-            {/* Research Summary / Findings */}
-            {researchDetails?.run?.summary && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
-                <span className="font-bold text-slate-900 block">Executive Summary:</span>
-                <p className="text-slate-700 leading-relaxed">{researchDetails.run.summary}</p>
-              </div>
-            )}
-
-            {researchDetails?.run?.keyFindings && researchDetails.run.keyFindings.length > 0 && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
-                <span className="font-bold text-slate-900 block">Key Findings:</span>
-                <ul className="list-disc list-inside space-y-1 text-slate-700">
+            {researchDetails.run.keyFindings && researchDetails.run.keyFindings.length > 0 && (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+                <span className="font-bold text-slate-900 block uppercase tracking-wider text-[11px]">
+                  Key Signals Discovered
+                </span>
+                <ul className="space-y-1.5 text-slate-700">
                   {researchDetails.run.keyFindings.map((finding, idx) => (
-                    <li key={idx}>{finding}</li>
+                    <li key={idx} className="flex items-start space-x-2">
+                      <span className="text-slate-400 font-bold">•</span>
+                      <span>{finding}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center">
+            <p className="text-xs font-medium text-slate-700">No Research Findings Available</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {rawResearchStatus === 'NOT_STARTED'
+                ? 'Start company research above to generate executive research summary and key signals.'
+                : 'Research run yielded no executive summary.'}
+            </p>
+          </div>
+        )}
+      </section>
 
-            {/* Evidence Items List */}
-            {researchDetails?.evidence && researchDetails.evidence.length > 0 ? (
-              <div className="space-y-3">
-                {researchDetails.evidence.map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2"
+      {/* 3. IS THERE AN ACTUAL OPPORTUNITY? - Discovered Openings */}
+      <section
+        aria-labelledby="opportunities-heading"
+        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2
+            id="opportunities-heading"
+            className="text-sm font-semibold uppercase tracking-wider text-slate-900"
+          >
+            3. Discovered Opportunities & Openings
+          </h2>
+          <span className="text-xs font-medium text-slate-500">
+            {researchDetails?.opportunities.length ?? 0} active opportunities
+          </span>
+        </div>
+
+        {researchDetails?.opportunities && researchDetails.opportunities.length > 0 ? (
+          <div className="space-y-4">
+            {researchDetails.opportunities.map((opp) => (
+              <div
+                key={opp.id}
+                className="p-5 bg-slate-50 border border-slate-200 rounded-lg space-y-3 hover:border-slate-300 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">{opp.roleTitle}</h3>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold ${
+                      opp.opportunityType === 'CONFIRMED'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : opp.opportunityType === 'PROACTIVE'
+                          ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                          : 'bg-slate-200 text-slate-700'
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-900">{ev.claim}</span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">
-                        {ev.classification}
-                      </span>
-                    </div>
+                    {opp.opportunityType}
+                  </span>
+                </div>
 
-                    {ev.sourceExcerpt && (
-                      <p className="text-slate-600 italic bg-white p-2 rounded border border-slate-100">
-                        "{ev.sourceExcerpt}"
-                      </p>
-                    )}
+                <div className="text-xs text-slate-600 space-y-1">
+                  {opp.roleLocation && (
+                    <p>
+                      <span className="font-semibold text-slate-700">Location:</span>{' '}
+                      {opp.roleLocation}
+                    </p>
+                  )}
+                  {opp.openingDiscoveredAt && (
+                    <p>
+                      <span className="font-semibold text-slate-700">Verified:</span>{' '}
+                      {new Date(opp.openingDiscoveredAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
 
-                    {ev.sourceUrl && (
-                      <div className="pt-1 flex items-center justify-between text-[11px]">
-                        <a
-                          href={ev.sourceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-slate-900 hover:underline font-semibold"
-                        >
-                          View Source ({ev.sourceName || 'Link'}) &nearr;
-                        </a>
+                {opp.roleDescription && (
+                  <p className="text-xs text-slate-700 leading-relaxed bg-white p-3 rounded border border-slate-100">
+                    {opp.roleDescription}
+                  </p>
+                )}
+
+                {opp.openingSourceUrl && (
+                  <div className="pt-1">
+                    <a
+                      href={opp.openingSourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-slate-900 hover:underline font-semibold inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                    >
+                      View Source Opening &nearr;
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center">
+            <p className="text-xs font-medium text-slate-700">No Opportunities Detected</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {rawResearchStatus === 'NOT_STARTED'
+                ? 'Start company research to scan for active role openings or proactive opportunity fit.'
+                : 'Current research run yielded no confirmed or proactive opportunities.'}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* 4. WHY SHOULD I BELIEVE THIS? - Evidence & Provenance */}
+      <section
+        aria-labelledby="evidence-heading"
+        className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2
+            id="evidence-heading"
+            className="text-sm font-semibold uppercase tracking-wider text-slate-900"
+          >
+            4. Key Evidence & Source Provenance
+          </h2>
+          <span className="text-xs font-medium text-slate-500">
+            {researchDetails?.evidence.length ?? 0} evidence items
+          </span>
+        </div>
+
+        {researchDetails?.evidence && researchDetails.evidence.length > 0 ? (
+          <div className="space-y-3">
+            {researchDetails.evidence.map((ev) => {
+              const isExpanded = Boolean(expandedEvidenceIds[ev.id]);
+
+              return (
+                <div
+                  key={ev.id}
+                  className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-3"
+                >
+                  {/* Compact Header (Always visible) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-slate-900">{ev.claim}</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">
+                          {ev.classification}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3 text-slate-500 text-[11px]">
+                        <span>Source: {ev.sourceName || 'Company Source'}</span>
                         {ev.confidence !== undefined && ev.confidence !== null && (
-                          <span className="text-slate-500 font-mono">
-                            conf: {(ev.confidence * 100).toFixed(0)}%
-                          </span>
+                          <span>Confidence: {(ev.confidence * 100).toFixed(0)}%</span>
+                        )}
+                        {ev.collectedAt && (
+                          <span>Collected: {new Date(ev.collectedAt).toLocaleDateString()}</span>
                         )}
                       </div>
-                    )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleEvidenceExpanded(ev.id)}
+                      className="text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded px-2.5 py-1 self-start sm:self-auto transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      {isExpanded ? 'Hide Evidence ▲' : 'View Evidence ▼'}
+                    </button>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-                <p className="text-xs font-medium text-slate-700">
-                  No Research Evidence Collected Yet
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {researchStatus === 'NOT_STARTED'
-                    ? 'Execute research to extract structured evidence signals.'
-                    : 'No evidence claims extracted in current run.'}
-                </p>
-              </div>
-            )}
+
+                  {/* Expanded Detail (Toggled via button) */}
+                  {isExpanded && (
+                    <div className="pt-3 border-t border-slate-200 space-y-3 bg-white p-3 rounded border border-slate-100">
+                      {ev.sourceExcerpt && (
+                        <div className="space-y-1">
+                          <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
+                            What the source says:
+                          </span>
+                          <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-100">
+                            "{ev.sourceExcerpt}"
+                          </p>
+                        </div>
+                      )}
+
+                      {ev.sourceUrl && (
+                        <div>
+                          <a
+                            href={ev.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-slate-900 hover:underline font-semibold inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                          >
+                            Open External Source Webpage &nearr;
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-6 bg-slate-50 border border-slate-200 rounded-lg text-center">
+            <p className="text-xs font-medium text-slate-700">No Evidence Claims Recorded</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {rawResearchStatus === 'NOT_STARTED'
+                ? 'Run research to extract verified source evidence claims.'
+                : 'Current research run yielded no evidence items.'}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* 5. WHAT DOES THIS MEAN FOR ME? - Target Role Fit Context (Only if targetRoles exist) */}
+      {hasTargetRoles && (
+        <section
+          aria-labelledby="target-fit-heading"
+          className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
+        >
+          <div className="border-b border-slate-100 pb-3">
+            <h2
+              id="target-fit-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-slate-900"
+            >
+              5. Career Profile Alignment & Target Role Fit
+            </h2>
           </div>
 
-          {/* Section 5: Outreach & Campaign History */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-3 mb-4">
-              5. Outreach & Campaign History
-            </h2>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center">
-              <p className="text-xs font-medium text-slate-700">No Outreach Activity Recorded</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Outreach history will be derived from campaign and email send records.
-              </p>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
+            <span className="font-bold text-slate-900 block">
+              Target Roles Matched ({targetRoles.join(', ')}):
+            </span>
+            <p className="text-slate-700 leading-relaxed">
+              Research signals for {company.name} have been evaluated against your career profile
+              target roles ({targetRoles.join(', ')}).
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* 6. WHAT SHOULD I DO NEXT? - Next-Step Bridge CTA */}
+      <section
+        aria-labelledby="next-step-heading"
+        className="bg-slate-900 text-white p-6 rounded-xl shadow-sm space-y-4"
+      >
+        <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+          <h2
+            id="next-step-heading"
+            className="text-sm font-semibold uppercase tracking-wider text-slate-200"
+          >
+            6. Next Workflow Step
+          </h2>
+          <span className="text-xs text-slate-400 font-mono">Phase 6 Preview</span>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs text-slate-300 leading-relaxed">
+            {rawResearchStatus === 'COMPLETED' || rawResearchStatus === 'PARTIAL'
+              ? 'Research is complete. The next workflow will be discovering the right decision-maker or role address to contact at this company.'
+              : 'Execute research to unlock contact discovery for key decision-makers at this company.'}
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300">
+              <span className="font-semibold text-white">Contact Discovery:</span>
+              <span>Coming in Phase 6</span>
             </div>
+
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded-md cursor-not-allowed opacity-75"
+            >
+              Discover contacts &mdash; Coming next
+            </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
