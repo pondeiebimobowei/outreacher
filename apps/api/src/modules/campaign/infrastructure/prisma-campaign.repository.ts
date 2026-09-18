@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Campaign, CampaignStatus } from '@repo/db';
+import { Campaign, CampaignContact, CampaignStatus } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   CreateCampaignData,
@@ -47,6 +47,39 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     return this.prisma.campaign.update({
       where: { id },
       data: { status },
+    });
+  }
+
+  async findExistingContactBindings(
+    workspaceId: string,
+    campaignId: string,
+    contactIds: string[],
+  ): Promise<Set<string>> {
+    const existing = await this.prisma.campaignContact.findMany({
+      where: {
+        workspaceId,
+        campaignId,
+        contactId: { in: contactIds },
+      },
+      select: { contactId: true },
+    });
+    return new Set(existing.map((r) => r.contactId));
+  }
+
+  async createContactBindings(
+    workspaceId: string,
+    campaignId: string,
+    contactIds: string[],
+  ): Promise<CampaignContact[]> {
+    await this.prisma.campaignContact.createMany({
+      data: contactIds.map((contactId) => ({
+        workspaceId,
+        campaignId,
+        contactId,
+      })),
+    });
+    return this.prisma.campaignContact.findMany({
+      where: { workspaceId, campaignId, contactId: { in: contactIds } },
     });
   }
 }

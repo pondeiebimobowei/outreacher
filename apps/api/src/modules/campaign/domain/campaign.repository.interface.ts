@@ -1,4 +1,4 @@
-import { Campaign, CampaignStatus } from '@repo/db';
+import { Campaign, CampaignContact, CampaignStatus } from '@repo/db';
 
 export interface CreateCampaignData {
   workspaceId: string;
@@ -17,6 +17,16 @@ export interface ICampaignRepository {
     id: string,
     status: CampaignStatus,
   ): Promise<Campaign | null>;
+  findExistingContactBindings(
+    workspaceId: string,
+    campaignId: string,
+    contactIds: string[],
+  ): Promise<Set<string>>;
+  createContactBindings(
+    workspaceId: string,
+    campaignId: string,
+    contactIds: string[],
+  ): Promise<CampaignContact[]>;
 }
 
 export const CAMPAIGN_REPOSITORY_TOKEN = 'ICampaignRepository';
