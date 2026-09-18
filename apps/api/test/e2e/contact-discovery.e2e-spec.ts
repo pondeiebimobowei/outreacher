@@ -311,4 +311,113 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('POST /api/v1/companies/:companyId/contacts (Manual Contact Creation)', () => {
+    it('creates a manual contact with source USER_PROVIDED and confidence null', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
+      const company = await createCompany(cookies, 'Acme Manual Corp');
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/companies/${company.id}/contacts`)
+        .set('Cookie', cookies)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Sarah Connor',
+          email: 'sarah@terminator.com',
+          title: 'VP Operations',
+          contactKind: 'PERSON',
+          sourceUrl: 'https://acme.com/execs',
+        })
+        .expect(201);
+
+      expect(res.body).toEqual(
+        expect.objectContaining({
+          companyId: company.id,
+          workspaceId: workspace.id,
+          name: 'Sarah Connor',
+          email: 'sarah@terminator.com',
+          title: 'VP Operations',
+          source: 'USER_PROVIDED',
+          sourceUrl: 'https://acme.com/execs',
+          confidence: null,
+        }),
+      );
+    });
+
+    it('creates a manual contact without email (email: null)', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
+      const company = await createCompany(cookies, 'Acme Manual No-Email Corp');
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/companies/${company.id}/contacts`)
+        .set('Cookie', cookies)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Marcus Wright',
+          title: 'Lead Architect',
+        })
+        .expect(201);
+
+      expect(res.body.email).toBeNull();
+      expect(res.body.source).toBe('USER_PROVIDED');
+    });
+
+    it('does NOT change an existing CompanyContactSelection when a new manual contact is created', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
+      const company = await createCompany(cookies, 'Acme Preserved Selection Corp');
+
+      const initialContact = await prisma.contact.create({
+        data: {
+          workspaceId: workspace.id,
+          companyId: company.id,
+          contactKind: 'PERSON',
+          name: 'Existing Selected Target',
+          email: 'initial@acme.com',
+        },
+      });
+
+      // Select initial contact
+      await request(app.getHttpServer())
+        .post(`/api/v1/companies/${company.id}/contacts/${initialContact.id}/select`)
+        .set('Cookie', cookies)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send()
+        .expect(201);
+
+      // Create new manual contact
+      await request(app.getHttpServer())
+        .post(`/api/v1/companies/${company.id}/contacts`)
+        .set('Cookie', cookies)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Newly Added Manual Contact',
+          email: 'newmanual@acme.com',
+        })
+        .expect(201);
+
+      // Verify active selection remains initialContact.id
+      const dbSelection = await prisma.companyContactSelection.findUnique({
+        where: {
+          workspaceId_companyId: {
+            workspaceId: workspace.id,
+            companyId: company.id,
+          },
+        },
+      });
+      expect(dbSelection?.contactId).toBe(initialContact.id);
+    });
+
+    it('enforces tenant isolation on manual contact creation', async () => {
+      const user1 = await createAuthenticatedUser('user1@example.com');
+      const user2 = await createAuthenticatedUser('user2@example.com');
+      const company = await createCompany(user1.cookies, 'User1 Company');
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/companies/${company.id}/contacts`)
+        .set('Cookie', user2.cookies)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({ name: 'Hacker Injected Contact' })
+        .expect(404);
+    });
+  });
 });

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
+import { CreateContactUseCase } from './application/create-contact.use-case';
 import { DiscoverContactsUseCase } from './application/discover-contacts.use-case';
 import { GetCompanyContactsUseCase } from './application/get-company-contacts.use-case';
 import { GetContactByIdUseCase } from './application/get-contact-by-id.use-case';
@@ -25,7 +26,18 @@ import { ContactDiscoveryWorkerRunner } from './worker/contact-discovery-worker.
       provide: CONTACT_DISCOVERY_PROVIDER_TOKEN,
       useClass: MockContactDiscoveryProvider,
     },
+    CreateContactUseCase,
     DiscoverContactsUseCase,
+    GetCompanyContactsUseCase,
+    GetContactByIdUseCase,
+    SelectContactUseCase,
+    ContactDiscoveryWorker,
+    ContactDiscoveryWorkerRunner,
+  ],
+  exports: [
+    CONTACT_REPOSITORY_TOKEN,
+    CONTACT_DISCOVERY_PROVIDER_TOKEN,
+    CreateContactUseCase,
     GetCompanyContactsUseCase,
     GetContactByIdUseCase,
     SelectContactUseCase,

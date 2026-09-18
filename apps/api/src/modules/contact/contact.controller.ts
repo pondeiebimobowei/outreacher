@@ -13,21 +13,37 @@ import { AppUnauthorizedException } from '../../common/errors/application.except
 import { RequestWorkspace } from '../../types/express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../workspaces/workspace.guard';
+import { CreateContactUseCase } from './application/create-contact.use-case';
 import { DiscoverContactsUseCase } from './application/discover-contacts.use-case';
 import { GetCompanyContactsUseCase } from './application/get-company-contacts.use-case';
 import { GetContactByIdUseCase } from './application/get-contact-by-id.use-case';
 import { SelectContactUseCase } from './application/select-contact.use-case';
+import { CreateContactRequestDto } from './dto/create-contact-request.dto';
 import { DiscoverContactsRequestDto } from './dto/discover-contacts-request.dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class ContactController {
   constructor(
+    private readonly createContactUseCase: CreateContactUseCase,
     private readonly discoverContactsUseCase: DiscoverContactsUseCase,
     private readonly getCompanyContactsUseCase: GetCompanyContactsUseCase,
     private readonly getContactByIdUseCase: GetContactByIdUseCase,
     private readonly selectContactUseCase: SelectContactUseCase,
   ) {}
+
+  @Post('companies/:companyId/contacts')
+  async createContact(
+    @Req() req: express.Request,
+    @Param('companyId') companyId: string,
+    @Body() dto: CreateContactRequestDto,
+  ) {
+    const workspace = req.workspace as RequestWorkspace;
+    if (!workspace?.id) {
+      throw new AppUnauthorizedException('Workspace context is missing.');
+    }
+    return this.createContactUseCase.execute(workspace.id, companyId, dto);
+  }
 
   @Post('companies/:companyId/contacts/discover')
   async discoverContacts(
