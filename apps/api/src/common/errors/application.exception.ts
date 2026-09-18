@@ -65,6 +65,19 @@ export class AppNotFoundException extends AppException {
     );
   }
 }
+export class AppRateLimitException extends AppException {
+  constructor(
+    resource: string = 'Resource',
+    details?: Record<string, unknown>,
+  ) {
+    super(
+      `${resource} rate limit exceeded`,
+      HttpStatus.TOO_MANY_REQUESTS,
+      ErrorCode.RATE_LIMITED,
+      details,
+    );
+  }
+}
 
 export class AppConflictException extends AppException {
   constructor(
