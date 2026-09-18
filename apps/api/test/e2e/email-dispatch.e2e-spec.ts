@@ -182,6 +182,153 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(res.body.message).toContain('PENDING status');
     });
 
+    it('returns 409 Conflict when campaign is in PAUSED status and creates no send or job', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser(
+        'paused.campaign@test.com',
+      );
+      const { campaignContact } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignContactStatus.READY,
+        campaignStatus: CampaignStatus.PAUSED,
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .set('Cookie', cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Idempotency-Key', 'key-test-paused')
+        .expect(409);
+
+      expect(res.body.message).toContain('PAUSED');
+
+      const sends = await prisma.emailSend.findMany({
+        where: { campaignContactId: campaignContact.id },
+      });
+      expect(sends).toHaveLength(0);
+
+      const jobs = await prisma.job.findMany({
+        where: { workspaceId: workspace.id, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(0);
+
+      const contact = await prisma.campaignContact.findUnique({
+        where: { id: campaignContact.id },
+      });
+      expect(contact?.status).toBe(CampaignContactStatus.READY);
+    });
+
+    it('returns 409 Conflict when campaign is in ARCHIVED status and creates no send or job', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser(
+        'archived.campaign@test.com',
+      );
+      const { campaignContact } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignContactStatus.READY,
+        campaignStatus: CampaignStatus.ARCHIVED,
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .set('Cookie', cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Idempotency-Key', 'key-test-archived')
+        .expect(409);
+
+      expect(res.body.message).toContain('ARCHIVED');
+
+      const sends = await prisma.emailSend.findMany({
+        where: { campaignContactId: campaignContact.id },
+      });
+      expect(sends).toHaveLength(0);
+
+      const jobs = await prisma.job.findMany({
+        where: { workspaceId: workspace.id, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(0);
+
+      const contact = await prisma.campaignContact.findUnique({
+        where: { id: campaignContact.id },
+      });
+      expect(contact?.status).toBe(CampaignContactStatus.READY);
+    });
+
+    it('returns 409 Conflict when campaign is in SCHEDULED status and creates no send or job', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser(
+        'scheduled.campaign@test.com',
+      );
+      const { campaignContact } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignContactStatus.READY,
+        campaignStatus: CampaignStatus.SCHEDULED,
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .set('Cookie', cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Idempotency-Key', 'key-test-scheduled')
+        .expect(409);
+
+      expect(res.body.message).toContain('SCHEDULED');
+
+      const sends = await prisma.emailSend.findMany({
+        where: { campaignContactId: campaignContact.id },
+      });
+      expect(sends).toHaveLength(0);
+
+      const jobs = await prisma.job.findMany({
+        where: { workspaceId: workspace.id, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(0);
+
+      const contact = await prisma.campaignContact.findUnique({
+        where: { id: campaignContact.id },
+      });
+      expect(contact?.status).toBe(CampaignContactStatus.READY);
+    });
+
+    it('returns 409 Conflict when recipient email is suppressed and creates no send or job', async () => {
+      const { cookies, workspace } = await createAuthenticatedUser(
+        'suppressed.lead@test.com',
+      );
+      const targetEmail = 'unsubscribed.recipient@target.com';
+
+      const { campaignContact } = await seedCampaignContact(workspace.id, {
+        email: targetEmail,
+        contactStatus: CampaignContactStatus.READY,
+        campaignStatus: CampaignStatus.DRAFT,
+      });
+
+      await prisma.suppression.create({
+        data: {
+          workspaceId: workspace.id,
+          email: targetEmail,
+          reason: 'UNSUBSCRIBED',
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .set('Cookie', cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Idempotency-Key', 'key-test-suppressed')
+        .expect(409);
+
+      expect(res.body.message).toContain('suppressed');
+
+      const sends = await prisma.emailSend.findMany({
+        where: { campaignContactId: campaignContact.id },
+      });
+      expect(sends).toHaveLength(0);
+
+      const jobs = await prisma.job.findMany({
+        where: { workspaceId: workspace.id, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(0);
+
+      const contact = await prisma.campaignContact.findUnique({
+        where: { id: campaignContact.id },
+      });
+      expect(contact?.status).toBe(CampaignContactStatus.READY);
+    });
+
     it('returns 202 Accepted on valid reservation and replays 202 on identical idempotency key', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender4@test.com');

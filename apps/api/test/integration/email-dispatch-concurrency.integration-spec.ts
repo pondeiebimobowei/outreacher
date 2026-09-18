@@ -285,44 +285,84 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
     });
   });
 
-  describe('Contract 3: Idempotency Key Cross-Contact Collision', () => {
-    it('rejects with 409 AppConflictException when same key is used for a different contact', async () => {
-      const { campaignContact: contact1 } = await seedContactAndCampaign({
-        contactEmail: 'user1@target.com',
+  describe('Contract 3: Concurrent Idempotency Key Cross-Contact Collision', () => {
+    it('when 2 parallel requests use the same Idempotency-Key for different contacts, exactly one commits and the other throws 409', async () => {
+      const { campaignContact: contactA } = await seedContactAndCampaign({
+        contactEmail: 'userA@target.com',
       });
-      const { campaignContact: contact2 } = await seedContactAndCampaign({
-        contactEmail: 'user2@target.com',
+      const { campaignContact: contactB } = await seedContactAndCampaign({
+        contactEmail: 'userB@target.com',
       });
 
-      const sharedKey = 'idemp-key-shared-collision-test';
+      const collisionKey = 'idemp-key-concurrent-cross-contact-collision';
 
-      // First call for contact 1 succeeds
-      const res1 = await useCase.execute({
-        workspaceId,
-        campaignContactId: contact1.id,
-        clientKey: sharedKey,
-      });
-      expect(res1.jobId).toBeDefined();
-
-      // Second call using the same key for contact 2 must be rejected with 409
-      await expect(
+      // Launch both requests simultaneously in real PostgreSQL
+      const results = await Promise.allSettled([
         useCase.execute({
           workspaceId,
-          campaignContactId: contact2.id,
-          clientKey: sharedKey,
+          campaignContactId: contactA.id,
+          clientKey: collisionKey,
         }),
-      ).rejects.toThrow(AppConflictException);
+        useCase.execute({
+          workspaceId,
+          campaignContactId: contactB.id,
+          clientKey: collisionKey,
+        }),
+      ]);
 
-      // Verify contact 2 remained READY and no EmailSend or Job was created for contact 2
-      const contact2Record = await realPrisma.campaignContact.findUnique({
-        where: { id: contact2.id },
-      });
-      expect(contact2Record?.status).toBe(CampaignContactStatus.READY);
+      // Exactly one fulfilled (202 response) and exactly one rejected (409 AppConflictException)
+      const fulfilled = results.filter((r) => r.status === 'fulfilled');
+      const rejected = results.filter((r) => r.status === 'rejected');
 
-      const contact2Sends = await realPrisma.emailSend.findMany({
-        where: { campaignContactId: contact2.id },
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+
+      const winningResult = (fulfilled[0] as PromiseFulfilledResult<any>).value;
+      expect(winningResult.jobId).toBeDefined();
+      expect(winningResult.message).toBe('Dispatch enqueued');
+
+      const rejectionReason = rejected[0].reason;
+      expect(rejectionReason).toBeInstanceOf(AppConflictException);
+      expect(rejectionReason.message).toContain(
+        `Idempotency-Key '${collisionKey}' was already used for a different campaign contact`,
+      );
+
+      // Verify database state:
+      // Exactly 1 IdempotencyRecord
+      const idempRecords = await realPrisma.idempotencyRecord.findMany({
+        where: { workspaceId, key: collisionKey },
       });
-      expect(contact2Sends).toHaveLength(0);
+      expect(idempRecords).toHaveLength(1);
+      const winningTargetId = idempRecords[0].targetId;
+
+      // Exactly 1 Job
+      const jobs = await realPrisma.job.findMany({
+        where: { workspaceId, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(1);
+      expect(jobs[0].id).toBe(winningResult.jobId);
+
+      // Exactly 1 EmailSend
+      const sends = await realPrisma.emailSend.findMany({
+        where: { workspaceId },
+      });
+      expect(sends).toHaveLength(1);
+      expect(sends[0].campaignContactId).toBe(winningTargetId);
+      expect(sends[0].status).toBe(EmailSendStatus.RESERVED);
+
+      // Winning contact is SENDING
+      const winningContact = await realPrisma.campaignContact.findUnique({
+        where: { id: winningTargetId },
+      });
+      expect(winningContact?.status).toBe(CampaignContactStatus.SENDING);
+
+      // Losing contact remains READY
+      const losingTargetId =
+        winningTargetId === contactA.id ? contactB.id : contactA.id;
+      const losingContact = await realPrisma.campaignContact.findUnique({
+        where: { id: losingTargetId },
+      });
+      expect(losingContact?.status).toBe(CampaignContactStatus.READY);
     });
   });
 
