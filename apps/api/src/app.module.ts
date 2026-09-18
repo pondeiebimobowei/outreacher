@@ -16,6 +16,7 @@ import { WorkspaceModule } from './modules/workspaces/workspace.module';
 import { CompanyModule } from './modules/company/company.module';
 import { ResearchModule } from './modules/research/research.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { OutreachModule } from './modules/outreach/outreach.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ContactModule } from './modules/contact/contact.module';
     CompanyModule,
     ResearchModule,
     ContactModule,
+    OutreachModule,
   ],
   controllers: [AppController],
   providers: [
