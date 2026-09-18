@@ -348,6 +348,23 @@ export class AuthService {
       throw new AppForbiddenException('Access to workspace denied.');
     }
 
+    let ownerId = member.userId;
+    if (member.role === WorkspaceRole.OWNER) {
+      ownerId = member.userId;
+    } else {
+      const ownerMember = await this.prisma.workspaceMember.findFirst({
+        where: {
+          workspaceId,
+          role: WorkspaceRole.OWNER,
+        },
+        select: { userId: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (ownerMember) {
+        ownerId = ownerMember.userId;
+      }
+    }
+
     return {
       user: {
         id: user.id,
@@ -357,7 +374,7 @@ export class AuthService {
       workspace: {
         id: member.workspace.id,
         name: member.workspace.name,
-        ownerId: member.workspace.id,
+        ownerId,
       },
     };
   }

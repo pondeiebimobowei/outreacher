@@ -118,7 +118,7 @@ export class ApiClient {
       );
     }
 
-    if (response.status === 24) {
+    if (response.status === 204) {
       return undefined as T;
     }
 

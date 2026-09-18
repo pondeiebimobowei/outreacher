@@ -278,6 +278,8 @@ describe('Auth & Workspace Engine (e2e)', () => {
 
       expect(meRes.body.user.email).toBe('dave@example.com');
       expect(meRes.body.workspace.name).toBe("Dave Smith's Workspace");
+      expect(meRes.body.workspace.ownerId).toBe(signupRes.body.user.id);
+      expect(meRes.body.workspace.ownerId).not.toBe(meRes.body.workspace.id);
 
       const wsRes = await request(app.getHttpServer())
         .get('/api/v1/workspaces/current')
@@ -286,6 +288,8 @@ describe('Auth & Workspace Engine (e2e)', () => {
 
       expect(wsRes.body.id).toBe(meRes.body.workspace.id);
       expect(wsRes.body.name).toBe("Dave Smith's Workspace");
+      expect(wsRes.body.ownerId).toBe(signupRes.body.user.id);
+      expect(wsRes.body.ownerId).not.toBe(wsRes.body.id);
     });
 
     it('POST /api/v1/auth/logout should clear cookie and reflect stateless JWT semantics', async () => {
