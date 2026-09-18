@@ -17,7 +17,9 @@ export class ContactDiscoveryWorkerRunner
   constructor(private readonly worker: ContactDiscoveryWorker) {}
 
   onApplicationBootstrap() {
-    this.logger.log('Starting ContactDiscoveryWorkerRunner background polling loop...');
+    this.logger.log(
+      'Starting ContactDiscoveryWorkerRunner background polling loop...',
+    );
     this.scheduleNextRun(1000);
   }
 
@@ -58,7 +60,9 @@ export class ContactDiscoveryWorkerRunner
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Error in ContactDiscoveryWorkerRunner polling loop: ${msg}`);
+      this.logger.error(
+        `Error in ContactDiscoveryWorkerRunner polling loop: ${msg}`,
+      );
       this.scheduleNextRun(5000);
     } finally {
       this.isProcessing = false;

@@ -16,8 +16,14 @@ export interface UpsertContactInput {
 }
 
 export interface IContactRepository {
-  findCompanyContacts(workspaceId: string, companyId: string): Promise<Contact[]>;
-  findContactById(workspaceId: string, contactId: string): Promise<Contact | null>;
+  findCompanyContacts(
+    workspaceId: string,
+    companyId: string,
+  ): Promise<Contact[]>;
+  findContactById(
+    workspaceId: string,
+    contactId: string,
+  ): Promise<Contact | null>;
   upsertCompanyContacts(
     workspaceId: string,
     companyId: string,

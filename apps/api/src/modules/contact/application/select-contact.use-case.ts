@@ -1,10 +1,13 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CompanyContactSelection } from '@repo/db';
-import { AppForbiddenException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppForbiddenException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   CONTACT_REPOSITORY_TOKEN,
-  IContactRepository,
+  type IContactRepository,
 } from '../domain/contact.repository.interface';
 
 @Injectable()
@@ -28,7 +31,9 @@ export class SelectContactUseCase {
     });
 
     if (!company) {
-      throw new AppNotFoundException(`Company ${companyId} not found in workspace.`);
+      throw new AppNotFoundException(
+        `Company ${companyId} not found in workspace.`,
+      );
     }
 
     // 2. Cross-Entity & Tenant Integrity Check: Contact MUST belong to target company AND workspace
@@ -37,7 +42,9 @@ export class SelectContactUseCase {
     });
 
     if (!contact) {
-      throw new AppNotFoundException(`Contact ${contactId} not found in workspace.`);
+      throw new AppNotFoundException(
+        `Contact ${contactId} not found in workspace.`,
+      );
     }
 
     if (contact.companyId !== companyId) {
@@ -56,7 +63,9 @@ export class SelectContactUseCase {
       contactId,
     );
 
-    this.logger.log(`Selected contact ${contactId} for company ${companyId} in workspace ${workspaceId}`);
+    this.logger.log(
+      `Selected contact ${contactId} for company ${companyId} in workspace ${workspaceId}`,
+    );
     return selection;
   }
 }

@@ -40,7 +40,9 @@ export class ContactValidator {
   /**
    * Validates and normalizes candidate objects.
    */
-  static sanitizeCandidate(candidate: DiscoveredContactCandidate): DiscoveredContactCandidate | null {
+  static sanitizeCandidate(
+    candidate: DiscoveredContactCandidate,
+  ): DiscoveredContactCandidate | null {
     const name = candidate.name?.trim();
     if (!name) return null;
 
@@ -52,7 +54,8 @@ export class ContactValidator {
       name,
       title,
       email,
-      contactKind: candidate.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON',
+      contactKind:
+        candidate.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON',
       source: candidate.source?.trim() || undefined,
       sourceUrl: sourceUrl || undefined,
       confidence: candidate.confidence || 'MEDIUM',
@@ -63,7 +66,9 @@ export class ContactValidator {
    * Deduplicates candidates by normalized email (when email is present),
    * or by normalized name + title (when email is missing).
    */
-  static deduplicateCandidates(candidates: DiscoveredContactCandidate[]): DiscoveredContactCandidate[] {
+  static deduplicateCandidates(
+    candidates: DiscoveredContactCandidate[],
+  ): DiscoveredContactCandidate[] {
     const seenEmails = new Set<string>();
     const seenNameTitles = new Set<string>();
     const deduplicated: DiscoveredContactCandidate[] = [];

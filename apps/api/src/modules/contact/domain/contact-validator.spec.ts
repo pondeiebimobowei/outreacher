@@ -3,7 +3,9 @@ import { ContactValidator } from './contact-validator';
 describe('ContactValidator', () => {
   describe('normalizeEmail', () => {
     it('normalizes valid uppercase emails', () => {
-      expect(ContactValidator.normalizeEmail('  Jane.Doe@Acme.COM ')).toBe('jane.doe@acme.com');
+      expect(ContactValidator.normalizeEmail('  Jane.Doe@Acme.COM ')).toBe(
+        'jane.doe@acme.com',
+      );
     });
 
     it('returns null for malformed emails', () => {
@@ -16,14 +18,24 @@ describe('ContactValidator', () => {
 
   describe('validateSourceUrl', () => {
     it('validates http and https URLs', () => {
-      expect(ContactValidator.validateSourceUrl('https://example.com/team')).toBe('https://example.com/team');
-      expect(ContactValidator.validateSourceUrl('http://example.com/about')).toBe('http://example.com/about');
+      expect(
+        ContactValidator.validateSourceUrl('https://example.com/team'),
+      ).toBe('https://example.com/team');
+      expect(
+        ContactValidator.validateSourceUrl('http://example.com/about'),
+      ).toBe('http://example.com/about');
     });
 
     it('rejects unsafe URL schemes', () => {
-      expect(ContactValidator.validateSourceUrl('javascript:alert(1)')).toBeNull();
-      expect(ContactValidator.validateSourceUrl('file:///etc/passwd')).toBeNull();
-      expect(ContactValidator.validateSourceUrl('data:text/html,test')).toBeNull();
+      expect(
+        ContactValidator.validateSourceUrl('javascript:alert(1)'),
+      ).toBeNull();
+      expect(
+        ContactValidator.validateSourceUrl('file:///etc/passwd'),
+      ).toBeNull();
+      expect(
+        ContactValidator.validateSourceUrl('data:text/html,test'),
+      ).toBeNull();
       expect(ContactValidator.validateSourceUrl('invalid-url')).toBeNull();
     });
   });

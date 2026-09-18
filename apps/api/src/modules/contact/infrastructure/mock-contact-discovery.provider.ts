@@ -10,14 +10,25 @@ import {
 export class MockContactDiscoveryProvider implements ContactDiscoveryProvider {
   private readonly logger = new Logger(MockContactDiscoveryProvider.name);
 
-  async discoverContacts(input: ContactDiscoveryInput): Promise<ContactDiscoveryResult> {
+  async discoverContacts(
+    input: ContactDiscoveryInput,
+  ): Promise<ContactDiscoveryResult> {
     // Hard Execution Constraint: Never allow mock provider in production
-    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_PROVIDERS !== 'true') {
-      this.logger.error('Attempted to invoke MockContactDiscoveryProvider in production environment.');
-      throw new Error('Mock discovery provider is strictly prohibited in production.');
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ALLOW_MOCK_PROVIDERS !== 'true'
+    ) {
+      this.logger.error(
+        'Attempted to invoke MockContactDiscoveryProvider in production environment.',
+      );
+      throw new Error(
+        'Mock discovery provider is strictly prohibited in production.',
+      );
     }
 
-    this.logger.log(`Executing MockContactDiscoveryProvider for company: ${input.companyName} (${input.companyId})`);
+    this.logger.log(
+      `Executing MockContactDiscoveryProvider for company: ${input.companyName} (${input.companyId})`,
+    );
 
     const targetRole = input.targetRoles?.[0] || 'Software Engineer';
     const domain = input.domain || 'example.com';

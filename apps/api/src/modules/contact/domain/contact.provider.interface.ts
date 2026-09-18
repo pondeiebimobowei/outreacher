@@ -1,4 +1,5 @@
-export const CONTACT_DISCOVERY_PROVIDER_TOKEN = 'CONTACT_DISCOVERY_PROVIDER_TOKEN';
+export const CONTACT_DISCOVERY_PROVIDER_TOKEN =
+  'CONTACT_DISCOVERY_PROVIDER_TOKEN';
 
 export interface ContactDiscoveryInput {
   companyId: string;
@@ -29,5 +30,7 @@ export interface ContactDiscoveryResult {
 }
 
 export interface ContactDiscoveryProvider {
-  discoverContacts(input: ContactDiscoveryInput): Promise<ContactDiscoveryResult>;
+  discoverContacts(
+    input: ContactDiscoveryInput,
+  ): Promise<ContactDiscoveryResult>;
 }

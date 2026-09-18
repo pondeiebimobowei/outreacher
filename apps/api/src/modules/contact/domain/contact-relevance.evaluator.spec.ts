@@ -17,7 +17,9 @@ describe('ContactRelevanceEvaluator', () => {
       targetRoles: ['Backend Engineer'],
     });
     expect(res.relevance).toBe('HIGH');
-    expect(res.recommendationRationale).toContain("matches your target role 'Backend Engineer'");
+    expect(res.recommendationRationale).toContain(
+      "matches your target role 'Backend Engineer'",
+    );
   });
 
   it('boosts relevance to HIGH for confirmed opportunity alignment', () => {
@@ -27,7 +29,9 @@ describe('ContactRelevanceEvaluator', () => {
       confirmedOpportunityTitles: ['Engineering Lead'],
     });
     expect(res.relevance).toBe('HIGH');
-    expect(res.recommendationRationale).toContain("aligns with confirmed opening 'Engineering Lead'");
+    expect(res.recommendationRationale).toContain(
+      "aligns with confirmed opening 'Engineering Lead'",
+    );
   });
 
   it('evaluates general department match as MEDIUM relevance', () => {

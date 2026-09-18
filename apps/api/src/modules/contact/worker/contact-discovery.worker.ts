@@ -5,12 +5,12 @@ import { ContentSanitizer } from '../../research/domain/content-sanitizer';
 import { ContactValidator } from '../domain/contact-validator';
 import {
   CONTACT_DISCOVERY_PROVIDER_TOKEN,
-  ContactDiscoveryProvider,
-  ContactDiscoveryResult,
+  type ContactDiscoveryProvider,
+  type ContactDiscoveryResult,
 } from '../domain/contact.provider.interface';
 import {
   CONTACT_REPOSITORY_TOKEN,
-  IContactRepository,
+  type IContactRepository,
 } from '../domain/contact.repository.interface';
 
 export interface ClaimedContactJob {
@@ -40,7 +40,9 @@ export class ContactDiscoveryWorker {
   async claimNextJob(): Promise<ClaimedContactJob | null> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const now = new Date();
-      const eligibleJobs = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
+      const eligibleJobs = await tx.$queryRaw<
+        Array<{ id: string; attempt_count: number }>
+      >`
         SELECT id, attempt_count 
         FROM jobs 
         WHERE type = 'CONTACT_DISCOVERY' 
@@ -105,8 +107,12 @@ export class ContactDiscoveryWorker {
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Contact discovery provider failed for job ${job.id}: ${msg}`);
-      safeErrorCode = msg.includes('timeout') ? 'PROVIDER_TIMEOUT' : 'PROVIDER_FAILURE';
+      this.logger.error(
+        `Contact discovery provider failed for job ${job.id}: ${msg}`,
+      );
+      safeErrorCode = msg.includes('timeout')
+        ? 'PROVIDER_TIMEOUT'
+        : 'PROVIDER_FAILURE';
     }
 
     // Atomic completion transaction verifying generation lease
@@ -120,7 +126,9 @@ export class ContactDiscoveryWorker {
       });
 
       if (!currentJob) {
-        this.logger.warn(`Job ${job.id} lease generation ${claimedAttempt} lost. Aborting completion.`);
+        this.logger.warn(
+          `Job ${job.id} lease generation ${claimedAttempt} lost. Aborting completion.`,
+        );
         return false;
       }
 
@@ -132,7 +140,8 @@ export class ContactDiscoveryWorker {
           title: c.title ? ContentSanitizer.sanitize(c.title) : undefined,
         }));
 
-        const validCandidates = ContactValidator.deduplicateCandidates(sanitizedCandidates);
+        const validCandidates =
+          ContactValidator.deduplicateCandidates(sanitizedCandidates);
 
         // Upsert candidates
         await this.contactRepository.upsertCompanyContacts(
@@ -148,7 +157,7 @@ export class ContactDiscoveryWorker {
             source: c.source,
             sourceUrl: c.sourceUrl,
             confidence: c.confidence,
-            discoveredAt: providerResult!.discoveredAt,
+            discoveredAt: providerResult.discoveredAt,
           })),
         );
 
@@ -246,16 +255,25 @@ export class ContactDiscoveryWorker {
     return reclaimed;
   }
 
-  private async executeProviderWithTimeout(input: any): Promise<ContactDiscoveryResult> {
+  private async executeProviderWithTimeout(
+    input: any,
+  ): Promise<ContactDiscoveryResult> {
     let timeoutHandle: NodeJS.Timeout;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        reject(new Error('Contact discovery provider execution timeout (30s exceeded)'));
+        reject(
+          new Error(
+            'Contact discovery provider execution timeout (30s exceeded)',
+          ),
+        );
       }, this.PROVIDER_TIMEOUT_MS);
     });
 
     try {
-      return await Promise.race([this.provider.discoverContacts(input), timeoutPromise]);
+      return await Promise.race([
+        this.provider.discoverContacts(input),
+        timeoutPromise,
+      ]);
     } finally {
       clearTimeout(timeoutHandle!);
     }

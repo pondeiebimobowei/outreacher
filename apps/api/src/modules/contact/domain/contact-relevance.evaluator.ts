@@ -13,7 +13,13 @@ export interface ContactEvaluationResult {
 
 export class ContactRelevanceEvaluator {
   static evaluate(input: ContactEvaluationInput): ContactEvaluationResult {
-    const { title, contactKind, email, targetRoles = [], confirmedOpportunityTitles = [] } = input;
+    const {
+      title,
+      contactKind,
+      email,
+      targetRoles = [],
+      confirmedOpportunityTitles = [],
+    } = input;
     const cleanTitle = (title || '').trim();
     const normalizedTitle = cleanTitle.toLowerCase();
 
@@ -28,7 +34,8 @@ export class ContactRelevanceEvaluator {
     if (!cleanTitle) {
       return {
         relevance: 'LOW',
-        recommendationRationale: 'Contact has no specified job title for relevance evaluation.',
+        recommendationRationale:
+          'Contact has no specified job title for relevance evaluation.',
       };
     }
 
@@ -79,7 +86,9 @@ export class ContactRelevanceEvaluator {
       'recruiter',
       'engineering manager',
     ];
-    const isDecisionMaker = decisionMakerKeywords.some((kw) => normalizedTitle.includes(kw));
+    const isDecisionMaker = decisionMakerKeywords.some((kw) =>
+      normalizedTitle.includes(kw),
+    );
 
     if (isDecisionMaker) {
       return {
@@ -89,8 +98,19 @@ export class ContactRelevanceEvaluator {
     }
 
     // 5. Broad Department Match
-    const departmentKeywords = ['engineering', 'software', 'product', 'tech', 'data', 'design', 'people', 'hr'];
-    const isDeptMatch = departmentKeywords.some((kw) => normalizedTitle.includes(kw));
+    const departmentKeywords = [
+      'engineering',
+      'software',
+      'product',
+      'tech',
+      'data',
+      'design',
+      'people',
+      'hr',
+    ];
+    const isDeptMatch = departmentKeywords.some((kw) =>
+      normalizedTitle.includes(kw),
+    );
 
     if (isDeptMatch) {
       return {

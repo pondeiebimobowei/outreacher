@@ -40,7 +40,11 @@ export class ContactController {
     if (!workspace?.id) {
       throw new AppUnauthorizedException('Workspace context is missing.');
     }
-    const result = await this.discoverContactsUseCase.execute(workspace.id, companyId, dto);
+    const result = await this.discoverContactsUseCase.execute(
+      workspace.id,
+      companyId,
+      dto,
+    );
     res.status(result.reused ? 200 : 202);
     return result;
   }
@@ -79,6 +83,10 @@ export class ContactController {
     if (!workspace?.id) {
       throw new AppUnauthorizedException('Workspace context is missing.');
     }
-    return this.selectContactUseCase.execute(workspace.id, companyId, contactId);
+    return this.selectContactUseCase.execute(
+      workspace.id,
+      companyId,
+      contactId,
+    );
   }
 }

@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JobStatus, Prisma } from '@repo/db';
-import { AppNotFoundException, AppRateLimitException } from '../../../common/errors/application.exception';
+import {
+  AppNotFoundException,
+  AppRateLimitException,
+} from '../../../common/errors/application.exception';
 import { PrismaService } from '../../../database/prisma.service';
 
 export interface DiscoverContactsDto {
@@ -37,7 +40,9 @@ export class DiscoverContactsUseCase {
     });
 
     if (!company) {
-      throw new AppNotFoundException(`Company ${companyId} not found in workspace.`);
+      throw new AppNotFoundException(
+        `Company ${companyId} not found in workspace.`,
+      );
     }
 
     // 2. Execution-Based 24-Hour Freshness Check (Zero-Result Safe)
@@ -61,7 +66,9 @@ export class DiscoverContactsUseCase {
           where: { workspaceId, companyId },
         });
 
-        this.logger.log(`Fresh contact discovery job ${recentCompletedJob.id} reused for company ${companyId}`);
+        this.logger.log(
+          `Fresh contact discovery job ${recentCompletedJob.id} reused for company ${companyId}`,
+        );
         return {
           jobId: recentCompletedJob.id,
           status: 'COMPLETED',
@@ -94,7 +101,9 @@ export class DiscoverContactsUseCase {
       });
 
       if (activeJob) {
-        this.logger.log(`Deduplicating to active contact discovery job ${activeJob.id} for company ${companyId}`);
+        this.logger.log(
+          `Deduplicating to active contact discovery job ${activeJob.id} for company ${companyId}`,
+        );
         return {
           jobId: activeJob.id,
           status: activeJob.status === JobStatus.RUNNING ? 'RUNNING' : 'QUEUED',
@@ -149,7 +158,9 @@ export class DiscoverContactsUseCase {
         },
       });
 
-      this.logger.log(`Enqueued new contact discovery job ${newJob.id} for company ${companyId}`);
+      this.logger.log(
+        `Enqueued new contact discovery job ${newJob.id} for company ${companyId}`,
+      );
 
       return {
         jobId: newJob.id,

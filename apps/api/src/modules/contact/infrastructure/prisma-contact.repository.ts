@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { CompanyContactSelection, Contact, ContactKind } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
-import { IContactRepository, UpsertContactInput } from '../domain/contact.repository.interface';
+import {
+  IContactRepository,
+  UpsertContactInput,
+} from '../domain/contact.repository.interface';
 
 @Injectable()
 export class PrismaContactRepository implements IContactRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findCompanyContacts(workspaceId: string, companyId: string): Promise<Contact[]> {
+  async findCompanyContacts(
+    workspaceId: string,
+    companyId: string,
+  ): Promise<Contact[]> {
     return this.prisma.contact.findMany({
       where: {
         workspaceId,
@@ -19,7 +25,10 @@ export class PrismaContactRepository implements IContactRepository {
     });
   }
 
-  async findContactById(workspaceId: string, contactId: string): Promise<Contact | null> {
+  async findContactById(
+    workspaceId: string,
+    contactId: string,
+  ): Promise<Contact | null> {
     return this.prisma.contact.findFirst({
       where: {
         id: contactId,
@@ -49,7 +58,7 @@ export class PrismaContactRepository implements IContactRepository {
           create: {
             workspaceId,
             companyId,
-            contactKind: c.contactKind as ContactKind,
+            contactKind: c.contactKind,
             name: c.name,
             email: c.email,
             title: c.title ?? null,
@@ -59,7 +68,7 @@ export class PrismaContactRepository implements IContactRepository {
             discoveredAt: c.discoveredAt ?? new Date(),
           },
           update: {
-            contactKind: c.contactKind as ContactKind,
+            contactKind: c.contactKind,
             name: c.name,
             title: c.title ?? undefined,
             source: c.source ?? undefined,
@@ -115,7 +124,7 @@ export class PrismaContactRepository implements IContactRepository {
             data: {
               workspaceId,
               companyId,
-              contactKind: c.contactKind as ContactKind,
+              contactKind: c.contactKind,
               name: c.name,
               email: null,
               title: c.title ?? null,

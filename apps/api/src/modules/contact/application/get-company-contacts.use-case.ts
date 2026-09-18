@@ -5,7 +5,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { ContactRelevanceEvaluator } from '../domain/contact-relevance.evaluator';
 import {
   CONTACT_REPOSITORY_TOKEN,
-  IContactRepository,
+  type IContactRepository,
 } from '../domain/contact.repository.interface';
 
 export interface EvaluatedContactDto {
@@ -30,7 +30,8 @@ export interface EvaluatedContactDto {
 
 export interface CompanyContactsResponse {
   companyId: string;
-  status: 'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
+  status:
+    'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
   selectedContactId: string | null;
   contacts: EvaluatedContactDto[];
   discoveryJob: {
@@ -50,14 +51,19 @@ export class GetCompanyContactsUseCase {
     private readonly contactRepository: IContactRepository,
   ) {}
 
-  async execute(workspaceId: string, companyId: string): Promise<CompanyContactsResponse> {
+  async execute(
+    workspaceId: string,
+    companyId: string,
+  ): Promise<CompanyContactsResponse> {
     // 1. Verify company existence and workspace ownership
     const company = await this.prisma.company.findFirst({
       where: { id: companyId, workspaceId },
     });
 
     if (!company) {
-      throw new AppNotFoundException(`Company ${companyId} not found in workspace.`);
+      throw new AppNotFoundException(
+        `Company ${companyId} not found in workspace.`,
+      );
     }
 
     // 2. Fetch User Career Profile Target Roles
@@ -80,8 +86,15 @@ export class GetCompanyContactsUseCase {
       .filter((t): t is string => Boolean(t));
 
     // 4. Fetch Discovered Contacts & Active Selection
-    const rawContacts = await this.contactRepository.findCompanyContacts(workspaceId, companyId);
-    const activeSelection = await this.contactRepository.getCompanyContactSelection(workspaceId, companyId);
+    const rawContacts = await this.contactRepository.findCompanyContacts(
+      workspaceId,
+      companyId,
+    );
+    const activeSelection =
+      await this.contactRepository.getCompanyContactSelection(
+        workspaceId,
+        companyId,
+      );
     const selectedContactId = activeSelection?.contactId ?? null;
 
     // 5. Fetch Latest Discovery Job Status
@@ -111,7 +124,10 @@ export class GetCompanyContactsUseCase {
         status = 'RUNNING';
       } else if (latestJob.status === JobStatus.COMPLETED) {
         status = 'COMPLETED';
-      } else if (latestJob.status === JobStatus.FAILED || latestJob.status === JobStatus.DEAD_LETTER) {
+      } else if (
+        latestJob.status === JobStatus.FAILED ||
+        latestJob.status === JobStatus.DEAD_LETTER
+      ) {
         status = 'FAILED';
       }
     }
@@ -121,7 +137,10 @@ export class GetCompanyContactsUseCase {
     }
 
     // Hard Execution Constraint: Always surface mock: true badge flag if environment or dev config specifies mock providers
-    if (process.env.NODE_ENV === 'development' || process.env.USE_MOCK_PROVIDERS === 'true') {
+    if (
+      process.env.NODE_ENV === 'development' ||
+      process.env.USE_MOCK_PROVIDERS === 'true'
+    ) {
       isMockRun = true;
     }
 
@@ -129,7 +148,7 @@ export class GetCompanyContactsUseCase {
     const evaluatedContacts: EvaluatedContactDto[] = rawContacts.map((c) => {
       const evalResult = ContactRelevanceEvaluator.evaluate({
         title: c.title,
-        contactKind: c.contactKind as 'PERSON' | 'ROLE_ADDRESS',
+        contactKind: c.contactKind,
         email: c.email,
         targetRoles,
         confirmedOpportunityTitles,
@@ -139,7 +158,7 @@ export class GetCompanyContactsUseCase {
         id: c.id,
         workspaceId: c.workspaceId,
         companyId: c.companyId,
-        contactKind: c.contactKind as 'PERSON' | 'ROLE_ADDRESS',
+        contactKind: c.contactKind,
         name: c.name,
         email: c.email,
         title: c.title,
@@ -160,7 +179,11 @@ export class GetCompanyContactsUseCase {
     // 1. Relevance: HIGH -> MEDIUM -> LOW
     // 2. Email availability: AVAILABLE -> UNAVAILABLE
     // 3. Selection status: Selected first
-    const relevanceRank: Record<string, number> = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+    const relevanceRank: Record<string, number> = {
+      HIGH: 3,
+      MEDIUM: 2,
+      LOW: 1,
+    };
     evaluatedContacts.sort((a, b) => {
       if (a.isSelected !== b.isSelected) {
         return a.isSelected ? -1 : 1;
