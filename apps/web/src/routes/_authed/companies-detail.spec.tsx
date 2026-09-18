@@ -486,4 +486,93 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
       screen.getByText(/Maximum 3 forced refreshes per company per 24 hours reached/i),
     ).toBeInTheDocument();
   });
+
+  it('announces discrete ARIA live messages across actual status transitions', async () => {
+    let currentResearchState = {
+      run: null as unknown,
+      opportunities: [] as unknown[],
+      evidence: [] as unknown[],
+      status: 'QUEUED',
+      jobStatus: null,
+      mock: true,
+    };
+
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return currentResearchState;
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    const { rerender } = renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('QUEUED')).toBeInTheDocument();
+    });
+
+    // Transition: QUEUED -> COMPLETED
+    currentResearchState = {
+      run: { id: 'run-1', status: 'COMPLETED', summary: 'Research completed summary' },
+      opportunities: [],
+      evidence: [],
+      status: 'COMPLETED',
+      jobStatus: null,
+      mock: true,
+    };
+
+    queryClient.invalidateQueries({ queryKey: ['company-research', 'comp-100'] });
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Component />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Research completed.')).toBeInTheDocument();
+    });
+
+    // Transition: COMPLETED -> REFRESHING (background RUNNING)
+    currentResearchState = {
+      run: { id: 'run-2', status: 'RUNNING', summary: 'Research completed summary' },
+      opportunities: [],
+      evidence: [],
+      status: 'RUNNING',
+      jobStatus: null,
+      mock: true,
+    };
+
+    queryClient.invalidateQueries({ queryKey: ['company-research', 'comp-100'] });
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Component />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Research is being updated.')).toBeInTheDocument();
+    });
+
+    // Transition: REFRESHING -> FAILED
+    currentResearchState = {
+      run: { id: 'run-2', status: 'FAILED' },
+      opportunities: [],
+      evidence: [],
+      status: 'FAILED',
+      jobStatus: null,
+      mock: true,
+    };
+
+    queryClient.invalidateQueries({ queryKey: ['company-research', 'comp-100'] });
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Component />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Research failed.')).toBeInTheDocument();
+    });
+  });
 });
