@@ -71,3 +71,18 @@ export async function selectCompanyContact(
     `/companies/${companyId}/contacts/${contactId}/select`,
   );
 }
+
+export interface CreateContactInput {
+  name: string;
+  email?: string | null;
+  title?: string | null;
+  contactKind?: ContactKind;
+  sourceUrl?: string | null;
+}
+
+export async function createCompanyContact(
+  companyId: string,
+  input: CreateContactInput,
+): Promise<EvaluatedContactDto> {
+  return apiClient.post<EvaluatedContactDto>(`/companies/${companyId}/contacts`, input);
+}

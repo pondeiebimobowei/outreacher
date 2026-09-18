@@ -50,6 +50,24 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
       await screen.findByRole('heading', { name: /6\. Contact Discovery & Selection/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Find Relevant Contacts/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+ Add Contact/i })).toBeInTheDocument();
+  });
+
+  it('opens AddContactModal when + Add Contact button is clicked', async () => {
+    mockGet.mockResolvedValue({
+      companyId: 'comp-100',
+      status: 'NOT_STARTED',
+      selectedContactId: null,
+      contacts: [],
+      discoveryJob: null,
+    } as unknown as CompanyContactsResponse);
+
+    renderComponent();
+
+    const addBtn = await screen.findByRole('button', { name: /\+ Add Contact/i });
+    fireEvent.click(addBtn);
+
+    expect(await screen.findByText(/Add Contact Manually/i)).toBeInTheDocument();
   });
 
   it('renders candidates with badges, rationale, missing email, and handles selection', async () => {

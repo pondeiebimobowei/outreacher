@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CompanyContactSelection, Contact, ContactKind } from '@repo/db';
+import { CompanyContactSelection, Contact } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   IContactRepository,

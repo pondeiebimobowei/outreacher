@@ -36,7 +36,9 @@ export class CreateContactUseCase {
     });
 
     if (!company) {
-      throw new AppNotFoundException(`Company ${companyId} not found in workspace.`);
+      throw new AppNotFoundException(
+        `Company ${companyId} not found in workspace.`,
+      );
     }
 
     // 2. Validate & Normalize Inputs
@@ -46,7 +48,11 @@ export class CreateContactUseCase {
     }
 
     let normalizedEmail: string | null = null;
-    if (dto.email !== undefined && dto.email !== null && dto.email.trim() !== '') {
+    if (
+      dto.email !== undefined &&
+      dto.email !== null &&
+      dto.email.trim() !== ''
+    ) {
       normalizedEmail = ContactValidator.normalizeEmail(dto.email);
       if (!normalizedEmail) {
         throw new AppValidationException('Invalid email address format.');
@@ -54,14 +60,21 @@ export class CreateContactUseCase {
     }
 
     let validatedSourceUrl: string | null = null;
-    if (dto.sourceUrl !== undefined && dto.sourceUrl !== null && dto.sourceUrl.trim() !== '') {
+    if (
+      dto.sourceUrl !== undefined &&
+      dto.sourceUrl !== null &&
+      dto.sourceUrl.trim() !== ''
+    ) {
       validatedSourceUrl = ContactValidator.validateSourceUrl(dto.sourceUrl);
       if (!validatedSourceUrl) {
-        throw new AppValidationException('Invalid reference URL format. Must start with http:// or https://.');
+        throw new AppValidationException(
+          'Invalid reference URL format. Must start with http:// or https://.',
+        );
       }
     }
 
-    const contactKind = dto.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON';
+    const contactKind =
+      dto.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON';
     const trimmedTitle = dto.title?.trim() || null;
 
     // 3. Persist Contact (Upsert on Email, Always Create on No-Email)
@@ -86,7 +99,9 @@ export class CreateContactUseCase {
             sourceUrl: validatedSourceUrl,
           },
         });
-        this.logger.log(`Updated existing contact ${contact.id} by email ${normalizedEmail}`);
+        this.logger.log(
+          `Updated existing contact ${contact.id} by email ${normalizedEmail}`,
+        );
       } else {
         contact = await this.prisma.contact.create({
           data: {
@@ -101,7 +116,9 @@ export class CreateContactUseCase {
             confidence: null,
           },
         });
-        this.logger.log(`Created new manual contact ${contact.id} with email ${normalizedEmail}`);
+        this.logger.log(
+          `Created new manual contact ${contact.id} with email ${normalizedEmail}`,
+        );
       }
     } else {
       // No email: ALWAYS create new contact record without deduplication on name+title

@@ -42,6 +42,17 @@ export function ContactCard({ contact, onSelect, isSelectPending }: ContactCardP
             >
               {contact.contactKind}
             </span>
+            {contact.source === 'USER_PROVIDED' && (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
+                  isSelected
+                    ? 'bg-indigo-900 text-indigo-200 border border-indigo-700'
+                    : 'bg-indigo-100 text-indigo-800 border border-indigo-300'
+                }`}
+              >
+                User Provided
+              </span>
+            )}
             {isSelected && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500 text-white uppercase tracking-wider shadow-sm">
                 Selected Target

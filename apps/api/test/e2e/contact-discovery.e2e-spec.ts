@@ -314,7 +314,8 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
   describe('POST /api/v1/companies/:companyId/contacts (Manual Contact Creation)', () => {
     it('creates a manual contact with source USER_PROVIDED and confidence null', async () => {
-      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
+      const { cookies, workspace } =
+        await createAuthenticatedUser('user1@example.com');
       const company = await createCompany(cookies, 'Acme Manual Corp');
 
       const res = await request(app.getHttpServer())
@@ -345,7 +346,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     });
 
     it('creates a manual contact without email (email: null)', async () => {
-      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
+      const { cookies } = await createAuthenticatedUser('user1@example.com');
       const company = await createCompany(cookies, 'Acme Manual No-Email Corp');
 
       const res = await request(app.getHttpServer())
@@ -363,8 +364,12 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     });
 
     it('does NOT change an existing CompanyContactSelection when a new manual contact is created', async () => {
-      const { cookies, workspace } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Preserved Selection Corp');
+      const { cookies, workspace } =
+        await createAuthenticatedUser('user1@example.com');
+      const company = await createCompany(
+        cookies,
+        'Acme Preserved Selection Corp',
+      );
 
       const initialContact = await prisma.contact.create({
         data: {
@@ -378,7 +383,9 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
       // Select initial contact
       await request(app.getHttpServer())
-        .post(`/api/v1/companies/${company.id}/contacts/${initialContact.id}/select`)
+        .post(
+          `/api/v1/companies/${company.id}/contacts/${initialContact.id}/select`,
+        )
         .set('Cookie', cookies)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()

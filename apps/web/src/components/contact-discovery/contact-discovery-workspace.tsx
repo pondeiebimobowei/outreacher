@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { AddContactModal } from './add-contact-modal';
 import { ContactCard } from './contact-card';
 import { useContactDiscovery } from './use-contact-discovery';
 
@@ -10,6 +12,8 @@ export function ContactDiscoveryWorkspace({
   companyId,
   companyName,
 }: ContactDiscoveryWorkspaceProps) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
   const {
     contactsData,
     isLoading,
@@ -65,6 +69,14 @@ export function ContactDiscoveryWorkspace({
 
         {/* Discovery Action Controls */}
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+          >
+            + Add Contact
+          </button>
+
           {rawStatus === 'NOT_STARTED' && !isPollingActive && (
             <button
               type="button"
@@ -270,6 +282,14 @@ export function ContactDiscoveryWorkspace({
           </button>
         </div>
       )}
+
+      {/* Add Contact Modal */}
+      <AddContactModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        companyId={companyId}
+        companyName={companyName}
+      />
     </section>
   );
 }

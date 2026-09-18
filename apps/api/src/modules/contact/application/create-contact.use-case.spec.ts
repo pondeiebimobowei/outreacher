@@ -38,7 +38,10 @@ describe('CreateContactUseCase', () => {
   });
 
   it('creates a new manual contact with email and source USER_PROVIDED', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
     prismaMock.contact.findFirst.mockResolvedValue(null);
     prismaMock.contact.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-1', ...data }),
@@ -74,7 +77,10 @@ describe('CreateContactUseCase', () => {
   });
 
   it('creates a new manual contact without email (email: null)', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
     prismaMock.contact.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-2', ...data }),
     );
@@ -101,7 +107,10 @@ describe('CreateContactUseCase', () => {
   });
 
   it('updates an existing contact when matching email is provided', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
     prismaMock.contact.findFirst.mockResolvedValue({
       id: 'cont-existing',
       workspaceId: 'ws-1',
@@ -132,7 +141,10 @@ describe('CreateContactUseCase', () => {
   });
 
   it('creates new contact without deduplication when no email is provided', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
     prismaMock.contact.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-new', ...data }),
     );
@@ -156,15 +168,24 @@ describe('CreateContactUseCase', () => {
   });
 
   it('throws AppValidationException for invalid email format', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
 
     await expect(
-      useCase.execute('ws-1', 'comp-1', { name: 'John', email: 'invalid-email' }),
+      useCase.execute('ws-1', 'comp-1', {
+        name: 'John',
+        email: 'invalid-email',
+      }),
     ).rejects.toThrow(AppValidationException);
   });
 
   it('throws AppValidationException for invalid sourceUrl protocol', async () => {
-    prismaMock.company.findFirst.mockResolvedValue({ id: 'comp-1', workspaceId: 'ws-1' });
+    prismaMock.company.findFirst.mockResolvedValue({
+      id: 'comp-1',
+      workspaceId: 'ws-1',
+    });
 
     await expect(
       useCase.execute('ws-1', 'comp-1', {
