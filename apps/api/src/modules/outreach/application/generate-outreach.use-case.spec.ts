@@ -43,13 +43,14 @@ describe('GenerateOutreachUseCase', () => {
     useCase = module.get<GenerateOutreachUseCase>(GenerateOutreachUseCase);
   });
 
-  it('enqueues OUTREACH_GENERATION job and returns jobId', async () => {
+  it('enqueues OUTREACH_GENERATION job with userId in payload and returns jobId', async () => {
     prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.job.findUnique.mockResolvedValue(null);
     prisma.job.count.mockResolvedValue(5);
     prisma.job.create.mockResolvedValue({ id: 'job-999', status: 'PENDING' });
 
     const result = await useCase.execute({
+      userId: 'usr-123',
       workspaceId: 'ws-123',
       campaignContactId: 'cc-123',
     });
@@ -62,6 +63,7 @@ describe('GenerateOutreachUseCase', () => {
         status: 'PENDING',
         idempotencyKey: 'outreach:cc-123:1',
         payload: {
+          userId: 'usr-123',
           workspaceId: 'ws-123',
           campaignContactId: 'cc-123',
           contactId: 'cnt-123',
@@ -77,6 +79,7 @@ describe('GenerateOutreachUseCase', () => {
 
     await expect(
       useCase.execute({
+        userId: 'usr-123',
         workspaceId: 'ws-123',
         campaignContactId: 'cc-nonexistent',
       }),
@@ -90,7 +93,11 @@ describe('GenerateOutreachUseCase', () => {
     });
 
     await expect(
-      useCase.execute({ workspaceId: 'ws-123', campaignContactId: 'cc-123' }),
+      useCase.execute({
+        userId: 'usr-123',
+        workspaceId: 'ws-123',
+        campaignContactId: 'cc-123',
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
@@ -102,6 +109,7 @@ describe('GenerateOutreachUseCase', () => {
     });
 
     const result = await useCase.execute({
+      userId: 'usr-123',
       workspaceId: 'ws-123',
       campaignContactId: 'cc-123',
     });
@@ -110,13 +118,29 @@ describe('GenerateOutreachUseCase', () => {
     expect(prisma.job.create).not.toHaveBeenCalled();
   });
 
-  it('throws AIRateLimitException when 20 calls/hr quota is exceeded', async () => {
+  it('throws AIRateLimitException when 20 calls/hr quota is exceeded for specific user', async () => {
     prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.job.findUnique.mockResolvedValue(null);
     prisma.job.count.mockResolvedValue(20);
 
     await expect(
-      useCase.execute({ workspaceId: 'ws-123', campaignContactId: 'cc-123' }),
+      useCase.execute({
+        userId: 'usr-123',
+        workspaceId: 'ws-123',
+        campaignContactId: 'cc-123',
+      }),
     ).rejects.toThrow(AIRateLimitException);
+
+    expect(prisma.job.count).toHaveBeenCalledWith({
+      where: {
+        workspaceId: 'ws-123',
+        type: 'OUTREACH_GENERATION',
+        createdAt: { gte: expect.any(Date) },
+        payload: {
+          path: ['userId'],
+          equals: 'usr-123',
+        },
+      },
+    });
   });
 });

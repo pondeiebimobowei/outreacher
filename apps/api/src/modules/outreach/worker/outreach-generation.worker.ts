@@ -1,11 +1,12 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { AIProvider } from '../domain/ai-provider.interface';
+import { type AIProvider } from '../domain/ai-provider.interface';
 import { OutreachContext } from '../domain/outreach-context.interface';
 import { OutreachReasonEvaluator } from '../domain/outreach-reason.evaluator';
 import { OutreachPromptBuilder } from '../domain/outreach-prompt.builder';
 import { OutreachValidator } from '../domain/outreach-validator';
-import { OutreachGenerationJobPayload } from '../application/generate-outreach.use-case';
+import { type OutreachGenerationJobPayload } from '../application/generate-outreach.use-case';
+import { Prisma } from '@repo/db';
 
 @Injectable()
 export class OutreachGenerationWorker {
@@ -136,7 +137,7 @@ export class OutreachGenerationWorker {
       );
 
       // 6. Final Transactional Persistence & Atomic Job Completion
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Re-verify stale attempt within transaction
         const currentCC = await tx.campaignContact.findUnique({
           where: { id: campaignContactId },

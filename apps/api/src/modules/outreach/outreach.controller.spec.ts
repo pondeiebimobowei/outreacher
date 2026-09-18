@@ -26,16 +26,18 @@ describe('OutreachController', () => {
     controller = module.get<OutreachController>(OutreachController);
   });
 
-  it('delegates POST /api/v1/campaign-contacts/:id/generate-outreach to GenerateOutreachUseCase', async () => {
+  it('delegates POST /api/v1/campaign-contacts/:id/generate-outreach to GenerateOutreachUseCase with userId', async () => {
     useCase.execute.mockResolvedValue({ jobId: 'job-123', status: 'QUEUED' });
 
     const response = await controller.generateOutreach(
+      { id: 'usr-123' },
       { id: 'ws-123' },
       'cc-456',
     );
 
     expect(response).toEqual({ jobId: 'job-123', status: 'QUEUED' });
     expect(useCase.execute).toHaveBeenCalledWith({
+      userId: 'usr-123',
       workspaceId: 'ws-123',
       campaignContactId: 'cc-456',
     });

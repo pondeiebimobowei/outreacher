@@ -16,6 +16,7 @@ describe('OutreachGenerationWorker', () => {
     maxAttempts: 3,
     createdAt: new Date('2026-09-18T10:00:00Z'),
     payload: {
+      userId: 'usr-123',
       workspaceId: 'ws-123',
       campaignContactId: 'cc-123',
       contactId: 'cnt-1',
@@ -150,7 +151,7 @@ describe('OutreachGenerationWorker', () => {
     });
   });
 
-  it('detects worker stale attempt and aborts without modifying CampaignContact', async () => {
+  it('detects worker stale attempt before execution and aborts without modifying CampaignContact', async () => {
     const staleCampaignContact = {
       ...mockCampaignContact,
       updatedAt: new Date('2026-09-18T11:00:00Z'), // Modified AFTER job creation at 10:00:00Z
@@ -162,6 +163,35 @@ describe('OutreachGenerationWorker', () => {
     const success = await worker.processJob('job-1');
     expect(success).toBe(true);
     expect(aiProvider.complete).not.toHaveBeenCalled();
+    expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+  });
+
+  it('aborts persistence inside transaction when CampaignContact is updated concurrently during AI execution', async () => {
+    prisma.job.findUnique.mockResolvedValue(mockJob);
+    // Initial fetch returns non-stale contact
+    prisma.campaignContact.findUnique.mockResolvedValueOnce(
+      mockCampaignContact,
+    );
+    // Concurrent update occurs during AI execution -> transaction fetch returns stale contact
+    const concurrentlyUpdatedContact = {
+      ...mockCampaignContact,
+      updatedAt: new Date('2026-09-18T12:00:00Z'),
+    };
+    prisma.campaignContact.findUnique.mockResolvedValueOnce(
+      concurrentlyUpdatedContact,
+    );
+
+    prisma.careerProfile.findUnique.mockResolvedValue(null);
+    prisma.evidence.findMany.mockResolvedValue([]);
+    aiProvider.complete.mockResolvedValue({
+      rawText: JSON.stringify({
+        subject: 'Engineering alignment with Alpha Corp',
+        body: 'Hello Alice, I have followed Alpha Corp work in AI platforms and wanted to connect.',
+      }),
+    });
+
+    const success = await worker.processJob('job-1');
+    expect(success).toBe(false);
     expect(prisma.campaignContact.update).not.toHaveBeenCalled();
   });
 });
