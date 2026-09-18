@@ -8,6 +8,7 @@ import { CreateCampaignUseCase } from './application/create-campaign.use-case';
 import { GetCampaignUseCase } from './application/get-campaign.use-case';
 import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
 import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.use-case';
+import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 
 @Module({
   imports: [PrismaModule, CompanyModule, ContactModule],
@@ -20,6 +21,7 @@ import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.
     GetCampaignUseCase,
     ListCampaignsUseCase,
     AddCampaignContactsUseCase,
+    ChangeCampaignStatusUseCase,
   ],
   exports: [
     CAMPAIGN_REPOSITORY_TOKEN,
@@ -27,6 +29,7 @@ import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.
     GetCampaignUseCase,
     ListCampaignsUseCase,
     AddCampaignContactsUseCase,
+    ChangeCampaignStatusUseCase,
   ],
 })
 export class CampaignModule {}
