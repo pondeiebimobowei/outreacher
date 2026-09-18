@@ -137,6 +137,32 @@ describe('Email Dispatch Pipeline (e2e)', () => {
   }
 
   describe('POST /api/v1/campaign-contacts/:id/send', () => {
+    it('returns 401 Unauthorized when request is unauthenticated and creates no send or job', async () => {
+      const { workspace } = await createAuthenticatedUser('owner@test.com');
+      const { campaignContact } = await seedCampaignContact(workspace.id);
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Idempotency-Key', 'key-test-unauth')
+        .expect(401);
+
+      const sends = await prisma.emailSend.findMany({
+        where: { campaignContactId: campaignContact.id },
+      });
+      expect(sends).toHaveLength(0);
+
+      const jobs = await prisma.job.findMany({
+        where: { workspaceId: workspace.id, type: 'EMAIL_DISPATCH' },
+      });
+      expect(jobs).toHaveLength(0);
+
+      const contact = await prisma.campaignContact.findUnique({
+        where: { id: campaignContact.id },
+      });
+      expect(contact?.status).toBe(CampaignContactStatus.READY);
+    });
+
     it('returns 400 Bad Request when Idempotency-Key header is missing', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender1@test.com');
