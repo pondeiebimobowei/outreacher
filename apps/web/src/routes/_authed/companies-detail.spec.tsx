@@ -99,6 +99,15 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
           mock: true,
         };
       }
+      if (url === '/companies/comp-100/contacts') {
+        return {
+          companyId: 'comp-100',
+          status: 'NOT_STARTED',
+          selectedContactId: null,
+          contacts: [],
+          discoveryJob: null,
+        };
+      }
       throw new Error(`Unexpected URL: ${url}`);
     });
 
@@ -298,8 +307,10 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     // Target Role Fit section checks
     expect(screen.getByText(/Target Roles Matched/i)).toBeInTheDocument();
 
-    // Next step preview CTA check
-    expect(screen.getByRole('button', { name: /discover contacts/i })).toBeDisabled();
+    // Contact Discovery & Selection Section check
+    expect(
+      screen.getByRole('heading', { name: /6\. Contact Discovery & Selection/i }),
+    ).toBeInTheDocument();
 
     // Toggle evidence detail expansion
     const toggleBtns = screen.getAllByRole('button', { name: /view evidence/i });

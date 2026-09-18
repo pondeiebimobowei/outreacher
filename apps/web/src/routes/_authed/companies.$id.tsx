@@ -5,6 +5,7 @@ import { ApiError } from '../../api/client';
 import { CompanyDto, CompanyStatus, fetchCompanyById, updateCompany } from '../../api/companies';
 import { fetchCareerProfile } from '../../api/profile';
 import { fetchCompanyResearch, startCompanyResearch } from '../../api/research';
+import { ContactDiscoveryWorkspace } from '../../components/contact-discovery/contact-discovery-workspace';
 import { ErrorState, LoadingState } from '../../components/states';
 
 export const Route = createFileRoute('/_authed/companies/$id')({
@@ -954,44 +955,8 @@ function CompanyDetailRouteComponent() {
         </section>
       )}
 
-      {/* 6. WHAT SHOULD I DO NEXT? - Next-Step Bridge CTA */}
-      <section
-        aria-labelledby="next-step-heading"
-        className="bg-slate-900 text-white p-6 rounded-xl shadow-sm space-y-4"
-      >
-        <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
-          <h2
-            id="next-step-heading"
-            className="text-sm font-semibold uppercase tracking-wider text-slate-200"
-          >
-            6. Next Workflow Step
-          </h2>
-          <span className="text-xs text-slate-400 font-mono">Phase 6 Preview</span>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-xs text-slate-300 leading-relaxed">
-            {rawResearchStatus === 'COMPLETED' || rawResearchStatus === 'PARTIAL'
-              ? 'Research is complete. The next workflow will be discovering the right decision-maker or role address to contact at this company.'
-              : 'Execute research to unlock contact discovery for key decision-makers at this company.'}
-          </p>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300">
-              <span className="font-semibold text-white">Contact Discovery:</span>
-              <span>Coming in Phase 6</span>
-            </div>
-
-            <button
-              type="button"
-              disabled
-              className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded-md cursor-not-allowed opacity-75 focus:outline-none"
-            >
-              Discover contacts &mdash; Coming next
-            </button>
-          </div>
-        </div>
-      </section>
+      {/* 6. CONTACT DISCOVERY & SELECTION WORKSPACE */}
+      <ContactDiscoveryWorkspace companyId={company.id} companyName={company.name} />
     </div>
   );
 }

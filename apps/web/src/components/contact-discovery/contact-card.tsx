@@ -1,0 +1,180 @@
+import { EvaluatedContactDto } from '../../api/contacts';
+import { ContactProvenance } from './contact-provenance';
+
+interface ContactCardProps {
+  contact: EvaluatedContactDto;
+  onSelect: (contactId: string) => void;
+  isSelectPending: boolean;
+}
+
+export function ContactCard({ contact, onSelect, isSelectPending }: ContactCardProps) {
+  const isPerson = contact.contactKind === 'PERSON';
+  const isSelected = contact.isSelected;
+  const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
+
+  return (
+    <div
+      className={`p-5 rounded-xl border transition-all space-y-4 ${
+        isSelected
+          ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900'
+          : 'bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300'
+      }`}
+    >
+      {/* 1. Header: Name, Title, Contact Kind Badge & Selection Status */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <h3
+              className={`text-base font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}
+            >
+              {contact.name}
+            </h3>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
+                isPerson
+                  ? isSelected
+                    ? 'bg-sky-900 text-sky-200 border border-sky-700'
+                    : 'bg-sky-100 text-sky-800 border border-sky-300'
+                  : isSelected
+                    ? 'bg-amber-900 text-amber-200 border border-amber-700'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+              }`}
+            >
+              {contact.contactKind}
+            </span>
+            {isSelected && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500 text-white uppercase tracking-wider shadow-sm">
+                Selected Target
+              </span>
+            )}
+          </div>
+
+          <p className={`text-xs font-medium ${isSelected ? 'text-slate-300' : 'text-slate-600'}`}>
+            {contact.title || 'Role context available via research'}
+          </p>
+        </div>
+
+        {/* Action: Select Contact */}
+        <div>
+          {isSelected ? (
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 text-xs font-bold text-emerald-400 bg-slate-800 border border-emerald-500/40 rounded-md cursor-default focus:outline-none inline-flex items-center space-x-1"
+            >
+              <span>&check; Selected</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelect(contact.id)}
+              disabled={isSelectPending}
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            >
+              {isSelectPending ? 'Selecting...' : 'Select Target Contact'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Badges Row: Relevance, Identity Confidence & Email Availability */}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {/* Relevance Badge */}
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold ${
+            contact.relevance === 'HIGH'
+              ? isSelected
+                ? 'bg-emerald-900 text-emerald-200 border border-emerald-700'
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+              : contact.relevance === 'MEDIUM'
+                ? isSelected
+                  ? 'bg-sky-900 text-sky-200 border border-sky-700'
+                  : 'bg-sky-100 text-sky-800 border border-sky-300'
+                : isSelected
+                  ? 'bg-slate-800 text-slate-300 border border-slate-700'
+                  : 'bg-slate-200 text-slate-700 border border-slate-300'
+          }`}
+        >
+          Relevance: {contact.relevance}
+        </span>
+
+        {/* Identity Confidence Badge */}
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+            isSelected
+              ? 'bg-slate-800 text-slate-300 border border-slate-700'
+              : 'bg-white text-slate-700 border border-slate-200'
+          }`}
+        >
+          Identity: {contact.confidence || 'MEDIUM'}
+        </span>
+
+        {/* Email Confidence Badge */}
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+            isEmailAvailable
+              ? isSelected
+                ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : isSelected
+                ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                : 'bg-slate-100 text-slate-500 border border-slate-200'
+          }`}
+        >
+          Email: {contact.emailConfidence}
+        </span>
+      </div>
+
+      {/* 3. Why This Contact - Explainable Rationale */}
+      <div
+        className={`p-3 rounded-lg text-xs leading-relaxed border ${
+          isSelected
+            ? 'bg-slate-800 border-slate-700 text-slate-200'
+            : 'bg-white border-slate-200 text-slate-700'
+        }`}
+      >
+        <span
+          className={`font-bold block uppercase tracking-wider text-[10px] mb-1 ${
+            isSelected ? 'text-slate-400' : 'text-slate-900'
+          }`}
+        >
+          Why This Contact:
+        </span>
+        <p>{contact.recommendationRationale}</p>
+      </div>
+
+      {/* 4. Contact Address / Missing Email Display */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div>
+          {isEmailAvailable ? (
+            <div className="flex items-center space-x-2 font-mono">
+              <span className={`font-semibold ${isSelected ? 'text-slate-300' : 'text-slate-700'}`}>
+                Email:
+              </span>
+              <span className={`font-medium ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                {contact.email}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className={`font-semibold ${isSelected ? 'text-slate-400' : 'text-slate-500'}`}>
+                Email:
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-700">
+                Email Unavailable
+              </span>
+              <span
+                className={`text-[11px] italic ${isSelected ? 'text-slate-400' : 'text-slate-500'}`}
+              >
+                (Identity verified from source; email address unestablished)
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Provenance Inspection Trigger */}
+        <ContactProvenance contact={contact} />
+      </div>
+    </div>
+  );
+}

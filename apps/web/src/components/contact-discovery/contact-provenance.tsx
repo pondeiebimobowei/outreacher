@@ -1,0 +1,76 @@
+import { useState } from 'react';
+import { EvaluatedContactDto } from '../../api/contacts';
+
+interface ContactProvenanceProps {
+  contact: EvaluatedContactDto;
+}
+
+export function ContactProvenance({ contact }: ContactProvenanceProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="text-xs">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-2 py-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+      >
+        {isOpen ? 'Hide Provenance ▲' : 'Inspect Provenance ▼'}
+      </button>
+
+      {isOpen && (
+        <div className="mt-3 p-3 bg-white border border-slate-200 rounded-md space-y-2 text-slate-700">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-900 border-b border-slate-100 pb-1">
+            <span>Discovery Ground Truth & Provenance</span>
+            <span className="font-mono text-slate-500">ID: {contact.id.slice(0, 8)}</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="font-semibold text-slate-800">Source:</span>{' '}
+              <span>{contact.source || 'Company Website'}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-slate-800">Identity Confidence:</span>{' '}
+              <span className="font-bold">{contact.confidence || 'MEDIUM'}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-slate-800">Discovered:</span>{' '}
+              <span>
+                {contact.discoveredAt
+                  ? new Date(contact.discoveredAt).toLocaleDateString()
+                  : 'Recent Run'}
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold text-slate-800">Email Status:</span>{' '}
+              <span
+                className={
+                  contact.email ? 'text-emerald-700 font-bold' : 'text-slate-500 font-medium'
+                }
+              >
+                {contact.emailConfidence}
+              </span>
+            </div>
+          </div>
+
+          {contact.sourceUrl && (
+            <div className="pt-1 border-t border-slate-100 text-[11px]">
+              <span className="font-semibold text-slate-800 block mb-0.5">
+                Verified Source URL:
+              </span>
+              <a
+                href={contact.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-slate-900 hover:underline font-mono truncate block focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+              >
+                {contact.sourceUrl} &nearr;
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
