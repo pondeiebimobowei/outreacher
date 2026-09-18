@@ -139,7 +139,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
         },
       });
       expect(job).not.toBeNull();
-      expect(job?.type).toBe('DISCOVER_CONTACTS');
+      expect(job?.type).toBe('CONTACT_DISCOVERY');
       expect(job?.status).toBe('PENDING');
     });
 
@@ -152,7 +152,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       const completedJob = await prisma.job.create({
         data: {
           workspaceId: workspace.id,
-          type: 'DISCOVER_CONTACTS',
+          type: 'CONTACT_DISCOVERY',
           status: 'COMPLETED',
           payload: { companyId: company.id },
           completedAt: new Date(),
@@ -201,7 +201,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       expect(res.body).toEqual(
         expect.objectContaining({
           statusCode: 429,
-          code: 'CONTACT_FRESHNESS_LIMIT_EXCEEDED',
+          code: 'RATE_LIMITED',
         }),
       );
     });
