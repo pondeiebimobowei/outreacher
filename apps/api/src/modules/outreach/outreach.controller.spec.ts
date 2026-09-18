@@ -1,21 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OutreachController } from './outreach.controller';
 import { GenerateOutreachUseCase } from './application/generate-outreach.use-case';
+import { UpdateDraftUseCase } from './application/update-draft.use-case';
+import { ApproveDraftUseCase } from './application/approve-draft.use-case';
 import { WorkspaceGuard } from '../workspaces/workspace.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 describe('OutreachController', () => {
   let controller: OutreachController;
   let useCase: any;
+  let updateUseCase: any;
+  let approveUseCase: any;
 
   beforeEach(async () => {
-    useCase = {
-      execute: jest.fn(),
-    };
+    useCase = { execute: jest.fn() };
+    updateUseCase = { execute: jest.fn() };
+    approveUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OutreachController],
-      providers: [{ provide: GenerateOutreachUseCase, useValue: useCase }],
+      providers: [
+        { provide: GenerateOutreachUseCase, useValue: useCase },
+        { provide: UpdateDraftUseCase, useValue: updateUseCase },
+        { provide: ApproveDraftUseCase, useValue: approveUseCase },
+      ],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -38,6 +46,35 @@ describe('OutreachController', () => {
     expect(response).toEqual({ jobId: 'job-123', status: 'QUEUED' });
     expect(useCase.execute).toHaveBeenCalledWith({
       userId: 'usr-123',
+      workspaceId: 'ws-123',
+      campaignContactId: 'cc-456',
+    });
+  });
+
+  it('delegates PATCH /api/v1/campaign-contacts/:id/draft to UpdateDraftUseCase', async () => {
+    updateUseCase.execute.mockResolvedValue({ status: 'PENDING' });
+
+    const response = await controller.updateDraft({ id: 'ws-123' }, 'cc-456', {
+      subject: 'New Subject',
+      bodyText: 'New Body',
+    });
+
+    expect(response).toEqual({ status: 'PENDING' });
+    expect(updateUseCase.execute).toHaveBeenCalledWith({
+      workspaceId: 'ws-123',
+      campaignContactId: 'cc-456',
+      subject: 'New Subject',
+      bodyText: 'New Body',
+    });
+  });
+
+  it('delegates POST /api/v1/campaign-contacts/:id/approve to ApproveDraftUseCase', async () => {
+    approveUseCase.execute.mockResolvedValue({ status: 'READY' });
+
+    const response = await controller.approveDraft({ id: 'ws-123' }, 'cc-456');
+
+    expect(response).toEqual({ status: 'READY' });
+    expect(approveUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
       campaignContactId: 'cc-456',
     });

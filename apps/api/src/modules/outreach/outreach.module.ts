@@ -3,6 +3,8 @@ import { PrismaModule } from '../../database/prisma.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
 import { OutreachController } from './outreach.controller';
 import { GenerateOutreachUseCase } from './application/generate-outreach.use-case';
+import { UpdateDraftUseCase } from './application/update-draft.use-case';
+import { ApproveDraftUseCase } from './application/approve-draft.use-case';
 import { OutreachGenerationWorker } from './worker/outreach-generation.worker';
 import { MockAIProvider } from './infrastructure/mock-ai.provider';
 import { OpenRouterAIProvider } from './infrastructure/openrouter-ai.provider';
@@ -41,9 +43,17 @@ const aiProviderFactory: Provider = {
   controllers: [OutreachController],
   providers: [
     GenerateOutreachUseCase,
+    UpdateDraftUseCase,
+    ApproveDraftUseCase,
     OutreachGenerationWorker,
     aiProviderFactory,
   ],
-  exports: [GenerateOutreachUseCase, OutreachGenerationWorker, 'AIProvider'],
+  exports: [
+    GenerateOutreachUseCase,
+    UpdateDraftUseCase,
+    ApproveDraftUseCase,
+    OutreachGenerationWorker,
+    'AIProvider',
+  ],
 })
 export class OutreachModule {}

@@ -180,7 +180,7 @@ describe('Outreach Generation Engine (e2e)', () => {
     });
 
     it('enforces 20 calls/hr rate limit per user/workspace with HTTP 429', async () => {
-      const { cookies, workspace } =
+      const { cookies, workspace, user } =
         await createAuthenticatedUser('user1@example.com');
       const { campaignContact } = await setupOutreachEntities(
         cookies,
@@ -194,7 +194,7 @@ describe('Outreach Generation Engine (e2e)', () => {
             workspaceId: workspace.id,
             type: 'OUTREACH_GENERATION',
             status: 'COMPLETED',
-            payload: {},
+            payload: { userId: user.id },
           },
         });
       }
