@@ -1,8 +1,11 @@
 import {
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -22,5 +25,8 @@ export class CreateCampaignDto {
   sendingIdentity?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(30)
   followUpDelayBusinessDays?: number;
 }

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { CompanyModule } from '../company/company.module';
 import { ContactModule } from '../contact/contact.module';
+import { WorkspaceModule } from '../workspaces/workspace.module';
+import { CampaignController } from './campaign.controller';
 import { CAMPAIGN_REPOSITORY_TOKEN } from './domain/campaign.repository.interface';
 import { PrismaCampaignRepository } from './infrastructure/prisma-campaign.repository';
 import { CreateCampaignUseCase } from './application/create-campaign.use-case';
@@ -11,7 +13,8 @@ import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 
 @Module({
-  imports: [PrismaModule, CompanyModule, ContactModule],
+  imports: [PrismaModule, CompanyModule, ContactModule, WorkspaceModule],
+  controllers: [CampaignController],
   providers: [
     {
       provide: CAMPAIGN_REPOSITORY_TOKEN,
