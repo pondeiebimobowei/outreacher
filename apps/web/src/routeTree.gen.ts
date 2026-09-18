@@ -13,10 +13,10 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedCampaignsRouteImport } from './routes/_authed/campaigns'
-import { Route as AuthedCompaniesRouteImport } from './routes/_authed/companies'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedTemplatesRouteImport } from './routes/_authed/templates'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
+import { Route as AuthedCompaniesIndexRouteImport } from './routes/_authed/companies.index'
 import { Route as AuthedCompaniesIdRouteImport } from './routes/_authed/companies.$id'
 
 const AuthedRoute = AuthedRouteImport.update({
@@ -37,11 +37,6 @@ const AuthedCampaignsRoute = AuthedCampaignsRouteImport.update({
   path: '/campaigns',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedCompaniesRoute = AuthedCompaniesRouteImport.update({
-  id: '/companies',
-  path: '/companies',
-  getParentRoute: () => AuthedRoute,
-} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -57,72 +52,77 @@ const GuestLoginRoute = GuestLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthedCompaniesIndexRoute = AuthedCompaniesIndexRouteImport.update({
+  id: '/companies/',
+  path: '/companies/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedCompaniesIdRoute = AuthedCompaniesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthedCompaniesRoute,
+  id: '/companies/$id',
+  path: '/companies/$id',
+  getParentRoute: () => AuthedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
   '/campaigns': typeof AuthedCampaignsRoute
-  '/companies': typeof AuthedCompaniesRouteWithChildren
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
+  '/companies/': typeof AuthedCompaniesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
   '/campaigns': typeof AuthedCampaignsRoute
-  '/companies': typeof AuthedCompaniesRouteWithChildren
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
+  '/companies': typeof AuthedCompaniesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
   '/_authed/campaigns': typeof AuthedCampaignsRoute
-  '/_authed/companies': typeof AuthedCompaniesRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/templates': typeof AuthedTemplatesRoute
   '/_guest/login': typeof GuestLoginRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
+  '/_authed/companies/': typeof AuthedCompaniesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/campaigns'
-    | '/companies'
     | '/settings'
     | '/templates'
     | '/login'
     | '/companies/$id'
+    | '/companies/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/campaigns'
-    | '/companies'
     | '/settings'
     | '/templates'
     | '/login'
     | '/companies/$id'
+    | '/companies'
   id:
     | '__root__'
     | '/_authed'
     | '/_guest'
     | '/_authed/campaigns'
-    | '/_authed/companies'
     | '/_authed/settings'
     | '/_authed/templates'
     | '/_guest/login'
     | '/_authed/'
     | '/_authed/companies/$id'
+    | '/_authed/companies/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -160,13 +160,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedCampaignsRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/companies': {
-      id: '/_authed/companies'
-      path: '/companies'
-      fullPath: '/companies'
-      preLoaderRoute: typeof AuthedCompaniesRouteImport
-      parentRoute: typeof AuthedRoute
-    }
     '/_authed/settings': {
       id: '/_authed/settings'
       path: '/settings'
@@ -188,42 +181,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestLoginRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/companies/': {
+      id: '/_authed/companies/'
+      path: '/companies'
+      fullPath: '/companies/'
+      preLoaderRoute: typeof AuthedCompaniesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/companies/$id': {
       id: '/_authed/companies/$id'
-      path: '/$id'
+      path: '/companies/$id'
       fullPath: '/companies/$id'
       preLoaderRoute: typeof AuthedCompaniesIdRouteImport
-      parentRoute: typeof AuthedCompaniesRoute
+      parentRoute: typeof AuthedRoute
     }
   }
 }
 
-interface AuthedCompaniesRouteChildren {
-  AuthedCompaniesIdRoute: typeof AuthedCompaniesIdRoute
-}
-
-const AuthedCompaniesRouteChildren: AuthedCompaniesRouteChildren = {
-  AuthedCompaniesIdRoute: AuthedCompaniesIdRoute,
-}
-
-const AuthedCompaniesRouteWithChildren = AuthedCompaniesRoute._addFileChildren(
-  AuthedCompaniesRouteChildren,
-)
-
 interface AuthedRouteChildren {
   AuthedCampaignsRoute: typeof AuthedCampaignsRoute
-  AuthedCompaniesRoute: typeof AuthedCompaniesRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedTemplatesRoute: typeof AuthedTemplatesRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
+  AuthedCompaniesIdRoute: typeof AuthedCompaniesIdRoute
+  AuthedCompaniesIndexRoute: typeof AuthedCompaniesIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedCampaignsRoute: AuthedCampaignsRoute,
-  AuthedCompaniesRoute: AuthedCompaniesRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedTemplatesRoute: AuthedTemplatesRoute,
   AuthedIndexRoute: AuthedIndexRoute,
+  AuthedCompaniesIdRoute: AuthedCompaniesIdRoute,
+  AuthedCompaniesIndexRoute: AuthedCompaniesIndexRoute,
 }
 
 const AuthedRouteWithChildren =

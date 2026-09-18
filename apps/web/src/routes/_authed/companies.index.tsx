@@ -5,7 +5,7 @@ import { ApiError } from '../../api/client';
 import { CompanyDto, CompanyStatus, createCompany, fetchCompanies } from '../../api/companies';
 import { EmptyState, ErrorState, LoadingState } from '../../components/states';
 
-export const Route = createFileRoute('/_authed/companies')({
+export const Route = createFileRoute('/_authed/companies/')({
   component: CompaniesRouteComponent,
 });
 

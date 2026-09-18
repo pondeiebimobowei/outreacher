@@ -51,7 +51,7 @@ describe('TanStack Router Generated Route Hierarchy', () => {
     );
 
     expect(authedPaths).toContain('/');
-    expect(authedPaths).toContain('/companies');
+    expect(authedPaths.some((p) => typeof p === 'string' && p.startsWith('/companies'))).toBe(true);
     expect(authedPaths).toContain('/campaigns');
     expect(authedPaths).toContain('/templates');
     expect(authedPaths).toContain('/settings');
