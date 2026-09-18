@@ -37,4 +37,3 @@ import { ResearchWorkerRunner } from './worker/research-worker.runner';
   ],
 })
 export class ResearchModule {}
-

@@ -197,11 +197,15 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     // Toggle evidence detail expansion
     const toggleBtn = screen.getByRole('button', { name: /view evidence/i });
     expect(toggleBtn).toBeInTheDocument();
-    expect(screen.queryByText(/"Rebuilding core backend with NestJS and Postgres."/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/"Rebuilding core backend with NestJS and Postgres."/i),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(toggleBtn);
 
-    expect(screen.getByText(/"Rebuilding core backend with NestJS and Postgres."/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/"Rebuilding core backend with NestJS and Postgres."/i),
+    ).toBeInTheDocument();
   });
 
   it('renders REFRESHING IN BACKGROUND status while preserving existing research on screen', async () => {
@@ -238,7 +242,9 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     });
 
     // Existing findings preserved on screen
-    expect(screen.getByText('Existing research summary preserved during refresh.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Existing research summary preserved during refresh.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Existing Opportunity Title')).toBeInTheDocument();
   });
 
@@ -279,6 +285,8 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
       expect(screen.getByRole('alert')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Maximum 3 forced refreshes per company per 24 hours reached/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Maximum 3 forced refreshes per company per 24 hours reached/i),
+    ).toBeInTheDocument();
   });
 });
