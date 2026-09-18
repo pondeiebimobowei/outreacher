@@ -38,22 +38,33 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     normalizedName: 'acme research',
     websiteUrl: 'https://acme.com',
     domain: 'acme.com',
-    description: 'Tech company',
+    description: 'Tech company specializing in distributed systems.',
     industry: 'Technology',
-    location: 'SF',
+    location: 'San Francisco, CA',
     linkedinUrl: null,
     status: 'ACTIVE',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
-  const mockProfile = {
+  const mockProfileWithRoles = {
     id: 'prof-1',
     workspaceId: 'ws-1',
     targetRoles: ['Backend Engineer', 'Engineering Manager'],
     targetIndustries: ['Technology'],
     targetLocations: ['Remote'],
     skills: ['TypeScript', 'NestJS'],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const mockProfileNoRoles = {
+    id: 'prof-1',
+    workspaceId: 'ws-1',
+    targetRoles: [],
+    targetIndustries: ['Technology'],
+    targetLocations: ['Remote'],
+    skills: ['TypeScript'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -74,10 +85,40 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
   }
 
+  it('renders company identity header metadata including industry, location, and description', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: null,
+          opportunities: [],
+          evidence: [],
+          status: 'NOT_STARTED',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme Research Corp')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Technology')).toBeInTheDocument();
+    expect(screen.getByText('• San Francisco, CA')).toBeInTheDocument();
+    expect(
+      screen.getByText('Tech company specializing in distributed systems.'),
+    ).toBeInTheDocument();
+  });
+
   it('renders NOT_STARTED research status and Start Research CTA', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
-      if (url === '/profile') return mockProfile;
+      if (url === '/profile') return mockProfileWithRoles;
       if (url === '/companies/comp-100/research') {
         return {
           run: null,
@@ -101,10 +142,66 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     expect(screen.getByRole('button', { name: /^start research$/i })).toBeInTheDocument();
   });
 
+  it('renders QUEUED state with disabled Queued button and descriptive banner on first run', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: null,
+          opportunities: [],
+          evidence: [],
+          status: 'QUEUED',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('QUEUED')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Research requested, waiting for worker slot/i)).toBeInTheDocument();
+    const queuedBtn = screen.getByRole('button', { name: /^queued$/i });
+    expect(queuedBtn).toBeDisabled();
+  });
+
+  it('renders RUNNING state with disabled Researching... button and descriptive banner on first run', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: null,
+          opportunities: [],
+          evidence: [],
+          status: 'RUNNING',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('RUNNING')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Analyzing company website and openings/i)).toBeInTheDocument();
+    const researchingBtn = screen.getByRole('button', { name: /^researching\.\.\.$/i });
+    expect(researchingBtn).toBeDisabled();
+  });
+
   it('triggers startCompanyResearch on CTA click', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
-      if (url === '/profile') return mockProfile;
+      if (url === '/profile') return mockProfileWithRoles;
       if (url === '/companies/comp-100/research') {
         return {
           run: null,
@@ -136,10 +233,10 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     });
   });
 
-  it('renders COMPLETED research state with decision hierarchy, evidence toggle, profile fit, and next-step preview CTA', async () => {
+  it('renders COMPLETED research state with decision hierarchy, evidence toggle, evidence badges, profile fit, and next-step preview CTA', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
-      if (url === '/profile') return mockProfile;
+      if (url === '/profile') return mockProfileWithRoles;
       if (url === '/companies/comp-100/research') {
         return {
           run: {
@@ -167,6 +264,15 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
               sourceExcerpt: 'Rebuilding core backend with NestJS and Postgres.',
               confidence: 0.95,
             },
+            {
+              id: 'ev-2',
+              claim: 'Hiring expansion planned',
+              classification: 'INFERENCE',
+              sourceName: 'Engineering Blog',
+              sourceUrl: 'https://acme.com/blog',
+              sourceExcerpt: 'Scaling backend team headcount in Q3.',
+              confidence: 0.8,
+            },
           ],
           status: 'COMPLETED',
           jobStatus: null,
@@ -187,6 +293,7 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     expect(screen.getByText('CONFIRMED')).toBeInTheDocument();
     expect(screen.getByText('Uses NestJS & PostgreSQL')).toBeInTheDocument();
     expect(screen.getByText('FACT')).toBeInTheDocument();
+    expect(screen.getByText('INFERENCE')).toBeInTheDocument();
 
     // Target Role Fit section checks
     expect(screen.getByText(/Target Roles Matched/i)).toBeInTheDocument();
@@ -195,23 +302,54 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     expect(screen.getByRole('button', { name: /discover contacts/i })).toBeDisabled();
 
     // Toggle evidence detail expansion
-    const toggleBtn = screen.getByRole('button', { name: /view evidence/i });
-    expect(toggleBtn).toBeInTheDocument();
+    const toggleBtns = screen.getAllByRole('button', { name: /view evidence/i });
+    expect(toggleBtns.length).toBe(2);
     expect(
       screen.queryByText(/"Rebuilding core backend with NestJS and Postgres."/i),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(toggleBtn);
+    fireEvent.click(toggleBtns[0]);
 
     expect(
       screen.getByText(/"Rebuilding core backend with NestJS and Postgres."/i),
     ).toBeInTheDocument();
   });
 
+  it('omits Target Role Fit section completely when career profile has no target roles', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileNoRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: {
+            id: 'run-1',
+            status: 'COMPLETED',
+            summary: 'Summary string',
+          },
+          opportunities: [],
+          evidence: [],
+          status: 'COMPLETED',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('COMPLETED')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Career Profile Alignment/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Target Roles Matched/i)).not.toBeInTheDocument();
+  });
+
   it('renders REFRESHING IN BACKGROUND status while preserving existing research on screen', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
-      if (url === '/profile') return mockProfile;
+      if (url === '/profile') return mockProfileWithRoles;
       if (url === '/companies/comp-100/research') {
         return {
           run: {
@@ -241,6 +379,9 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
       expect(screen.getByText('REFRESHING IN BACKGROUND')).toBeInTheDocument();
     });
 
+    // Disabled Refreshing... button rendered
+    expect(screen.getByRole('button', { name: /^refreshing\.\.\.$/i })).toBeDisabled();
+
     // Existing findings preserved on screen
     expect(
       screen.getByText('Existing research summary preserved during refresh.'),
@@ -248,10 +389,66 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
     expect(screen.getByText('Existing Opportunity Title')).toBeInTheDocument();
   });
 
+  it('renders PARTIAL RESULTS state with amber badge', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: {
+            id: 'run-1',
+            status: 'PARTIAL',
+            summary: 'Partial summary.',
+          },
+          opportunities: [],
+          evidence: [],
+          status: 'PARTIAL',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('PARTIAL RESULTS')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Research completed with partial findings/i)).toBeInTheDocument();
+  });
+
+  it('renders FAILED state with Retry Research CTA', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: null,
+          opportunities: [],
+          evidence: [],
+          status: 'FAILED',
+          jobStatus: null,
+          mock: true,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('FAILED')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /^retry research$/i })).toBeInTheDocument();
+  });
+
   it('displays rate limit error alert when forced refresh returns 429', async () => {
     mockGet.mockImplementation(async (url: string) => {
       if (url === '/companies/comp-100') return mockCompany;
-      if (url === '/profile') return mockProfile;
+      if (url === '/profile') return mockProfileWithRoles;
       if (url === '/companies/comp-100/research') {
         return {
           run: { id: 'run-1', status: 'COMPLETED' },

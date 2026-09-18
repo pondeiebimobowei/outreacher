@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
 import { CompanyDto, CompanyStatus, fetchCompanyById, updateCompany } from '../../api/companies';
 import { fetchCareerProfile } from '../../api/profile';
@@ -10,6 +10,35 @@ import { ErrorState, LoadingState } from '../../components/states';
 export const Route = createFileRoute('/_authed/companies/$id')({
   component: CompanyDetailRouteComponent,
 });
+
+function formatRelativeTime(dateString: string | null | undefined): string | null {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return null;
+
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 0) {
+    return date.toLocaleDateString();
+  }
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  }
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  }
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays}d ago`;
+  }
+  return date.toLocaleDateString();
+}
 
 function CompanyDetailRouteComponent() {
   const { id } = Route.useParams();
@@ -32,6 +61,8 @@ function CompanyDetailRouteComponent() {
   const [researchError, setResearchError] = useState<string | null>(null);
   const [expandedEvidenceIds, setExpandedEvidenceIds] = useState<Record<string, boolean>>({});
   const [ariaAnnouncement, setAriaAnnouncement] = useState<string>('');
+
+  const prevStatusRef = useRef<string | null>(null);
 
   const {
     data: company,
@@ -61,6 +92,40 @@ function CompanyDetailRouteComponent() {
     },
   });
 
+  const rawResearchStatus = researchDetails?.status ?? 'NOT_STARTED';
+  const hasExistingData =
+    (researchDetails?.opportunities && researchDetails.opportunities.length > 0) ||
+    Boolean(researchDetails?.run?.summary) ||
+    (researchDetails?.evidence && researchDetails.evidence.length > 0);
+
+  const isPollingBackground = rawResearchStatus === 'QUEUED' || rawResearchStatus === 'RUNNING';
+
+  const isRefreshingState = isPollingBackground && hasExistingData;
+  const isFirstRunLoading = isPollingBackground && !hasExistingData;
+
+  // Track discrete status transitions for accessibility live region
+  useEffect(() => {
+    if (!researchDetails) return;
+    const currentStatus = researchDetails.status;
+    const prevStatus = prevStatusRef.current;
+
+    if (prevStatus !== null && prevStatus !== currentStatus) {
+      if (currentStatus === 'QUEUED' || currentStatus === 'RUNNING') {
+        if (hasExistingData) {
+          setAriaAnnouncement('Research is being updated.');
+        } else {
+          setAriaAnnouncement('Research started.');
+        }
+      } else if (currentStatus === 'COMPLETED' || currentStatus === 'PARTIAL') {
+        setAriaAnnouncement('Research completed.');
+      } else if (currentStatus === 'FAILED') {
+        setAriaAnnouncement('Research failed.');
+      }
+    }
+
+    prevStatusRef.current = currentStatus;
+  }, [researchDetails, hasExistingData]);
+
   const startResearchMutation = useMutation({
     mutationFn: (options?: { forceRefresh?: boolean }) => startCompanyResearch(id, options),
     onSuccess: (res) => {
@@ -68,6 +133,8 @@ function CompanyDetailRouteComponent() {
       queryClient.invalidateQueries({ queryKey: ['company-research', id] });
       if (res.reused) {
         setAriaAnnouncement('Research findings reused from 24 hour cache.');
+      } else if (hasExistingData) {
+        setAriaAnnouncement('Research is being updated.');
       } else {
         setAriaAnnouncement('Research started.');
       }
@@ -207,23 +274,9 @@ function CompanyDetailRouteComponent() {
     );
   }
 
-  const rawResearchStatus = researchDetails?.status ?? 'NOT_STARTED';
-  const hasExistingData =
-    (researchDetails?.opportunities && researchDetails.opportunities.length > 0) ||
-    Boolean(researchDetails?.run?.summary) ||
-    (researchDetails?.evidence && researchDetails.evidence.length > 0);
-
-  // Distinguish REFRESHING state when polling during a refresh run vs first-run QUEUED/RUNNING
-  const isPollingBackground =
-    startResearchMutation.isPending ||
-    rawResearchStatus === 'QUEUED' ||
-    rawResearchStatus === 'RUNNING';
-
-  const isRefreshingState = isPollingBackground && hasExistingData;
-  const isFirstRunLoading = isPollingBackground && !hasExistingData;
-
   const targetRoles = careerProfile?.targetRoles?.filter(Boolean) ?? [];
   const hasTargetRoles = targetRoles.length > 0;
+  const completionRelative = formatRelativeTime(researchDetails?.run?.completedAt);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
@@ -275,6 +328,14 @@ function CompanyDetailRouteComponent() {
               {company.domain && (
                 <span className="font-mono text-slate-600 font-medium">{company.domain}</span>
               )}
+              {company.industry && (
+                <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">
+                  {company.industry}
+                </span>
+              )}
+              {company.location && (
+                <span className="text-slate-600 font-medium">&bull; {company.location}</span>
+              )}
               {company.websiteUrl && (
                 <a
                   href={company.websiteUrl}
@@ -296,6 +357,12 @@ function CompanyDetailRouteComponent() {
                 </a>
               )}
             </div>
+
+            {company.description && (
+              <p className="mt-2 text-xs text-slate-600 border-t border-slate-100 pt-2">
+                {company.description}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
@@ -356,15 +423,21 @@ function CompanyDetailRouteComponent() {
               {rawResearchStatus === 'NOT_STARTED' &&
                 'Execute research to analyze company background, signals, and openings.'}
               {isFirstRunLoading &&
-                'Research queued & running. Scanning company website, stack signals, and openings...'}
+                rawResearchStatus === 'QUEUED' &&
+                'Research requested, waiting for worker slot...'}
+              {isFirstRunLoading &&
+                rawResearchStatus === 'RUNNING' &&
+                'Analyzing company website and openings...'}
               {isRefreshingState &&
                 'Updating research in background... Existing research findings remain visible below.'}
               {rawResearchStatus === 'COMPLETED' &&
                 !isRefreshingState &&
                 `Research completed${
-                  researchDetails?.run?.completedAt
-                    ? ` on ${new Date(researchDetails.run.completedAt).toLocaleString()}`
-                    : ''
+                  completionRelative
+                    ? ` (${completionRelative})`
+                    : researchDetails?.run?.completedAt
+                      ? ` on ${new Date(researchDetails.run.completedAt).toLocaleString()}`
+                      : ''
                 }.`}
               {rawResearchStatus === 'PARTIAL' &&
                 !isRefreshingState &&
@@ -376,47 +449,78 @@ function CompanyDetailRouteComponent() {
           </div>
 
           <div className="flex items-center space-x-2 self-start sm:self-auto">
-            {rawResearchStatus === 'NOT_STARTED' && (
+            {isFirstRunLoading && rawResearchStatus === 'QUEUED' && (
               <button
                 type="button"
-                onClick={() => startResearchMutation.mutate({})}
-                disabled={isPollingBackground}
-                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                disabled
+                className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-md cursor-not-allowed opacity-75 focus:outline-none"
               >
-                {isPollingBackground ? 'Starting...' : 'Start Research'}
+                Queued
               </button>
             )}
 
-            {(rawResearchStatus === 'COMPLETED' || rawResearchStatus === 'PARTIAL') && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => startResearchMutation.mutate({ forceRefresh: false })}
-                  disabled={isPollingBackground}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  {isRefreshingState ? 'Updating...' : 'Refresh Research'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
-                  disabled={isPollingBackground}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  title="Bypass 24h freshness cache (max 3 per company/24h)"
-                >
-                  Force Refresh
-                </button>
-              </>
+            {isFirstRunLoading && rawResearchStatus === 'RUNNING' && (
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-md cursor-not-allowed opacity-75 focus:outline-none"
+              >
+                Researching...
+              </button>
             )}
 
-            {rawResearchStatus === 'FAILED' && (
+            {isRefreshingState && (
+              <button
+                type="button"
+                disabled
+                className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded-md cursor-not-allowed opacity-75 focus:outline-none"
+              >
+                Refreshing...
+              </button>
+            )}
+
+            {rawResearchStatus === 'NOT_STARTED' && !isPollingBackground && (
+              <button
+                type="button"
+                onClick={() => startResearchMutation.mutate({})}
+                disabled={startResearchMutation.isPending}
+                className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              >
+                {startResearchMutation.isPending ? 'Starting...' : 'Start Research'}
+              </button>
+            )}
+
+            {(rawResearchStatus === 'COMPLETED' || rawResearchStatus === 'PARTIAL') &&
+              !isRefreshingState && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startResearchMutation.mutate({ forceRefresh: false })}
+                    disabled={startResearchMutation.isPending}
+                    className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    Refresh Research
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
+                    disabled={startResearchMutation.isPending}
+                    className="px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    title="Bypass 24h freshness cache (max 3 per company/24h)"
+                  >
+                    Force Refresh
+                  </button>
+                </>
+              )}
+
+            {rawResearchStatus === 'FAILED' && !isRefreshingState && (
               <button
                 type="button"
                 onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
-                disabled={isPollingBackground}
+                disabled={startResearchMutation.isPending}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
-                {isPollingBackground ? 'Retrying...' : 'Retry Research'}
+                {startResearchMutation.isPending ? 'Retrying...' : 'Retry Research'}
               </button>
             )}
           </div>
@@ -608,7 +712,7 @@ function CompanyDetailRouteComponent() {
                 <ul className="space-y-1.5 text-slate-700">
                   {researchDetails.run.keyFindings.map((finding, idx) => (
                     <li key={idx} className="flex items-start space-x-2">
-                      <span className="text-slate-400 font-bold">•</span>
+                      <span className="text-slate-400 font-bold">&bull;</span>
                       <span>{finding}</span>
                     </li>
                   ))}
@@ -660,7 +764,7 @@ function CompanyDetailRouteComponent() {
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : opp.opportunityType === 'PROACTIVE'
                           ? 'bg-sky-100 text-sky-800 border border-sky-300'
-                          : 'bg-slate-200 text-slate-700'
+                          : 'bg-slate-100 text-slate-700 border border-slate-300'
                     }`}
                   >
                     {opp.opportunityType}
@@ -747,7 +851,15 @@ function CompanyDetailRouteComponent() {
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <span className="font-bold text-slate-900">{ev.claim}</span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                            ev.classification === 'FACT'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : ev.classification === 'INFERENCE'
+                                ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                                : 'bg-slate-100 text-slate-700 border border-slate-300'
+                          }`}
+                        >
                           {ev.classification}
                         </span>
                       </div>
@@ -835,7 +947,7 @@ function CompanyDetailRouteComponent() {
               Target Roles Matched ({targetRoles.join(', ')}):
             </span>
             <p className="text-slate-700 leading-relaxed">
-              Research signals for {company.name} have been evaluated against your career profile
+              Research findings for {company.name} have been evaluated against your career profile
               target roles ({targetRoles.join(', ')}).
             </p>
           </div>
@@ -873,7 +985,7 @@ function CompanyDetailRouteComponent() {
             <button
               type="button"
               disabled
-              className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded-md cursor-not-allowed opacity-75"
+              className="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700 rounded-md cursor-not-allowed opacity-75 focus:outline-none"
             >
               Discover contacts &mdash; Coming next
             </button>
