@@ -216,6 +216,8 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
 
     // Type zero-match query
     fireEvent.change(searchInput, { target: { value: 'NonexistentUser' } });
-    expect(await screen.findByText('No Matching Contacts Found')).toBeInTheDocument();
+    expect(
+      await screen.findByText("No candidate contacts match 'NonexistentUser'."),
+    ).toBeInTheDocument();
   });
 });

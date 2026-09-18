@@ -358,9 +358,13 @@ export function ContactDiscoveryWorkspace({
           {/* Filter Zero-Match State */}
           {filteredContacts.length === 0 && isFilterActive && (
             <div className="p-8 bg-slate-50 border border-slate-200 rounded-lg text-center space-y-3">
-              <h3 className="text-sm font-bold text-slate-900">No Matching Contacts Found</h3>
+              <h3 className="text-sm font-bold text-slate-900">
+                {searchTerm.trim()
+                  ? `No candidate contacts match '${searchTerm.trim()}'.`
+                  : 'No candidate contacts match the selected filters.'}
+              </h3>
               <p className="text-xs text-slate-600 max-w-md mx-auto">
-                No candidate contacts match your current search term or active filter criteria.
+                Adjust your search term or filter options to display candidates.
               </p>
               <button
                 type="button"
