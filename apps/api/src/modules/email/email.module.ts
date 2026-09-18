@@ -13,6 +13,7 @@ import { MockEmailSender } from './infrastructure/mock-email-sender';
 import { ResendEmailSender } from './infrastructure/resend-email-sender';
 import { SendEmailUseCase } from './application/send-email.use-case';
 import { EmailDispatchWorker } from './application/email-dispatch.worker';
+import { EmailController } from './email.controller';
 
 const emailSenderFactory: Provider = {
   provide: EMAIL_SENDER_TOKEN,
@@ -40,6 +41,7 @@ const emailSenderFactory: Provider = {
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
+  controllers: [EmailController],
   providers: [
     {
       provide: SUPPRESSION_CHECKER_TOKEN,
