@@ -51,6 +51,59 @@ export enum JobStatus {
   DEAD_LETTER = 'DEAD_LETTER',
 }
 
+export enum CampaignStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum CampaignContactStatus {
+  PENDING = 'PENDING',
+  READY = 'READY',
+  SCHEDULED = 'SCHEDULED',
+  SENDING = 'SENDING',
+  SENT = 'SENT',
+  FOLLOW_UP_DUE = 'FOLLOW_UP_DUE',
+  REPLIED = 'REPLIED',
+  COMPLETED = 'COMPLETED',
+  SUPPRESSED = 'SUPPRESSED',
+  FAILED = 'FAILED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum EmailSendType {
+  INITIAL = 'INITIAL',
+  FOLLOW_UP = 'FOLLOW_UP',
+}
+
+export enum EmailSendStatus {
+  PENDING = 'PENDING',
+  RESERVED = 'RESERVED',
+  SENDING = 'SENDING',
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum EmailEventType {
+  SENT = 'SENT',
+  DELIVERED = 'DELIVERED',
+  OPENED = 'OPENED',
+  CLICKED = 'CLICKED',
+  BOUNCED = 'BOUNCED',
+  COMPLAINED = 'COMPLAINED',
+}
+
+export enum SuppressionReason {
+  MANUAL = 'MANUAL',
+  UNSUBSCRIBE = 'UNSUBSCRIBE',
+  BOUNCE = 'BOUNCE',
+  COMPLAINT = 'COMPLAINT',
+}
+
 export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
@@ -156,6 +209,54 @@ export class PrismaClient {
   };
 
   job = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  campaign = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  campaignContact = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  suppression = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  emailSend = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  idempotencyRecord = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),

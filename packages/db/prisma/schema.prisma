@@ -178,6 +178,7 @@ model Workspace {
   emailTemplates           EmailTemplate[]
   jobs                     Job[]
   companyContactSelections CompanyContactSelection[]
+  idempotencyRecords       IdempotencyRecord[]
 
   @@map("workspaces")
 }
@@ -546,3 +547,22 @@ model Job {
   @@index([workspaceId, status, availableAt])
   @@map("jobs")
 }
+
+model IdempotencyRecord {
+  id             String   @id @default(uuid())
+  workspaceId    String   @map("workspace_id")
+  key            String
+  route          String
+  targetId       String   @map("target_id")
+  jobId          String?  @map("job_id")
+  responseStatus Int      @default(202) @map("response_status")
+  responseBody   Json     @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId, targetId])
+  @@map("idempotency_records")
+}
+
