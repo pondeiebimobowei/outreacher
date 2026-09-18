@@ -8,7 +8,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { ContactValidator } from '../domain/contact-validator';
 import {
   CONTACT_REPOSITORY_TOKEN,
-  IContactRepository,
+  type IContactRepository,
 } from '../domain/contact.repository.interface';
 import { CreateContactRequestDto } from '../dto/create-contact-request.dto';
 

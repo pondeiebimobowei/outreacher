@@ -1,6 +1,9 @@
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { EvaluatedContactDto } from '../../api/contacts';
 import { AddContactModal } from './add-contact-modal';
 import { ContactCard } from './contact-card';
+import { ContactDetailModal } from './contact-detail-modal';
 import { useContactDiscovery } from './use-contact-discovery';
 
 interface ContactDiscoveryWorkspaceProps {
@@ -12,7 +15,15 @@ export function ContactDiscoveryWorkspace({
   companyId,
   companyName,
 }: ContactDiscoveryWorkspaceProps) {
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [reviewContact, setReviewContact] = useState<EvaluatedContactDto | null>(null);
+
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRelevance, setFilterRelevance] = useState<'ALL' | 'HIGH'>('ALL');
+  const [filterEmailAvailable, setFilterEmailAvailable] = useState(false);
+  const [filterKind, setFilterKind] = useState<'ALL' | 'PERSON' | 'ROLE_ADDRESS'>('ALL');
 
   const {
     contactsData,
@@ -34,6 +45,44 @@ export function ContactDiscoveryWorkspace({
   const contacts = contactsData?.contacts ?? [];
   const selectedContact = contacts.find((c) => c.isSelected);
   const hasCandidates = contacts.length > 0;
+
+  // Search & Cumulative Filter Pipeline
+  const filteredContacts = contacts.filter((candidate) => {
+    if (searchTerm.trim()) {
+      const q = searchTerm.trim().toLowerCase();
+      const matchName = candidate.name.toLowerCase().includes(q);
+      const matchTitle = (candidate.title || '').toLowerCase().includes(q);
+      const matchEmail = (candidate.email || '').toLowerCase().includes(q);
+      if (!matchName && !matchTitle && !matchEmail) return false;
+    }
+    if (filterRelevance === 'HIGH' && candidate.relevance !== 'HIGH') {
+      return false;
+    }
+    if (filterEmailAvailable && (candidate.emailConfidence !== 'AVAILABLE' || !candidate.email)) {
+      return false;
+    }
+    if (filterKind !== 'ALL' && candidate.contactKind !== filterKind) {
+      return false;
+    }
+    return true;
+  });
+
+  // Sectioning: Top Recommendations (HIGH relevance) vs Additional Candidates
+  const topRecommendations = filteredContacts.filter((c) => c.relevance === 'HIGH');
+  const additionalCandidates = filteredContacts.filter((c) => c.relevance !== 'HIGH');
+
+  const isFilterActive =
+    Boolean(searchTerm.trim()) ||
+    filterRelevance !== 'ALL' ||
+    filterEmailAvailable ||
+    filterKind !== 'ALL';
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterRelevance('ALL');
+    setFilterEmailAvailable(false);
+    setFilterKind('ALL');
+  };
 
   return (
     <section
@@ -212,36 +261,174 @@ export function ContactDiscoveryWorkspace({
       {/* State: CANDIDATES_FOUND / READY_FOR_SELECTION */}
       {hasCandidates && (
         <div className="space-y-6">
-          {/* Active Selection Banner */}
+          {/* Contact-to-Outreach Transition Banner */}
           {selectedContact && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900">
-              <div>
-                <span className="font-bold">Active Selected Target:</span>{' '}
-                <span className="font-semibold">{selectedContact.name}</span> (
-                {selectedContact.title || 'Role Context'})
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900 shadow-sm">
+              <div className="space-y-0.5">
+                <span className="font-bold uppercase tracking-wider text-[11px] text-emerald-800 block">
+                  Target Contact Selected
+                </span>
+                <p>
+                  <span className="font-bold">{selectedContact.name}</span> (
+                  {selectedContact.title || 'Role Context'}) is selected for outreach at{' '}
+                  {companyName}.
+                </p>
               </div>
-              <span className="text-emerald-700 font-mono text-[11px] font-medium">
-                Ready for Outreach Reason Generation
-              </span>
+              <button
+                type="button"
+                onClick={() => navigate({ to: '/campaigns' })}
+                className="px-3.5 py-1.5 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0"
+              >
+                Prepare Outreach & Campaign Context &rarr;
+              </button>
             </div>
           )}
 
-          {/* Candidate List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-              <span>{contacts.length} candidate contacts evaluated</span>
-              <span>Sorted by Relevance & Email Availability</span>
+          {/* Search & Cumulative Filter Controls Bar */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <label htmlFor="contact-search-input" className="sr-only">
+                  Search candidate contacts
+                </label>
+                <input
+                  id="contact-search-input"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, title, or email..."
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white text-slate-900"
+                />
+              </div>
+
+              {isFilterActive && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-900 underline focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1 self-end sm:self-auto"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
 
-            {contacts.map((candidate) => (
-              <ContactCard
-                key={candidate.id}
-                contact={candidate}
-                onSelect={selectContact}
-                isSelectPending={isSelectPending}
-              />
-            ))}
+            {/* Filter Chips */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-500 text-[11px] uppercase tracking-wider">
+                Filters:
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setFilterRelevance((prev) => (prev === 'HIGH' ? 'ALL' : 'HIGH'))}
+                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+                  filterRelevance === 'HIGH'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                High Relevance Only
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFilterEmailAvailable((prev) => !prev)}
+                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+                  filterEmailAvailable
+                    ? 'bg-sky-100 text-sky-800 border-sky-300 font-bold'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Email Available
+              </button>
+
+              <select
+                aria-label="Filter by Contact Type"
+                value={filterKind}
+                onChange={(e) => setFilterKind(e.target.value as 'ALL' | 'PERSON' | 'ROLE_ADDRESS')}
+                className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              >
+                <option value="ALL">All Contact Types</option>
+                <option value="PERSON">PERSON (Individuals)</option>
+                <option value="ROLE_ADDRESS">ROLE_ADDRESS (Team Addresses)</option>
+              </select>
+            </div>
           </div>
+
+          {/* Filter Zero-Match State */}
+          {filteredContacts.length === 0 && isFilterActive && (
+            <div className="p-8 bg-slate-50 border border-slate-200 rounded-lg text-center space-y-3">
+              <h3 className="text-sm font-bold text-slate-900">No Matching Contacts Found</h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto">
+                No candidate contacts match your current search term or active filter criteria.
+              </p>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              >
+                Reset Search & Filters
+              </button>
+            </div>
+          )}
+
+          {/* Top Recommendations Section (relevance === 'HIGH') */}
+          {topRecommendations.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Top Recommendations
+                  </h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    High Relevance ({topRecommendations.length})
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  Domain-evaluated high relevance contacts
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {topRecommendations.map((candidate) => (
+                  <ContactCard
+                    key={candidate.id}
+                    contact={candidate}
+                    onSelect={selectContact}
+                    isSelectPending={isSelectPending}
+                    onReview={(c) => setReviewContact(c)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Additional Candidates Section */}
+          {additionalCandidates.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  {topRecommendations.length > 0 ? 'Additional Candidates' : 'Evaluated Candidates'}{' '}
+                  ({additionalCandidates.length})
+                </h3>
+                <span className="text-[11px] text-slate-500">
+                  Medium & Low relevance candidates
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {additionalCandidates.map((candidate) => (
+                  <ContactCard
+                    key={candidate.id}
+                    contact={candidate}
+                    onSelect={selectContact}
+                    isSelectPending={isSelectPending}
+                    onReview={(c) => setReviewContact(c)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -289,6 +476,16 @@ export function ContactDiscoveryWorkspace({
         onClose={() => setIsAddModalOpen(false)}
         companyId={companyId}
         companyName={companyName}
+      />
+
+      {/* Contact Review Detail Modal */}
+      <ContactDetailModal
+        isOpen={reviewContact !== null}
+        onClose={() => setReviewContact(null)}
+        contact={reviewContact}
+        companyName={companyName}
+        onSelect={selectContact}
+        isSelectPending={isSelectPending}
       />
     </section>
   );

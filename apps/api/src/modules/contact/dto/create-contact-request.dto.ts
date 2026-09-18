@@ -12,7 +12,7 @@ export class CreateContactRequestDto {
   @IsString()
   @IsNotEmpty()
   @Length(1, 255)
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsEmail()

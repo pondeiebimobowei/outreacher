@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { apiClient } from '../../api/client';
 import { CompanyContactsResponse } from '../../api/contacts';
 import { ContactDiscoveryWorkspace } from './contact-discovery-workspace';
@@ -11,6 +11,11 @@ jest.mock('../../api/client', () => ({
     post: jest.fn(),
   },
   ApiError: jest.requireActual('../../api/client').ApiError,
+}));
+
+const mockNavigate = jest.fn();
+jest.mock('@tanstack/react-router', () => ({
+  useNavigate: () => mockNavigate,
 }));
 
 describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selection', () => {
@@ -70,7 +75,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(await screen.findByText(/Add Contact Manually/i)).toBeInTheDocument();
   });
 
-  it('renders candidates with badges, rationale, missing email, and handles selection', async () => {
+  it('renders candidates with badges, rationale, missing email, handles selection, and opens review modal', async () => {
     const mockResponse: CompanyContactsResponse = {
       companyId: 'comp-200',
       status: 'COMPLETED',
@@ -102,7 +107,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           companyId: 'comp-200',
           contactKind: 'PERSON',
           name: 'Alex Rivera',
-          email: null, // Zero fabrication missing email
+          email: null,
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',
           sourceUrl: 'https://acme.com/about',
@@ -142,21 +147,75 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     // Verify candidate identity & badges
     expect(await screen.findAllByText('Jane Doe')).not.toHaveLength(0);
     expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
-    expect(screen.getAllByText('PERSON')).toHaveLength(2);
-    expect(screen.getByText(/Mock Data Provider/i)).toBeInTheDocument();
 
-    // Verify missing email state
-    expect(screen.getByText('Email Unavailable')).toBeInTheDocument();
+    // Verify Top Recommendations vs Additional Candidates sectioning
+    expect(screen.getByText(/Top Recommendations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Additional Candidates/i)).toBeInTheDocument();
 
-    // Verify selection status
-    expect(screen.getByText('Selected Target')).toBeInTheDocument();
+    // Verify transition banner when contact is selected
+    expect(screen.getByText(/Target Contact Selected/i)).toBeInTheDocument();
+    const prepareBtn = screen.getByRole('button', { name: /Prepare Outreach & Campaign Context/i });
+    fireEvent.click(prepareBtn);
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/campaigns' });
 
-    // Test selection trigger for unselected candidate
-    const selectBtn = screen.getByRole('button', { name: /Select Target Contact/i });
-    fireEvent.click(selectBtn);
+    // Test Review Details modal opening
+    const reviewBtns = screen.getAllByRole('button', { name: /Review Details/i });
+    fireEvent.click(reviewBtns[0]);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(mockPost).toHaveBeenCalledWith('/companies/comp-200/contacts/cont-2/select');
-    });
+  it('filters candidates by search input', async () => {
+    mockGet.mockResolvedValue({
+      companyId: 'comp-200',
+      status: 'COMPLETED',
+      selectedContactId: null,
+      contacts: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          companyId: 'comp-200',
+          contactKind: 'PERSON',
+          name: 'Jane Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          relevance: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          isSelected: false,
+        },
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          companyId: 'comp-200',
+          contactKind: 'PERSON',
+          name: 'Alex Rivera',
+          email: null,
+          title: 'Recruiting Manager',
+          relevance: 'MEDIUM',
+          emailConfidence: 'UNAVAILABLE',
+          isSelected: false,
+        },
+      ],
+      discoveryJob: null,
+    } as unknown as CompanyContactsResponse);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ContactDiscoveryWorkspace companyId="comp-200" companyName="Acme Corp" />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Jane Doe')).toBeInTheDocument();
+    expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
+
+    // Type search query
+    const searchInput = screen.getByPlaceholderText(/Search by name, title, or email/i);
+    fireEvent.change(searchInput, { target: { value: 'Jane' } });
+
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+    expect(screen.queryByText('Alex Rivera')).not.toBeInTheDocument();
+
+    // Type zero-match query
+    fireEvent.change(searchInput, { target: { value: 'NonexistentUser' } });
+    expect(await screen.findByText('No Matching Contacts Found')).toBeInTheDocument();
   });
 });

@@ -44,14 +44,5 @@ import { ContactDiscoveryWorkerRunner } from './worker/contact-discovery-worker.
     ContactDiscoveryWorker,
     ContactDiscoveryWorkerRunner,
   ],
-  exports: [
-    CONTACT_REPOSITORY_TOKEN,
-    CONTACT_DISCOVERY_PROVIDER_TOKEN,
-    DiscoverContactsUseCase,
-    GetCompanyContactsUseCase,
-    GetContactByIdUseCase,
-    SelectContactUseCase,
-    ContactDiscoveryWorker,
-  ],
 })
 export class ContactModule {}

@@ -56,16 +56,15 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
 
           {contact.sourceUrl && (
             <div className="pt-1 border-t border-slate-100 text-[11px]">
-              <span className="font-semibold text-slate-800 block mb-0.5">
-                Verified Source URL:
-              </span>
+              <span className="font-semibold text-slate-800 block mb-0.5">Source Page:</span>
               <a
                 href={contact.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-slate-900 hover:underline font-mono truncate block focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                className="text-slate-900 hover:underline font-mono inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
               >
-                {contact.sourceUrl} &nearr;
+                <span>View Source Page</span>
+                <span>&nearr;</span>
               </a>
             </div>
           )}

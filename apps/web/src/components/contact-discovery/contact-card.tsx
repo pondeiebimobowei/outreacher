@@ -5,9 +5,10 @@ interface ContactCardProps {
   contact: EvaluatedContactDto;
   onSelect: (contactId: string) => void;
   isSelectPending: boolean;
+  onReview?: (contact: EvaluatedContactDto) => void;
 }
 
-export function ContactCard({ contact, onSelect, isSelectPending }: ContactCardProps) {
+export function ContactCard({ contact, onSelect, isSelectPending, onReview }: ContactCardProps) {
   const isPerson = contact.contactKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
@@ -65,8 +66,22 @@ export function ContactCard({ contact, onSelect, isSelectPending }: ContactCardP
           </p>
         </div>
 
-        {/* Action: Select Contact */}
-        <div>
+        {/* Action Controls: Review Details & Select Target */}
+        <div className="flex items-center space-x-2">
+          {onReview && (
+            <button
+              type="button"
+              onClick={() => onReview(contact)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+                isSelected
+                  ? 'text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700'
+                  : 'text-slate-700 bg-white border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Review Details
+            </button>
+          )}
+
           {isSelected ? (
             <button
               type="button"
