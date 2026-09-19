@@ -52,6 +52,7 @@ const mockContactDetails: outreachApi.CampaignContactDetailsDto = {
     },
   ],
   generationJob: null,
+  latestEmailSend: null,
 };
 
 const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
@@ -103,6 +104,7 @@ const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
 
 describe('OutreachReviewDrawer', () => {
   beforeEach(() => {
+    localStorage.clear();
     jest.clearAllMocks();
     (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue(
       mockContactDetails,
@@ -384,7 +386,8 @@ describe('OutreachReviewDrawer', () => {
     expect(
       await screen.findByText('Draft approved and staged for dispatch.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Draft Approved ✓')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Send Now/i })).toBeInTheDocument();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
   it('displays suppression error when approval returns 409 suppression', async () => {
@@ -519,6 +522,436 @@ describe('OutreachReviewDrawer', () => {
     expect(outreachApi.fetchCampaignContact).toHaveBeenCalledWith('cc-1');
 
     jest.useRealTimers();
+  });
+
+  describe('Packet 5: Pre-Dispatch Hold, BL-014 Send Dispatch & Idempotent Delivery', () => {
+    const mockReadyDetails: outreachApi.CampaignContactDetailsDto = {
+      ...mockContactDetails,
+      status: 'READY',
+      currentSubject: 'Acme distributed systems architecture',
+      currentBody:
+        'Hi Sarah, I noticed Acme is hiring a Lead Distributed Systems Architect...',
+    };
+
+    beforeEach(() => {
+      localStorage.clear();
+      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue(
+        mockReadyDetails,
+      );
+    });
+
+    it('opens confirmation modal when clicking Send Now and preference is not skipped', async () => {
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      const sendBtn = screen.getByRole('button', { name: /Send Now/i });
+      fireEvent.click(sendBtn);
+
+      const dialog = screen.getByRole('dialog', {
+        name: /Confirm Outreach Dispatch/i,
+      });
+      expect(dialog).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Confirm & Send/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Cancel/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('cancels confirmation modal without network calls and preserves READY state', async () => {
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+
+      const cancelBtn = screen.getByRole('button', { name: /Cancel/i });
+      fireEvent.click(cancelBtn);
+
+      expect(
+        screen.queryByRole('dialog', { name: /Confirm Outreach Dispatch/i }),
+      ).not.toBeInTheDocument();
+      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', { name: /Send Now/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('enters 5-second pre-dispatch hold when confirmed, allowing cancellation with zero HTTP side-effects', async () => {
+      jest.useFakeTimers();
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      // Pre-dispatch hold active
+      expect(screen.getByTestId('pre-dispatch-hold')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Sending to Sarah Connor in 5s\.\.\./i),
+      ).toBeInTheDocument();
+      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+
+      // Click Cancel Send during hold
+      const cancelSendBtn = screen.getByRole('button', { name: /Cancel Send/i });
+      fireEvent.click(cancelSendBtn);
+
+      expect(screen.queryByTestId('pre-dispatch-hold')).not.toBeInTheDocument();
+
+      // Advance timers past 5s
+      act(() => {
+        jest.advanceTimersByTime(6000);
+      });
+
+      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', { name: /Send Now/i }),
+      ).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('executes sendCampaignContact with RFC4122 v4 UUID Idempotency-Key upon hold expiry and removes undo/cancel', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
+        id: 'cc-1',
+        status: 'SENDING',
+        sendReservation: {
+          id: 'es-1',
+          status: 'PENDING',
+          idempotencyKey: 'test-uuid',
+        },
+      });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      expect(screen.getByTestId('pre-dispatch-hold')).toBeInTheDocument();
+
+      // Advance timer by 5000ms
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(outreachApi.sendCampaignContact).toHaveBeenCalledTimes(1);
+      const [calledId, calledKey] = (
+        outreachApi.sendCampaignContact as jest.Mock
+      ).mock.calls[0];
+      expect(calledId).toBe('cc-1');
+      // UUID v4 format verification
+      expect(calledKey).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+
+      // Verify that Cancel / Undo are absent once dispatch has begun
+      expect(
+        screen.queryByRole('button', { name: /Cancel Send/i }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Undo/i }),
+      ).not.toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('persists scoped preference when "Don\'t ask again" is checked and skips confirmation on subsequent sends', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
+        id: 'cc-1',
+        status: 'SENDING',
+      });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+          userId="user-123"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+
+      // Modal open, check the checkbox
+      const checkbox = screen.getByRole('checkbox', {
+        name: /Don't ask again for single sends/i,
+      });
+      fireEvent.click(checkbox);
+      expect(checkbox).toBeChecked();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      // Preference scoped to workspace ws-1 and user user-123
+      expect(
+        localStorage.getItem(
+          'outreacher:skip_single_send_confirmation:ws-1:user-123',
+        ),
+      ).toBe('true');
+
+      // Cancel the hold to reset
+      fireEvent.click(screen.getByRole('button', { name: /Cancel Send/i }));
+
+      // Click Send Now again - modal should NOT open, should directly enter hold
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      expect(
+        screen.queryByRole('dialog', { name: /Confirm Outreach Dispatch/i }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId('pre-dispatch-hold')).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('polls every 2s until contact status becomes SENT, displays Sent banner with sentAt', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
+        id: 'cc-1',
+        status: 'SENDING',
+      });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      // Advance hold
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(outreachApi.sendCampaignContact).toHaveBeenCalledTimes(1);
+
+      // Now contact is in SENDING and polling starts
+      // Mock fetchCampaignContact returning SENT
+      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
+        ...mockReadyDetails,
+        status: 'SENT',
+        latestEmailSend: {
+          id: 'es-1',
+          status: 'SENT',
+          sentAt: '2026-09-19T01:00:00.000Z',
+        },
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(outreachApi.fetchCampaignContact).toHaveBeenCalled();
+      expect(
+        screen.getByText('Outreach Email Sent'),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Sent')).toBeInTheDocument();
+
+      // Advancing further should not trigger additional polling calls
+      const callCount = (outreachApi.fetchCampaignContact as jest.Mock).mock
+        .calls.length;
+      await act(async () => {
+        jest.advanceTimersByTime(4000);
+      });
+      expect(
+        (outreachApi.fetchCampaignContact as jest.Mock).mock.calls.length,
+      ).toBe(callCount);
+
+      jest.useRealTimers();
+    });
+
+    it('polls every 2s until contact status becomes FAILED, displays error message without retry button', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
+        id: 'cc-1',
+        status: 'SENDING',
+      });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
+        ...mockReadyDetails,
+        status: 'FAILED',
+        latestEmailSend: {
+          id: 'es-1',
+          status: 'FAILED',
+          errorMessage: 'SMTP transport gateway timeout',
+        },
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(
+        screen.getByText('Outreach Dispatch Failed'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('SMTP transport gateway timeout'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText('Send Failed').length).toBeGreaterThan(0);
+      expect(
+        screen.queryByRole('button', { name: /Retry/i }),
+      ).not.toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('handles 409 RECIPIENT_SUPPRESSED gracefully on send dispatch', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          code: 'RECIPIENT_SUPPRESSED',
+          message: 'Recipient email is suppressed',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(
+        screen.getByText('Recipient email is suppressed. Cannot send.'),
+      ).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('handles 409 CAMPAIGN_STATE_CONFLICT with neutral copy', async () => {
+      jest.useFakeTimers();
+      (outreachApi.sendCampaignContact as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          code: 'CAMPAIGN_STATE_CONFLICT',
+          message: 'Campaign is not active',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(
+        screen.getByText('This campaign cannot send from its current state.'),
+      ).toBeInTheDocument();
+
+      jest.useRealTimers();
+    });
+
+    it('disables contact cycling during hold and sending', async () => {
+      jest.useFakeTimers();
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          campaignContactId="cc-1"
+          boundContacts={mockBoundContacts}
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByText('Sarah Connor');
+      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
+
+      // In hold
+      const nextBtn = screen.getByRole('button', { name: /Next/i });
+      expect(nextBtn).toBeDisabled();
+
+      // Keyboard navigation ignored
+      fireEvent.keyDown(window, { key: ']' });
+      expect(outreachApi.fetchCampaignContact).toHaveBeenCalledTimes(1); // initial load only
+
+      jest.useRealTimers();
+    });
   });
 });
 

@@ -4,6 +4,7 @@ import {
   triggerGenerateOutreach,
   updateOutreachDraft,
   approveOutreachDraft,
+  sendCampaignContact,
 } from './outreach';
 import { apiClient } from './client';
 
@@ -78,6 +79,24 @@ describe('Outreach API Client', () => {
     expect(apiClient.post).toHaveBeenCalledWith('/campaign-contacts/cc-1/approve', {
       expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
     });
+    expect(result).toEqual(mockRes);
+  });
+
+  it('sendCampaignContact calls POST /api/v1/campaign-contacts/:id/send with Idempotency-Key header', async () => {
+    const mockRes = { jobId: 'job-send-1', message: 'Dispatch enqueued' };
+    (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
+
+    const result = await sendCampaignContact('cc-1', 'test-uuid-key-1234');
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/campaign-contacts/cc-1/send',
+      {},
+      {
+        headers: {
+          'Idempotency-Key': 'test-uuid-key-1234',
+        },
+      },
+    );
     expect(result).toEqual(mockRes);
   });
 });

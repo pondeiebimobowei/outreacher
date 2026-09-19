@@ -13,12 +13,24 @@ export class PrismaCareerProfileRepository implements ICareerProfileRepository {
   async getOrInitializeProfile(
     workspaceId: string,
   ): Promise<CareerProfileDomain> {
-    const record = await this.prisma.careerProfile.upsert({
-      where: { workspaceId },
-      create: { workspaceId },
-      update: {},
-    });
-    return this.mapToDomain(record);
+    try {
+      const record = await this.prisma.careerProfile.upsert({
+        where: { workspaceId },
+        create: { workspaceId },
+        update: {},
+      });
+      return this.mapToDomain(record);
+    } catch (err: unknown) {
+      if ((err as any)?.code === 'P2002') {
+        const existing = await this.prisma.careerProfile.findUnique({
+          where: { workspaceId },
+        });
+        if (existing) {
+          return this.mapToDomain(existing);
+        }
+      }
+      throw err;
+    }
   }
 
   async updateProfile(

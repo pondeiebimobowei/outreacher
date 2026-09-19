@@ -19,6 +19,15 @@ export interface GenerationJobDto {
   lastError?: string | null;
 }
 
+export interface EmailSendSummaryDto {
+  id: string;
+  status: 'PENDING' | 'RESERVED' | 'SENDING' | 'SENT' | 'FAILED';
+  sentAt?: string | null;
+  failedAt?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+}
+
 export interface CampaignContactDetailsDto {
   id: string;
   workspaceId: string;
@@ -54,6 +63,7 @@ export interface CampaignContactDetailsDto {
   } | null;
   evidence: CampaignContactEvidenceDto[];
   generationJob: GenerationJobDto | null;
+  latestEmailSend: EmailSendSummaryDto | null;
 }
 
 export interface CampaignContactSummaryDto {
@@ -155,5 +165,31 @@ export async function approveOutreachDraft(
   return apiClient.post<CampaignContactDto>(
     `/campaign-contacts/${id}/approve`,
     input ?? {},
+  );
+}
+
+export interface SendCampaignContactResponse {
+  jobId: string;
+  message: string;
+}
+
+/**
+ * Dispatches an approved CampaignContact for immediate delivery (BL-014).
+ * Requires client-generated UUID Idempotency-Key.
+ * Transitions status READY -> SENDING.
+ * Endpoint: POST /api/v1/campaign-contacts/:id/send
+ */
+export async function sendCampaignContact(
+  campaignContactId: string,
+  idempotencyKey: string,
+): Promise<SendCampaignContactResponse> {
+  return apiClient.post<SendCampaignContactResponse>(
+    `/campaign-contacts/${campaignContactId}/send`,
+    {},
+    {
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
+    },
   );
 }

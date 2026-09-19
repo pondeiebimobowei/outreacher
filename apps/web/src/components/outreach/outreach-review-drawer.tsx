@@ -8,7 +8,21 @@ import {
   triggerGenerateOutreach,
   updateOutreachDraft,
   approveOutreachDraft,
+  sendCampaignContact,
 } from '../../api/outreach';
+import { SendConfirmationModal } from './send-confirmation-modal';
+import { PreDispatchHold } from './pre-dispatch-hold';
+
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export interface OutreachReviewDrawerProps {
   isOpen: boolean;
@@ -18,6 +32,7 @@ export interface OutreachReviewDrawerProps {
   onSelectCampaignContact?: (id: string) => void;
   companyName: string;
   triggerElementRef?: React.RefObject<HTMLElement | null>;
+  userId?: string;
 }
 
 export function OutreachReviewDrawer({
@@ -28,6 +43,7 @@ export function OutreachReviewDrawer({
   onSelectCampaignContact,
   companyName,
   triggerElementRef,
+  userId,
 }: OutreachReviewDrawerProps) {
   // Drawer DOM container for focus trapping
   const drawerRef = useRef<HTMLDivElement | null>(null);
@@ -68,6 +84,16 @@ export function OutreachReviewDrawer({
     useState<boolean>(false);
   const [suppressionError, setSuppressionError] = useState<string | null>(null);
 
+  // State: Packet 5 Consequential Send, Hold & Polling
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [isPreDispatchHoldActive, setIsPreDispatchHoldActive] =
+    useState<boolean>(false);
+  const [activeSendIdempotencyKey, setActiveSendIdempotencyKey] =
+    useState<string | null>(null);
+  const [isDispatching, setIsDispatching] = useState<boolean>(false);
+  const [isPollingDispatch, setIsPollingDispatch] = useState<boolean>(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
   // State: UI & Accessibility
   const [ariaAnnouncement, setAriaAnnouncement] = useState<string>('');
   const [isMobileEvidenceExpanded, setIsMobileEvidenceExpanded] =
@@ -88,6 +114,7 @@ export function OutreachReviewDrawer({
     setFetchError(null);
     setConcurrencyError(null);
     setSuppressionError(null);
+    setSendError(null);
     setApprovalSuccessBanner(false);
     setSaveStatusText('');
 
@@ -99,6 +126,13 @@ export function OutreachReviewDrawer({
       setExpectedUpdatedAt(data.updatedAt);
       if (data.status === 'READY') {
         setApprovalSuccessBanner(true);
+      }
+      if (data.status === 'SENDING') {
+        setIsDispatching(true);
+        setIsPollingDispatch(true);
+      } else {
+        setIsDispatching(false);
+        setIsPollingDispatch(false);
       }
       if (data.generationJob?.status === 'COMPLETED') {
         setIsStillRunningTimeout(false);
@@ -128,6 +162,12 @@ export function OutreachReviewDrawer({
       setConcurrencyError(null);
       setSuppressionError(null);
       setApprovalSuccessBanner(false);
+      setShowConfirmModal(false);
+      setIsPreDispatchHoldActive(false);
+      setActiveSendIdempotencyKey(null);
+      setIsDispatching(false);
+      setIsPollingDispatch(false);
+      setSendError(null);
     }
   }, [isOpen, campaignContactId, loadContactDetails]);
 
@@ -363,9 +403,155 @@ export function OutreachReviewDrawer({
     }
   };
 
+  // Helper for user & workspace scoped preference key
+  const getPreferenceStorageKey = useCallback(() => {
+    const effectiveWorkspaceId = contactDetails?.workspaceId || 'default';
+    const effectiveUserId = userId || 'current';
+    return `outreacher:skip_single_send_confirmation:${effectiveWorkspaceId}:${effectiveUserId}`;
+  }, [contactDetails?.workspaceId, userId]);
+
+  const startPreDispatchHold = useCallback(() => {
+    const freshKey = generateUUID();
+    setActiveSendIdempotencyKey(freshKey);
+    setIsPreDispatchHoldActive(true);
+    setSendError(null);
+    setAriaAnnouncement('Sending in 5s. You may cancel during this buffer.');
+  }, []);
+
+  const handleSendNowClick = useCallback(() => {
+    if (!contactDetails || contactDetails.status !== 'READY') return;
+
+    const key = getPreferenceStorageKey();
+    const shouldSkip =
+      typeof window !== 'undefined' && localStorage.getItem(key) === 'true';
+
+    if (shouldSkip) {
+      startPreDispatchHold();
+    } else {
+      setShowConfirmModal(true);
+    }
+  }, [contactDetails, getPreferenceStorageKey, startPreDispatchHold]);
+
+  const handleConfirmModalSubmit = useCallback(
+    (dontAskAgain: boolean) => {
+      if (dontAskAgain && typeof window !== 'undefined') {
+        const key = getPreferenceStorageKey();
+        localStorage.setItem(key, 'true');
+      }
+      setShowConfirmModal(false);
+      startPreDispatchHold();
+    },
+    [getPreferenceStorageKey, startPreDispatchHold],
+  );
+
+  const handleCancelSend = useCallback(() => {
+    setIsPreDispatchHoldActive(false);
+    setActiveSendIdempotencyKey(null);
+    setAriaAnnouncement('Send cancelled. Draft remains approved.');
+  }, []);
+
+  const handleExecuteSend = useCallback(async () => {
+    if (!campaignContactId || !activeSendIdempotencyKey) return;
+
+    setIsPreDispatchHoldActive(false);
+    setIsDispatching(true);
+    setSendError(null);
+    setAriaAnnouncement('Dispatching outreach email...');
+
+    const keyToUse = activeSendIdempotencyKey;
+
+    // Primary authority: immediately transition CampaignContact status to SENDING
+    setContactDetails((prev) =>
+      prev ? { ...prev, status: 'SENDING' } : null,
+    );
+
+    try {
+      await sendCampaignContact(campaignContactId, keyToUse);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.statusCode === 409) {
+        const raw = String(err.message || '').toLowerCase();
+        if (raw.includes('suppress') || err.code?.includes('SUPPRESS')) {
+          setSendError('Recipient email is suppressed. Cannot send.');
+        } else if (
+          raw.includes('state') ||
+          raw.includes('campaign') ||
+          raw.includes('status')
+        ) {
+          setSendError('This campaign cannot send from its current state.');
+        } else {
+          setSendError(err.message || 'Send conflict occurred.');
+        }
+      } else if (err instanceof ApiError && err.statusCode === 0) {
+        setSendError(
+          'Network error during send request. Checking server status...',
+        );
+      } else {
+        const msg =
+          err instanceof Error ? err.message : 'Failed to dispatch email.';
+        setSendError(msg);
+      }
+    }
+
+    setIsPollingDispatch(true);
+  }, [campaignContactId, activeSendIdempotencyKey]);
+
+  // Polling loop for delivery state (CampaignContact.status is primary authority)
+  useEffect(() => {
+    if (!isPollingDispatch || !campaignContactId) return;
+
+    let pollTimer: NodeJS.Timeout | null = null;
+    let isCancelled = false;
+
+    const poll = async () => {
+      try {
+        const latest = await fetchCampaignContact(campaignContactId);
+        if (isCancelled) return;
+
+        setContactDetails(latest);
+
+        if (latest.status === 'SENT') {
+          setIsPollingDispatch(false);
+          setIsDispatching(false);
+          setActiveSendIdempotencyKey(null);
+          setAriaAnnouncement('Outreach email sent successfully.');
+          return;
+        }
+
+        if (latest.status === 'FAILED') {
+          setIsPollingDispatch(false);
+          setIsDispatching(false);
+          setActiveSendIdempotencyKey(null);
+          setAriaAnnouncement('Outreach email delivery failed.');
+          return;
+        }
+      } catch {
+        // Transient network error: continue polling
+      }
+
+      if (!isCancelled) {
+        pollTimer = setTimeout(poll, 2000);
+      }
+    };
+
+    pollTimer = setTimeout(poll, 2000);
+
+    return () => {
+      isCancelled = true;
+      if (pollTimer) clearTimeout(pollTimer);
+    };
+  }, [isPollingDispatch, campaignContactId]);
+
+  const isOperationLocked =
+    isAutosaving ||
+    isApproving ||
+    isGenerating ||
+    isPreDispatchHoldActive ||
+    isDispatching ||
+    contactDetails?.status === 'SENDING';
+
   // Sequential cycling handler
   const handleNavigate = (direction: 'PREV' | 'NEXT') => {
-    if (isAutosaving || !onSelectCampaignContact) return;
+    if (isOperationLocked || !onSelectCampaignContact) return;
     const targetIdx = direction === 'PREV' ? currentIndex - 1 : currentIndex + 1;
     if (targetIdx >= 0 && targetIdx < boundContacts.length) {
       const target = boundContacts[targetIdx];
@@ -378,21 +564,29 @@ export function OutreachReviewDrawer({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape closes drawer
+      // Escape closes modal or cancels hold if active, else closes drawer
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (showConfirmModal) {
+          setShowConfirmModal(false);
+          return;
+        }
+        if (isPreDispatchHoldActive) {
+          handleCancelSend();
+          return;
+        }
         onClose();
         return;
       }
 
-      // Sequential cycling shortcuts: [ and ] when not editing an active input
+      // Sequential cycling shortcuts: [ and ] when not editing an active input and not locked
       const target = e.target as HTMLElement | null;
       const isInputFocused =
         target?.tagName === 'INPUT' ||
         target?.tagName === 'TEXTAREA' ||
         target?.isContentEditable;
 
-      if (!isInputFocused) {
+      if (!isInputFocused && !isOperationLocked) {
         if (e.key === '[' && canGoPrevious) {
           e.preventDefault();
           handleNavigate('PREV');
@@ -473,7 +667,6 @@ export function OutreachReviewDrawer({
     !isApproving;
 
   const currentStatus = contactDetails?.status ?? 'PENDING';
-  const isApproved = currentStatus === 'READY';
 
   return (
     <>
@@ -507,22 +700,36 @@ export function OutreachReviewDrawer({
               >
                 {contactDetails?.contact?.name || 'Contact Outreach'}
               </h2>
-              {/* Status Badge */}
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                  isGenerating
-                    ? 'bg-sky-100 text-sky-800 border border-sky-300 animate-pulse'
-                    : isApproved
-                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                }`}
-              >
-                {isGenerating
-                  ? 'Generating Draft...'
-                  : isApproved
-                    ? 'Approved'
-                    : 'Needs Review'}
-              </span>
+              {/* Status Badge (CampaignContact.status is primary authority) */}
+              {isGenerating ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
+                  Generating Draft...
+                </span>
+              ) : currentStatus === 'SENT' ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  Sent
+                </span>
+              ) : currentStatus === 'FAILED' ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300">
+                  Send Failed
+                </span>
+              ) : currentStatus === 'SENDING' || isDispatching ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
+                  Dispatching...
+                </span>
+              ) : currentStatus === 'READY' ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-300">
+                  Approved
+                </span>
+              ) : currentStatus === 'SUPPRESSED' ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300">
+                  Blocked (Suppressed)
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                  Needs Review
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 truncate">
               {contactDetails?.contact?.title
@@ -538,7 +745,7 @@ export function OutreachReviewDrawer({
                 <button
                   type="button"
                   onClick={() => handleNavigate('PREV')}
-                  disabled={!canGoPrevious || isAutosaving}
+                  disabled={!canGoPrevious || isOperationLocked}
                   className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded hover:bg-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-900"
                   title="Previous Contact ([)"
                   aria-label="Previous Contact"
@@ -551,7 +758,7 @@ export function OutreachReviewDrawer({
                 <button
                   type="button"
                   onClick={() => handleNavigate('NEXT')}
-                  disabled={!canGoNext || isAutosaving}
+                  disabled={!canGoNext || isOperationLocked}
                   className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded hover:bg-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-900"
                   title="Next Contact (])"
                   aria-label="Next Contact"
@@ -654,15 +861,68 @@ export function OutreachReviewDrawer({
               )}
 
               {/* Approval Success Confirmation Banner */}
-              {approvalSuccessBanner && (
+              {approvalSuccessBanner &&
+                currentStatus === 'READY' &&
+                !isPreDispatchHoldActive &&
+                !isDispatching && (
+                  <div
+                    role="status"
+                    className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-emerald-700">&#10003;</span>
+                      <span>Draft approved and staged for dispatch.</span>
+                    </div>
+                  </div>
+                )}
+
+              {/* Send Dispatch Error Alert */}
+              {sendError && (
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1"
+                >
+                  <p className="font-bold">Send Dispatch Failed</p>
+                  <p>{sendError}</p>
+                </div>
+              )}
+
+              {/* Terminal SENT Confirmation Banner */}
+              {currentStatus === 'SENT' && (
                 <div
                   role="status"
-                  className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-center justify-between"
+                  className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 space-y-1"
                 >
-                  <div className="flex items-center space-x-2">
-                    <span className="font-bold text-emerald-700">&#10003;</span>
-                    <span>Draft approved and staged for dispatch.</span>
+                  <div className="flex items-center space-x-1.5 font-bold text-emerald-950">
+                    <span>&#10003;</span>
+                    <span>Outreach Email Sent</span>
                   </div>
+                  <p className="text-[11px] text-emerald-800">
+                    Dispatched successfully
+                    {contactDetails.latestEmailSend?.sentAt
+                      ? ` at ${new Date(
+                          contactDetails.latestEmailSend.sentAt,
+                        ).toLocaleTimeString()}`
+                      : ''}
+                    .
+                  </p>
+                </div>
+              )}
+
+              {/* Terminal FAILED Alert Banner */}
+              {currentStatus === 'FAILED' && (
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1"
+                >
+                  <div className="flex items-center space-x-1.5 font-bold text-rose-950">
+                    <span>&#9888;</span>
+                    <span>Outreach Dispatch Failed</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800">
+                    {contactDetails.latestEmailSend?.errorMessage ||
+                      'Delivery provider reported a terminal dispatch failure.'}
+                  </p>
                 </div>
               )}
 
@@ -868,7 +1128,7 @@ export function OutreachReviewDrawer({
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       onBlur={handleBlur}
-                      disabled={isAutosaving || isApproving}
+                      disabled={isOperationLocked || currentStatus !== 'PENDING'}
                       placeholder="e.g. Acme platform scaling & lead architect role"
                       className={`w-full px-3 py-2 text-base sm:text-xs rounded-md border shadow-xs transition-colors focus:outline-none focus:ring-2 ${
                         isSubjectTooLong || isSubjectTooShort
@@ -917,7 +1177,7 @@ export function OutreachReviewDrawer({
                       value={bodyText}
                       onChange={(e) => setBodyText(e.target.value)}
                       onBlur={handleBlur}
-                      disabled={isAutosaving || isApproving}
+                      disabled={isOperationLocked || currentStatus !== 'PENDING'}
                       placeholder="Hi Sarah,\n\nI noticed Acme is scaling its distributed architecture..."
                       className={`w-full p-3 text-base sm:text-xs rounded-md border shadow-xs transition-colors leading-relaxed focus:outline-none focus:ring-2 ${
                         isBodyTooLong || isBodyTooShort
@@ -964,39 +1224,95 @@ export function OutreachReviewDrawer({
 
         {/* ─── FOOTER ACTIONS (Sticky on Mobile) ────────────────────────────── */}
         <footer className="sticky bottom-0 bg-white border-t border-slate-200 p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-10 shrink-0">
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isGenerating || isAutosaving || isApproving}
-              className="min-h-[48px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
-            >
-              {subject || bodyText ? 'Regenerate Draft' : 'Generate Draft'}
-            </button>
-          </div>
+          {isPreDispatchHoldActive ? (
+            <PreDispatchHold
+              durationMs={5000}
+              contactName={contactDetails?.contact?.name}
+              onCancel={handleCancelSend}
+              onComplete={handleExecuteSend}
+            />
+          ) : (
+            <>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={isOperationLocked || currentStatus !== 'PENDING'}
+                  className="min-h-[48px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                >
+                  {subject || bodyText ? 'Regenerate Draft' : 'Generate Draft'}
+                </button>
+              </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={!isEligibleForApproval || isApproved}
-              className={`min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center ${
-                isApproved
-                  ? 'bg-blue-600 text-white cursor-default'
-                  : isEligibleForApproval
-                    ? 'bg-slate-900 hover:bg-slate-800 text-white'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              {isApproving
-                ? 'Approving...'
-                : isApproved
-                  ? 'Draft Approved \u2713'
-                  : 'Approve Draft'}
-            </button>
-          </div>
+              <div className="flex items-center space-x-2">
+                {currentStatus === 'PENDING' && (
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={!isEligibleForApproval}
+                    className={`min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center ${
+                      isEligibleForApproval
+                        ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {isApproving ? 'Approving...' : 'Approve Draft'}
+                  </button>
+                )}
+
+                {currentStatus === 'READY' && (
+                  <button
+                    type="button"
+                    onClick={handleSendNowClick}
+                    disabled={isOperationLocked}
+                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                  >
+                    Send Now
+                  </button>
+                )}
+
+                {(currentStatus === 'SENDING' || isDispatching) && (
+                  <button
+                    type="button"
+                    disabled
+                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm inline-flex items-center justify-center bg-sky-600 text-white cursor-not-allowed space-x-1.5 opacity-90"
+                  >
+                    <span className="inline-block w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Dispatching...</span>
+                  </button>
+                )}
+
+                {currentStatus === 'SENT' && (
+                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md inline-flex items-center justify-center">
+                    Sent &#10003;
+                  </span>
+                )}
+
+                {currentStatus === 'FAILED' && (
+                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md inline-flex items-center justify-center">
+                    Send Failed
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </footer>
       </div>
+
+      {/* Send Confirmation Modal */}
+      {contactDetails && (
+        <SendConfirmationModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={handleConfirmModalSubmit}
+          contactName={contactDetails.contact?.name || 'Contact'}
+          contactTitle={contactDetails.contact?.title}
+          companyName={companyName}
+          recipientEmail={contactDetails.contact?.email || ''}
+          subject={subject}
+          bodyPreview={bodyText}
+        />
+      )}
     </>
   );
 }

@@ -8,6 +8,7 @@ describe('GetCampaignContactUseCase', () => {
     campaignContact: { findUnique: jest.Mock };
     evidence: { findMany: jest.Mock };
     job: { findFirst: jest.Mock };
+    emailSend: { findFirst: jest.Mock };
   };
 
   const workspaceId = 'ws-123';
@@ -18,6 +19,7 @@ describe('GetCampaignContactUseCase', () => {
       campaignContact: { findUnique: jest.fn() },
       evidence: { findMany: jest.fn() },
       job: { findFirst: jest.fn() },
+      emailSend: { findFirst: jest.fn() },
     };
     useCase = new GetCampaignContactUseCase(prisma as unknown as PrismaService);
   });
@@ -98,6 +100,16 @@ describe('GetCampaignContactUseCase', () => {
       lastError: null,
     });
 
+    const sentAt = new Date();
+    prisma.emailSend.findFirst.mockResolvedValue({
+      id: 'send-202',
+      status: 'SENT',
+      sentAt,
+      failedAt: null,
+      errorCode: null,
+      errorMessage: null,
+    });
+
     const result = await useCase.execute({ workspaceId, campaignContactId });
 
     expect(result.id).toBe(campaignContactId);
@@ -109,5 +121,8 @@ describe('GetCampaignContactUseCase', () => {
     expect(result.evidence[0].classification).toBe('FACT');
     expect(result.generationJob?.id).toBe('job-101');
     expect(result.generationJob?.status).toBe('COMPLETED');
+    expect(result.latestEmailSend?.id).toBe('send-202');
+    expect(result.latestEmailSend?.status).toBe('SENT');
+    expect(result.latestEmailSend?.sentAt).toEqual(sentAt);
   });
 });

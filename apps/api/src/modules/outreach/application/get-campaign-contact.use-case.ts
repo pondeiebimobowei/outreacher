@@ -18,6 +18,15 @@ export interface CampaignContactEvidenceDto {
   confidence?: string | null;
 }
 
+export interface EmailSendSummaryResult {
+  id: string;
+  status: string;
+  sentAt?: Date | null;
+  failedAt?: Date | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+}
+
 export interface CampaignContactDetailsResult {
   id: string;
   workspaceId: string;
@@ -59,6 +68,7 @@ export interface CampaignContactDetailsResult {
     completedAt?: Date | null;
     lastError?: string | null;
   } | null;
+  latestEmailSend: EmailSendSummaryResult | null;
 }
 
 @Injectable()
@@ -107,6 +117,15 @@ export class GetCampaignContactUseCase {
           path: ['campaignContactId'],
           equals: campaignContactId,
         },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Query latest EmailSend for this campaignContactId
+    const latestEmailSend = await this.prisma.emailSend.findFirst({
+      where: {
+        workspaceId,
+        campaignContactId,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -165,6 +184,16 @@ export class GetCampaignContactUseCase {
             createdAt: latestJob.createdAt,
             completedAt: latestJob.completedAt,
             lastError: latestJob.lastError,
+          }
+        : null,
+      latestEmailSend: latestEmailSend
+        ? {
+            id: latestEmailSend.id,
+            status: latestEmailSend.status,
+            sentAt: latestEmailSend.sentAt,
+            failedAt: latestEmailSend.failedAt,
+            errorCode: latestEmailSend.errorCode,
+            errorMessage: latestEmailSend.errorMessage,
           }
         : null,
     };
