@@ -336,10 +336,16 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     
     // 5. Verify the job is still PENDING (not COMPLETED or RUNNING)
     expect(success).toBe(false);
-    
-    const finalJobState = await prisma.job.findUnique({ where: { id: claimed!.job.id } });
-    expect(finalJobState?.status).toBe('PENDING');
+
+    const finalJob = await prisma.job.findUnique({ where: { id: claimed!.job.id } });
+    expect(finalJob?.status).toBe('PENDING'); // Mutation rejected
+
+    const payload = finalJob?.payload as any;
+    const finalEmailSend = await prisma.emailSend.findUnique({ where: { id: payload.emailSendId } });
+    expect(finalEmailSend?.status).toBe('SENDING'); // Remains in SENDING, not FAILED or SENT
+
+    const finalContact = await prisma.campaignContact.findUnique({ where: { id: payload.campaignContactId } });
+    expect(finalContact?.status).toBe('SENDING'); // Remains in SENDING, not FAILED or SENT
   });
 
 });
-

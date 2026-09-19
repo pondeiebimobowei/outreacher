@@ -65,14 +65,17 @@ describe('EmailDispatchWorker', () => {
         }),
       job: {
         update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findFirst: jest.fn(),
       },
       emailSend: {
         findUnique: jest.fn(),
         update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       campaignContact: {
         update: jest.fn(),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -107,6 +110,7 @@ describe('EmailDispatchWorker', () => {
         status: JobStatus.RUNNING,
         attemptCount: 1,
         payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
       };
 
       mockPrisma.job.update.mockResolvedValue(claimedJob);
@@ -152,6 +156,7 @@ describe('EmailDispatchWorker', () => {
         status: JobStatus.RUNNING,
         attemptCount: 2,
         payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
       };
 
       mockPrisma.job.update.mockResolvedValue(claimedJob);
@@ -180,6 +185,7 @@ describe('EmailDispatchWorker', () => {
         status: JobStatus.RUNNING,
         attemptCount: 1,
         payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
       } as any,
       claimedAttempt: 1,
     };
@@ -235,8 +241,8 @@ describe('EmailDispatchWorker', () => {
         data: { status: CampaignContactStatus.SENT },
       });
 
-      expect(mockPrisma.job.update).toHaveBeenCalledWith({
-        where: { id: jobId },
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
           status: JobStatus.COMPLETED,
           completedAt: expect.any(Date),
@@ -254,6 +260,7 @@ describe('EmailDispatchWorker', () => {
         status: JobStatus.RUNNING,
         attemptCount: 1,
         payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
       } as any,
       claimedAttempt: 1,
     };
@@ -285,8 +292,8 @@ describe('EmailDispatchWorker', () => {
         },
       });
 
-      expect(mockPrisma.job.update).toHaveBeenCalledWith({
-        where: { id: jobId },
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
           status: JobStatus.DEAD_LETTER,
           failedAt: expect.any(Date),
@@ -312,8 +319,8 @@ describe('EmailDispatchWorker', () => {
       expect(outcome).toBe(false);
       expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
       expect(mockPrisma.campaignContact.update).not.toHaveBeenCalled();
-      expect(mockPrisma.job.update).toHaveBeenCalledWith({
-        where: { id: jobId },
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
           status: JobStatus.PENDING,
           availableAt: expect.any(Date),
@@ -333,6 +340,7 @@ describe('EmailDispatchWorker', () => {
           status: JobStatus.RUNNING,
           attemptCount: 1,
           payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
       };
@@ -368,8 +376,8 @@ describe('EmailDispatchWorker', () => {
         data: { status: CampaignContactStatus.FAILED },
       });
 
-      expect(mockPrisma.job.update).toHaveBeenCalledWith({
-        where: { id: jobId },
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
           status: JobStatus.DEAD_LETTER,
           failedAt: expect.any(Date),
@@ -387,6 +395,7 @@ describe('EmailDispatchWorker', () => {
           status: JobStatus.RUNNING,
           attemptCount: 3,
           payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
         } as any,
         claimedAttempt: 3,
       };
@@ -422,8 +431,8 @@ describe('EmailDispatchWorker', () => {
         data: { status: CampaignContactStatus.FAILED },
       });
 
-      expect(mockPrisma.job.update).toHaveBeenCalledWith({
-        where: { id: jobId },
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
           status: JobStatus.DEAD_LETTER,
           failedAt: expect.any(Date),
@@ -443,6 +452,7 @@ describe('EmailDispatchWorker', () => {
           status: JobStatus.RUNNING,
           attemptCount: 1,
           payload: { emailSendId, campaignContactId },
+          leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
       };
@@ -455,7 +465,7 @@ describe('EmailDispatchWorker', () => {
       });
 
       // Lease check returns null (e.g. timeout / reassigned)
-      mockPrisma.job.findFirst.mockResolvedValue(null);
+      mockPrisma.job.updateMany.mockResolvedValue({ count: 0 });
 
       const outcome = await worker.processJob(claimed);
 

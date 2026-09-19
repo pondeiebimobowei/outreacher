@@ -47,6 +47,11 @@ export class SecretResolverService implements ISecretResolver {
       }
     }
 
+    if (secretReference.startsWith('vault://')) {
+      // Contract states vault:// must be handled, but full HashiCorp/AWS integration is deferred
+      throw new AppValidationException(`Vault integration deferred. Cannot resolve ${secretReference}`);
+    }
+
     throw new AppValidationException(`Unsupported secret reference format: ${secretReference}`);
   }
 }

@@ -1,4 +1,3 @@
-
 -- CreateEnum
 CREATE TYPE "IntegrationProvider" AS ENUM ('RESEND', 'SES', 'SMTP');
 
@@ -57,6 +56,9 @@ CREATE TABLE "campaign_sender_accounts" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "campaigns_workspace_id_id_key" ON "campaigns"("workspace_id", "id");
+
+-- CreateIndex
 CREATE INDEX "integrations_workspace_id_status_idx" ON "integrations"("workspace_id", "status");
 
 -- CreateIndex
@@ -86,12 +88,6 @@ CREATE INDEX "campaign_sender_accounts_workspace_id_sender_account_id_idx" ON "c
 -- CreateIndex
 CREATE UNIQUE INDEX "campaign_sender_accounts_campaign_id_sender_account_id_key" ON "campaign_sender_accounts"("campaign_id", "sender_account_id");
 
--- CreateIndex
-CREATE INDEX "email_sends_workspace_id_sender_account_id_created_at_idx" ON "email_sends"("workspace_id", "sender_account_id", "created_at");
-
--- AddForeignKey
-ALTER TABLE "email_sends" ADD CONSTRAINT "email_sends_workspace_id_sender_account_id_fkey" FOREIGN KEY ("workspace_id", "sender_account_id") REFERENCES "sender_accounts"("workspace_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
 -- AddForeignKey
 ALTER TABLE "integrations" ADD CONSTRAINT "integrations_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -109,3 +105,6 @@ ALTER TABLE "campaign_sender_accounts" ADD CONSTRAINT "campaign_sender_accounts_
 
 -- AddForeignKey
 ALTER TABLE "campaign_sender_accounts" ADD CONSTRAINT "campaign_sender_accounts_workspace_id_sender_account_id_fkey" FOREIGN KEY ("workspace_id", "sender_account_id") REFERENCES "sender_accounts"("workspace_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddCheckConstraint
+ALTER TABLE "sender_accounts" ADD CONSTRAINT "check_daily_limit" CHECK ("daily_limit" >= 1 AND "daily_limit" <= 200);

@@ -191,22 +191,40 @@ export class EmailDispatchWorker {
     }
 
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const currentJob = await tx.job.findFirst({
-        where: { id: job.id, status: JobStatus.RUNNING, attemptCount: claimedAttempt, leaseVersion: job.leaseVersion },
+      const now = new Date();
+      const errorMessage = dispatchError?.message || 'Unknown dispatch error';
+
+      let jobUpdateData: any = {};
+      
+      if (sendResult) {
+        jobUpdateData = { status: 'COMPLETED', completedAt: now };
+      } else if (isUncertainTimeout) {
+        jobUpdateData = { status: 'DEAD_LETTER', failedAt: now, lastError: errorMessage };
+      } else if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
+        const backoffMs = Math.pow(2, claimedAttempt) * 10000;
+        jobUpdateData = { status: 'PENDING', availableAt: new Date(now.getTime() + backoffMs), lastError: errorMessage };
+      } else {
+        jobUpdateData = { status: 'DEAD_LETTER', failedAt: now, lastError: errorMessage };
+      }
+
+      // Perform atomic fencing update on Job
+      const leaseCheck = await tx.job.updateMany({
+        where: { id: job.id, leaseVersion: job.leaseVersion, status: 'RUNNING' },
+        data: jobUpdateData,
       });
 
-      if (!currentJob) {
-        this.logger.warn(`Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed.`);
+      if (leaseCheck.count === 0) {
+        this.logger.warn(`Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed. Aborting state transition.`);
         return false;
       }
 
-      const now = new Date();
-
+      // If we got here, the Job was successfully mutated and we own the lease lock. 
+      // Now safe to mutate related entities.
       if (sendResult) {
         await tx.emailSend.update({
           where: { id: emailSendId },
           data: {
-            status: EmailSendStatus.SENT,
+            status: 'SENT',
             providerMessageId: sendResult.providerMessageId,
             messageId: sendResult.messageId,
             sentAt: now,
@@ -215,68 +233,37 @@ export class EmailDispatchWorker {
 
         await tx.campaignContact.update({
           where: { id: campaignContactId },
-          data: { status: CampaignContactStatus.SENT },
+          data: { status: 'SENT' },
         });
-
-        await tx.job.update({
-          where: { id: job.id },
-          data: { status: JobStatus.COMPLETED, completedAt: now },
-        });
-
+        
         return true;
       }
-
-      const errorMessage = dispatchError?.message || 'Unknown dispatch error';
-
+      
       if (isUncertainTimeout) {
         await tx.emailSend.update({
           where: { id: emailSendId },
           data: {
-            status: EmailSendStatus.FAILED,
+            status: 'FAILED',
             failedAt: now,
-            errorCode: EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN,
+            errorCode: 'PROVIDER_TIMEOUT_UNCERTAIN',
             errorMessage,
             retryable: false,
           },
         });
-
-        // The campaign contact is also FAILED
         await tx.campaignContact.update({
           where: { id: campaignContactId },
-          data: { status: CampaignContactStatus.FAILED },
-        });
-
-        await tx.job.update({
-          where: { id: job.id },
-          data: {
-            status: JobStatus.DEAD_LETTER,
-            failedAt: now,
-            lastError: errorMessage,
-          },
+          data: { status: 'FAILED' },
         });
         return false;
       }
-
+      
       if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
-        const backoffMs = Math.pow(2, claimedAttempt) * 10000;
-        const nextAvailableAt = new Date(now.getTime() + backoffMs);
-
-        await tx.job.update({
-          where: { id: job.id },
-          data: {
-            status: JobStatus.PENDING,
-            availableAt: nextAvailableAt,
-            lastError: errorMessage,
-          },
-        });
         return false;
       }
 
-      let finalErrorCode = EmailDispatchErrorCode.DISPATCH_ATTEMPTS_EXHAUSTED;
-      if (dispatchError instanceof EmailProviderException && dispatchError.dispatchErrorCode) {
-        // If it's a transient error that exhausted attempts, keep it as EXHAUSTED.
-        // Otherwise, use the provider's rejection reason.
-        if (dispatchError.dispatchErrorCode !== EmailDispatchErrorCode.PROVIDER_RATE_LIMIT && dispatchError.dispatchErrorCode !== EmailDispatchErrorCode.PROVIDER_CONNECT_FAILURE) {
+      let finalErrorCode = 'DISPATCH_ATTEMPTS_EXHAUSTED';
+      if (dispatchError && 'dispatchErrorCode' in dispatchError) {
+        if (dispatchError.dispatchErrorCode !== 'PROVIDER_RATE_LIMIT' && dispatchError.dispatchErrorCode !== 'PROVIDER_CONNECT_FAILURE') {
           finalErrorCode = dispatchError.dispatchErrorCode;
         }
       }
@@ -284,9 +271,9 @@ export class EmailDispatchWorker {
       await tx.emailSend.update({
         where: { id: emailSendId },
         data: {
-          status: EmailSendStatus.FAILED,
+          status: 'FAILED',
           failedAt: now,
-          errorCode: finalErrorCode,
+          errorCode: finalErrorCode as any,
           errorMessage,
           retryable: false,
         },
@@ -294,16 +281,7 @@ export class EmailDispatchWorker {
 
       await tx.campaignContact.update({
         where: { id: campaignContactId },
-        data: { status: CampaignContactStatus.FAILED },
-      });
-
-      await tx.job.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.DEAD_LETTER, // Changed from FAILED based on plan? Plan says DEAD_LETTER for exhaustion too.
-          failedAt: now,
-          lastError: errorMessage,
-        },
+        data: { status: 'FAILED' },
       });
 
       return false;
