@@ -19,6 +19,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { OutreachModule } from './modules/outreach/outreach.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
 import { EmailModule } from './modules/email/email.module';
+import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-summary.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { EmailModule } from './modules/email/email.module';
     OutreachModule,
     CampaignModule,
     EmailModule,
+    WorkspaceSummaryModule,
   ],
   controllers: [AppController],
   providers: [
