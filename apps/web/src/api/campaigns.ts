@@ -1,7 +1,7 @@
 import { normalizeCampaignName } from '@repo/shared';
 import { apiClient, ApiError } from './client';
 
-export type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
+export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
 
 export type CampaignContactStatus =
   | 'PENDING'
