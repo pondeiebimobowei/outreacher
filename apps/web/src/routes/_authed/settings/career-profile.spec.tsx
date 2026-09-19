@@ -1,14 +1,14 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Route } from './settings/index';
-import { apiClient, ApiError } from '../../api/client';
+import { Route } from './career-profile';
+import { apiClient, ApiError } from '../../../api/client';
 
-jest.mock('../../api/client', () => ({
+jest.mock('../../../api/client', () => ({
   apiClient: {
     get: jest.fn(),
     patch: jest.fn(),
   },
-  ApiError: jest.requireActual('../../api/client').ApiError,
+  ApiError: jest.requireActual('../../../api/client').ApiError,
 }));
 
 jest.mock('@tanstack/react-router', () => ({
