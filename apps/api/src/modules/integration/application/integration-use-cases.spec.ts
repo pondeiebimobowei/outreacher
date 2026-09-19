@@ -167,17 +167,28 @@ describe('TestIntegrationUseCase', () => {
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
-  it('PROVIDER_UNAVAILABLE failure does not transition ACTIVE to INVALID_CREDENTIALS', async () => {
+  it('ACTIVE + PROVIDER_UNAVAILABLE → no status update (remains ACTIVE)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
     const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    // PROVIDER_UNAVAILABLE means the provider is down, not that credentials are bad
-    // The current implementation updates on any failure — verify the test documents current behavior
-    // This matches contract: ACTIVE + failed test → INVALID_CREDENTIALS (regardless of failure reason)
     const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'PROVIDER_UNAVAILABLE' }));
     await uc.execute('ws-1', integ.id);
-    expect(prisma.integration.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: IntegrationStatus.INVALID_CREDENTIALS } }),
-    );
+    expect(prisma.integration.update).not.toHaveBeenCalled();
+  });
+
+  it('ACTIVE + CONNECTION_FAILED → no status update (remains ACTIVE)', async () => {
+    const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
+    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
+    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }));
+    await uc.execute('ws-1', integ.id);
+    expect(prisma.integration.update).not.toHaveBeenCalled();
+  });
+
+  it('DISABLED + CONNECTION_FAILED → no status update (remains DISABLED)', async () => {
+    const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
+    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
+    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }));
+    await uc.execute('ws-1', integ.id);
+    expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 });
 

@@ -38,7 +38,7 @@ export class TestIntegrationUseCase {
         where: { id: integration.id },
         data: { status: IntegrationStatus.ACTIVE },
       });
-    } else if (!result.success && integration.status === IntegrationStatus.ACTIVE) {
+    } else if (!result.success && integration.status === IntegrationStatus.ACTIVE && result.reason === 'INVALID_CREDENTIALS') {
       await this.prisma.integration.update({
         where: { id: integration.id },
         data: { status: IntegrationStatus.INVALID_CREDENTIALS },
