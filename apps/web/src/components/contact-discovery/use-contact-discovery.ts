@@ -8,9 +8,20 @@ import {
   selectCompanyContact,
 } from '../../api/contacts';
 
-export function useContactDiscovery(companyId: string) {
+import {
+  AddCampaignContactsResponse,
+  addContactsToCampaign,
+  CampaignContactDto,
+  CampaignDto,
+  resolveCanonicalCompanyCampaign,
+} from '../../api/campaigns';
+
+export function useContactDiscovery(companyId: string, companyName?: string) {
   const queryClient = useQueryClient();
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+  const [bindingError, setBindingError] = useState<string | null>(null);
+  const [boundCampaignContact, setBoundCampaignContact] = useState<CampaignContactDto | null>(null);
+  const [activeCampaign, setActiveCampaign] = useState<CampaignDto | null>(null);
   const [ariaAnnouncement, setAriaAnnouncement] = useState<string>('');
   const [pollingDuration, setPollingDuration] = useState<number>(0);
 
@@ -112,10 +123,41 @@ export function useContactDiscovery(companyId: string) {
   });
 
   const selectMutation = useMutation({
-    mutationFn: (contactId: string) => selectCompanyContact(companyId, contactId),
-    onSuccess: () => {
+    onMutate: () => {
+      setBindingError(null);
+    },
+    mutationFn: async (contactId: string) => {
+      // 1. Select the company contact
+      const selectionRes = await selectCompanyContact(companyId, contactId);
+
+      // 2. Resolve canonical company campaign using existing retrieval contract
+      const campaign = await resolveCanonicalCompanyCampaign(companyId, companyName);
+
+      // 3. Bind contact to campaign via POST /api/v1/campaigns/:id/contacts
+      const bindRes: AddCampaignContactsResponse = await addContactsToCampaign(campaign.id, [
+        contactId,
+      ]);
+
+      const boundContact = bindRes.bound[0] ?? null;
+
+      return {
+        selection: selectionRes,
+        campaign,
+        boundContact,
+        ignoredDuplicateCount: bindRes.ignoredDuplicateCount,
+      };
+    },
+    onSuccess: (result) => {
+      setActiveCampaign(result.campaign);
+      setBoundCampaignContact(result.boundContact);
       queryClient.invalidateQueries({ queryKey: ['company-contacts', companyId] });
-      setAriaAnnouncement('Target contact selected for outreach.');
+      const campaignTitle = result.campaign.name;
+      setAriaAnnouncement(`Target contact selected and bound to ${campaignTitle}.`);
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to bind contact to campaign.';
+      setBindingError(msg);
+      setAriaAnnouncement(`Failed to bind contact: ${msg}`);
     },
   });
 
@@ -125,6 +167,9 @@ export function useContactDiscovery(companyId: string) {
     isError,
     error,
     rateLimitError,
+    bindingError,
+    boundCampaignContact,
+    activeCampaign,
     ariaAnnouncement,
     isPollingActive,
     isStillRunningTimeout,
@@ -133,6 +178,7 @@ export function useContactDiscovery(companyId: string) {
     discoverContacts: (options?: { forceRefresh?: boolean }) => discoverMutation.mutate(options),
     isDiscoverPending: discoverMutation.isPending,
     selectContact: (contactId: string) => selectMutation.mutate(contactId),
+    selectContactAsync: (contactId: string) => selectMutation.mutateAsync(contactId),
     isSelectPending: selectMutation.isPending,
   };
 }

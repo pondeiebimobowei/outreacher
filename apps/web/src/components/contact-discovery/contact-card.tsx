@@ -6,9 +6,16 @@ interface ContactCardProps {
   onSelect: (contactId: string) => void;
   isSelectPending: boolean;
   onReview?: (contact: EvaluatedContactDto) => void;
+  onReviewOutreach?: (contact: EvaluatedContactDto) => void;
 }
 
-export function ContactCard({ contact, onSelect, isSelectPending, onReview }: ContactCardProps) {
+export function ContactCard({
+  contact,
+  onSelect,
+  isSelectPending,
+  onReview,
+  onReviewOutreach,
+}: ContactCardProps) {
   const isPerson = contact.contactKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
@@ -66,13 +73,13 @@ export function ContactCard({ contact, onSelect, isSelectPending, onReview }: Co
           </p>
         </div>
 
-        {/* Action Controls: Review Details & Select Target */}
-        <div className="flex items-center space-x-2">
+        {/* Action Controls: Review Details & Select Target / Review Outreach */}
+        <div className="flex flex-wrap items-center gap-2">
           {onReview && (
             <button
               type="button"
               onClick={() => onReview(contact)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+              className={`min-h-[44px] px-3.5 py-2 text-xs font-medium rounded-md border transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center ${
                 isSelected
                   ? 'text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700'
                   : 'text-slate-700 bg-white border-slate-200 hover:bg-slate-100'
@@ -83,19 +90,27 @@ export function ContactCard({ contact, onSelect, isSelectPending, onReview }: Co
           )}
 
           {isSelected ? (
-            <button
-              type="button"
-              disabled
-              className="px-3 py-1.5 text-xs font-bold text-emerald-400 bg-slate-800 border border-emerald-500/40 rounded-md cursor-default focus:outline-none inline-flex items-center space-x-1"
-            >
-              <span>&check; Selected</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <span className="min-h-[44px] px-3 py-2 text-xs font-bold text-emerald-400 bg-slate-800 border border-emerald-500/40 rounded-md inline-flex items-center space-x-1">
+                <span>&check; Target Active</span>
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  onReviewOutreach ? onReviewOutreach(contact) : onReview ? onReview(contact) : undefined
+                }
+                className="min-h-[44px] px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-1"
+              >
+                <span>Review Outreach Draft</span>
+                <span aria-hidden="true">&rarr;</span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => onSelect(contact.id)}
               disabled={isSelectPending}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center"
             >
               {isSelectPending ? 'Selecting...' : 'Select Target Contact'}
             </button>

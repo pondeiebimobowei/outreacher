@@ -344,7 +344,7 @@ function CompanyDetailRouteComponent() {
                   rel="noreferrer"
                   className="text-slate-900 hover:underline font-medium inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
                 >
-                  Visit Website &nearr;
+                  Visit Website ↗
                 </a>
               )}
               {company.linkedinUrl && (
@@ -354,7 +354,7 @@ function CompanyDetailRouteComponent() {
                   rel="noreferrer"
                   className="text-slate-900 hover:underline font-medium inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
                 >
-                  LinkedIn &nearr;
+                  LinkedIn ↗
                 </a>
               )}
             </div>
@@ -799,9 +799,10 @@ function CompanyDetailRouteComponent() {
                       href={opp.openingSourceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-slate-900 hover:underline font-semibold inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                      className="min-h-[44px] text-xs text-slate-900 hover:underline font-semibold inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
                     >
-                      View Source Opening &nearr;
+                      <span>View Source Opening</span>
+                      <span aria-hidden="true">↗</span>
                     </a>
                   </div>
                 )}
@@ -826,12 +827,17 @@ function CompanyDetailRouteComponent() {
         className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4"
       >
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h2
-            id="evidence-heading"
-            className="text-sm font-semibold uppercase tracking-wider text-slate-900"
-          >
-            4. Key Evidence & Source Provenance
-          </h2>
+          <div className="space-y-0.5">
+            <h2
+              id="evidence-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-slate-900"
+            >
+              4. Key Evidence & Source Provenance
+            </h2>
+            <p className="text-xs text-slate-500">
+              Four-layer evidentiary foundation: verified facts and derived analytical inferences.
+            </p>
+          </div>
           <span className="text-xs font-medium text-slate-500">
             {researchDetails?.evidence.length ?? 0} evidence items
           </span>
@@ -841,36 +847,59 @@ function CompanyDetailRouteComponent() {
           <div className="space-y-3">
             {researchDetails.evidence.map((ev) => {
               const isExpanded = Boolean(expandedEvidenceIds[ev.id]);
+              const isFact = ev.classification === 'FACT';
 
               return (
                 <div
                   key={ev.id}
-                  className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-3"
+                  className={`p-4 rounded-lg text-xs space-y-3 transition-colors ${
+                    isFact
+                      ? 'bg-slate-50 border border-slate-200'
+                      : 'bg-sky-50/40 border border-dashed border-sky-300'
+                  }`}
                 >
                   {/* Compact Header (Always visible) */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-900">{ev.claim}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1.5 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-slate-900 text-sm break-words">
+                          {ev.claim}
+                        </span>
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                            ev.classification === 'FACT'
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${
+                            isFact
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : ev.classification === 'INFERENCE'
-                                ? 'bg-sky-100 text-sky-800 border border-sky-300'
-                                : 'bg-slate-100 text-slate-700 border border-slate-300'
+                              : 'bg-sky-100 text-sky-800 border border-sky-300'
                           }`}
                         >
                           {ev.classification}
                         </span>
+                        {!isFact && (
+                          <span className="text-[11px] text-sky-700 italic font-medium">
+                            (Analytical Deduction)
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-3 text-slate-500 text-[11px]">
-                        <span>Source: {ev.sourceName || 'Company Source'}</span>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 text-[11px]">
+                        <span>
+                          <strong className="font-medium text-slate-600">Source:</strong>{' '}
+                          {ev.sourceName || 'Company Source'}
+                        </span>
                         {ev.confidence !== undefined && ev.confidence !== null && (
-                          <span>Confidence: {(ev.confidence * 100).toFixed(0)}%</span>
+                          <span>
+                            <strong className="font-medium text-slate-600">Confidence:</strong>{' '}
+                            {typeof ev.confidence === 'number'
+                              ? `${(ev.confidence * 100).toFixed(0)}%`
+                              : !isNaN(Number(ev.confidence))
+                                ? `${(Number(ev.confidence) * 100).toFixed(0)}%`
+                                : String(ev.confidence)}
+                          </span>
                         )}
                         {ev.collectedAt && (
-                          <span>Collected: {new Date(ev.collectedAt).toLocaleDateString()}</span>
+                          <span>
+                            <strong className="font-medium text-slate-600">Collected:</strong>{' '}
+                            {new Date(ev.collectedAt).toLocaleDateString()}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -878,35 +907,41 @@ function CompanyDetailRouteComponent() {
                     <button
                       type="button"
                       onClick={() => toggleEvidenceExpanded(ev.id)}
-                      className="text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded px-2.5 py-1 self-start sm:self-auto transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      aria-expanded={isExpanded}
+                      aria-controls={`evidence-detail-${ev.id}`}
+                      className="min-h-[44px] px-3 py-2 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center self-stretch sm:self-auto shrink-0"
                     >
                       {isExpanded ? 'Hide Evidence ▲' : 'View Evidence ▼'}
                     </button>
                   </div>
 
-                  {/* Expanded Detail (Toggled via button) */}
+                  {/* Expanded Detail Accordion Panel */}
                   {isExpanded && (
-                    <div className="pt-3 border-t border-slate-200 space-y-3 bg-white p-3 rounded border border-slate-100">
+                    <div
+                      id={`evidence-detail-${ev.id}`}
+                      className="pt-3 border-t border-slate-200 space-y-3 bg-white p-3.5 rounded-lg border border-slate-100 shadow-xs"
+                    >
                       {ev.sourceExcerpt && (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
-                            What the source says:
+                            Verified Source Excerpt:
                           </span>
-                          <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-100">
+                          <blockquote className="text-slate-700 italic bg-slate-50 p-3 rounded-md border border-slate-200/80 leading-relaxed text-xs break-words">
                             "{ev.sourceExcerpt}"
-                          </p>
+                          </blockquote>
                         </div>
                       )}
 
                       {ev.sourceUrl && (
-                        <div>
+                        <div className="pt-1">
                           <a
                             href={ev.sourceUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-slate-900 hover:underline font-semibold inline-flex items-center focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+                            className="min-h-[44px] text-slate-900 hover:underline font-semibold inline-flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1 text-xs"
                           >
-                            Open External Source Webpage &nearr;
+                            <span>Open External Source Webpage</span>
+                            <span aria-hidden="true">↗</span>
                           </a>
                         </div>
                       )}

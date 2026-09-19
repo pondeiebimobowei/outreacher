@@ -586,4 +586,102 @@ describe('CompanyDetailRoute Component - UX-006 Research Workspace Redesign', ()
       expect(screen.getByText('Research failed.')).toBeInTheDocument();
     });
   });
+
+  it('enforces four-layer evidence hierarchy: FACT solid border vs INFERENCE dashed border, badges, and deep provenance', async () => {
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === '/companies/comp-100') return mockCompany;
+      if (url === '/profile') return mockProfileWithRoles;
+      if (url === '/companies/comp-100/research') {
+        return {
+          run: { id: 'run-1', status: 'COMPLETED', summary: 'Summary text' },
+          opportunities: [
+            {
+              id: 'opp-1',
+              roleTitle: 'Staff Backend Engineer',
+              opportunityType: 'CONFIRMED',
+              openingSourceUrl: 'https://acme.com/jobs/1',
+            },
+          ],
+          evidence: [
+            {
+              id: 'ev-fact-1',
+              claim: 'Verified Lever Requisition #4012',
+              classification: 'FACT',
+              sourceName: 'Lever Postings',
+              sourceUrl: 'https://jobs.lever.co/acme/4012',
+              sourceExcerpt: 'Opening for Lead Distributed Systems Architect confirmed active.',
+              confidence: 0.98,
+              collectedAt: '2026-09-16T12:00:00Z',
+            },
+            {
+              id: 'ev-inf-1',
+              claim: 'Engineering Headcount Expansion',
+              classification: 'INFERENCE',
+              sourceName: 'Hiring Trends',
+              sourceUrl: 'https://acme.com/blog',
+              sourceExcerpt: 'Multiple leadership roles added in last quarter.',
+              confidence: 0.85,
+              collectedAt: '2026-09-17T12:00:00Z',
+            },
+          ],
+          status: 'COMPLETED',
+          jobStatus: null,
+          mock: false,
+        };
+      }
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    renderWithProviders(<Component />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Verified Lever Requisition #4012')).toBeInTheDocument();
+    });
+
+    // 1. Check FACT presentation
+    const factClaim = screen.getByText('Verified Lever Requisition #4012');
+    const factCard = factClaim.closest('div.rounded-lg')!;
+    expect(factCard).toHaveClass('border-slate-200');
+    expect(factCard).not.toHaveClass('border-dashed');
+
+    const factBadge = screen.getByText('FACT');
+    expect(factBadge).toHaveClass('bg-emerald-100');
+
+    // 2. Check INFERENCE presentation
+    const infClaim = screen.getByText('Engineering Headcount Expansion');
+    const infCard = infClaim.closest('div.rounded-lg')!;
+    expect(infCard).toHaveClass('border-dashed');
+    expect(infCard).toHaveClass('border-sky-300');
+
+    const infBadge = screen.getByText('INFERENCE');
+    expect(infBadge).toHaveClass('bg-sky-100');
+    expect(screen.getByText('(Analytical Deduction)')).toBeInTheDocument();
+
+    // 3. Check Accessible Disclosure Accordion & Touch Targets
+    const toggleBtns = screen.getAllByRole('button', { name: /view evidence/i });
+    const factToggleBtn = toggleBtns[0];
+    expect(factToggleBtn).toHaveAttribute('aria-expanded', 'false');
+    expect(factToggleBtn).toHaveAttribute('aria-controls', 'evidence-detail-ev-fact-1');
+    expect(factToggleBtn).toHaveClass('min-h-[44px]');
+
+    // Expand FACT accordion
+    fireEvent.click(factToggleBtn);
+    expect(factToggleBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(factToggleBtn).toHaveTextContent('Hide Evidence ▲');
+
+    const excerptHeading = screen.getByText(/verified source excerpt/i);
+    const detailPanel = excerptHeading.closest('div[id="evidence-detail-ev-fact-1"]')!;
+    expect(detailPanel).toBeInTheDocument();
+    expect(
+      screen.getByText(/"Opening for Lead Distributed Systems Architect confirmed active."/i),
+    ).toBeInTheDocument();
+
+    const sourceLink = screen.getByRole('link', { name: /open external source webpage/i });
+    expect(sourceLink).toHaveAttribute('href', 'https://jobs.lever.co/acme/4012');
+    expect(sourceLink).toHaveClass('min-h-[44px]');
+
+    // Opportunity link also has min-h-[44px]
+    const oppLink = screen.getByRole('link', { name: /view source opening/i });
+    expect(oppLink).toHaveClass('min-h-[44px]');
+  });
 });

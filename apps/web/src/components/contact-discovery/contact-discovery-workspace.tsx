@@ -30,6 +30,9 @@ export function ContactDiscoveryWorkspace({
     isLoading,
     isError,
     rateLimitError,
+    bindingError,
+    boundCampaignContact,
+    activeCampaign,
     ariaAnnouncement,
     isPollingActive,
     isStillRunningTimeout,
@@ -39,7 +42,7 @@ export function ContactDiscoveryWorkspace({
     isDiscoverPending,
     selectContact,
     isSelectPending,
-  } = useContactDiscovery(companyId);
+  } = useContactDiscovery(companyId, companyName);
 
   const rawStatus = contactsData?.status ?? 'NOT_STARTED';
   const contacts = contactsData?.contacts ?? [];
@@ -117,11 +120,11 @@ export function ContactDiscoveryWorkspace({
         </div>
 
         {/* Discovery Action Controls */}
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
           >
             + Add Contact
           </button>
@@ -131,7 +134,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: false })}
               disabled={isDiscoverPending}
-              className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             >
               {isDiscoverPending ? 'Starting...' : 'Find Relevant Contacts'}
             </button>
@@ -144,7 +147,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: false })}
                   disabled={isDiscoverPending}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                 >
                   Refresh Contacts
                 </button>
@@ -152,7 +155,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: true })}
                   disabled={isDiscoverPending}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   title="Bypass 24h freshness cache (max 3 per company/24h)"
                 >
                   Force Refresh
@@ -165,7 +168,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: true })}
               disabled={isDiscoverPending}
-              className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             >
               {isDiscoverPending ? 'Retrying...' : 'Retry Contact Discovery'}
             </button>
@@ -190,6 +193,19 @@ export function ContactDiscoveryWorkspace({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {/* Campaign Binding Error Alert */}
+      {bindingError && (
+        <div
+          role="alert"
+          className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-800"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="font-bold">Campaign Binding Warning:</span>
+            <span>{bindingError}</span>
+          </div>
         </div>
       )}
 
@@ -264,7 +280,7 @@ export function ContactDiscoveryWorkspace({
           {/* Contact-to-Outreach Transition Banner */}
           {selectedContact && (
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900 shadow-sm">
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <span className="font-bold uppercase tracking-wider text-[11px] text-emerald-800 block">
                   Target Contact Selected
                 </span>
@@ -273,11 +289,23 @@ export function ContactDiscoveryWorkspace({
                   {selectedContact.title || 'Role Context'}) is selected for outreach at{' '}
                   {companyName}.
                 </p>
+                {activeCampaign && (
+                  <p className="text-[11px] text-emerald-800 flex items-center gap-2 pt-0.5">
+                    <span>
+                      Campaign: <strong className="font-semibold">{activeCampaign.name}</strong>
+                    </span>
+                    {boundCampaignContact && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
+                        {boundCampaignContact.status}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => navigate({ to: '/campaigns' })}
-                className="px-3.5 py-1.5 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0"
+                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center"
               >
                 Prepare Outreach & Campaign Context &rarr;
               </button>
@@ -401,6 +429,7 @@ export function ContactDiscoveryWorkspace({
                     onSelect={selectContact}
                     isSelectPending={isSelectPending}
                     onReview={(c) => setReviewContact(c)}
+                    onReviewOutreach={(c) => setReviewContact(c)}
                   />
                 ))}
               </div>
@@ -428,6 +457,7 @@ export function ContactDiscoveryWorkspace({
                     onSelect={selectContact}
                     isSelectPending={isSelectPending}
                     onReview={(c) => setReviewContact(c)}
+                    onReviewOutreach={(c) => setReviewContact(c)}
                   />
                 ))}
               </div>
