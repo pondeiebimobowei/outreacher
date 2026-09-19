@@ -64,13 +64,18 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
   });
 
   async function seedContactAndCampaign(params?: {
-    campaignStatus?: CampaignStatus;
     contactEmail?: string;
+    campaignStatus?: CampaignStatus;
     contactStatus?: CampaignContactStatus;
+    campaignName?: string;
   }) {
     const email = params?.contactEmail || 'founder@target.com';
     const status = params?.campaignStatus || CampaignStatus.DRAFT;
     const contactStatus = params?.contactStatus || CampaignContactStatus.READY;
+    const campaignName =
+      params?.campaignName ||
+      `Q3 Outbound Campaign ${Math.random().toString(36).substring(2, 9)}`;
+    const normalizedName = campaignName.toLowerCase();
 
     const contact = await realPrisma.contact.create({
       data: {
@@ -85,7 +90,8 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       data: {
         workspaceId,
         companyId,
-        name: 'Q3 Outbound Campaign',
+        name: campaignName,
+        normalizedName,
         status,
         sendingIdentity: 'sales@startup.com',
       },
@@ -181,6 +187,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
           workspaceId,
           companyId,
           name: 'Concurrent Multi-Contact Outreach',
+          normalizedName: 'concurrent multi-contact outreach',
           status: CampaignStatus.DRAFT,
           sendingIdentity: 'founder@startup.com',
         },

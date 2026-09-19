@@ -116,6 +116,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
         workspaceId,
         companyId: company.id,
         name: 'Q3 Enterprise Outbound',
+        normalizedName: 'q3 enterprise outbound',
         status: campaignStatus,
         sendingIdentity: 'founder@startup.com',
       },

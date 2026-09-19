@@ -56,6 +56,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
         workspace: { connect: { id: workspaceId } },
         company: { connect: { id: companyId } },
         name: 'Integration Campaign',
+        normalizedName: 'integration campaign',
       },
     });
     campaignId = campaign.id;

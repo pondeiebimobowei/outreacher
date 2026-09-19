@@ -1,10 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Campaign } from '@repo/db';
-import { AppNotFoundException } from '../../../common/errors/application.exception';
+import { normalizeCampaignName } from '@repo/shared';
+import {
+  AppNotFoundException,
+  AppValidationException,
+} from '../../../common/errors/application.exception';
 import {
   CAMPAIGN_REPOSITORY_TOKEN,
+  CampaignDuplicateNameError,
   type ICampaignRepository,
 } from '../domain/campaign.repository.interface';
+import { CampaignDuplicateNameException } from '../domain/campaign-duplicate-name.exception';
 import {
   COMPANY_REPOSITORY_TOKEN,
   type ICompanyRepository,
@@ -33,12 +39,45 @@ export class CreateCampaignUseCase {
       throw new AppNotFoundException('Company');
     }
 
-    return this.campaignRepository.create({
+    const normalizedName = normalizeCampaignName(dto.name);
+    if (!normalizedName) {
+      throw new AppValidationException(
+        'Campaign name cannot be empty or consist solely of whitespace/dashes.',
+      );
+    }
+
+    // Preflight lookup
+    const existing = await this.campaignRepository.findByNormalizedName(
       workspaceId,
-      companyId: dto.companyId,
-      name: dto.name.trim(),
-      sendingIdentity: dto.sendingIdentity?.trim() ?? null,
-      followUpDelayBusinessDays: dto.followUpDelayBusinessDays,
-    });
+      dto.companyId,
+      normalizedName,
+    );
+    if (existing) {
+      throw new CampaignDuplicateNameException(existing.id);
+    }
+
+    try {
+      return await this.campaignRepository.create({
+        workspaceId,
+        companyId: dto.companyId,
+        name: dto.name.trim(),
+        normalizedName,
+        sendingIdentity: dto.sendingIdentity?.trim() ?? null,
+        followUpDelayBusinessDays: dto.followUpDelayBusinessDays,
+      });
+    } catch (error: any) {
+      if (error instanceof CampaignDuplicateNameError) {
+        // Race recovery: re-read existing campaign by (workspaceId, companyId, normalizedName)
+        const raceRow = await this.campaignRepository.findByNormalizedName(
+          workspaceId,
+          dto.companyId,
+          normalizedName,
+        );
+        if (raceRow) {
+          throw new CampaignDuplicateNameException(raceRow.id);
+        }
+      }
+      throw error;
+    }
   }
 }

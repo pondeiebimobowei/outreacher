@@ -98,6 +98,7 @@ describe('Outreach Generation Engine (e2e)', () => {
         workspaceId,
         companyId: company.id,
         name: 'Outreach Campaign',
+        normalizedName: 'outreach campaign',
         status: 'DRAFT',
       },
     });

@@ -48,6 +48,7 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
         workspace: { connect: { id: workspace.id } },
         company: { connect: { id: company.id } },
         name: 'Camp',
+        normalizedName: 'camp',
       },
     });
 

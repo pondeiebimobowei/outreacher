@@ -1,1 +1,1 @@
-export {};
+export * from './campaign-name-normalizer';

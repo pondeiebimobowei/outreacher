@@ -178,6 +178,62 @@ describe('Campaign Orchestration (e2e)', () => {
         })
         .expect(404);
     });
+
+    it('rejects duplicate campaign name for the same company with 409 and CAMPAIGN_ALREADY_EXISTS', async () => {
+      const user = await createAuthenticatedUser('user_dup@example.com');
+      const company = await seedCompany(user.workspace.id, 'Acme Inc');
+
+      const createRes = await request(app.getHttpServer())
+        .post('/api/v1/campaigns')
+        .set('Cookie', user.cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Outreach — Acme',
+          companyId: company.id,
+        })
+        .expect(201);
+
+      const existingId = createRes.body.id;
+
+      const dupRes = await request(app.getHttpServer())
+        .post('/api/v1/campaigns')
+        .set('Cookie', user.cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'outreach - acme', // hyphen vs em dash + lowercase
+          companyId: company.id,
+        })
+        .expect(409);
+
+      expect(dupRes.body.code).toBe('CAMPAIGN_ALREADY_EXISTS');
+      expect(dupRes.body.existingCampaignId).toBe(existingId);
+    });
+
+    it('allows same campaign name for different companies in the same workspace', async () => {
+      const user = await createAuthenticatedUser('user_scoped@example.com');
+      const companyA = await seedCompany(user.workspace.id, 'Company Alpha');
+      const companyB = await seedCompany(user.workspace.id, 'Company Beta');
+
+      await request(app.getHttpServer())
+        .post('/api/v1/campaigns')
+        .set('Cookie', user.cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Q1 Outbound',
+          companyId: companyA.id,
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/campaigns')
+        .set('Cookie', user.cookies!)
+        .set('X-Requested-With', 'XMLHttpRequest')
+        .send({
+          name: 'Q1 Outbound',
+          companyId: companyB.id,
+        })
+        .expect(201);
+    });
   });
 
   // ─── 2. GET /api/v1/campaigns (Listing) ────────────────────────────────────

@@ -377,6 +377,7 @@ model Campaign {
   workspaceId                 String         @map("workspace_id")
   companyId                   String         @map("company_id")
   name                        String
+  normalizedName              String         @map("normalized_name")
   status                      CampaignStatus @default(DRAFT)
   sendingIdentity             String?        @map("sending_identity")
   followUpDelayBusinessDays   Int            @default(4) @map("follow_up_delay_business_days")
@@ -388,6 +389,7 @@ model Campaign {
   campaignContacts CampaignContact[]
   emailSends       EmailSend[]
 
+  @@unique([workspaceId, companyId, normalizedName])
   @@index([workspaceId, status])
   @@index([workspaceId, companyId])
   @@map("campaigns")

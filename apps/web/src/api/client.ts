@@ -10,6 +10,7 @@ export interface ApiErrorResponse {
   path?: string;
   details?: Record<string, unknown>;
   existingCompanyId?: string;
+  existingCampaignId?: string;
 }
 
 export class ApiError extends Error {
@@ -19,6 +20,7 @@ export class ApiError extends Error {
   public readonly path?: string;
   public readonly requestId?: string;
   public readonly existingCompanyId?: string;
+  public readonly existingCampaignId?: string;
   public readonly rawMessage: string | string[];
 
   constructor(
@@ -37,6 +39,8 @@ export class ApiError extends Error {
     this.path = data?.path;
     this.existingCompanyId =
       data?.existingCompanyId ?? (data?.details?.existingCompanyId as string | undefined);
+    this.existingCampaignId =
+      data?.existingCampaignId ?? (data?.details?.existingCampaignId as string | undefined);
     // Canonical source: response header x-request-id; fallback: response JSON requestId
     this.requestId = headerRequestId || data?.requestId || undefined;
     this.rawMessage = rawMsg;

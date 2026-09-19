@@ -90,6 +90,7 @@ describe('Outreach Review and Editing (e2e)', () => {
         workspaceId,
         companyId: company.id,
         name: 'Test Campaign',
+        normalizedName: 'test campaign',
       },
     });
 
