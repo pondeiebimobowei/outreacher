@@ -329,7 +329,7 @@ function DisableConfirmModal({
               <div className="mt-2">
                 <p className="text-sm text-slate-500">
                   This integration is currently used by <strong>{dependentCount} sender account{dependentCount === 1 ? '' : 's'}</strong>. 
-                  Disabling it will suspend sending for these accounts and any active campaigns using them. Are you sure you want to disable it?
+                  Disabling this integration will make these sender accounts ineligible for sending while the integration is disabled. Are you sure you want to disable it?
                 </p>
               </div>
             </div>
