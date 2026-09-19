@@ -107,7 +107,6 @@ export class GetWorkspaceSummaryUseCase {
           type: 'RESEARCH_COMPLETED' as const,
           company: { id: item.company.id, name: item.company.name },
           occurredAt: item.completedAt!.toISOString(),
-          actor: 'SYSTEM' as const,
         }))
       );
     } else {
@@ -124,7 +123,6 @@ export class GetWorkspaceSummaryUseCase {
           type: 'CONTACT_SELECTED' as const,
           company: { id: item.company.id, name: item.company.name },
           occurredAt: item.selectedAt.toISOString(),
-          actor: 'USER' as const,
         }))
       );
     } else {
@@ -142,7 +140,6 @@ export class GetWorkspaceSummaryUseCase {
           company: { id: item.campaignContact.contact.company.id, name: item.campaignContact.contact.company.name },
           campaign: item.campaignContact.campaign ? { id: item.campaignContact.campaign.id, name: item.campaignContact.campaign.name } : undefined,
           occurredAt: item.sentAt!.toISOString(),
-          actor: 'SYSTEM' as const,
         }))
       );
     } else {
@@ -160,7 +157,6 @@ export class GetWorkspaceSummaryUseCase {
           company: { id: item.campaignContact.contact.company.id, name: item.campaignContact.contact.company.name },
           campaign: item.campaignContact.campaign ? { id: item.campaignContact.campaign.id, name: item.campaignContact.campaign.name } : undefined,
           occurredAt: item.recordedAt.toISOString(),
-          actor: 'USER' as const,
         }))
       );
     } else {
