@@ -348,4 +348,97 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     expect(finalContact?.status).toBe('SENDING'); // Remains in SENDING, not FAILED or SENT
   });
 
+  it('10. Stale worker side-effect duplication prevention via Idempotency Key', async () => {
+    const { workspace, campaignContact } = await createFixture();
+
+    // Setup Resend integration
+    const integration = await prisma.integration.create({
+      data: { workspaceId: workspace.id, provider: 'RESEND', secretReference: 'env://RESEND_KEY', name: 'Resend Mock' }
+    });
+    await prisma.senderAccount.updateMany({ data: { integrationId: integration.id } });
+    process.env.RESEND_KEY = 'test_key';
+
+    await useCase.execute({ workspaceId: workspace.id, campaignContactId: campaignContact.id, clientKey: 'key_side_effect' });
+
+    // 1. Worker A claims the job
+    const claimedA = await worker.claimNextJob();
+    expect(claimedA).toBeDefined();
+
+    const acceptedKeys = new Set<string>();
+    let sentCount = 0;
+    let sweeperRan = false;
+
+    // We mock fetch so that when Worker A calls the provider, it stalls.
+    // While Worker A is stalled inside the provider call, the sweeper reclaims the job,
+    // and Worker B claims it and fully processes it.
+    global.fetch = jest.fn().mockImplementation(async (url, init) => {
+      const idempotencyKey = init.headers['Idempotency-Key'];
+
+      // If Worker B makes the call, sweeperRan is true, and the key is already in acceptedKeys
+      if (acceptedKeys.has(idempotencyKey)) {
+        return {
+          ok: false,
+          status: 409,
+          text: async () => JSON.stringify({ name: 'conflict', id: 'resend-recovered-id' }) // Resend returns 409
+        };
+      }
+
+      // First time (Worker A). It gets accepted.
+      acceptedKeys.add(idempotencyKey);
+      sentCount++;
+
+      // STALL WORKER A: Simulate time passing, sweeper running, and Worker B claiming/processing
+      if (!sweeperRan) {
+        sweeperRan = true;
+
+        // Force Worker A's job to be stale
+        const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+        await prisma.job.update({
+          where: { id: claimedA!.job.id },
+          data: { updatedAt: sixMinutesAgo }
+        });
+
+        // Sweeper reclaims
+        await worker.recoverStaleJobs();
+
+        // Worker B claims the SAME job
+        const claimedB = await worker.claimNextJob();
+        expect(claimedB).toBeDefined();
+        expect(claimedB!.job.id).toBe(claimedA!.job.id); // Same job
+        expect(claimedB!.job.leaseVersion).toBeGreaterThan(claimedA!.job.leaseVersion); // Higher lease
+
+        // Worker B processes it
+        // This will trigger fetch() again, hitting the 409 branch above
+        const successB = await worker.processJob(claimedB!);
+        expect(successB).toBe(true); // Worker B succeeds
+      }
+
+      // Now Worker A's provider call finally returns (success)
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 'new-id' })
+      };
+    }) as any;
+
+    // Worker A processes its job (which kicks off the fetch mock above)
+    const successA = await worker.processJob(claimedA!);
+    
+    // Worker A's DB update CAS should fail because Worker B already bumped the lease and completed it
+    expect(successA).toBe(false);
+
+    // Verify external side-effect safety:
+    expect(sentCount).toBe(1); // Provider only accepted it ONCE!
+
+    const finalJob = await prisma.job.findUnique({ where: { id: claimedA!.job.id } });
+    expect(finalJob?.status).toBe('COMPLETED'); // Completed by Worker B
+    
+    const payload = finalJob?.payload as any;
+    const finalEmailSend = await prisma.emailSend.findUnique({ where: { id: payload.emailSendId } });
+    expect(finalEmailSend?.status).toBe('SENT'); 
+    
+    // It should have the recovered ID from Worker B because Worker A's mutation was rejected!
+    expect(finalEmailSend?.providerMessageId).toBe('resend-recovered-id');
+  });
 });
+
