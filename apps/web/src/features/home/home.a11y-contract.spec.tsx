@@ -37,7 +37,7 @@ jest.mock('@tanstack/react-router', () => ({
   ),
 }));
 
-describe('Home / Workspace Accessibility & Responsive Contracts', () => {
+describe('Home / Workspace Structural Accessibility Home / Workspace Accessibility & Responsive Contracts Design Token Contract', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {

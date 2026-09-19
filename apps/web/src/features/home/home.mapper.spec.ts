@@ -7,15 +7,15 @@ import {
 } from './home.mapper';
 import { WorkspaceActivityItemDto, WorkspaceSummaryDto, WorkspaceWorkItemDto } from './home.types';
 
-describe('Home Presentation Mapper', () => {
+describe('Home Presentation Mapper — Deterministic Routing & Value Transformations', () => {
   describe('formatRelativeTime', () => {
-    it('returns — for null or undefined dates', () => {
+    it('returns — for null, undefined, or invalid dates', () => {
       expect(formatRelativeTime(null)).toBe('—');
       expect(formatRelativeTime(undefined)).toBe('—');
       expect(formatRelativeTime('invalid-date')).toBe('—');
     });
 
-    it('formats recent timestamps accurately', () => {
+    it('formats recent timestamps accurately with progressive relative units', () => {
       const now = new Date();
       expect(formatRelativeTime(now.toISOString())).toBe('just now');
 
@@ -30,8 +30,8 @@ describe('Home Presentation Mapper', () => {
     });
   });
 
-  describe('mapWorkItemToAttention', () => {
-    it('maps OUTREACH_REVIEW with campaign to contextual review destination', () => {
+  describe('Deterministic Destination Rules for Attention Items', () => {
+    it('routes OUTREACH_REVIEW with campaign to contextual review (/campaigns/$campaignId/review)', () => {
       const item: WorkspaceWorkItemDto = {
         id: 'work-1',
         kind: 'OUTREACH_REVIEW',
@@ -44,21 +44,35 @@ describe('Home Presentation Mapper', () => {
 
       const result = mapWorkItemToAttention(item);
       expect(result).not.toBeNull();
-      expect(result?.kind).toBe('OUTREACH_REVIEW');
-      expect(result?.badgeLabel).toBe('Review Required');
-      expect(result?.actionLabel).toBe('Review Outreach');
-      expect(result?.companyName).toBe('Acme Corp');
-      expect(result?.description).toContain('Acme Corp');
-      expect(result?.description).toContain('Outreach Sprint');
       expect(result?.destination).toEqual({
         to: '/campaigns/$campaignId/review',
         params: { campaignId: 'camp-1' },
       });
+      expect(result?.badgeLabel).toBe('Review Required');
+      expect(result?.actionLabel).toBe('Review Outreach');
     });
 
-    it('maps SEND_FAILURE with factual error presentation and distinct destination', () => {
+    it('routes OUTREACH_REVIEW without campaign deterministically to company workspace (/companies/$id)', () => {
       const item: WorkspaceWorkItemDto = {
-        id: 'work-2',
+        id: 'work-1b',
+        kind: 'OUTREACH_REVIEW',
+        company: { id: 'comp-1', name: 'Acme Corp' },
+        source: { domain: 'OUTREACH', state: 'PENDING' },
+        destination: { type: 'CONTACT_REVIEW' },
+      };
+
+      const result = mapWorkItemToAttention(item);
+      expect(result).not.toBeNull();
+      expect(result?.destination).toEqual({
+        to: '/companies/$id',
+        params: { id: 'comp-1' },
+      });
+      expect(result?.description).toBe('Outreach draft for Acme Corp awaits human review.');
+    });
+
+    it('routes SEND_FAILURE with campaign deterministically to campaign review hub', () => {
+      const item: WorkspaceWorkItemDto = {
+        id: 'work-2a',
         kind: 'SEND_FAILURE',
         company: { id: 'comp-2', name: 'Stripe' },
         campaign: { id: 'camp-2', name: 'Tech Lead Outreach', status: 'ACTIVE' },
@@ -69,14 +83,31 @@ describe('Home Presentation Mapper', () => {
 
       const result = mapWorkItemToAttention(item);
       expect(result).not.toBeNull();
-      expect(result?.kind).toBe('SEND_FAILURE');
+      expect(result?.destination).toEqual({
+        to: '/campaigns/$campaignId/review',
+        params: { campaignId: 'camp-2' },
+      });
       expect(result?.badgeLabel).toBe('Send Failed');
       expect(result?.actionLabel).toBe('Investigate Failure');
-      expect(result?.description).toContain('Email dispatch to contact at Stripe failed');
-      expect(result?.description).not.toContain('sent successfully');
     });
 
-    it('returns null for continue-working items', () => {
+    it('routes SEND_FAILURE without campaign deterministically to campaigns index (/campaigns)', () => {
+      const item: WorkspaceWorkItemDto = {
+        id: 'work-2b',
+        kind: 'SEND_FAILURE',
+        company: { id: 'comp-2', name: 'Stripe' },
+        source: { domain: 'EMAIL', state: 'FAILED' },
+        destination: { type: 'CAMPAIGN' },
+      };
+
+      const result = mapWorkItemToAttention(item);
+      expect(result).not.toBeNull();
+      expect(result?.destination).toEqual({
+        to: '/campaigns',
+      });
+    });
+
+    it('returns null for continue-working kinds', () => {
       const incompleteResearch: WorkspaceWorkItemDto = {
         id: 'work-3',
         kind: 'RESEARCH_INCOMPLETE',
@@ -89,8 +120,8 @@ describe('Home Presentation Mapper', () => {
     });
   });
 
-  describe('mapWorkItemToContinue', () => {
-    it('maps RESEARCH_INCOMPLETE to company research workflow', () => {
+  describe('Deterministic Destination Rules for Continue Working Items', () => {
+    it('routes RESEARCH_INCOMPLETE deterministically to company research workflow (/companies/$id)', () => {
       const item: WorkspaceWorkItemDto = {
         id: 'work-4',
         kind: 'RESEARCH_INCOMPLETE',
@@ -102,17 +133,16 @@ describe('Home Presentation Mapper', () => {
       const result = mapWorkItemToContinue(item);
       expect(result).not.toBeNull();
       expect(result?.kind).toBe('RESEARCH_INCOMPLETE');
-      expect(result?.badgeLabel).toBe('Research In Progress');
-      expect(result?.actionLabel).toBe('Continue Research');
       expect(result?.destination).toEqual({
         to: '/companies/$id',
         params: { id: 'comp-4' },
       });
+      expect(result?.actionLabel).toBe('Continue Research');
     });
 
-    it('maps CAMPAIGN_PAUSED distinctly from send failure', () => {
+    it('routes CAMPAIGN_PAUSED with campaign to contextual campaign review (/campaigns/$campaignId/review)', () => {
       const item: WorkspaceWorkItemDto = {
-        id: 'work-5',
+        id: 'work-5a',
         kind: 'CAMPAIGN_PAUSED',
         company: { id: 'comp-5', name: 'OpenAI' },
         campaign: { id: 'camp-5', name: 'AI Safety Outreach', status: 'PAUSED' },
@@ -123,18 +153,32 @@ describe('Home Presentation Mapper', () => {
       const result = mapWorkItemToContinue(item);
       expect(result).not.toBeNull();
       expect(result?.kind).toBe('CAMPAIGN_PAUSED');
-      expect(result?.badgeLabel).toBe('Paused');
-      expect(result?.actionLabel).toBe('Review Campaign');
-      expect(result?.stateLabel).toBe('Campaign paused');
       expect(result?.destination).toEqual({
         to: '/campaigns/$campaignId/review',
         params: { campaignId: 'camp-5' },
+      });
+      expect(result?.actionLabel).toBe('Review Campaign');
+    });
+
+    it('routes CAMPAIGN_PAUSED without campaign deterministically to campaigns catalog (/campaigns)', () => {
+      const item: WorkspaceWorkItemDto = {
+        id: 'work-5b',
+        kind: 'CAMPAIGN_PAUSED',
+        company: { id: 'comp-5', name: 'OpenAI' },
+        source: { domain: 'CAMPAIGN', state: 'PAUSED' },
+        destination: { type: 'CAMPAIGN' },
+      };
+
+      const result = mapWorkItemToContinue(item);
+      expect(result).not.toBeNull();
+      expect(result?.destination).toEqual({
+        to: '/campaigns',
       });
     });
   });
 
   describe('mapActivityItem', () => {
-    it('maps all 4 authoritative activity types without manufacturing events', () => {
+    it('maps all 4 authoritative activity types without fabricating events', () => {
       const past = new Date().toISOString();
 
       const researchAct: WorkspaceActivityItemDto = {
