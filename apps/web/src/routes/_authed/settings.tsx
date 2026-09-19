@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, Link, useLocation } from '@tanstack/react-router';
+import { SETTINGS_NAVIGATION } from '../../lib/settings-navigation';
 
 export const Route = createFileRoute('/_authed/settings')({
   component: SettingsLayout,
@@ -7,39 +8,6 @@ export const Route = createFileRoute('/_authed/settings')({
 export function SettingsLayout() {
   const location = useLocation();
 
-  const navGroups = [
-    {
-      title: 'Account',
-      links: [
-        { label: 'Profile', to: '/settings/profile', disabled: true },
-        { label: 'Career profile', to: '/settings/career-profile', disabled: false },
-      ],
-    },
-    {
-      title: 'Communication',
-      links: [
-        { label: 'Sender accounts', to: '/settings/senders', disabled: true },
-        { label: 'Integrations', to: '/settings/integrations', disabled: false },
-        { label: 'Notifications', to: '/settings/notifications', disabled: true },
-      ],
-    },
-    {
-      title: 'Preferences',
-      links: [
-        { label: 'Appearance', to: '/settings/appearance', disabled: true },
-        { label: 'Timezone', to: '/settings/timezone', disabled: true },
-        { label: 'Workflow preferences', to: '/settings/workflow', disabled: true },
-      ],
-    },
-    {
-      title: 'Security',
-      links: [
-        { label: 'Password', to: '/settings/password', disabled: true },
-        { label: 'Sessions', to: '/settings/sessions', disabled: true },
-      ],
-    }
-  ];
-
   return (
     <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
       {/* Settings Navigation */}
@@ -47,7 +15,7 @@ export function SettingsLayout() {
         <h2 className="text-xl font-bold tracking-tight text-slate-900 mb-6">Settings</h2>
         
         <nav className="space-y-8">
-          {navGroups.map((group) => (
+          {SETTINGS_NAVIGATION.map((group) => (
             <div key={group.title}>
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 {group.title}
