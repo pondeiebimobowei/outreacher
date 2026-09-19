@@ -7,7 +7,9 @@ import { GetWorkspaceSummaryUseCase } from './application/get-workspace-summary.
 @Controller('workspace')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class WorkspaceSummaryController {
-  constructor(private readonly getWorkspaceSummaryUseCase: GetWorkspaceSummaryUseCase) {}
+  constructor(
+    private readonly getWorkspaceSummaryUseCase: GetWorkspaceSummaryUseCase,
+  ) {}
 
   @Get('summary')
   public async getSummary(@CurrentWorkspace() workspace: { id: string }) {

@@ -33,6 +33,7 @@ const mockCompany = (overrides: Partial<Company> = {}): Company => ({
   status: 'ACTIVE',
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
   ...overrides,
 });
 
@@ -47,6 +48,7 @@ const mockCampaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   followUpDelayBusinessDays: 4,
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
   ...overrides,
 });
 
@@ -63,6 +65,7 @@ describe('CreateCampaignUseCase', () => {
       findById: jest.fn(),
       findByNormalizedName: jest.fn().mockResolvedValue(null),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),
@@ -72,6 +75,7 @@ describe('CreateCampaignUseCase', () => {
       findById: jest.fn(),
       findByNormalizedName: jest.fn(),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       update: jest.fn(),
     };
     useCase = new CreateCampaignUseCase(campaignRepo, companyRepo);
@@ -291,6 +295,7 @@ describe('GetCampaignUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),
@@ -336,6 +341,7 @@ describe('ListCampaignsUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),

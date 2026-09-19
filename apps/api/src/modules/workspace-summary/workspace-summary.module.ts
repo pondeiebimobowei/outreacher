@@ -8,9 +8,6 @@ import { GetWorkspaceSummaryUseCase } from './application/get-workspace-summary.
 @Module({
   imports: [PrismaModule, WorkspaceModule],
   controllers: [WorkspaceSummaryController],
-  providers: [
-    PrismaWorkspaceSummaryRepository,
-    GetWorkspaceSummaryUseCase,
-  ],
+  providers: [PrismaWorkspaceSummaryRepository, GetWorkspaceSummaryUseCase],
 })
 export class WorkspaceSummaryModule {}

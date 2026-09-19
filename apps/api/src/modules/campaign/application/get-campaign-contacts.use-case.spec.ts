@@ -14,8 +14,8 @@ describe('GetCampaignContactsUseCase', () => {
 
   beforeEach(() => {
     prisma = {
-      campaign: { findFirst: (jest.MockedFunction<any> = jest.fn()) },
-      campaignContact: { findMany: (jest.MockedFunction<any> = jest.fn()) },
+      campaign: { findFirst: (jest.Mock<any> = jest.fn()) },
+      campaignContact: { findMany: (jest.Mock<any> = jest.fn()) },
     };
     useCase = new GetCampaignContactsUseCase(
       prisma as unknown as PrismaService,

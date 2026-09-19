@@ -21,6 +21,7 @@ const mockCampaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   followUpDelayBusinessDays: 4,
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
   ...overrides,
 });
 
@@ -41,6 +42,7 @@ const mockContact = (
   discoveredAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
   ...overrides,
 });
 
@@ -57,6 +59,7 @@ const mockBinding = (contactId: string): CampaignContact => ({
   selectedOpportunityId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
 });
 
 describe('AddCampaignContactsUseCase', () => {
@@ -69,6 +72,7 @@ describe('AddCampaignContactsUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),

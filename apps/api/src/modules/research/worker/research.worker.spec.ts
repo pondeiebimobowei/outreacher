@@ -47,6 +47,7 @@ describe('ResearchWorker', () => {
       findRunById: jest.fn(),
       updateRunStatus: jest.fn(),
       completeResearchRun: jest.fn(),
+      findResearchDetails: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -22,6 +22,7 @@ const mockCampaign = (status: CampaignStatus): Campaign => ({
   followUpDelayBusinessDays: 4,
   createdAt: new Date(),
   updatedAt: new Date(),
+  normalizedName: 'test-camp',
 });
 
 describe('ChangeCampaignStatusUseCase', () => {
@@ -33,6 +34,7 @@ describe('ChangeCampaignStatusUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findManyByWorkspace: jest.fn(),
+      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),
