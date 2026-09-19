@@ -168,3 +168,21 @@ export async function resolveCanonicalCompanyCampaign(
   inFlightCanonicalResolutions.set(companyId, resolutionPromise);
   return resolutionPromise;
 }
+
+/**
+ * Pauses an active campaign, blocking new sends.
+ * In-flight dispatches already handed to the provider will complete.
+ * Endpoint: POST /api/v1/campaigns/:id/pause
+ */
+export async function pauseCampaign(id: string): Promise<CampaignDto> {
+  return apiClient.post<CampaignDto>(`/campaigns/${id}/pause`);
+}
+
+/**
+ * Resumes a paused campaign, re-enabling manual and automated sends.
+ * Endpoint: POST /api/v1/campaigns/:id/resume
+ */
+export async function resumeCampaign(id: string): Promise<CampaignDto> {
+  return apiClient.post<CampaignDto>(`/campaigns/${id}/resume`);
+}
+

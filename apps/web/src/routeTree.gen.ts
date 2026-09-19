@@ -16,8 +16,10 @@ import { Route as AuthedCampaignsRouteImport } from './routes/_authed/campaigns'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedTemplatesRouteImport } from './routes/_authed/templates'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
+import { Route as AuthedCampaignsIndexRouteImport } from './routes/_authed/campaigns.index'
 import { Route as AuthedCompaniesIndexRouteImport } from './routes/_authed/companies.index'
 import { Route as AuthedCompaniesIdRouteImport } from './routes/_authed/companies.$id'
+import { Route as AuthedCampaignsCampaignIdReviewRouteImport } from './routes/_authed/campaigns.$campaignId.review'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -52,6 +54,11 @@ const GuestLoginRoute = GuestLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthedCampaignsIndexRoute = AuthedCampaignsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedCampaignsRoute,
+} as any)
 const AuthedCompaniesIndexRoute = AuthedCompaniesIndexRouteImport.update({
   id: '/companies/',
   path: '/companies/',
@@ -62,36 +69,47 @@ const AuthedCompaniesIdRoute = AuthedCompaniesIdRouteImport.update({
   path: '/companies/$id',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedCampaignsCampaignIdReviewRoute =
+  AuthedCampaignsCampaignIdReviewRouteImport.update({
+    id: '/$campaignId/review',
+    path: '/$campaignId/review',
+    getParentRoute: () => AuthedCampaignsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
-  '/campaigns': typeof AuthedCampaignsRoute
+  '/campaigns': typeof AuthedCampaignsRouteWithChildren
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
+  '/campaigns/': typeof AuthedCampaignsIndexRoute
   '/companies/': typeof AuthedCompaniesIndexRoute
+  '/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
-  '/campaigns': typeof AuthedCampaignsRoute
   '/settings': typeof AuthedSettingsRoute
   '/templates': typeof AuthedTemplatesRoute
   '/login': typeof GuestLoginRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
+  '/campaigns': typeof AuthedCampaignsIndexRoute
   '/companies': typeof AuthedCompaniesIndexRoute
+  '/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
-  '/_authed/campaigns': typeof AuthedCampaignsRoute
+  '/_authed/campaigns': typeof AuthedCampaignsRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/templates': typeof AuthedTemplatesRoute
   '/_guest/login': typeof GuestLoginRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
+  '/_authed/campaigns/': typeof AuthedCampaignsIndexRoute
   '/_authed/companies/': typeof AuthedCompaniesIndexRoute
+  '/_authed/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -102,16 +120,19 @@ export interface FileRouteTypes {
     | '/templates'
     | '/login'
     | '/companies/$id'
+    | '/campaigns/'
     | '/companies/'
+    | '/campaigns/$campaignId/review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/campaigns'
     | '/settings'
     | '/templates'
     | '/login'
     | '/companies/$id'
+    | '/campaigns'
     | '/companies'
+    | '/campaigns/$campaignId/review'
   id:
     | '__root__'
     | '/_authed'
@@ -122,7 +143,9 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_authed/'
     | '/_authed/companies/$id'
+    | '/_authed/campaigns/'
     | '/_authed/companies/'
+    | '/_authed/campaigns/$campaignId/review'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -181,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestLoginRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/campaigns/': {
+      id: '/_authed/campaigns/'
+      path: '/'
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AuthedCampaignsIndexRouteImport
+      parentRoute: typeof AuthedCampaignsRoute
+    }
     '/_authed/companies/': {
       id: '/_authed/companies/'
       path: '/companies'
@@ -195,11 +225,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedCompaniesIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/campaigns/$campaignId/review': {
+      id: '/_authed/campaigns/$campaignId/review'
+      path: '/$campaignId/review'
+      fullPath: '/campaigns/$campaignId/review'
+      preLoaderRoute: typeof AuthedCampaignsCampaignIdReviewRouteImport
+      parentRoute: typeof AuthedCampaignsRoute
+    }
   }
 }
 
+interface AuthedCampaignsRouteChildren {
+  AuthedCampaignsIndexRoute: typeof AuthedCampaignsIndexRoute
+  AuthedCampaignsCampaignIdReviewRoute: typeof AuthedCampaignsCampaignIdReviewRoute
+}
+
+const AuthedCampaignsRouteChildren: AuthedCampaignsRouteChildren = {
+  AuthedCampaignsIndexRoute: AuthedCampaignsIndexRoute,
+  AuthedCampaignsCampaignIdReviewRoute: AuthedCampaignsCampaignIdReviewRoute,
+}
+
+const AuthedCampaignsRouteWithChildren = AuthedCampaignsRoute._addFileChildren(
+  AuthedCampaignsRouteChildren,
+)
+
 interface AuthedRouteChildren {
-  AuthedCampaignsRoute: typeof AuthedCampaignsRoute
+  AuthedCampaignsRoute: typeof AuthedCampaignsRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedTemplatesRoute: typeof AuthedTemplatesRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
@@ -208,7 +259,7 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
-  AuthedCampaignsRoute: AuthedCampaignsRoute,
+  AuthedCampaignsRoute: AuthedCampaignsRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedTemplatesRoute: AuthedTemplatesRoute,
   AuthedIndexRoute: AuthedIndexRoute,
