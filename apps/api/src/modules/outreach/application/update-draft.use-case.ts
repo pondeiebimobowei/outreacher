@@ -12,6 +12,7 @@ export interface UpdateDraftCommand {
   campaignContactId: string;
   subject?: string;
   bodyText?: string;
+  expectedUpdatedAt?: string | Date;
 }
 
 @Injectable()
@@ -19,7 +20,13 @@ export class UpdateDraftUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   public async execute(command: UpdateDraftCommand): Promise<CampaignContact> {
-    const { workspaceId, campaignContactId, subject, bodyText } = command;
+    const {
+      workspaceId,
+      campaignContactId,
+      subject,
+      bodyText,
+      expectedUpdatedAt,
+    } = command;
 
     // 1. Double-Layer Domain Validation (Input Normalization & Boundary Guards)
     const trimmedSubject =
@@ -60,6 +67,17 @@ export class UpdateDraftUseCase {
           throw new AppNotFoundException(
             `CampaignContact ${campaignContactId} not found`,
           );
+        }
+
+        // Optimistic concurrency verification
+        if (expectedUpdatedAt) {
+          const expectedIso = new Date(expectedUpdatedAt).toISOString();
+          const currentIso = campaignContact.updatedAt.toISOString();
+          if (expectedIso !== currentIso) {
+            throw new AppConflictException(
+              'Concurrent update detected; draft was modified by another session.',
+            );
+          }
         }
 
         const allowedStatuses: CampaignContactStatus[] = ['PENDING', 'READY'];

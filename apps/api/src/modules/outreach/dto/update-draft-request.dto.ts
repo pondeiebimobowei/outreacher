@@ -42,6 +42,9 @@ export class UpdateDraftRequestDto {
   @Length(20, 4000)
   bodyText?: string;
 
+  @IsOptional()
+  expectedUpdatedAt?: string;
+
   @Validate(AtLeastOneFieldConstraint)
   readonly _atLeastOneGuard?: boolean;
 }

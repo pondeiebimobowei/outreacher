@@ -10,6 +10,7 @@ import { PrismaService } from '../../../database/prisma.service';
 export interface ApproveDraftCommand {
   workspaceId: string;
   campaignContactId: string;
+  expectedUpdatedAt?: string | Date;
 }
 
 @Injectable()
@@ -17,7 +18,7 @@ export class ApproveDraftUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   public async execute(command: ApproveDraftCommand): Promise<CampaignContact> {
-    const { workspaceId, campaignContactId } = command;
+    const { workspaceId, campaignContactId, expectedUpdatedAt } = command;
 
     return await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
@@ -31,6 +32,17 @@ export class ApproveDraftUseCase {
           throw new AppNotFoundException(
             `CampaignContact ${campaignContactId} not found`,
           );
+        }
+
+        // Optimistic concurrency verification if token provided
+        if (expectedUpdatedAt) {
+          const expectedIso = new Date(expectedUpdatedAt).toISOString();
+          const currentIso = campaignContact.updatedAt.toISOString();
+          if (expectedIso !== currentIso) {
+            throw new AppConflictException(
+              'Concurrent update detected; approval aborted.',
+            );
+          }
         }
 
         if (

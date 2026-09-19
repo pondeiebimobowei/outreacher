@@ -65,16 +65,16 @@ describe('Campaign Canonical Concurrency & Race Recovery (Integration)', () => {
 
     // 2. 10 variants of the same canonical campaign name
     const variants = [
-      'Outreach — Acme Corporation',          // Em Dash (canonical)
-      'Outreach – Acme Corporation',          // En Dash
-      'Outreach - Acme Corporation',          // Hyphen-minus
-      '  Outreach — Acme Corporation  ',      // Whitespace padded
-      'outreach — acme corporation',          // Lowercase
-      'OUTREACH — ACME CORPORATION',          // Uppercase
-      'Outreach —   Acme    Corporation',     // Collapsible multi-space
-      'Outreach − Acme Corporation',          // Minus sign
-      'Outreach ‑ Acme Corporation',          // Non-breaking hyphen
-      'Outreach — Acme Corporation',          // Duplicate identical
+      'Outreach — Acme Corporation', // Em Dash (canonical)
+      'Outreach – Acme Corporation', // En Dash
+      'Outreach - Acme Corporation', // Hyphen-minus
+      '  Outreach — Acme Corporation  ', // Whitespace padded
+      'outreach — acme corporation', // Lowercase
+      'OUTREACH — ACME CORPORATION', // Uppercase
+      'Outreach —   Acme    Corporation', // Collapsible multi-space
+      'Outreach − Acme Corporation', // Minus sign
+      'Outreach ‑ Acme Corporation', // Non-breaking hyphen
+      'Outreach — Acme Corporation', // Duplicate identical
     ];
 
     // 3. Fire all 10 simultaneously in real PostgreSQL

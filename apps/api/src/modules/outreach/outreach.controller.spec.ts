@@ -3,6 +3,7 @@ import { OutreachController } from './outreach.controller';
 import { GenerateOutreachUseCase } from './application/generate-outreach.use-case';
 import { UpdateDraftUseCase } from './application/update-draft.use-case';
 import { ApproveDraftUseCase } from './application/approve-draft.use-case';
+import { GetCampaignContactUseCase } from './application/get-campaign-contact.use-case';
 import { WorkspaceGuard } from '../workspaces/workspace.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -11,11 +12,13 @@ describe('OutreachController', () => {
   let useCase: any;
   let updateUseCase: any;
   let approveUseCase: any;
+  let getUseCase: any;
 
   beforeEach(async () => {
     useCase = { execute: jest.fn() };
     updateUseCase = { execute: jest.fn() };
     approveUseCase = { execute: jest.fn() };
+    getUseCase = { execute: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OutreachController],
@@ -23,6 +26,7 @@ describe('OutreachController', () => {
         { provide: GenerateOutreachUseCase, useValue: useCase },
         { provide: UpdateDraftUseCase, useValue: updateUseCase },
         { provide: ApproveDraftUseCase, useValue: approveUseCase },
+        { provide: GetCampaignContactUseCase, useValue: getUseCase },
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -68,6 +72,21 @@ describe('OutreachController', () => {
     });
   });
 
+  it('delegates GET /api/v1/campaign-contacts/:id to GetCampaignContactUseCase', async () => {
+    getUseCase.execute.mockResolvedValue({ id: 'cc-456', status: 'PENDING' });
+
+    const response = await controller.getCampaignContact(
+      { id: 'ws-123' },
+      'cc-456',
+    );
+
+    expect(response).toEqual({ id: 'cc-456', status: 'PENDING' });
+    expect(getUseCase.execute).toHaveBeenCalledWith({
+      workspaceId: 'ws-123',
+      campaignContactId: 'cc-456',
+    });
+  });
+
   it('delegates POST /api/v1/campaign-contacts/:id/approve to ApproveDraftUseCase', async () => {
     approveUseCase.execute.mockResolvedValue({ status: 'READY' });
 
@@ -77,6 +96,7 @@ describe('OutreachController', () => {
     expect(approveUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
       campaignContactId: 'cc-456',
+      expectedUpdatedAt: undefined,
     });
   });
 });

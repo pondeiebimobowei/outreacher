@@ -130,12 +130,71 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
       mock: true,
     };
 
-    mockGet.mockResolvedValue(mockResponse as unknown as CompanyContactsResponse);
-    mockPost.mockResolvedValue({
-      id: 'sel-1',
-      companyId: 'comp-200',
-      contactId: 'cont-2',
-      selectedAt: '2026-09-18T00:00:00Z',
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/companies/comp-200/contacts') {
+        return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+      }
+      if (url.startsWith('/campaigns')) {
+        if (url.includes('/contacts')) {
+          return Promise.resolve([
+            {
+              id: 'cc-1',
+              workspaceId: 'ws-1',
+              campaignId: 'camp-1',
+              contactId: 'cont-1',
+              status: 'PENDING',
+              contact: { id: 'cont-1', name: 'Jane Doe' },
+            },
+          ]);
+        }
+        return Promise.resolve([
+          {
+            id: 'camp-1',
+            workspaceId: 'ws-1',
+            companyId: 'comp-200',
+            name: 'Outreach — Acme Corp',
+            status: 'DRAFT',
+          },
+        ]);
+      }
+      if (url.startsWith('/campaign-contacts/')) {
+        return Promise.resolve({
+          id: 'cc-1',
+          workspaceId: 'ws-1',
+          campaignId: 'camp-1',
+          contactId: 'cont-1',
+          status: 'PENDING',
+          currentSubject: 'Acme distributed systems',
+          currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
+          updatedAt: '2026-09-19T00:00:00.000Z',
+          contact: { id: 'cont-1', name: 'Jane Doe' },
+          campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
+        });
+      }
+      return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+    });
+
+    mockPost.mockImplementation((url: string) => {
+      if (url.includes('/contacts') && url.includes('/campaigns')) {
+        return Promise.resolve({
+          bound: [
+            {
+              id: 'cc-1',
+              workspaceId: 'ws-1',
+              campaignId: 'camp-1',
+              contactId: 'cont-1',
+              status: 'PENDING',
+            },
+          ],
+          ignoredDuplicateCount: 0,
+        });
+      }
+      return Promise.resolve({
+        id: 'sel-1',
+        companyId: 'comp-200',
+        contactId: 'cont-2',
+        selectedAt: '2026-09-18T00:00:00Z',
+      });
     });
 
     render(
@@ -156,12 +215,117 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(screen.getByText(/Target Contact Selected/i)).toBeInTheDocument();
     const prepareBtn = screen.getByRole('button', { name: /Prepare Outreach & Campaign Context/i });
     fireEvent.click(prepareBtn);
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/campaigns' });
+    expect(await screen.findByText(/AI Assisted — Review Required/i)).toBeInTheDocument();
+
+    // Close outreach drawer
+    const closeDrawerBtn = screen.getByRole('button', { name: /Close outreach review drawer/i });
+    fireEvent.click(closeDrawerBtn);
 
     // Test Review Details modal opening
     const reviewBtns = screen.getAllByRole('button', { name: /Review Details/i });
     fireEvent.click(reviewBtns[0]);
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('opens OutreachReviewDrawer when Review Outreach Draft button is clicked on a selected contact card', async () => {
+    const mockResponse: CompanyContactsResponse = {
+      companyId: 'comp-200',
+      status: 'COMPLETED',
+      selectedContactId: 'cont-1',
+      contacts: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          companyId: 'comp-200',
+          contactKind: 'PERSON',
+          name: 'Jane Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          source: 'COMPANY_WEBSITE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Target decision maker.',
+          isSelected: true,
+        },
+      ],
+      discoveryJob: null,
+    };
+
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/companies/comp-200/contacts') {
+        return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+      }
+      if (url.startsWith('/campaigns')) {
+        if (url.includes('/contacts')) {
+          return Promise.resolve([
+            {
+              id: 'cc-1',
+              workspaceId: 'ws-1',
+              campaignId: 'camp-1',
+              contactId: 'cont-1',
+              status: 'PENDING',
+              contact: { id: 'cont-1', name: 'Jane Doe' },
+            },
+          ]);
+        }
+        return Promise.resolve([
+          {
+            id: 'camp-1',
+            workspaceId: 'ws-1',
+            companyId: 'comp-200',
+            name: 'Outreach — Acme Corp',
+            status: 'DRAFT',
+          },
+        ]);
+      }
+      if (url.startsWith('/campaign-contacts/')) {
+        return Promise.resolve({
+          id: 'cc-1',
+          workspaceId: 'ws-1',
+          campaignId: 'camp-1',
+          contactId: 'cont-1',
+          status: 'PENDING',
+          currentSubject: 'Acme distributed systems',
+          currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
+          updatedAt: '2026-09-19T00:00:00.000Z',
+          contact: { id: 'cont-1', name: 'Jane Doe' },
+          campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
+        });
+      }
+      return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+    });
+
+    mockPost.mockResolvedValue({
+      bound: [
+        {
+          id: 'cc-1',
+          workspaceId: 'ws-1',
+          campaignId: 'camp-1',
+          contactId: 'cont-1',
+          status: 'PENDING',
+        },
+      ],
+      ignoredDuplicateCount: 0,
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ContactDiscoveryWorkspace companyId="comp-200" companyName="Acme Corp" />
+      </QueryClientProvider>,
+    );
+
+    const reviewOutreachBtn = await screen.findByRole('button', {
+      name: /Review Outreach Draft/i,
+    });
+    fireEvent.click(reviewOutreachBtn);
+
+    expect(await screen.findByText(/AI Assisted — Review Required/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Acme distributed systems')).toBeInTheDocument();
   });
 
   it('filters candidates by search input', async () => {

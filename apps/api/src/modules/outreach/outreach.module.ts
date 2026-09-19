@@ -5,6 +5,7 @@ import { OutreachController } from './outreach.controller';
 import { GenerateOutreachUseCase } from './application/generate-outreach.use-case';
 import { UpdateDraftUseCase } from './application/update-draft.use-case';
 import { ApproveDraftUseCase } from './application/approve-draft.use-case';
+import { GetCampaignContactUseCase } from './application/get-campaign-contact.use-case';
 import { OutreachGenerationWorker } from './worker/outreach-generation.worker';
 import { MockAIProvider } from './infrastructure/mock-ai.provider';
 import { OpenRouterAIProvider } from './infrastructure/openrouter-ai.provider';
@@ -45,6 +46,7 @@ const aiProviderFactory: Provider = {
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
+    GetCampaignContactUseCase,
     OutreachGenerationWorker,
     aiProviderFactory,
   ],
@@ -52,6 +54,7 @@ const aiProviderFactory: Provider = {
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
+    GetCampaignContactUseCase,
     OutreachGenerationWorker,
     'AIProvider',
   ],

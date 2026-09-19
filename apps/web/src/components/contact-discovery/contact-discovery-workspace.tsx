@@ -1,6 +1,9 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { addContactsToCampaign, resolveCanonicalCompanyCampaign } from '../../api/campaigns';
 import { EvaluatedContactDto } from '../../api/contacts';
+import { CampaignContactSummaryDto, fetchCampaignContacts } from '../../api/outreach';
+import { OutreachReviewDrawer } from '../outreach/outreach-review-drawer';
 import { AddContactModal } from './add-contact-modal';
 import { ContactCard } from './contact-card';
 import { ContactDetailModal } from './contact-detail-modal';
@@ -43,6 +46,46 @@ export function ContactDiscoveryWorkspace({
     selectContact,
     isSelectPending,
   } = useContactDiscovery(companyId, companyName);
+
+  // Outreach Review Drawer State (Packet 4)
+  const [drawerContactId, setDrawerContactId] = useState<string | null>(null);
+  const [activeCampaignContactId, setActiveCampaignContactId] = useState<string | null>(null);
+  const [boundCampaignContacts, setBoundCampaignContacts] = useState<CampaignContactSummaryDto[]>([]);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
+
+  const handleOpenOutreachReview = async (contact: EvaluatedContactDto) => {
+    try {
+      setIsOpeningDrawer(true);
+      setDrawerContactId(contact.id);
+
+      // 1. Resolve canonical company campaign
+      const campaign = await resolveCanonicalCompanyCampaign(companyId, companyName);
+
+      // 2. Ensure contact is added to campaign
+      const bindRes = await addContactsToCampaign(campaign.id, [contact.id]);
+
+      // 3. Fetch all bound campaign contacts for cycling and summary
+      const allBound = await fetchCampaignContacts(campaign.id);
+      setBoundCampaignContacts(allBound);
+
+      // 4. Find the matching CampaignContact record
+      const match = allBound.find(
+        (c) => c.contactId === contact.id || c.contact?.id === contact.id,
+      );
+      const targetId = match ? match.id : (bindRes.bound?.[0]?.id ?? null);
+
+      if (targetId) {
+        setActiveCampaignContactId(targetId);
+        setIsDrawerOpen(true);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to open outreach review drawer:', err);
+      navigate({ to: '/campaigns' });
+    } finally {
+      setIsOpeningDrawer(false);
+    }
+  };
 
   const rawStatus = contactsData?.status ?? 'NOT_STARTED';
   const contacts = contactsData?.contacts ?? [];
@@ -304,10 +347,17 @@ export function ContactDiscoveryWorkspace({
               </div>
               <button
                 type="button"
-                onClick={() => navigate({ to: '/campaigns' })}
-                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center"
+                onClick={() => {
+                  if (selectedContact) {
+                    void handleOpenOutreachReview(selectedContact);
+                  } else {
+                    void navigate({ to: '/campaigns' });
+                  }
+                }}
+                disabled={isOpeningDrawer}
+                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
               >
-                Prepare Outreach & Campaign Context &rarr;
+                {isOpeningDrawer ? 'Opening Draft...' : 'Prepare Outreach & Campaign Context \u2192'}
               </button>
             </div>
           )}
@@ -429,7 +479,8 @@ export function ContactDiscoveryWorkspace({
                     onSelect={selectContact}
                     isSelectPending={isSelectPending}
                     onReview={(c) => setReviewContact(c)}
-                    onReviewOutreach={(c) => setReviewContact(c)}
+                    onReviewOutreach={(c) => void handleOpenOutreachReview(c)}
+                    isDrawerActive={drawerContactId === candidate.id && isDrawerOpen}
                   />
                 ))}
               </div>
@@ -457,7 +508,8 @@ export function ContactDiscoveryWorkspace({
                     onSelect={selectContact}
                     isSelectPending={isSelectPending}
                     onReview={(c) => setReviewContact(c)}
-                    onReviewOutreach={(c) => setReviewContact(c)}
+                    onReviewOutreach={(c) => void handleOpenOutreachReview(c)}
+                    isDrawerActive={drawerContactId === candidate.id && isDrawerOpen}
                   />
                 ))}
               </div>
@@ -520,6 +572,26 @@ export function ContactDiscoveryWorkspace({
         companyName={companyName}
         onSelect={selectContact}
         isSelectPending={isSelectPending}
+      />
+
+      {/* Outreach Review Drawer (Packet 4) */}
+      <OutreachReviewDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          setActiveCampaignContactId(null);
+          setDrawerContactId(null);
+        }}
+        campaignContactId={activeCampaignContactId}
+        boundContacts={boundCampaignContacts}
+        onSelectCampaignContact={(nextId) => {
+          setActiveCampaignContactId(nextId);
+          const nextBound = boundCampaignContacts.find((c) => c.id === nextId);
+          if (nextBound) {
+            setDrawerContactId(nextBound.contactId);
+          }
+        }}
+        companyName={companyName}
       />
     </section>
   );

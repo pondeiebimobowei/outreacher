@@ -7,6 +7,7 @@ interface ContactCardProps {
   isSelectPending: boolean;
   onReview?: (contact: EvaluatedContactDto) => void;
   onReviewOutreach?: (contact: EvaluatedContactDto) => void;
+  isDrawerActive?: boolean;
 }
 
 export function ContactCard({
@@ -15,6 +16,7 @@ export function ContactCard({
   isSelectPending,
   onReview,
   onReviewOutreach,
+  isDrawerActive,
 }: ContactCardProps) {
   const isPerson = contact.contactKind === 'PERSON';
   const isSelected = contact.isSelected;
@@ -64,6 +66,11 @@ export function ContactCard({
             {isSelected && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-500 text-white uppercase tracking-wider shadow-sm">
                 Selected Target
+              </span>
+            )}
+            {isDrawerActive && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-500 text-white uppercase tracking-wider shadow-sm">
+                Draft in Review
               </span>
             )}
           </div>
