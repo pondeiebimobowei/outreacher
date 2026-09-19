@@ -1,11 +1,16 @@
 import { useEffect, useRef, ReactNode, forwardRef, useImperativeHandle } from 'react';
 
-export function useModalFocus(isOpen: boolean, onClose: () => void, modalRef: React.RefObject<HTMLElement>) {
+export function useModalFocus(isOpen: boolean, onClose: () => void, modalRef: React.RefObject<HTMLElement>, preventClose?: boolean) {
   const onCloseRef = useRef(onClose);
+  const preventCloseRef = useRef(preventClose);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    preventCloseRef.current = preventClose;
+  }, [preventClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -13,7 +18,9 @@ export function useModalFocus(isOpen: boolean, onClose: () => void, modalRef: Re
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onCloseRef.current();
+        if (!preventCloseRef.current) {
+          onCloseRef.current();
+        }
         return;
       }
       if (e.key === 'Tab' && modalRef.current) {
@@ -55,15 +62,16 @@ interface ModalProps {
   onClose: () => void;
   children: ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  preventClose?: boolean;
 }
 
 export const Modal = forwardRef<HTMLDivElement, ModalProps>(
-  ({ isOpen, onClose, children, maxWidth = 'md' }, ref) => {
+  ({ isOpen, onClose, children, maxWidth = 'md', preventClose }, ref) => {
     const internalRef = useRef<HTMLDivElement>(null);
     
     useImperativeHandle(ref, () => internalRef.current as HTMLDivElement);
     
-    useModalFocus(isOpen, onClose, internalRef as React.RefObject<HTMLElement>);
+    useModalFocus(isOpen, onClose, internalRef as React.RefObject<HTMLElement>, preventClose);
 
     if (!isOpen) return null;
 

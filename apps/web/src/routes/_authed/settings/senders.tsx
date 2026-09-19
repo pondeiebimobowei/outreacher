@@ -309,7 +309,7 @@ function EditSenderModal({ sender, onClose }: { sender: SenderAccount, onClose: 
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="md">
+    <Modal isOpen={true} onClose={onClose} maxWidth="md" preventClose={updateMutation.isPending}>
       <form onSubmit={handleSubmit} className="flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100">
           <h2 id="modal-title" className="text-lg font-semibold text-slate-900">Edit Sender Account</h2>
@@ -434,7 +434,7 @@ function DisableConfirmModal({ sender, onClose }: { sender: SenderAccount, onClo
   };
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="sm">
+    <Modal isOpen={true} onClose={onClose} maxWidth="sm" preventClose={updateMutation.isPending}>
       <div className="p-6">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
@@ -550,7 +550,7 @@ function AddSenderModal({
   const isSelectedIntegrationDegraded = selectedIntegration && selectedIntegration.status !== 'ACTIVE';
 
   return (
-    <Modal isOpen={true} onClose={onClose} maxWidth="md">
+    <Modal isOpen={true} onClose={onClose} maxWidth="md" preventClose={createMutation.isPending}>
       <form onSubmit={handleSubmit} className="flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100">
           <h2 id="modal-title" className="text-lg font-semibold text-slate-900">Add Sender Account</h2>
