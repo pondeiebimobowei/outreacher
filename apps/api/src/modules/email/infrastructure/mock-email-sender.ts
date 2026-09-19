@@ -30,6 +30,7 @@ export class MockEmailSender implements IEmailSender {
     return {
       providerMessageId,
       rfcMessageId,
+      messageId: rfcMessageId,
       sentAt: new Date(),
     };
   }
