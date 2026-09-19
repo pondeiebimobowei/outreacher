@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_authed/settings/integrations')({
 
 export function IntegrationsPage() {
   const { data: integrations, isLoading: loadingInts, error: intError } = useIntegrations();
-  const { data: senderAccounts, error: senderError } = useSenderAccounts();
+  const { data: senderAccounts, isLoading: loadingSenders, error: senderError } = useSenderAccounts();
   
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
@@ -91,7 +91,11 @@ export function IntegrationsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {integrations.map((integration) => {
-            const deps = senderError ? null : (senderAccounts || []).filter(s => s.integrationId === integration.id);
+            const deps = senderError 
+              ? null 
+              : loadingSenders 
+              ? undefined 
+              : (senderAccounts || []).filter(s => s.integrationId === integration.id);
             return (
               <IntegrationCard 
                 key={integration.id} 
@@ -115,13 +119,14 @@ function IntegrationCard({
   dependentSenders,
 }: { 
   integration: Integration; 
-  dependentSenders: SenderAccount[] | null;
+  dependentSenders: SenderAccount[] | null | undefined;
 }) {
   const testMutation = useTestIntegration();
   const enableMutation = useEnableIntegration();
   
   const [transientFeedback, setTransientFeedback] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
+  const disableButtonRef = useRef<HTMLButtonElement>(null);
 
   const getReasonMessage = (reason?: string) => {
     switch (reason) {
@@ -153,6 +158,17 @@ function IntegrationCard({
     enableMutation.mutate(integration.id);
   };
 
+  const handleOpenDisableModal = () => {
+    setIsDisableModalOpen(true);
+  };
+  
+  const handleCloseDisableModal = useCallback(() => {
+    setIsDisableModalOpen(false);
+    setTimeout(() => {
+      disableButtonRef.current?.focus();
+    }, 0);
+  }, []);
+
   const isTesting = testMutation.isPending;
   const isEnabling = enableMutation.isPending;
   const isBusy = isTesting || isEnabling;
@@ -180,7 +196,9 @@ function IntegrationCard({
               <svg className="mr-1.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              {dependentSenders === null 
+              {dependentSenders === undefined
+                ? 'Loading sender accounts...'
+                : dependentSenders === null 
                 ? 'Sender count unavailable' 
                 : `${dependentSenders.length} sender account${dependentSenders.length === 1 ? '' : 's'} linked`}
             </p>
@@ -222,8 +240,10 @@ function IntegrationCard({
             </button>
           ) : integration.status === 'ACTIVE' ? (
             <button
-              onClick={() => setIsDisableModalOpen(true)}
-              disabled={isBusy}
+              ref={disableButtonRef}
+              onClick={handleOpenDisableModal}
+              disabled={isBusy || dependentSenders == null}
+              title={dependentSenders === undefined ? 'Loading dependencies...' : dependentSenders === null ? 'Cannot verify dependencies' : undefined}
               className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Disable
@@ -232,11 +252,11 @@ function IntegrationCard({
         </div>
       </div>
 
-      {isDisableModalOpen && (
+      {isDisableModalOpen && dependentSenders != null && (
         <DisableConfirmModal
           integration={integration}
-          dependentCount={dependentSenders?.length ?? 0}
-          onClose={() => setIsDisableModalOpen(false)}
+          dependentCount={dependentSenders.length}
+          onClose={handleCloseDisableModal}
         />
       )}
     </>
@@ -321,7 +341,7 @@ function DisableConfirmModal({
             autoFocus
             onClick={handleConfirm}
             disabled={disableMutation.isPending}
-            className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-70 sm:ml-3 sm:w-auto"
+            className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-70 sm:ml-3 sm:w-auto focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
             {disableMutation.isPending ? 'Disabling...' : 'Yes, disable'}
           </button>
@@ -329,7 +349,7 @@ function DisableConfirmModal({
             type="button"
             onClick={onClose}
             disabled={disableMutation.isPending}
-            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50 sm:mt-0 sm:w-auto"
+            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50 sm:mt-0 sm:w-auto focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
           >
             Cancel
           </button>
