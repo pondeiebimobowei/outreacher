@@ -22,6 +22,7 @@ import { Route as AuthedCompaniesIdRouteImport } from './routes/_authed/companie
 import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
 import { Route as AuthedSettingsCareerProfileRouteImport } from './routes/_authed/settings/career-profile'
 import { Route as AuthedSettingsIntegrationsRouteImport } from './routes/_authed/settings/integrations'
+import { Route as AuthedSettingsSendersRouteImport } from './routes/_authed/settings/senders'
 import { Route as AuthedCampaignsCampaignIdReviewRouteImport } from './routes/_authed/campaigns.$campaignId.review'
 
 const AuthedRoute = AuthedRouteImport.update({
@@ -89,6 +90,11 @@ const AuthedSettingsIntegrationsRoute =
     path: '/integrations',
     getParentRoute: () => AuthedSettingsRoute,
   } as any)
+const AuthedSettingsSendersRoute = AuthedSettingsSendersRouteImport.update({
+  id: '/senders',
+  path: '/senders',
+  getParentRoute: () => AuthedSettingsRoute,
+} as any)
 const AuthedCampaignsCampaignIdReviewRoute =
   AuthedCampaignsCampaignIdReviewRouteImport.update({
     id: '/$campaignId/review',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/companies/$id': typeof AuthedCompaniesIdRoute
   '/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/settings/integrations': typeof AuthedSettingsIntegrationsRoute
+  '/settings/senders': typeof AuthedSettingsSendersRoute
   '/campaigns/': typeof AuthedCampaignsIndexRoute
   '/companies/': typeof AuthedCompaniesIndexRoute
   '/settings/': typeof AuthedSettingsIndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/companies/$id': typeof AuthedCompaniesIdRoute
   '/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/settings/integrations': typeof AuthedSettingsIntegrationsRoute
+  '/settings/senders': typeof AuthedSettingsSendersRoute
   '/campaigns': typeof AuthedCampaignsIndexRoute
   '/companies': typeof AuthedCompaniesIndexRoute
   '/settings': typeof AuthedSettingsIndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
   '/_authed/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/_authed/settings/integrations': typeof AuthedSettingsIntegrationsRoute
+  '/_authed/settings/senders': typeof AuthedSettingsSendersRoute
   '/_authed/campaigns/': typeof AuthedCampaignsIndexRoute
   '/_authed/companies/': typeof AuthedCompaniesIndexRoute
   '/_authed/settings/': typeof AuthedSettingsIndexRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/companies/$id'
     | '/settings/career-profile'
     | '/settings/integrations'
+    | '/settings/senders'
     | '/campaigns/'
     | '/companies/'
     | '/settings/'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
     | '/companies/$id'
     | '/settings/career-profile'
     | '/settings/integrations'
+    | '/settings/senders'
     | '/campaigns'
     | '/companies'
     | '/settings'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authed/companies/$id'
     | '/_authed/settings/career-profile'
     | '/_authed/settings/integrations'
+    | '/_authed/settings/senders'
     | '/_authed/campaigns/'
     | '/_authed/companies/'
     | '/_authed/settings/'
@@ -282,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSettingsIntegrationsRouteImport
       parentRoute: typeof AuthedSettingsRoute
     }
+    '/_authed/settings/senders': {
+      id: '/_authed/settings/senders'
+      path: '/senders'
+      fullPath: '/settings/senders'
+      preLoaderRoute: typeof AuthedSettingsSendersRouteImport
+      parentRoute: typeof AuthedSettingsRoute
+    }
     '/_authed/campaigns/$campaignId/review': {
       id: '/_authed/campaigns/$campaignId/review'
       path: '/$campaignId/review'
@@ -309,12 +328,14 @@ const AuthedCampaignsRouteWithChildren = AuthedCampaignsRoute._addFileChildren(
 interface AuthedSettingsRouteChildren {
   AuthedSettingsCareerProfileRoute: typeof AuthedSettingsCareerProfileRoute
   AuthedSettingsIntegrationsRoute: typeof AuthedSettingsIntegrationsRoute
+  AuthedSettingsSendersRoute: typeof AuthedSettingsSendersRoute
   AuthedSettingsIndexRoute: typeof AuthedSettingsIndexRoute
 }
 
 const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
   AuthedSettingsCareerProfileRoute: AuthedSettingsCareerProfileRoute,
   AuthedSettingsIntegrationsRoute: AuthedSettingsIntegrationsRoute,
+  AuthedSettingsSendersRoute: AuthedSettingsSendersRoute,
   AuthedSettingsIndexRoute: AuthedSettingsIndexRoute,
 }
 

@@ -12,7 +12,7 @@ export class UpdateSenderAccountDto {
 
   @IsOptional()
   @IsEmail()
-  replyTo?: string;
+  replyTo?: string | null;
 
   @IsOptional()
   @IsEnum(SenderStatus)

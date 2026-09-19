@@ -29,7 +29,7 @@ export const SETTINGS_NAVIGATION: SettingsGroup[] = [
     title: 'Email & Sending',
     links: [
       { label: 'Integrations', to: '/settings/integrations', disabled: false, description: 'Manage provider connections and integrations' },
-      { label: 'Sender Accounts', to: '/settings/senders', disabled: true, description: 'Manage the accounts Outreacher can send from' },
+      { label: 'Sender Accounts', to: '/settings/senders', disabled: false, description: 'Manage the accounts Outreacher can send from' },
     ],
   },
   {

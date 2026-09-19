@@ -35,9 +35,11 @@ export class UpdateSenderAccountUseCase {
       }
     }
 
-    let canonicalReplyTo = undefined;
+    let canonicalReplyTo: string | null | undefined = undefined;
     if (dto.replyTo) {
       canonicalReplyTo = dto.replyTo.trim().toLowerCase();
+    } else if (dto.replyTo === null) {
+      canonicalReplyTo = null;
     }
 
     return this.prisma.senderAccount.update({
