@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Route } from './settings';
+import { Route } from './settings/index';
 import { apiClient, ApiError } from '../../api/client';
 
 jest.mock('../../api/client', () => ({
