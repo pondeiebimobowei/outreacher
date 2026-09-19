@@ -87,11 +87,11 @@ describe('Research Workspace Engine (e2e)', () => {
     it('starts a research run and creates a pending background job', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Corp');
+      const company = await createCompany(cookies!, 'Acme Corp');
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({})
         .expect(202);
@@ -121,7 +121,7 @@ describe('Research Workspace Engine (e2e)', () => {
     it('reuses recent completed research run (<24h) when forceRefresh is false', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Fresh Corp');
+      const company = await createCompany(cookies!, 'Fresh Corp');
 
       // Seed completed run <24h ago
       const completedRun = await prisma.researchRun.create({
@@ -135,7 +135,7 @@ describe('Research Workspace Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: false })
         .expect(200);
@@ -147,7 +147,7 @@ describe('Research Workspace Engine (e2e)', () => {
     it('bypasses 24h freshness check when forceRefresh is true', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Force Corp');
+      const company = await createCompany(cookies!, 'Force Corp');
 
       await prisma.researchRun.create({
         data: {
@@ -160,7 +160,7 @@ describe('Research Workspace Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: true })
         .expect(202);
@@ -171,13 +171,13 @@ describe('Research Workspace Engine (e2e)', () => {
 
     it('enforces 3 forced-refreshes per 24h rate limit and returns 429', async () => {
       const { cookies } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Gamma Research Corp');
+      const company = await createCompany(cookies!, 'Gamma Research Corp');
 
       // Execute 3 forced refreshes, completing each run
       for (let i = 0; i < 3; i++) {
         const res = await request(app.getHttpServer())
           .post(`/api/v1/companies/${company.id}/research`)
-          .set('Cookie', cookies)
+          .set('Cookie', cookies!)
           .set('X-Requested-With', 'XMLHttpRequest')
           .send({ forceRefresh: true })
           .expect(202);
@@ -192,7 +192,7 @@ describe('Research Workspace Engine (e2e)', () => {
       // 4th forced refresh should fail with 429 RESEARCH_FRESHNESS_LIMIT_EXCEEDED
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: true })
         .expect(429);
@@ -208,11 +208,11 @@ describe('Research Workspace Engine (e2e)', () => {
     it('enforces tenant isolation and returns 404 for company owned by another workspace', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Private Corp');
+      const company = await createCompany(user1.cookies!, 'User1 Private Corp');
 
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({})
         .expect(404);
@@ -222,11 +222,11 @@ describe('Research Workspace Engine (e2e)', () => {
   describe('GET /api/v1/companies/:companyId/research', () => {
     it('returns NOT_STARTED when company has no research runs', async () => {
       const { cookies } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'New Corp');
+      const company = await createCompany(cookies!, 'New Corp');
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body).toEqual(
@@ -243,7 +243,7 @@ describe('Research Workspace Engine (e2e)', () => {
     it('returns research details including opportunities and evidence', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Researched Corp');
+      const company = await createCompany(cookies!, 'Researched Corp');
 
       const run = await prisma.researchRun.create({
         data: {
@@ -277,7 +277,7 @@ describe('Research Workspace Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body.status).toBe('COMPLETED');
@@ -291,11 +291,11 @@ describe('Research Workspace Engine (e2e)', () => {
     it('enforces tenant isolation on GET research', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Company');
+      const company = await createCompany(user1.cookies!, 'User1 Company');
 
       await request(app.getHttpServer())
         .get(`/api/v1/companies/${company.id}/research`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .expect(404);
     });
   });

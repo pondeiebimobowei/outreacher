@@ -120,7 +120,7 @@ describe('Outreach Generation Engine (e2e)', () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
       const { campaignContact } = await setupOutreachEntities(
-        cookies,
+        cookies!,
         workspace.id,
       );
 
@@ -128,7 +128,7 @@ describe('Outreach Generation Engine (e2e)', () => {
         .post(
           `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
         )
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .expect(202);
 
@@ -169,13 +169,16 @@ describe('Outreach Generation Engine (e2e)', () => {
       const { cookies: cookies2 } =
         await createAuthenticatedUser('user2@example.com');
 
-      const { campaignContact } = await setupOutreachEntities(cookies1, ws1.id);
+      const { campaignContact } = await setupOutreachEntities(
+        cookies1!,
+        ws1.id,
+      );
 
       await request(app.getHttpServer())
         .post(
           `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
         )
-        .set('Cookie', cookies2)
+        .set('Cookie', cookies2!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .expect(403);
     });
@@ -184,7 +187,7 @@ describe('Outreach Generation Engine (e2e)', () => {
       const { cookies, workspace, user } =
         await createAuthenticatedUser('user1@example.com');
       const { campaignContact } = await setupOutreachEntities(
-        cookies,
+        cookies!,
         workspace.id,
       );
 
@@ -204,7 +207,7 @@ describe('Outreach Generation Engine (e2e)', () => {
         .post(
           `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
         )
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .expect(429);
 

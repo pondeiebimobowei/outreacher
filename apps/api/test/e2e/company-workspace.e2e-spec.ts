@@ -82,7 +82,7 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Acme Corporation, Inc.',
@@ -112,14 +112,14 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const first = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Acme Inc' })
         .expect(201);
 
       const second = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'ACME CORPORATION' })
         .expect(409);
@@ -139,12 +139,12 @@ describe('Company Workspace Engine (e2e)', () => {
       const [res1, res2] = await Promise.all([
         request(app.getHttpServer())
           .post('/api/v1/companies')
-          .set('Cookie', cookies)
+          .set('Cookie', cookies!)
           .set('X-Requested-With', 'XMLHttpRequest')
           .send({ name: 'Stripe Inc' }),
         request(app.getHttpServer())
           .post('/api/v1/companies')
-          .set('Cookie', cookies)
+          .set('Cookie', cookies!)
           .set('X-Requested-With', 'XMLHttpRequest')
           .send({ name: 'Stripe, LLC' }),
       ]);
@@ -171,7 +171,7 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body).toEqual([]);
@@ -182,19 +182,19 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const c1 = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Alpha Inc' });
 
       const c2 = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Beta Corp' });
 
       const res = await request(app.getHttpServer())
         .get('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body).toHaveLength(2);
@@ -209,14 +209,14 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Gamma Ltd' })
         .expect(201);
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/companies/${created.body.id}`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body.id).toBe(created.body.id);
@@ -228,14 +228,14 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const compUser1 = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', user1.cookies)
+        .set('Cookie', user1.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'User 1 Company' })
         .expect(201);
 
       await request(app.getHttpServer())
         .get(`/api/v1/companies/${compUser1.body.id}`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .expect(404);
     });
   });
@@ -246,14 +246,14 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Original Name Inc' })
         .expect(201);
 
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/companies/${created.body.id}`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Renamed Global Corp',
@@ -271,7 +271,7 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const created = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Tech Inc',
@@ -284,7 +284,7 @@ describe('Company Workspace Engine (e2e)', () => {
       // 1. Omitted websiteUrl in PATCH -> preserves existing websiteUrl and domain
       const patchOmitted = await request(app.getHttpServer())
         .patch(`/api/v1/companies/${created.body.id}`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ description: 'Adding description' })
         .expect(200);
@@ -295,7 +295,7 @@ describe('Company Workspace Engine (e2e)', () => {
       // 2. null websiteUrl in PATCH -> clears both websiteUrl and domain
       const patchNull = await request(app.getHttpServer())
         .patch(`/api/v1/companies/${created.body.id}`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ websiteUrl: null })
         .expect(200);
@@ -306,7 +306,7 @@ describe('Company Workspace Engine (e2e)', () => {
       // 3. Valid URL string in PATCH -> normalizes both websiteUrl and domain
       const patchValid = await request(app.getHttpServer())
         .patch(`/api/v1/companies/${created.body.id}`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ websiteUrl: 'www.newtech.org' })
         .expect(200);
@@ -321,14 +321,14 @@ describe('Company Workspace Engine (e2e)', () => {
 
       const compUser1 = await request(app.getHttpServer())
         .post('/api/v1/companies')
-        .set('Cookie', user1.cookies)
+        .set('Cookie', user1.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'User 1 Protected Company' })
         .expect(201);
 
       await request(app.getHttpServer())
         .patch(`/api/v1/companies/${compUser1.body.id}`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Hacked Name' })
         .expect(404);

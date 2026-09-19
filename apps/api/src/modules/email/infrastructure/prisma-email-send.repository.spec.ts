@@ -63,7 +63,7 @@ describe('PrismaEmailSendRepository', () => {
         emailSend: {
           create: jest.fn().mockResolvedValue({ id: 'send-tx-1' }),
         },
-      } as unknown as Prisma.TransactionClient;
+      } as unknown as any;
 
       const result = await repository.createReserved(
         {

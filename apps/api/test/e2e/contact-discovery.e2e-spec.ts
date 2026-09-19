@@ -85,11 +85,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
   describe('GET /api/v1/companies/:companyId/contacts', () => {
     it('returns NOT_STARTED when company has no discovery jobs or contacts', async () => {
       const { cookies } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Corp');
+      const company = await createCompany(cookies!, 'Acme Corp');
 
       const res = await request(app.getHttpServer())
         .get(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .expect(200);
 
       expect(res.body).toEqual(
@@ -106,11 +106,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('enforces tenant isolation and returns 404 for company owned by another workspace', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Private Corp');
+      const company = await createCompany(user1.cookies!, 'User1 Private Corp');
 
       await request(app.getHttpServer())
         .get(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .expect(404);
     });
   });
@@ -119,11 +119,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('starts a contact discovery run and creates a pending background job', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Discovery Corp');
+      const company = await createCompany(cookies!, 'Acme Discovery Corp');
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts/discover`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({})
         .expect(202);
@@ -146,7 +146,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('reuses recent completed discovery job (<24h) when forceRefresh is false', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Fresh Discovery Corp');
+      const company = await createCompany(cookies!, 'Fresh Discovery Corp');
 
       // Seed completed job <24h ago
       const completedJob = await prisma.job.create({
@@ -161,7 +161,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts/discover`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: false })
         .expect(200);
@@ -172,13 +172,13 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
     it('enforces 3 forced-refreshes per 24h rate limit and returns 429', async () => {
       const { cookies } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Rate Limit Corp');
+      const company = await createCompany(cookies!, 'Rate Limit Corp');
 
       // Execute 3 forced refreshes, completing each job
       for (let i = 0; i < 3; i++) {
         const res = await request(app.getHttpServer())
           .post(`/api/v1/companies/${company.id}/contacts/discover`)
-          .set('Cookie', cookies)
+          .set('Cookie', cookies!)
           .set('X-Requested-With', 'XMLHttpRequest')
           .send({ forceRefresh: true })
           .expect(202);
@@ -193,7 +193,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       // 4th forced refresh should fail with 429 CONTACT_FRESHNESS_LIMIT_EXCEEDED
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts/discover`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ forceRefresh: true })
         .expect(429);
@@ -209,11 +209,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('enforces tenant isolation on discovery trigger', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Private Corp');
+      const company = await createCompany(user1.cookies!, 'User1 Private Corp');
 
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts/discover`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({})
         .expect(404);
@@ -224,8 +224,8 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('persists selected contact and enforces cross-entity selection integrity', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const companyA = await createCompany(cookies, 'Company A');
-      const companyB = await createCompany(cookies, 'Company B');
+      const companyA = await createCompany(cookies!, 'Company A');
+      const companyB = await createCompany(cookies!, 'Company B');
 
       const contactA = await prisma.contact.create({
         data: {
@@ -256,7 +256,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       // Valid selection of contactA for companyA
       const selectRes = await request(app.getHttpServer())
         .post(`/api/v1/companies/${companyA.id}/contacts/${contactA.id}/select`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
         .expect(201);
@@ -282,7 +282,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       // Attempting to select contactB (which belongs to companyB) for companyA must fail with 403 or 404
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${companyA.id}/contacts/${contactB.id}/select`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
         .expect(403);
@@ -291,7 +291,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('enforces tenant isolation on contact selection', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Corp');
+      const company = await createCompany(user1.cookies!, 'User1 Corp');
 
       const contact = await prisma.contact.create({
         data: {
@@ -305,7 +305,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts/${contact.id}/select`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
         .expect(404);
@@ -316,11 +316,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('creates a manual contact with source USER_PROVIDED and confidence null', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Manual Corp');
+      const company = await createCompany(cookies!, 'Acme Manual Corp');
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Sarah Connor',
@@ -347,11 +347,14 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
 
     it('creates a manual contact without email (email: null)', async () => {
       const { cookies } = await createAuthenticatedUser('user1@example.com');
-      const company = await createCompany(cookies, 'Acme Manual No-Email Corp');
+      const company = await createCompany(
+        cookies!,
+        'Acme Manual No-Email Corp',
+      );
 
       const res = await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Marcus Wright',
@@ -367,7 +370,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
       const company = await createCompany(
-        cookies,
+        cookies!,
         'Acme Preserved Selection Corp',
       );
 
@@ -386,7 +389,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
         .post(
           `/api/v1/companies/${company.id}/contacts/${initialContact.id}/select`,
         )
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
         .expect(201);
@@ -394,7 +397,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       // Create new manual contact
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', cookies)
+        .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
           name: 'Newly Added Manual Contact',
@@ -417,11 +420,11 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
     it('enforces tenant isolation on manual contact creation', async () => {
       const user1 = await createAuthenticatedUser('user1@example.com');
       const user2 = await createAuthenticatedUser('user2@example.com');
-      const company = await createCompany(user1.cookies, 'User1 Company');
+      const company = await createCompany(user1.cookies!, 'User1 Company');
 
       await request(app.getHttpServer())
         .post(`/api/v1/companies/${company.id}/contacts`)
-        .set('Cookie', user2.cookies)
+        .set('Cookie', user2.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ name: 'Hacker Injected Contact' })
         .expect(404);

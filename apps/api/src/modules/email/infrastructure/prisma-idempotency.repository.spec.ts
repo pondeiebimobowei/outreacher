@@ -88,7 +88,7 @@ describe('PrismaIdempotencyRepository', () => {
         idempotencyRecord: {
           create: jest.fn().mockResolvedValue({ id: 'rec-tx-1' }),
         },
-      } as unknown as Prisma.TransactionClient;
+      } as unknown as any;
 
       const result = await repository.create(
         {

@@ -26,27 +26,56 @@ describe('GetWorkspaceSummaryUseCase', () => {
     const baseDate = new Date('2026-09-19T00:00:00Z');
 
     repository.getOutreachReviews.mockResolvedValue([
-      { id: 'contact-1', status: 'PENDING', contact: { company: { id: 'comp-1', name: 'Company 1' } }, updatedAt: baseDate } as any,
+      {
+        id: 'contact-1',
+        status: 'PENDING',
+        contact: { company: { id: 'comp-1', name: 'Company 1' } },
+        updatedAt: baseDate,
+      } as any,
     ]);
     repository.getSendFailures.mockResolvedValue([
-      { id: 'contact-2', status: 'FAILED', contact: { company: { id: 'comp-2', name: 'Company 2' } }, updatedAt: baseDate } as any,
+      {
+        id: 'contact-2',
+        status: 'FAILED',
+        contact: { company: { id: 'comp-2', name: 'Company 2' } },
+        updatedAt: baseDate,
+      } as any,
     ]);
     repository.getIncompleteResearch.mockResolvedValue([
-      { id: 'res-1', status: 'RUNNING', company: { id: 'comp-3', name: 'Company 3' }, updatedAt: baseDate } as any,
+      {
+        id: 'res-1',
+        status: 'RUNNING',
+        company: { id: 'comp-3', name: 'Company 3' },
+        updatedAt: baseDate,
+      } as any,
     ]);
     repository.getPausedCampaigns.mockResolvedValue([
-      { id: 'camp-1', status: 'PAUSED', name: 'Camp 1', company: { id: 'comp-4', name: 'Company 4' }, updatedAt: baseDate } as any,
+      {
+        id: 'camp-1',
+        status: 'PAUSED',
+        name: 'Camp 1',
+        company: { id: 'comp-4', name: 'Company 4' },
+        updatedAt: baseDate,
+      } as any,
     ]);
-    
+
     // Activities
     const oldDate = new Date('2026-09-18T00:00:00Z');
     repository.getCompletedResearchActivity.mockResolvedValue([
-      { id: 'res-2', company: { id: 'comp-5', name: 'Company 5' }, completedAt: oldDate } as any,
+      {
+        id: 'res-2',
+        company: { id: 'comp-5', name: 'Company 5' },
+        completedAt: oldDate,
+      } as any,
     ]);
     repository.getContactSelectedActivity.mockResolvedValue([
-      { id: 'sel-1', company: { id: 'comp-6', name: 'Company 6' }, selectedAt: baseDate } as any,
+      {
+        id: 'sel-1',
+        company: { id: 'comp-6', name: 'Company 6' },
+        selectedAt: baseDate,
+      } as any,
     ]);
-    
+
     // Empty implementations for the rest to simulate no data
     repository.getEmailSentActivity.mockResolvedValue([]);
     repository.getOutcomeRecordedActivity.mockResolvedValue([]);
@@ -55,7 +84,7 @@ describe('GetWorkspaceSummaryUseCase', () => {
 
     // Verify work items count and kinds (CONTACT_SELECTED should not be a work item, so exactly 4 items)
     expect(result.workItems).toHaveLength(4);
-    expect(result.workItems.map(w => w.kind)).toEqual([
+    expect(result.workItems.map((w) => w.kind)).toEqual([
       'OUTREACH_REVIEW',
       'SEND_FAILURE',
       'RESEARCH_INCOMPLETE',
@@ -82,7 +111,9 @@ describe('GetWorkspaceSummaryUseCase', () => {
     repository.getPausedCampaigns.mockResolvedValue([]);
     repository.getCompletedResearchActivity.mockResolvedValue([]);
     repository.getContactSelectedActivity.mockResolvedValue([]);
-    repository.getEmailSentActivity.mockRejectedValue(new Error('Connection lost')); // Force Failure
+    repository.getEmailSentActivity.mockRejectedValue(
+      new Error('Connection lost'),
+    ); // Force Failure
     repository.getOutcomeRecordedActivity.mockResolvedValue([]);
 
     const result = await useCase.execute(mockWorkspaceId);
@@ -93,7 +124,7 @@ describe('GetWorkspaceSummaryUseCase', () => {
       expect.arrayContaining([
         { source: 'WORK_SEND_FAILURE', code: 'PARTIAL_DATA_UNAVAILABLE' },
         { source: 'ACTIVITY_EMAIL_SENT', code: 'PARTIAL_DATA_UNAVAILABLE' },
-      ])
+      ]),
     );
   });
 });
