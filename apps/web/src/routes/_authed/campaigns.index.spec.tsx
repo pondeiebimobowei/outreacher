@@ -21,7 +21,7 @@ jest.mock('@tanstack/react-router', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-const mockCampaigns: CampaignDto[] = [
+const mockCampaigns: CampaignDto[] = ( [
   {
     id: 'camp-1',
     companyId: 'comp-1',
@@ -70,9 +70,9 @@ const mockCampaigns: CampaignDto[] = [
     createdAt: '2026-09-01T10:00:00Z',
     updatedAt: '2026-09-02T10:00:00Z',
   },
-];
+]) as unknown as CampaignDto[];
 
-const mockCompanies: CompanyDto[] = [
+const mockCompanies: CompanyDto[] = ( [
   {
     id: 'comp-1',
     name: 'Acme Corp',
@@ -91,7 +91,7 @@ const mockCompanies: CompanyDto[] = [
     updatedAt: '2026-09-01T10:00:00Z',
     workspaceId: 'ws-1',
   },
-];
+]) as unknown as CompanyDto[];
 
 describe('CampaignsIndexComponent', () => {
   const mockGet = apiClient.get as jest.MockedFunction<typeof apiClient.get>;
