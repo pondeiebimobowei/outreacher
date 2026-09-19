@@ -16,11 +16,10 @@ export const Route = createFileRoute('/_authed/settings/integrations')({
 
 export function IntegrationsPage() {
   const { data: integrations, isLoading: loadingInts, error: intError } = useIntegrations();
-  const { data: senderAccounts, isLoading: loadingSenders, error: senderError } = useSenderAccounts();
+  const { data: senderAccounts, error: senderError } = useSenderAccounts();
+  
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const connectButtonRef = useRef<HTMLButtonElement>(null);
-  
-  // Track previous active element before opening modal
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const handleOpenModal = () => {
@@ -39,8 +38,8 @@ export function IntegrationsPage() {
     }, 0);
   }, []);
 
-  const isLoading = loadingInts || loadingSenders;
-  const error = intError || senderError;
+  const isLoading = loadingInts;
+  const error = intError;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
@@ -92,13 +91,12 @@ export function IntegrationsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {integrations.map((integration) => {
-            const deps = (senderAccounts || []).filter(s => s.integrationId === integration.id);
+            const deps = senderError ? null : (senderAccounts || []).filter(s => s.integrationId === integration.id);
             return (
               <IntegrationCard 
                 key={integration.id} 
                 integration={integration} 
                 dependentSenders={deps}
-                onReconnect={handleOpenModal}
               />
             );
           })}
@@ -115,18 +113,15 @@ export function IntegrationsPage() {
 function IntegrationCard({ 
   integration, 
   dependentSenders,
-  onReconnect 
 }: { 
   integration: Integration; 
-  dependentSenders: SenderAccount[];
-  onReconnect: () => void;
+  dependentSenders: SenderAccount[] | null;
 }) {
   const testMutation = useTestIntegration();
-  const disableMutation = useDisableIntegration();
   const enableMutation = useEnableIntegration();
   
   const [transientFeedback, setTransientFeedback] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
-  const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
 
   const getReasonMessage = (reason?: string) => {
     switch (reason) {
@@ -153,86 +148,57 @@ function IntegrationCard({
     }
   };
 
-  const handleConfirmDisable = () => {
-    setTransientFeedback(null);
-    setShowDisableConfirm(false);
-    disableMutation.mutate(integration.id);
-  };
-
   const handleEnable = () => {
     setTransientFeedback(null);
     enableMutation.mutate(integration.id);
   };
 
   const isTesting = testMutation.isPending;
-  const isDisabling = disableMutation.isPending;
   const isEnabling = enableMutation.isPending;
-  const isBusy = isTesting || isDisabling || isEnabling;
+  const isBusy = isTesting || isEnabling;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white shadow-sm flex flex-col relative">
-      <div className="p-5 flex-1">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-slate-900 truncate pr-4">{integration.name}</h3>
-            <p className="text-sm text-slate-500 capitalize mt-0.5">{integration.provider.toLowerCase()}</p>
+    <>
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm flex flex-col relative">
+        <div className="p-5 flex-1">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 truncate pr-4">{integration.name}</h3>
+              <p className="text-sm text-slate-500 capitalize mt-0.5">{integration.provider.toLowerCase()}</p>
+            </div>
+            <StatusBadge status={integration.status} />
           </div>
-          <StatusBadge status={integration.status} />
+          
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-slate-600 flex items-center">
+              <svg className="mr-1.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Credential: Configured
+            </p>
+            <p className="text-sm text-slate-600 flex items-center">
+              <svg className="mr-1.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              {dependentSenders === null 
+                ? 'Sender count unavailable' 
+                : `${dependentSenders.length} sender account${dependentSenders.length === 1 ? '' : 's'} linked`}
+            </p>
+          </div>
+
+          {transientFeedback && (
+            <div 
+              className={`mt-4 text-sm p-2.5 rounded-md flex items-start ${
+                transientFeedback.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              {transientFeedback.message}
+            </div>
+          )}
         </div>
         
-        <div className="mt-4 space-y-2">
-          <p className="text-sm text-slate-600 flex items-center">
-            <svg className="mr-1.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Credential: Configured
-          </p>
-          <p className="text-sm text-slate-600 flex items-center">
-            <svg className="mr-1.5 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            {dependentSenders.length} sender account{dependentSenders.length === 1 ? '' : 's'} linked
-          </p>
-        </div>
-
-        {transientFeedback && (
-          <div 
-            className={`mt-4 text-sm p-2.5 rounded-md flex items-start ${
-              transientFeedback.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
-            }`}
-            role="status"
-            aria-live="polite"
-          >
-            {transientFeedback.message}
-          </div>
-        )}
-      </div>
-      
-      {showDisableConfirm ? (
-        <div className="bg-red-50 px-5 py-4 border-t border-red-100 rounded-b-lg">
-          <p className="text-sm text-red-800 font-medium mb-3">
-            Disable this integration?
-          </p>
-          <p className="text-xs text-red-700 mb-4">
-            This integration is currently used by {dependentSenders.length} sender account{dependentSenders.length === 1 ? '' : 's'}. 
-            Disabling it will suspend sending for these accounts and any active campaigns using them.
-          </p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleConfirmDisable}
-              className="text-xs font-semibold bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700"
-            >
-              Yes, disable
-            </button>
-            <button
-              onClick={() => setShowDisableConfirm(false)}
-              className="text-xs font-medium text-slate-700 bg-white border border-slate-300 px-3 py-1.5 rounded hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
         <div className="bg-slate-50 px-5 py-3 border-t border-slate-100 flex items-center gap-3 rounded-b-lg">
           <button
             onClick={handleTest}
@@ -241,7 +207,11 @@ function IntegrationCard({
           >
             {isTesting ? 'Testing...' : 'Test connection'}
           </button>
-          <span className="text-slate-300" aria-hidden="true">|</span>
+          
+          {integration.status !== 'INVALID_CREDENTIALS' && (
+            <span className="text-slate-300" aria-hidden="true">|</span>
+          )}
+
           {integration.status === 'DISABLED' ? (
             <button
               onClick={handleEnable}
@@ -250,25 +220,121 @@ function IntegrationCard({
             >
               {isEnabling ? 'Enabling...' : 'Enable'}
             </button>
-          ) : integration.status === 'INVALID_CREDENTIALS' ? (
+          ) : integration.status === 'ACTIVE' ? (
             <button
-              onClick={onReconnect}
+              onClick={() => setIsDisableModalOpen(true)}
               disabled={isBusy}
               className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Reconnect
+              Disable
             </button>
-          ) : (
-            <button
-              onClick={() => setShowDisableConfirm(true)}
-              disabled={isBusy}
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDisabling ? 'Disabling...' : 'Disable'}
-            </button>
-          )}
+          ) : null /* INVALID_CREDENTIALS intentionally has no secondary action to avoid duplicate creates */}
         </div>
+      </div>
+
+      {isDisableModalOpen && (
+        <DisableConfirmModal
+          integration={integration}
+          dependentCount={dependentSenders?.length ?? 0}
+          onClose={() => setIsDisableModalOpen(false)}
+        />
       )}
+    </>
+  );
+}
+
+function DisableConfirmModal({ 
+  integration, 
+  dependentCount,
+  onClose 
+}: { 
+  integration: Integration;
+  dependentCount: number;
+  onClose: () => void;
+}) {
+  const disableMutation = useDisableIntegration();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !disableMutation.isPending) {
+        onClose();
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), select:not([disabled])'
+        ) as NodeListOf<HTMLElement>;
+        
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          last.focus(); e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          first.focus(); e.preventDefault();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, disableMutation.isPending]);
+
+  const handleConfirm = () => {
+    disableMutation.mutate(integration.id, {
+      onSuccess: () => onClose()
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-slate-900/50 p-4 sm:p-0">
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="disable-modal-title"
+        className="relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8"
+      >
+        <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+          <div className="sm:flex sm:items-start">
+            <div className="mx-auto flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+              <h3 className="text-lg font-semibold leading-6 text-slate-900" id="disable-modal-title">
+                Disable Integration
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-slate-500">
+                  This integration is currently used by <strong>{dependentCount} sender account{dependentCount === 1 ? '' : 's'}</strong>. 
+                  Disabling it will suspend sending for these accounts and any active campaigns using them. Are you sure you want to disable it?
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+          <button
+            type="button"
+            autoFocus
+            onClick={handleConfirm}
+            disabled={disableMutation.isPending}
+            className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-70 sm:ml-3 sm:w-auto"
+          >
+            {disableMutation.isPending ? 'Disabling...' : 'Yes, disable'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={disableMutation.isPending}
+            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 disabled:opacity-50 sm:mt-0 sm:w-auto"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -283,7 +349,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
   }
   if (status === 'INVALID_CREDENTIALS') {
     return (
-      <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+      <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
         Action Required
       </span>
     );
@@ -308,13 +374,11 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingState, setProcessingState] = useState<'Creating...' | 'Testing...' | null>(null);
   
-  // Track successful creation so we can retry just the test
   const [createdIntegrationId, setCreatedIntegrationId] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const initialFocusRef = useRef<HTMLInputElement>(null);
 
-  // Initialize focus trap ONCE when modal mounts
   useEffect(() => {
     initialFocusRef.current?.focus();
   }, []);
@@ -324,8 +388,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
       if (e.key === 'Escape' && !isProcessing) {
         onClose();
       }
-      if (e.key === 'Tab') {
-        if (!modalRef.current) return;
+      if (e.key === 'Tab' && modalRef.current) {
         const focusableElements = modalRef.current.querySelectorAll(
           'a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), select:not([disabled])'
         ) as NodeListOf<HTMLElement>;
@@ -335,16 +398,10 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 
-        if (e.shiftKey) {
-          if (document.activeElement === firstElement) {
-            lastElement.focus();
-            e.preventDefault();
-          }
-        } else {
-          if (document.activeElement === lastElement) {
-            firstElement.focus();
-            e.preventDefault();
-          }
+        if (e.shiftKey && document.activeElement === firstElement) {
+          lastElement.focus(); e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          firstElement.focus(); e.preventDefault();
         }
       }
     };
@@ -404,7 +461,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
           if (testResult.reason === 'INVALID_CREDENTIALS') reasonMsg = 'Invalid credentials provided.';
           if (testResult.reason === 'PROVIDER_UNAVAILABLE') reasonMsg = 'Provider is temporarily unavailable.';
           
-          setGlobalErrorMsg(`Test failed: ${reasonMsg} You can correct the credentials and recreate the connection, or test again later.`);
+          setGlobalErrorMsg(`Test failed: ${reasonMsg} You can test again later.`);
         }
       } catch (testErr) {
         setIsProcessing(false);
@@ -458,7 +515,6 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                     >
                       <option value="RESEND">Resend</option>
                     </select>
-                    <p className="mt-1 text-xs text-slate-500">Only Resend is currently supported.</p>
                   </div>
 
                   <div>

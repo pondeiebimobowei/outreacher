@@ -5,9 +5,11 @@ export interface SenderAccount {
   id: string;
   workspaceId: string;
   integrationId: string;
-  name: string;
+  fromName: string;
   fromEmail: string;
-  status: 'PENDING' | 'ACTIVE' | 'BOUNCING' | 'SUSPENDED';
+  replyTo?: string | null;
+  status: 'ACTIVE' | 'PAUSED' | 'DISABLED';
+  dailyLimit?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,5 +20,7 @@ export function useSenderAccounts() {
     queryFn: async () => {
       return apiClient.get('/sender-accounts');
     },
+    // Don't fail the whole page if this fails
+    retry: 1,
   });
 }
