@@ -62,5 +62,4 @@ export interface WorkspaceActivityItemDto {
     name: string;
   };
   occurredAt: string;
-  actor: 'USER' | 'SYSTEM' | 'PROVIDER' | 'AI';
 }
