@@ -90,6 +90,15 @@ describe('SendEmailUseCase', () => {
         subject: 'Outreach Subject',
         body: 'Outreach message body that is long enough.',
       }),
+      reserveSenderCapacityAndCreateEmailSend: jest.fn().mockResolvedValue({
+        id: 'send-1',
+        workspaceId,
+        campaignId,
+        campaignContactId,
+        status: EmailSendStatus.RESERVED,
+        senderAccountId: 'sender-123',
+        provider: 'RESEND',
+      }),
     };
 
     useCase = new SendEmailUseCase(
@@ -188,14 +197,17 @@ describe('SendEmailUseCase', () => {
       });
 
       // Verifies EmailSend created as RESERVED
-      expect(mockPrisma.emailSend.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          workspaceId,
-          campaignId,
+      expect(mockEligibilityService.reserveSenderCapacityAndCreateEmailSend).toHaveBeenCalledWith(
+        mockPrisma,
+        workspaceId,
+        campaignId,
+        {
           campaignContactId,
-          status: EmailSendStatus.RESERVED,
-        }),
-      });
+          type: 'INITIAL',
+          subject: 'Outreach Subject',
+          body: 'Outreach message body that is long enough.',
+        }
+      );
 
       // Verifies Job created with canonical internal idempotency key
       expect(mockPrisma.job.create).toHaveBeenCalledWith({
@@ -203,7 +215,7 @@ describe('SendEmailUseCase', () => {
           workspaceId,
           type: 'EMAIL_DISPATCH',
           status: JobStatus.PENDING,
-          idempotencyKey: `send:${campaignContactId}:1`,
+          idempotencyKey: 'send:send-1',
         }),
       });
 

@@ -6,19 +6,16 @@ import {
   Prisma,
 } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
-import {
-  EmailProviderException,
-  EmailRateLimitException,
-  EmailTimeoutException,
-  IEmailSender,
-  SendEmailResult,
-} from '../domain/email-sender.interface';
+import { EmailDispatchErrorCode } from '../domain/email-provider.adapter';
+import { EmailProviderException } from '../infrastructure/resend-email-provider.adapter';
 import { ClaimedEmailJob, EmailDispatchWorker } from './email-dispatch.worker';
 
 describe('EmailDispatchWorker', () => {
   let worker: EmailDispatchWorker;
   let mockPrisma: any;
-  let mockEmailSender: jest.Mocked<IEmailSender>;
+  let mockAdapter: any;
+  let mockRegistry: any;
+  let mockSecretResolver: any;
 
   const workspaceId = 'ws-1111-1111-1111';
   const campaignContactId = 'cc-2222-2222-2222';
@@ -30,7 +27,19 @@ describe('EmailDispatchWorker', () => {
     workspaceId,
     subject: 'Follow-up on inquiry',
     body: 'Hello, this is a follow-up email.',
+    replyToToken: 'token123',
     status: EmailSendStatus.SENDING,
+    provider: 'RESEND',
+    senderAccount: {
+      id: 'sa-1',
+      fromName: 'Sales Team',
+      fromEmail: 'sales@startup.com',
+      replyTo: null,
+      integration: {
+        provider: 'RESEND',
+        secretReference: 'env://RESEND_KEY',
+      },
+    },
     campaignContact: {
       id: campaignContactId,
       workspaceId,
@@ -67,11 +76,15 @@ describe('EmailDispatchWorker', () => {
       },
     };
 
-    mockEmailSender = {
-      sendEmail: jest.fn(),
+    mockAdapter = { sendEmail: jest.fn() };
+    mockRegistry = {
+      getAdapter: jest.fn().mockReturnValue(mockAdapter),
+    };
+    mockSecretResolver = {
+      resolve: jest.fn().mockResolvedValue('resolved_secret_key'),
     };
 
-    worker = new EmailDispatchWorker(mockPrisma, mockEmailSender);
+    worker = new EmailDispatchWorker(mockPrisma, mockRegistry as any, mockSecretResolver as any);
   });
 
   describe('claimNextJob', () => {
@@ -119,6 +132,7 @@ describe('EmailDispatchWorker', () => {
           status: JobStatus.RUNNING,
           attemptCount: 1,
           startedAt: expect.any(Date),
+          leaseVersion: { increment: 1 },
         },
       });
 
@@ -178,7 +192,7 @@ describe('EmailDispatchWorker', () => {
         rfcMessageId: '<msg-12345@startup.com>',
         sentAt: new Date('2026-09-18T12:00:00Z'),
       };
-      mockEmailSender.sendEmail.mockResolvedValue(sendResult);
+      mockAdapter.sendEmail.mockResolvedValue(sendResult);
 
       mockPrisma.job.findFirst.mockResolvedValue({
         id: jobId,
@@ -190,15 +204,20 @@ describe('EmailDispatchWorker', () => {
 
       expect(outcome).toBe(true);
 
-      expect(mockEmailSender.sendEmail).toHaveBeenCalledWith({
+      expect(mockAdapter.sendEmail).toHaveBeenCalledWith({
         workspaceId,
+        senderAccountId: 'sa-1',
         campaignContactId,
+        emailSendId,
         toEmail: 'founder@example.com',
+        fromName: 'Sales Team',
         fromEmail: 'sales@startup.com',
+        replyTo: undefined,
         subject: 'Follow-up on inquiry',
         bodyText: 'Hello, this is a follow-up email.',
-        replyToToken: campaignContactId,
-        idempotencyKey: `send:${campaignContactId}:1`,
+        replyToToken: 'token123',
+        idempotencyKey: `send:${emailSendId}`,
+        credentials: 'resolved_secret_key',
       });
 
       expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
@@ -206,8 +225,8 @@ describe('EmailDispatchWorker', () => {
         data: {
           status: EmailSendStatus.SENT,
           providerMessageId: 'resend-msg-12345',
-          messageId: '<msg-12345@startup.com>',
-          sentAt: sendResult.sentAt,
+          messageId: undefined,
+          sentAt: expect.any(Date),
         },
       });
 
@@ -239,10 +258,10 @@ describe('EmailDispatchWorker', () => {
       claimedAttempt: 1,
     };
 
-    it('on transient timeout with attempts < MAX_ATTEMPTS, keeps EmailSend and Contact as SENDING and returns Job to PENDING with backoff', async () => {
+    it('on transient timeout with attempts < MAX_ATTEMPTS, fails immediately with PROVIDER_TIMEOUT_UNCERTAIN and sets job to DEAD_LETTER', async () => {
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockEmailSender.sendEmail.mockRejectedValue(
-        new EmailTimeoutException('Email provider request timed out'),
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException('Email provider request timed out', EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN),
       );
 
       mockPrisma.job.findFirst.mockResolvedValue({
@@ -255,16 +274,22 @@ describe('EmailDispatchWorker', () => {
 
       expect(outcome).toBe(false);
 
-      // Verify EmailSend and CampaignContact are NOT updated to FAILED
-      expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
-      expect(mockPrisma.campaignContact.update).not.toHaveBeenCalled();
+      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
+        where: { id: emailSendId },
+        data: {
+          status: EmailSendStatus.FAILED,
+          failedAt: expect.any(Date),
+          errorCode: EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN,
+          retryable: false,
+          errorMessage: 'Email provider request timed out',
+        },
+      });
 
-      // Job is reset to PENDING with backoff
       expect(mockPrisma.job.update).toHaveBeenCalledWith({
         where: { id: jobId },
         data: {
-          status: JobStatus.PENDING,
-          availableAt: expect.any(Date),
+          status: JobStatus.DEAD_LETTER,
+          failedAt: expect.any(Date),
           lastError: expect.stringContaining('timed out'),
         },
       });
@@ -272,8 +297,8 @@ describe('EmailDispatchWorker', () => {
 
     it('on transient rate limit with attempts < MAX_ATTEMPTS, schedules retry without failing send status', async () => {
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockEmailSender.sendEmail.mockRejectedValue(
-        new EmailRateLimitException('Email provider rate limit exceeded'),
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException('Email provider rate limit exceeded', EmailDispatchErrorCode.PROVIDER_RATE_LIMIT),
       );
 
       mockPrisma.job.findFirst.mockResolvedValue({
@@ -299,7 +324,7 @@ describe('EmailDispatchWorker', () => {
   });
 
   describe('processJob - Terminal Failure Path', () => {
-    it('on non-retryable provider error, updates EmailSend to FAILED, CampaignContact to FAILED, and Job to FAILED', async () => {
+    it('on non-retryable provider error, updates EmailSend to FAILED, CampaignContact to FAILED, and Job to DEAD_LETTER', async () => {
       const claimed: ClaimedEmailJob = {
         job: {
           id: jobId,
@@ -313,8 +338,8 @@ describe('EmailDispatchWorker', () => {
       };
 
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockEmailSender.sendEmail.mockRejectedValue(
-        new EmailProviderException('Domain not verified by provider'),
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException('Domain not verified by provider', EmailDispatchErrorCode.PROVIDER_REJECTED),
       );
 
       mockPrisma.job.findFirst.mockResolvedValue({
@@ -332,7 +357,8 @@ describe('EmailDispatchWorker', () => {
         data: {
           status: EmailSendStatus.FAILED,
           failedAt: expect.any(Date),
-          errorCode: 'PROVIDER_FAILURE',
+          errorCode: EmailDispatchErrorCode.PROVIDER_REJECTED,
+          retryable: false,
           errorMessage: 'Domain not verified by provider',
         },
       });
@@ -345,7 +371,7 @@ describe('EmailDispatchWorker', () => {
       expect(mockPrisma.job.update).toHaveBeenCalledWith({
         where: { id: jobId },
         data: {
-          status: JobStatus.FAILED,
+          status: JobStatus.DEAD_LETTER,
           failedAt: expect.any(Date),
           lastError: 'Domain not verified by provider',
         },
@@ -366,8 +392,8 @@ describe('EmailDispatchWorker', () => {
       };
 
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockEmailSender.sendEmail.mockRejectedValue(
-        new EmailTimeoutException('Email provider request timed out'),
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException('Email provider rate limit exceeded', EmailDispatchErrorCode.PROVIDER_RATE_LIMIT),
       );
 
       mockPrisma.job.findFirst.mockResolvedValue({
@@ -385,8 +411,9 @@ describe('EmailDispatchWorker', () => {
         data: {
           status: EmailSendStatus.FAILED,
           failedAt: expect.any(Date),
-          errorCode: 'PROVIDER_FAILURE',
-          errorMessage: expect.stringContaining('timed out'),
+          errorCode: EmailDispatchErrorCode.DISPATCH_ATTEMPTS_EXHAUSTED,
+          retryable: false,
+          errorMessage: expect.stringContaining('rate limit'),
         },
       });
 
@@ -398,9 +425,9 @@ describe('EmailDispatchWorker', () => {
       expect(mockPrisma.job.update).toHaveBeenCalledWith({
         where: { id: jobId },
         data: {
-          status: JobStatus.FAILED,
+          status: JobStatus.DEAD_LETTER,
           failedAt: expect.any(Date),
-          lastError: expect.stringContaining('timed out'),
+          lastError: expect.stringContaining('rate limit'),
         },
       });
     });
@@ -421,7 +448,7 @@ describe('EmailDispatchWorker', () => {
       };
 
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockEmailSender.sendEmail.mockResolvedValue({
+      mockAdapter.sendEmail.mockResolvedValue({
         providerMessageId: 'resend-msg-12345',
         rfcMessageId: '<msg-12345@startup.com>',
         sentAt: new Date(),

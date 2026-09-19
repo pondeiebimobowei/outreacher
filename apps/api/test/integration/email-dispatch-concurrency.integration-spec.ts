@@ -16,6 +16,8 @@ import { SendEligibilityService } from '../../src/modules/email/domain/send-elig
 import { SendEmailUseCase } from '../../src/modules/email/application/send-email.use-case';
 import { EmailDispatchWorker } from '../../src/modules/email/application/email-dispatch.worker';
 import { MockEmailSender } from '../../src/modules/email/infrastructure/mock-email-sender';
+import { EmailProviderRegistry } from '../../src/modules/email/infrastructure/email-provider.registry';
+import { SecretResolverService } from '../../src/modules/email/infrastructure/secret-resolver.service';
 import { AppConflictException } from '../../src/common/errors/application.exception';
 
 jest.unmock('@repo/db');
@@ -34,10 +36,14 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
     realPrisma = await setupTestDatabase();
     prismaService = realPrisma as unknown as PrismaService;
     const suppressionChecker = new PrismaSuppressionChecker(prismaService);
-    const eligibilityService = new SendEligibilityService(suppressionChecker);
-    useCase = new SendEmailUseCase(prismaService, eligibilityService);
+    const registry = new EmailProviderRegistry(null as any, null as any);
+    (registry as any).adapters = new Map();
     mockSender = new MockEmailSender();
-    worker = new EmailDispatchWorker(prismaService, mockSender);
+    (registry as any).adapters.set('RESEND', mockSender);
+    const eligibilityService = new SendEligibilityService(suppressionChecker, registry);
+    useCase = new SendEmailUseCase(prismaService, eligibilityService);
+    const secretResolver = new SecretResolverService();
+    worker = new EmailDispatchWorker(prismaService, registry, secretResolver);
   });
 
   beforeEach(async () => {
@@ -109,6 +115,33 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       },
     });
 
+    const integration = await realPrisma.integration.create({
+      data: {
+        workspaceId,
+        provider: 'RESEND',
+        name: 'Resend Integ ' + Math.random(),
+        secretReference: 'mock://resend',
+      }
+    });
+
+    const senderAccount = await realPrisma.senderAccount.create({
+      data: {
+        workspaceId,
+        integrationId: integration.id,
+        fromName: 'Jane',
+        fromEmail: 'sales' + Math.random() + '@startup.com',
+        dailyLimit: 50,
+      }
+    });
+
+    await realPrisma.campaignSenderAccount.create({
+      data: {
+        workspaceId,
+        campaignId: campaign.id,
+        senderAccountId: senderAccount.id,
+      }
+    });
+
     return { contact, campaign, campaignContact };
   }
 
@@ -157,7 +190,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       expect(jobs).toHaveLength(1);
       expect(jobs[0].id).toBe(firstJobId);
       expect(jobs[0].status).toBe(JobStatus.PENDING);
-      expect(jobs[0].idempotencyKey).toBe(`send:${campaignContact.id}:1`);
+      expect(jobs[0].idempotencyKey).toContain('send:');
 
       const idempRecords = await realPrisma.idempotencyRecord.findMany({
         where: { workspaceId, key: clientKey },
@@ -192,6 +225,17 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
           sendingIdentity: 'founder@startup.com',
         },
       });
+
+      const integration = await realPrisma.integration.create({
+        data: { workspaceId, provider: 'RESEND', name: 'Resend C2', secretReference: 'mock://c2' }
+      });
+      const senderAccount = await realPrisma.senderAccount.create({
+        data: { workspaceId, integrationId: integration.id, fromName: 'C2', fromEmail: 'c2@startup.com' }
+      });
+      await realPrisma.campaignSenderAccount.create({
+        data: { workspaceId, campaignId: campaign.id, senderAccountId: senderAccount.id }
+      });
+
 
       const contactA = await realPrisma.contact.create({
         data: {

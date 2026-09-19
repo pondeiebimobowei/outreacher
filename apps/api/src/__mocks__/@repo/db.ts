@@ -104,6 +104,29 @@ export enum SuppressionReason {
   COMPLAINT = 'COMPLAINT',
 }
 
+export enum IntegrationProvider {
+  RESEND = 'RESEND',
+  SES = 'SES',
+  SMTP = 'SMTP',
+}
+
+export enum IntegrationStatus {
+  ACTIVE = 'ACTIVE',
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+  DISABLED = 'DISABLED',
+}
+
+export enum SenderStatus {
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  DISABLED = 'DISABLED',
+}
+
+export enum AssignmentStatus {
+  ACTIVE = 'ACTIVE',
+  REMOVED = 'REMOVED',
+}
+
 export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
@@ -257,6 +280,33 @@ export class PrismaClient {
   };
 
   idempotencyRecord = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  integration = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  senderAccount = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  campaignSenderAccount = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),

@@ -18,6 +18,7 @@ import {
 } from '../helpers/db-test-harness';
 import { AppModule } from '../../src/app.module';
 import { EmailDispatchWorker } from '../../src/modules/email/application/email-dispatch.worker';
+import { ResendEmailProviderAdapter } from '../../src/modules/email/infrastructure/resend-email-provider.adapter';
 
 const prisma = getTestPrismaClient();
 
@@ -31,7 +32,16 @@ describe('Email Dispatch Pipeline (e2e)', () => {
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(ResendEmailProviderAdapter)
+      .useValue({
+        provider: 'RESEND',
+        sendEmail: jest.fn().mockResolvedValue({
+          providerMessageId: `mock-msg-${require('crypto').randomUUID()}`,
+          messageId: `<${require('crypto').randomUUID()}@outreacher.com>`,
+        }),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
@@ -111,6 +121,41 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       },
     });
 
+    const integration = await prisma.integration.upsert({
+      where: {
+        workspaceId_name: {
+          workspaceId,
+          name: 'MOCK_INTEGRATION',
+        },
+      },
+      update: {},
+      create: {
+        workspaceId,
+        provider: 'RESEND',
+        name: 'MOCK_INTEGRATION',
+        secretReference: 'mock://secret',
+        status: 'ACTIVE',
+      },
+    });
+
+    const senderAccount = await prisma.senderAccount.upsert({
+      where: {
+        workspaceId_fromEmail: {
+          workspaceId,
+          fromEmail: 'founder@startup.com',
+        },
+      },
+      update: {},
+      create: {
+        workspaceId,
+        fromEmail: 'founder@startup.com',
+        fromName: 'Founder',
+        integrationId: integration.id,
+        status: 'ACTIVE',
+        dailyLimit: 100,
+      },
+    });
+
     const campaign = await prisma.campaign.create({
       data: {
         workspaceId,
@@ -119,6 +164,11 @@ describe('Email Dispatch Pipeline (e2e)', () => {
         normalizedName: 'q3 enterprise outbound',
         status: campaignStatus,
         sendingIdentity: 'founder@startup.com',
+        campaignSenderAccounts: {
+          create: {
+            senderAccountId: senderAccount.id,
+          },
+        },
       },
     });
 

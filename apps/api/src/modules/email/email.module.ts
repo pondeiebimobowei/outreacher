@@ -1,4 +1,4 @@
-import { Module, Provider } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
 import { SUPPRESSION_CHECKER_TOKEN } from './domain/suppression-checker.interface';
@@ -8,36 +8,15 @@ import { PrismaEmailSendRepository } from './infrastructure/prisma-email-send.re
 import { IDEMPOTENCY_REPOSITORY_TOKEN } from './domain/idempotency.repository.interface';
 import { PrismaIdempotencyRepository } from './infrastructure/prisma-idempotency.repository';
 import { SendEligibilityService } from './domain/send-eligibility.service';
-import { EMAIL_SENDER_TOKEN } from './domain/email-sender.interface';
-import { MockEmailSender } from './infrastructure/mock-email-sender';
-import { ResendEmailSender } from './infrastructure/resend-email-sender';
 import { SendEmailUseCase } from './application/send-email.use-case';
 import { EmailDispatchWorker } from './application/email-dispatch.worker';
 import { EmailController } from './email.controller';
 
-const emailSenderFactory: Provider = {
-  provide: EMAIL_SENDER_TOKEN,
-  useFactory: () => {
-    const providerName = (process.env.EMAIL_PROVIDER || '').toUpperCase();
-    const env = process.env.NODE_ENV;
-
-    if (
-      providerName === 'MOCK' ||
-      env === 'test' ||
-      (!providerName && env !== 'production')
-    ) {
-      return new MockEmailSender();
-    }
-
-    if (providerName === 'RESEND') {
-      return new ResendEmailSender();
-    }
-
-    throw new Error(
-      `Invalid EMAIL_PROVIDER configuration: "${process.env.EMAIL_PROVIDER}". Must be "MOCK" or "RESEND".`,
-    );
-  },
-};
+import { SECRET_RESOLVER_TOKEN } from './domain/secret-resolver.interface';
+import { SecretResolverService } from './infrastructure/secret-resolver.service';
+import { EmailProviderRegistry } from './infrastructure/email-provider.registry';
+import { ResendEmailProviderAdapter } from './infrastructure/resend-email-provider.adapter';
+import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.adapter';
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
@@ -55,16 +34,21 @@ const emailSenderFactory: Provider = {
       provide: IDEMPOTENCY_REPOSITORY_TOKEN,
       useClass: PrismaIdempotencyRepository,
     },
+    {
+      provide: SECRET_RESOLVER_TOKEN,
+      useClass: SecretResolverService,
+    },
     SendEligibilityService,
-    emailSenderFactory,
     SendEmailUseCase,
     EmailDispatchWorker,
+    EmailProviderRegistry,
+    ResendEmailProviderAdapter,
+    MockEmailProviderAdapter,
   ],
   exports: [
     SendEligibilityService,
     SendEmailUseCase,
     EmailDispatchWorker,
-    EMAIL_SENDER_TOKEN,
     SUPPRESSION_CHECKER_TOKEN,
     EMAIL_SEND_REPOSITORY_TOKEN,
     IDEMPOTENCY_REPOSITORY_TOKEN,

@@ -77,6 +77,9 @@ export const APPLICATION_TABLES = [
   'outcomes',
   'email_templates',
   'jobs',
+  'integrations',
+  'sender_accounts',
+  'campaign_sender_accounts',
 ];
 
 export async function cleanTestDatabase(): Promise<void> {
