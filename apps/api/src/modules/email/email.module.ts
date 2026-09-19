@@ -52,6 +52,7 @@ import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.a
     SUPPRESSION_CHECKER_TOKEN,
     EMAIL_SEND_REPOSITORY_TOKEN,
     IDEMPOTENCY_REPOSITORY_TOKEN,
+    SECRET_RESOLVER_TOKEN,
   ],
 })
 export class EmailModule {}

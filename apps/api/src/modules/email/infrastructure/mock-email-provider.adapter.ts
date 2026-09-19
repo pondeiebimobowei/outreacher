@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EmailProviderAdapter, ProviderCredentials, SendEmailInput, SendEmailResult } from '../domain/email-provider.adapter';
+import { EmailProviderAdapter, SendEmailInput, SendEmailResult } from '../domain/email-provider.adapter';
+import type { ProviderCredentials } from '../domain/provider-credentials';
 import { MessageIdGenerator } from '../domain/message-id.generator';
 import { randomUUID } from 'crypto';
 

@@ -1,25 +1,4 @@
-export interface ResendCredentials {
-  provider: 'RESEND';
-  apiKey: string;
-}
-
-export interface SesCredentials {
-  provider: 'SES';
-  accessKeyId: string;
-  secretAccessKey: string;
-  region: string;
-}
-
-export interface SmtpCredentials {
-  provider: 'SMTP';
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
-  secure: boolean;
-}
-
-export type ProviderCredentials = ResendCredentials | SesCredentials | SmtpCredentials;
+import type { ProviderCredentials } from './provider-credentials';
 
 export interface SendEmailInput<T extends ProviderCredentials = ProviderCredentials> {
   workspaceId: string;

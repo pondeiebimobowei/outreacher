@@ -1,4 +1,4 @@
-import { ProviderCredentials } from './email-provider.adapter';
+import type { ProviderCredentials } from './provider-credentials';
 
 export const SECRET_RESOLVER_TOKEN = 'ISecretResolver';
 

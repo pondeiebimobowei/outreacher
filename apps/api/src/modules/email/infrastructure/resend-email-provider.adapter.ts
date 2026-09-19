@@ -1,11 +1,11 @@
 import { Injectable, Logger, Optional, Inject, HttpStatus } from '@nestjs/common';
 import {
   EmailProviderAdapter,
-  ResendCredentials,
   SendEmailInput,
   SendEmailResult,
   EmailDispatchErrorCode,
 } from '../domain/email-provider.adapter';
+import type { ResendCredentials } from '../domain/provider-credentials';
 import { AppValidationException, AppException } from '../../../common/errors/application.exception';
 import { ErrorCode } from '../../../common/errors/error-codes';
 import { MessageIdGenerator } from '../domain/message-id.generator';

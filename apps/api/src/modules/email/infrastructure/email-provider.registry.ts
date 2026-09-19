@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EmailProviderAdapter, ProviderCredentials } from '../domain/email-provider.adapter';
+import { EmailProviderAdapter } from '../domain/email-provider.adapter';
+import type { ProviderCredentials } from '../domain/provider-credentials';
 import { ResendEmailProviderAdapter } from './resend-email-provider.adapter';
 import { MockEmailProviderAdapter } from './mock-email-provider.adapter';
 

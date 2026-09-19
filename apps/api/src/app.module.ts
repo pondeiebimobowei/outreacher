@@ -19,6 +19,9 @@ import { ContactModule } from './modules/contact/contact.module';
 import { OutreachModule } from './modules/outreach/outreach.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
 import { EmailModule } from './modules/email/email.module';
+import { IntegrationModule } from './modules/integration/integration.module';
+import { SenderAccountModule } from './modules/sender-account/sender-account.module';
+import { CampaignSenderModule } from './modules/campaign-sender/campaign-sender.module';
 import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-summary.module';
 
 @Module({
@@ -40,6 +43,9 @@ import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-su
     OutreachModule,
     CampaignModule,
     EmailModule,
+    IntegrationModule,
+    SenderAccountModule,
+    CampaignSenderModule,
     WorkspaceSummaryModule,
   ],
   controllers: [AppController],

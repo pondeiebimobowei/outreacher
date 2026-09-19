@@ -264,7 +264,7 @@ export class EmailDispatchWorker {
       let finalErrorCode = 'DISPATCH_ATTEMPTS_EXHAUSTED';
       if (dispatchError && 'dispatchErrorCode' in dispatchError) {
         if (dispatchError.dispatchErrorCode !== 'PROVIDER_RATE_LIMIT' && dispatchError.dispatchErrorCode !== 'PROVIDER_CONNECT_FAILURE') {
-          finalErrorCode = dispatchError.dispatchErrorCode;
+          finalErrorCode = dispatchError.dispatchErrorCode as string;
         }
       }
 

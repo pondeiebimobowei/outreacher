@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ISecretResolver } from '../domain/secret-resolver.interface';
-import { ProviderCredentials, ResendCredentials, SesCredentials, SmtpCredentials } from '../domain/email-provider.adapter';
+import { ProviderCredentials, ResendCredentials, SesCredentials, SmtpCredentials } from '../domain/provider-credentials';
 import { AppValidationException } from '../../../common/errors/application.exception';
 
 @Injectable()
