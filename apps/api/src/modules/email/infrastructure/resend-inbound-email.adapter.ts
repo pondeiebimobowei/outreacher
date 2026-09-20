@@ -22,11 +22,18 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
       throw new AppValidationException('Malformed JSON payload');
     }
 
+    if (!payload || typeof payload !== 'object') {
+      throw new AppValidationException('Payload is not a valid JSON object');
+    }
+
     if (payload.type !== 'email.received') {
       throw new AppValidationException(`Unsupported webhook event type: ${payload.type}`);
     }
 
     const data = payload.data || payload;
+    if (!data || typeof data !== 'object') {
+      throw new AppValidationException('Payload data is not a valid object');
+    }
 
     let svixId = headers['svix-id'] as string | undefined;
     if (Array.isArray(svixId)) svixId = svixId[0];
@@ -66,7 +73,12 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
       subject: data.subject || null,
       bodyText: null, 
       bodyHtml: null, 
-      receivedAt: data.created_at ? new Date(data.created_at) : new Date(),
+      receivedAt: (() => {
+        if (!data.created_at) return new Date();
+        const d = new Date(data.created_at);
+        if (isNaN(d.getTime())) throw new AppValidationException('Invalid created_at timestamp');
+        return d;
+      })(),
     };
   }
 }

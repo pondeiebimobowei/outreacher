@@ -4,6 +4,9 @@ import { AppValidationException } from '../../../common/errors/application.excep
 jest.mock('svix', () => ({
   Webhook: jest.fn().mockImplementation((secret) => ({
     verify: jest.fn((body, headers) => {
+      if (!headers['svix-id'] || !headers['svix-timestamp'] || !headers['svix-signature']) {
+        throw new Error('Missing svix headers');
+      }
       if (secret === 'bad') throw new Error('Bad signature');
     })
   }))
@@ -13,11 +16,21 @@ describe('ResendInboundEmailAdapter', () => {
   const adapter = new ResendInboundEmailAdapter();
 
   describe('verifySignature', () => {
+    it('should throw AppValidationException if svix headers are missing', () => {
+      expect(() => {
+        adapter.verifySignature({
+          rawBody: Buffer.from('payload'),
+          headers: { 'svix-id': '1' }, // Missing others
+          secret: 'good'
+        });
+      }).toThrow(AppValidationException);
+    });
+
     it('should throw AppValidationException if signature is invalid', () => {
       expect(() => {
         adapter.verifySignature({
           rawBody: Buffer.from('payload'),
-          headers: {},
+          headers: { 'svix-id': '1', 'svix-timestamp': '1', 'svix-signature': '1' },
           secret: 'bad'
         });
       }).toThrow(new AppValidationException('Invalid webhook signature: Bad signature'));
@@ -27,7 +40,7 @@ describe('ResendInboundEmailAdapter', () => {
       expect(() => {
         adapter.verifySignature({
           rawBody: Buffer.from('payload'),
-          headers: {},
+          headers: { 'svix-id': '1', 'svix-timestamp': '1', 'svix-signature': '1' },
           secret: 'good'
         });
       }).not.toThrow();
@@ -35,6 +48,28 @@ describe('ResendInboundEmailAdapter', () => {
   });
 
   describe('parsePayload', () => {
+    it('should reject null JSON payload', () => {
+      expect(() =>
+        adapter.parsePayload(Buffer.from('null'), { 'svix-id': 'test' }),
+      ).toThrow(AppValidationException);
+    });
+
+    it('should reject invalid created_at date', () => {
+      const payload = {
+        type: 'email.received',
+        data: {
+          email_id: 'e1',
+          message_id: 'm1',
+          from: 'a@b.com',
+          to: 'c@d.com',
+          created_at: 'invalid-date'
+        }
+      };
+      expect(() =>
+        adapter.parsePayload(Buffer.from(JSON.stringify(payload)), { 'svix-id': 'test' }),
+      ).toThrow(AppValidationException);
+    });
+
     const validPayload = {
       type: 'email.received',
       created_at: '2024-02-22T21:40:53.308Z',

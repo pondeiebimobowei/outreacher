@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "jobs" ALTER COLUMN "max_attempts" SET DEFAULT 3;

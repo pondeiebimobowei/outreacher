@@ -10,7 +10,9 @@ import { Integration } from '@prisma/client';
 jest.mock('svix', () => ({
   Webhook: jest.fn().mockImplementation((secret) => ({
     verify: (payload: string, headers: Record<string, string>) => {
-      if (!headers['svix-id']) throw new Error('Missing svix-id header');
+      if (!headers['svix-id'] || !headers['svix-timestamp'] || !headers['svix-signature']) {
+        throw new Error('Missing svix headers');
+      }
       if (secret === 'bad') throw new Error('Bad signature');
       return payload;
     },
@@ -84,6 +86,8 @@ describe('InboundWebhookController (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/webhooks/email/inbound/${integration.id}`)
       .set('svix-id', 'test-event-id')
+      .set('svix-timestamp', '123')
+      .set('svix-signature', 'sig')
       .send(validPayload);
     
     expect(res.status).toBe(202);
@@ -100,6 +104,8 @@ describe('InboundWebhookController (e2e)', () => {
     const res2 = await request(app.getHttpServer())
       .post(`/api/v1/webhooks/email/inbound/${integration.id}`)
       .set('svix-id', 'test-event-id')
+      .set('svix-timestamp', '123')
+      .set('svix-signature', 'sig')
       .send(validPayload);
     
     expect(res2.status).toBe(202);
@@ -131,6 +137,8 @@ describe('InboundWebhookController (e2e)', () => {
     const res = await request(nestedApp.getHttpServer())
       .post(`/api/v1/webhooks/email/inbound/${integration.id}`)
       .set('svix-id', 'test-event-id')
+      .set('svix-timestamp', '123')
+      .set('svix-signature', 'sig')
       .send(validPayload);
     
     expect(res.status).toBe(400);
@@ -141,7 +149,7 @@ describe('InboundWebhookController (e2e)', () => {
     await nestedApp.close();
   });
 
-  it('should reject webhook without svix headers', async () => {
+  it('should reject webhook when Svix verifier rejects due to missing headers', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/webhooks/email/inbound/${integration.id}`)
       .send(validPayload);

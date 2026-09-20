@@ -569,7 +569,7 @@ model Job {
   status         JobStatus @default(PENDING)
   payload        Json
   attemptCount   Int       @default(0) @map("attempt_count")
-  maxAttempts    Int       @default(5) @map("max_attempts")
+  maxAttempts    Int       @default(3) @map("max_attempts")
   availableAt    DateTime  @default(now()) @map("available_at")
   startedAt      DateTime? @map("started_at")
   completedAt    DateTime? @map("completed_at")
