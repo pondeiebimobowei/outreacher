@@ -90,7 +90,7 @@ export class InboundWebhookService {
             workspaceId: integration.workspaceId,
             type: 'WEBHOOK_PROCESSING',
             idempotencyKey: idempotencyKey,
-            payload: { inboundReplyId: reply.id },
+            payload: { inboundReplyId: reply.id, integrationId: integration.id },
           },
         });
 

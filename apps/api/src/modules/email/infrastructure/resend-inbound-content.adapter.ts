@@ -62,11 +62,15 @@ export class ResendInboundContentAdapter implements InboundEmailContentAdapter<R
          throw new InboundRetrievalException('Provider returned empty response', InboundRetrievalErrorCode.PROVIDER_ERROR, true);
       }
 
-      const headers = (data as any).headers || {};
-      const inReplyTo = headers['In-Reply-To'] || null;
+      const rawHeaders = (data as any).headers || {};
+      const headers = Object.keys(rawHeaders).reduce((acc, key) => {
+        acc[key.toLowerCase()] = rawHeaders[key];
+        return acc;
+      }, {} as Record<string, any>);
+      const inReplyTo = headers['in-reply-to'] || null;
       
       let references: string[] = [];
-      const refHeader = headers['References'];
+      const refHeader = headers['references'];
       if (typeof refHeader === 'string') {
         references = refHeader.split(/\s+/).filter(r => r.length > 0);
       } else if (Array.isArray(refHeader)) {

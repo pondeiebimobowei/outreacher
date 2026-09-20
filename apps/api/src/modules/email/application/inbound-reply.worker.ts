@@ -54,7 +54,8 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
           updatedAt: { lt: fiveMinutesAgo }
         },
         data: {
-          status: 'PENDING'
+          status: 'PENDING',
+          leaseVersion: { increment: 1 }
         }
       });
       if (result.count > 0) {
@@ -73,12 +74,15 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       SET 
         status = 'RUNNING',
         "leaseVersion" = "leaseVersion" + 1,
+        "attempt_count" = "attempt_count" + 1,
+        "started_at" = NOW(),
         "updated_at" = NOW()
       WHERE id IN (
         SELECT id
         FROM jobs
         WHERE type = 'WEBHOOK_PROCESSING'
           AND status = 'PENDING'
+          AND (available_at IS NULL OR available_at <= NOW())
         ORDER BY "created_at" ASC
         FOR UPDATE SKIP LOCKED
         LIMIT ${this.BATCH_SIZE}
@@ -94,7 +98,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
 
   private async processJob(job: any) {
     try {
-      const payload = job.payload as { inboundReplyId: string };
+      const payload = job.payload as { inboundReplyId: string; integrationId?: string };
       if (!payload || !payload.inboundReplyId) {
         throw new Error('Invalid job payload: missing inboundReplyId');
       }
@@ -112,28 +116,25 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       }
 
       // Load integration
-      const integration = await this.prisma.integration.findFirst({
-        where: {
-          workspaceId: inboundReply.workspaceId,
-          provider: inboundReply.provider as any
-        }
-      });
-
-      if (!integration || !integration.webhookSecretReference) {
-        throw new Error(`Integration for provider ${inboundReply.provider} not found or missing webhook secret`);
+      let integration;
+      if (payload.integrationId) {
+        integration = await this.prisma.integration.findUnique({
+          where: { id: payload.integrationId }
+        });
+      } else {
+        integration = await this.prisma.integration.findFirst({
+          where: {
+            workspaceId: inboundReply.workspaceId,
+            provider: inboundReply.provider as any
+          }
+        });
       }
 
-      // Resolve credentials
-      const credentials = await this.secretResolver.resolve(
-        integration.workspaceId,
-        integration.webhookSecretReference,
-        'WEBHOOK' // This is what the adapter uses in ResendInboundEmailAdapter. Actually for Resend API we need the normal API key for receiving API!
-        // Wait! The webhook secret is used for verifying the signature. 
-        // For fetching the email from Resend Receiving API, we need the standard API KEY!
-      );
+      if (!integration || !integration.secretReference) {
+        throw new Error(`Integration not found or missing provider secret`);
+      }
 
-      // Wait, is it the standard API key? 
-      const apiCredentials = await this.secretResolver.resolve(
+            const apiCredentials = await this.secretResolver.resolve(
         integration.workspaceId,
         integration.secretReference,
         'PROVIDER'
@@ -167,7 +168,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         // Optimistic concurrency on job
         const updatedJob = await tx.job.update({
           where: { id: job.id, leaseVersion: job.leaseVersion },
-          data: { status: 'COMPLETED', updatedAt: new Date() }
+          data: { status: 'COMPLETED', updatedAt: new Date(), completedAt: new Date() }
         });
 
         // Tenant safety check - although correlation already scopes by workspaceId, we double check
@@ -209,20 +210,23 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         isRetryable = false;
       }
 
-      const attempts = job.attemptCount + 1;
-      const maxAttempts = job.maxAttempts; // Use the persisted maxAttempts
+      const attempts = job.attemptCount;
+      const maxAttempts = job.maxAttempts;
       
       const newStatus = (!isRetryable || attempts >= maxAttempts) ? 'DEAD_LETTER' : 'PENDING';
+      const availableAt = newStatus === 'PENDING' 
+        ? new Date(Date.now() + Math.pow(2, attempts) * 1000)
+        : job.availableAt;
 
       try {
         await this.prisma.job.update({
           where: { id: job.id, leaseVersion: job.leaseVersion },
           data: {
             status: newStatus,
-            attemptCount: attempts,
-            failedAt: new Date(),
+            failedAt: newStatus === 'DEAD_LETTER' ? new Date() : null,
             updatedAt: new Date(),
-            payload: { ...((job.payload as any) || {}), error: err.message, stack: err.stack }
+            availableAt,
+            lastError: err.message
           }
         });
       } catch (updateErr) {

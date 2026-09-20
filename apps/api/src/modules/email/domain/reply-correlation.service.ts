@@ -13,6 +13,11 @@ export class ReplyCorrelationService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private formatMessageId(id: string): string {
+    const clean = id.trim().replace(/^<|>$/g, '');
+    return `<${clean}>`;
+  }
+
   async correlate(inboundReply: InboundReply, toEmail: string, inReplyTo: string | null, references: string[]): Promise<CorrelationResult> {
     const workspaceId = inboundReply.workspaceId;
 
@@ -37,28 +42,32 @@ export class ReplyCorrelationService {
 
     // RULE 2: In-Reply-To match
     if (inReplyTo) {
-      // Clean up brackets if present
-      const cleanInReplyTo = inReplyTo.replace(/^<|>$/g, '');
-      const send = await this.prisma.emailSend.findFirst({
+      const formattedInReplyTo = this.formatMessageId(inReplyTo);
+      const sends = await this.prisma.emailSend.findMany({
         where: {
           workspaceId: workspaceId,
-          messageId: cleanInReplyTo
+          messageId: formattedInReplyTo
         },
-        select: { campaignContactId: true }
+        select: { campaignContactId: true },
+        distinct: ['campaignContactId']
       });
 
-      if (send) {
-        return { status: 'CORRELATED', campaignContactId: send.campaignContactId };
+      if (sends.length === 1) {
+        return { status: 'CORRELATED', campaignContactId: sends[0].campaignContactId };
+      }
+      
+      if (sends.length > 1) {
+        return { status: 'AMBIGUOUS' };
       }
     }
 
     // RULE 3: References match
     if (references && references.length > 0) {
-      const cleanReferences = references.map(r => r.replace(/^<|>$/g, ''));
+      const formattedReferences = references.map(r => this.formatMessageId(r));
       const sends = await this.prisma.emailSend.findMany({
         where: {
           workspaceId: workspaceId,
-          messageId: { in: cleanReferences }
+          messageId: { in: formattedReferences }
         },
         select: { campaignContactId: true },
         distinct: ['campaignContactId']

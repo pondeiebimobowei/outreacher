@@ -73,7 +73,7 @@ describe('InboundReplyWorker', () => {
   it('completes the job on successful retrieval and correlation', async () => {
     prismaMock.$queryRaw.mockResolvedValue([mockJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockResolvedValue({
       providerEmailId: 'email-1',
@@ -106,7 +106,7 @@ describe('InboundReplyWorker', () => {
   it('fails terminally if data integrity check fails', async () => {
     prismaMock.$queryRaw.mockResolvedValue([mockJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockResolvedValue({
       providerEmailId: 'DIFFERENT-EMAIL-ID', // Mismatch!
@@ -124,7 +124,7 @@ describe('InboundReplyWorker', () => {
   it('fails transiently if adapter throws retryable exception and attempts < maxAttempts', async () => {
     prismaMock.$queryRaw.mockResolvedValue([mockJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockRejectedValue(
       new InboundRetrievalException('Temp fail', InboundRetrievalErrorCode.PROVIDER_ERROR, true, 503)
@@ -134,15 +134,15 @@ describe('InboundReplyWorker', () => {
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
       where: { id: 'job-1', leaseVersion: 1 },
-      data: expect.objectContaining({ status: 'PENDING', attemptCount: 1 })
+      data: expect.objectContaining({ status: 'PENDING', lastError: expect.any(String) })
     });
   });
 
   it('fails terminally if adapter throws retryable exception but maxAttempts reached', async () => {
-    const exhaustedJob = { ...mockJob, attemptCount: 2 }; // max is 3, next attempt is 3
+    const exhaustedJob = { ...mockJob, attemptCount: 3 }; // simulated RETURNING value after increment
     prismaMock.$queryRaw.mockResolvedValue([exhaustedJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockRejectedValue(
       new InboundRetrievalException('Temp fail', InboundRetrievalErrorCode.PROVIDER_ERROR, true, 503)
@@ -152,14 +152,14 @@ describe('InboundReplyWorker', () => {
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
       where: { id: 'job-1', leaseVersion: 1 },
-      data: expect.objectContaining({ status: 'DEAD_LETTER', attemptCount: 3 })
+      data: expect.objectContaining({ status: 'DEAD_LETTER', lastError: expect.any(String) })
     });
   });
 
   it('fails terminally if adapter throws non-retryable exception', async () => {
     prismaMock.$queryRaw.mockResolvedValue([mockJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockRejectedValue(
       new InboundRetrievalException('Not found', InboundRetrievalErrorCode.NOT_FOUND, false, 404)
@@ -176,7 +176,7 @@ describe('InboundReplyWorker', () => {
   it('fails terminally if correlated contact belongs to different workspace', async () => {
     prismaMock.$queryRaw.mockResolvedValue([mockJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
-    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', webhookSecretReference: 'sec', provider: 'RESEND' });
+    prismaMock.integration.findFirst.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
     
     adapterRegistryMock.getAdapter().getEmailDetails.mockResolvedValue({
       providerEmailId: 'email-1',
