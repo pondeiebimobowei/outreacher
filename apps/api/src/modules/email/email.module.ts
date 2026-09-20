@@ -11,6 +11,8 @@ import { SendEligibilityService } from './domain/send-eligibility.service';
 import { SendEmailUseCase } from './application/send-email.use-case';
 import { EmailDispatchWorker } from './application/email-dispatch.worker';
 import { EmailController } from './email.controller';
+import { InboundWebhookController } from './application/inbound-webhook.controller';
+import { InboundWebhookService } from './application/inbound-webhook.service';
 
 import { SECRET_RESOLVER_TOKEN } from './domain/secret-resolver.interface';
 import { SecretResolverService } from './infrastructure/secret-resolver.service';
@@ -20,7 +22,7 @@ import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.a
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
-  controllers: [EmailController],
+  controllers: [EmailController, InboundWebhookController],
   providers: [
     {
       provide: SUPPRESSION_CHECKER_TOKEN,
@@ -43,6 +45,7 @@ import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.a
     EmailDispatchWorker,
     EmailProviderRegistry,
     ResendEmailProviderAdapter,
+    InboundWebhookService,
     MockEmailProviderAdapter,
   ],
   exports: [
