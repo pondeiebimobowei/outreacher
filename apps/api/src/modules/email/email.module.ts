@@ -18,6 +18,7 @@ import { SECRET_RESOLVER_TOKEN } from './domain/secret-resolver.interface';
 import { SecretResolverService } from './infrastructure/secret-resolver.service';
 import { EmailProviderRegistry } from './infrastructure/email-provider.registry';
 import { ResendEmailProviderAdapter } from './infrastructure/resend-email-provider.adapter';
+import { ResendInboundEmailAdapter } from './infrastructure/resend-inbound-email.adapter';
 import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.adapter';
 
 @Module({
@@ -45,6 +46,7 @@ import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.a
     EmailDispatchWorker,
     EmailProviderRegistry,
     ResendEmailProviderAdapter,
+    ResendInboundEmailAdapter,
     InboundWebhookService,
     MockEmailProviderAdapter,
   ],

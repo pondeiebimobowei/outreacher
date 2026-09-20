@@ -37,33 +37,31 @@ describe('ResendInboundEmailAdapter', () => {
   describe('parsePayload', () => {
     it('should parse typical resend inbound payload', () => {
       const payload = {
+        type: 'email.received',
+        created_at: '2024-02-22T21:40:53.308Z',
         data: {
-          id: 'resend-id',
-          from: 'sender@example.com',
+          email_id: 'resend-email-123',
+          from: 'Sender <sender@example.com>',
           to: ['recipient@example.com'],
           subject: 'Test reply',
-          text: 'Hello world',
-          headers: [
-            { name: 'Message-ID', value: 'msg1' },
-            { name: 'In-Reply-To', value: 'msg0' },
-            { name: 'References', value: 'msg0 msg-1' }
-          ]
+          message_id: 'msg1'
         }
       };
 
-      const result = adapter.parsePayload(Buffer.from(JSON.stringify(payload)));
-      expect(result.providerMessageId).toBe('resend-id');
+      const result = adapter.parsePayload(Buffer.from(JSON.stringify(payload)), { 'svix-id': 'svix-123' });
+      expect(result.providerEventId).toBe('svix-123');
+      expect(result.providerEmailId).toBe('resend-email-123');
       expect(result.messageId).toBe('msg1');
-      expect(result.inReplyTo).toBe('msg0');
-      expect(result.references).toEqual(['msg0', 'msg-1']);
+      expect(result.inReplyTo).toBeNull();
+      expect(result.references).toEqual([]);
       expect(result.fromEmail).toBe('sender@example.com');
       expect(result.toEmail).toBe('recipient@example.com');
       expect(result.subject).toBe('Test reply');
-      expect(result.bodyText).toBe('Hello world');
+      expect(result.bodyText).toBeNull();
     });
 
     it('should throw AppValidationException on malformed json', () => {
-      expect(() => adapter.parsePayload(Buffer.from('not json'))).toThrow(AppValidationException);
+      expect(() => adapter.parsePayload(Buffer.from('not json'), {})).toThrow(AppValidationException);
     });
   });
 });

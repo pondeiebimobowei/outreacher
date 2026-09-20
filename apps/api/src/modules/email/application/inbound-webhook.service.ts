@@ -1,7 +1,8 @@
 import { Injectable, Inject, RawBodyRequest, Logger } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../../../database/prisma.service';
-import { SECRET_RESOLVER_TOKEN, type ISecretResolver } from '../domain/secret-resolver.interface';
+import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
+import type { ISecretResolver } from '../domain/secret-resolver.interface';
 import { ResendInboundEmailAdapter } from '../infrastructure/resend-inbound-email.adapter';
 import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
 import { WebhookCredentials } from '../domain/provider-credentials';
@@ -29,11 +30,11 @@ export class InboundWebhookService {
       throw new AppNotFoundException('Integration not found');
     }
 
-    let webhookSecretRef = '';
-    if (integration.metadata && typeof integration.metadata === 'object' && 'webhookSecretReference' in integration.metadata) {
-      webhookSecretRef = (integration.metadata as any).webhookSecretReference as string;
+    if (integration.provider !== 'RESEND') {
+      throw new AppValidationException(`Provider ${integration.provider} is not supported for inbound webhooks in this adapter`);
     }
 
+    const webhookSecretRef = integration.webhookSecretReference;
     if (!webhookSecretRef) {
       throw new AppValidationException('Integration is not configured for inbound webhooks');
     }
@@ -44,7 +45,7 @@ export class InboundWebhookService {
       'WEBHOOK'
     )) as WebhookCredentials;
 
-    const adapter = this.resendAdapter; // in future, select by integration.provider
+    const adapter = this.resendAdapter;
 
     // 1. Verify signature
     adapter.verifySignature({
@@ -54,19 +55,20 @@ export class InboundWebhookService {
     });
 
     // 2. Parse payload
-    const canonicalPayload = adapter.parsePayload(req.rawBody);
+    const canonicalPayload = adapter.parsePayload(req.rawBody, req.headers as Record<string, string>);
 
-    // If no provider message ID, generate a synthetic one for idempotency
-    const providerMsgId = canonicalPayload.providerMessageId || `synthetic_${Date.now()}_${Math.random()}`;
+    const idempotencyKey = `webhook:${integration.provider}:${canonicalPayload.providerEventId}`;
 
     // 3. Persist and Queue in one transaction
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx: any) => {
         // 3.1 Insert InboundReply
         const reply = await tx.inboundReply.create({
           data: {
             workspaceId: integration.workspaceId,
-            providerMessageId: providerMsgId,
+            provider: integration.provider,
+            providerEventId: canonicalPayload.providerEventId,
+            providerEmailId: canonicalPayload.providerEmailId,
             messageId: canonicalPayload.messageId,
             inReplyTo: canonicalPayload.inReplyTo,
             references: canonicalPayload.references,
@@ -86,13 +88,13 @@ export class InboundWebhookService {
         await tx.job.create({
           data: {
             workspaceId: integration.workspaceId,
-            type: 'PROCESS_INBOUND_REPLY',
+            type: 'WEBHOOK_PROCESSING',
+            idempotencyKey: idempotencyKey,
             payload: { inboundReplyId: reply.id },
           },
         });
 
         // 3.3 Ensure idempotency
-        const idempotencyKey = `webhook_inbound_${providerMsgId}`;
         await tx.idempotencyRecord.create({
           data: {
             workspaceId: integration.workspaceId,
@@ -106,8 +108,16 @@ export class InboundWebhookService {
       });
     } catch (err: any) {
       if (err.code === 'P2002') {
-        this.logger.log(`Idempotent webhook deduplication for providerMessageId: ${providerMsgId}`);
-        return; // gracefully accept duplicate
+        const target = err.meta?.target;
+        // Check if the unique constraint violation is on the idempotency record key or inbound reply unique constraint
+        if (
+          (Array.isArray(target) && target.includes('key')) ||
+          (Array.isArray(target) && target.includes('providerEventId')) ||
+          (typeof target === 'string' && (target.includes('key') || target.includes('provider_event_id')))
+        ) {
+          this.logger.log(`Idempotent webhook deduplication for providerEventId: ${canonicalPayload.providerEventId}`);
+          return;
+        }
       }
       throw err;
     }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Webhook } from 'svix';
 import { InboundEmailProviderAdapter, CanonicalInboundReply, WebhookVerificationContext } from '../domain/inbound-email-provider.adapter';
 import { AppValidationException } from '../../../common/errors/application.exception';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
@@ -15,7 +16,7 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
     }
   }
 
-  parsePayload(rawBody: Buffer): CanonicalInboundReply {
+  parsePayload(rawBody: Buffer, headers: Record<string, string | string[] | undefined>): CanonicalInboundReply {
     let payload;
     try {
       payload = JSON.parse(rawBody.toString('utf8'));
@@ -23,40 +24,40 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
       throw new AppValidationException('Malformed JSON payload');
     }
 
-    // Usually wrapped in { type: '...', data: { ... } } for Resend webhooks
     const data = payload.data || payload;
 
-    // Resend specific headers mapping
-    // They usually provide an array of headers or object
-    let messageId = null;
-    let inReplyTo = null;
-    let references: string[] = [];
+    // Resend webhooks via svix always include svix-id header which uniquely identifies the event delivery
+    let svixId = headers['svix-id'] as string | undefined;
+    if (Array.isArray(svixId)) svixId = svixId[0];
 
-    // Assuming data.headers is an array of {name, value} or similar in Resend's payload,
-    // or we might need to rely on data.message_id / data.in_reply_to if they are top-level
-    if (data.headers && Array.isArray(data.headers)) {
-      data.headers.forEach((h: any) => {
-        const name = h.name.toLowerCase();
-        if (name === 'message-id') messageId = h.value;
-        if (name === 'in-reply-to') inReplyTo = h.value;
-        if (name === 'references') {
-          references = h.value.split(/\s+/).filter(Boolean);
-        }
-      });
-    }
+    // Fallback: deterministic hash of the authenticated raw body
+    const providerEventId = svixId || crypto.createHash('sha256').update(rawBody).digest('hex');
+
+    const fromField = data.from || '';
+    // simple extraction, actual extraction handled in 10C when fetching full email if needed
+    const fromEmailMatch = fromField.match(/<([^>]+)>/);
+    const fromEmail = fromEmailMatch ? fromEmailMatch[1] : fromField;
+
+    const toArray = Array.isArray(data.to) ? data.to : [data.to];
+    const toField = toArray[0] || '';
+    const toEmailMatch = toField.match(/<([^>]+)>/);
+    const toEmail = toEmailMatch ? toEmailMatch[1] : toField;
 
     return {
-      providerMessageId: data.id || null,
-      messageId: messageId || data.messageId || null,
-      inReplyTo: inReplyTo || data.inReplyTo || null,
-      references: references,
-      replyToToken: null, // Extracted later in correlation engine from the TO address or references
-      fromName: data.from?.name || null,
-      fromEmail: data.from?.email || data.from || '',
-      toEmail: data.to?.[0]?.email || data.to?.[0] || '',
+      providerEventId,
+      providerEmailId: data.email_id || null,
+      messageId: data.message_id || null,
+      
+      // These are not in the Resend webhook payload, must be fetched via Receiving API in 10C
+      inReplyTo: null,
+      references: [],
+      replyToToken: null,
+      fromName: null, 
+      fromEmail: fromEmail,
+      toEmail: toEmail,
       subject: data.subject || null,
-      bodyText: data.text || null,
-      bodyHtml: data.html || null,
+      bodyText: null, 
+      bodyHtml: null, 
       receivedAt: data.created_at ? new Date(data.created_at) : new Date(),
     };
   }

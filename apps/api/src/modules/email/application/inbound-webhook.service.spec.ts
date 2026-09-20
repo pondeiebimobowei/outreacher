@@ -7,7 +7,6 @@ import { ISecretResolver } from '../domain/secret-resolver.interface';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
 
-
 describe('InboundWebhookService', () => {
   let service: InboundWebhookService;
   let prisma: PrismaService;
@@ -61,10 +60,20 @@ describe('InboundWebhookService', () => {
       .rejects.toThrow(new AppNotFoundException('Integration not found'));
   });
 
+  it('should throw AppValidationException if integration is not RESEND', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({
+      id: 'integration-1',
+      provider: 'SMTP',
+    });
+    await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('') } as any))
+      .rejects.toThrow(new AppValidationException('Provider SMTP is not supported for inbound webhooks in this adapter'));
+  });
+
   it('should throw AppValidationException if integration missing webhookSecretReference', async () => {
     mockPrisma.integration.findUnique.mockResolvedValue({
       id: 'integration-1',
-      metadata: {},
+      provider: 'RESEND',
+      webhookSecretReference: null,
     });
     await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('') } as any))
       .rejects.toThrow(new AppValidationException('Integration is not configured for inbound webhooks'));
@@ -74,7 +83,8 @@ describe('InboundWebhookService', () => {
     const integration = {
       id: 'integration-1',
       workspaceId: 'workspace-1',
-      metadata: { webhookSecretReference: 'vault://test#secret' },
+      provider: 'RESEND',
+      webhookSecretReference: 'vault://test#secret',
     };
     mockPrisma.integration.findUnique.mockResolvedValue(integration);
     
@@ -84,7 +94,8 @@ describe('InboundWebhookService', () => {
     });
 
     const canonicalPayload = {
-      providerMessageId: 'pmid-123',
+      providerEventId: 'evt-123',
+      providerEmailId: 'email-123',
       messageId: 'mid-123',
       inReplyTo: null,
       references: [],
@@ -93,7 +104,7 @@ describe('InboundWebhookService', () => {
       fromName: 'Sender',
       toEmail: 'us@example.com',
       subject: 'Re: test',
-      bodyText: 'Hello',
+      bodyText: null,
       bodyHtml: null,
       receivedAt: new Date(),
     };
@@ -120,14 +131,17 @@ describe('InboundWebhookService', () => {
     expect(mockTx.inboundReply.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         workspaceId: 'workspace-1',
-        providerMessageId: 'pmid-123',
+        providerEventId: 'evt-123',
+        providerEmailId: 'email-123',
+        provider: 'RESEND',
       }),
     }));
 
     expect(mockTx.job.create).toHaveBeenCalledWith(expect.objectContaining({
       data: {
         workspaceId: 'workspace-1',
-        type: 'PROCESS_INBOUND_REPLY',
+        type: 'WEBHOOK_PROCESSING',
+        idempotencyKey: 'webhook:RESEND:evt-123',
         payload: { inboundReplyId: 'reply-1' },
       },
     }));
@@ -135,7 +149,7 @@ describe('InboundWebhookService', () => {
     expect(mockTx.idempotencyRecord.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         workspaceId: 'workspace-1',
-        key: 'webhook_inbound_pmid-123',
+        key: 'webhook:RESEND:evt-123',
       }),
     }));
   });
@@ -144,14 +158,14 @@ describe('InboundWebhookService', () => {
     mockPrisma.integration.findUnique.mockResolvedValue({
       id: 'integration-1',
       workspaceId: 'workspace-1',
-      metadata: { webhookSecretReference: 'vault://test#secret' },
+      provider: 'RESEND',
+      webhookSecretReference: 'vault://test#secret',
     });
     mockSecretResolver.resolve.mockResolvedValue({ provider: 'WEBHOOK', secret: 'whsec_test' });
-    mockAdapter.parsePayload.mockReturnValue({ providerMessageId: 'pmid-123' });
+    mockAdapter.parsePayload.mockReturnValue({ providerEventId: 'evt-123' });
     
-    mockPrisma.$transaction.mockRejectedValue(
-      Object.assign(new Error('duplicate'), { code: 'P2002' })
-    );
+    const err = Object.assign(new Error('duplicate'), { code: 'P2002', meta: { target: ['key'] } });
+    mockPrisma.$transaction.mockRejectedValue(err);
 
     // Should resolve successfully
     await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('raw') } as any)).resolves.not.toThrow();

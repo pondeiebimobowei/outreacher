@@ -612,6 +612,7 @@ model Integration {
   name            String
   status          IntegrationStatus   @default(ACTIVE)
   secretReference String              @map("secret_reference")
+  webhookSecretReference String?    @map("webhook_secret_reference")
   metadata        Json?
   createdAt       DateTime            @default(now()) @map("created_at")
   updatedAt       DateTime            @updatedAt @map("updated_at")
@@ -681,11 +682,13 @@ model InboundReply {
   campaignId        String? @map("campaign_id")
   campaignContactId String? @map("campaign_contact_id")
 
-  providerMessageId String?  @unique @map("provider_message_id")
-  messageId         String?  @unique @map("message_id")
-  inReplyTo         String?  @map("in_reply_to")
-  references        String[] @default([])
-  replyToToken      String?  @map("reply_to_token")
+  provider        String  @default("RESEND")
+  providerEventId String  @map("provider_event_id")
+  providerEmailId String? @map("provider_email_id")
+  messageId       String? @map("message_id")
+  inReplyTo       String? @map("in_reply_to")
+  references      String[] @default([])
+  replyToToken    String?  @map("reply_to_token")
 
   fromName  String? @map("from_name")
   fromEmail String  @map("from_email")
@@ -701,11 +704,11 @@ model InboundReply {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  campaignContact CampaignContact? @relation(fields: [campaignContactId], references: [id], onDelete: SetNull)
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id])
+  campaign        Campaign?        @relation(fields: [campaignId], references: [id])
+  campaignContact CampaignContact? @relation(fields: [campaignContactId], references: [id])
 
+  @@unique([workspaceId, provider, providerEventId])
   @@index([workspaceId])
-  @@index([campaignContactId])
   @@map("inbound_replies")
 }

@@ -1,5 +1,6 @@
 export interface CanonicalInboundReply {
-  providerMessageId: string | null;
+  providerEventId: string;
+  providerEmailId: string | null;
   messageId: string | null;
   inReplyTo: string | null;
   references: string[];
@@ -20,14 +21,6 @@ export interface WebhookVerificationContext {
 }
 
 export abstract class InboundEmailProviderAdapter {
-  /**
-   * Verifies the cryptographic signature of the webhook.
-   * Throws an exception if invalid.
-   */
   abstract verifySignature(context: WebhookVerificationContext): void;
-
-  /**
-   * Parses the validated raw body into a canonical inbound reply.
-   */
-  abstract parsePayload(rawBody: Buffer): CanonicalInboundReply;
+  abstract parsePayload(rawBody: Buffer, headers: Record<string, string | string[] | undefined>): CanonicalInboundReply;
 }
