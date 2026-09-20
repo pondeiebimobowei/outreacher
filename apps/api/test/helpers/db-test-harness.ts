@@ -77,6 +77,7 @@ export const APPLICATION_TABLES = [
   'outcomes',
   'email_templates',
   'jobs',
+  'inbound_replies',
   'integrations',
   'sender_accounts',
   'campaign_sender_accounts',

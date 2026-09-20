@@ -90,7 +90,7 @@ export class ResendInboundContentAdapter implements InboundEmailContentAdapter<R
       if (err instanceof InboundRetrievalException) {
         throw err;
       }
-      if (err.name === 'AbortError') {
+      if (err.name === 'AbortError' || err.message?.includes('aborted') || err.message?.includes('timeout') || err.message?.includes('signal')) {
         throw new InboundRetrievalException('Provider request timed out', InboundRetrievalErrorCode.TIMEOUT, true);
       }
       throw new InboundRetrievalException(`Unknown error retrieving email: ${err.message}`, InboundRetrievalErrorCode.PROVIDER_ERROR, true);

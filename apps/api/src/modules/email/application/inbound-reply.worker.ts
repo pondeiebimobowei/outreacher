@@ -69,26 +69,36 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
   }
 
   private async claimAndProcessJobs(): Promise<number> {
-    const jobs = await this.prisma.$queryRaw<any[]>`
-      UPDATE jobs
-      SET 
-        status = 'RUNNING',
-        "leaseVersion" = "leaseVersion" + 1,
-        "attempt_count" = "attempt_count" + 1,
-        "started_at" = NOW(),
-        "updated_at" = NOW()
-      WHERE id IN (
-        SELECT id
+    const jobs = await this.prisma.$transaction(async (tx) => {
+      const eligible = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
+        SELECT id, attempt_count
         FROM jobs
-        WHERE type = 'WEBHOOK_PROCESSING'
-          AND status = 'PENDING'
-          AND (available_at IS NULL OR available_at <= NOW())
-        ORDER BY "created_at" ASC
+        WHERE type = 'WEBHOOK_PROCESSING'::"JobType"
+          AND status = 'PENDING'::"JobStatus"
+          AND (available_at IS NULL OR available_at <= ${new Date()})
+        ORDER BY created_at ASC
         FOR UPDATE SKIP LOCKED
         LIMIT ${this.BATCH_SIZE}
-      )
-      RETURNING *;
-    `;
+      `;
+
+      if (!eligible || eligible.length === 0) return [];
+
+      const updatedJobs = [];
+      const now = new Date();
+      for (const row of eligible) {
+        const updated = await tx.job.update({
+          where: { id: row.id },
+          data: {
+            status: 'RUNNING',
+            attemptCount: row.attempt_count + 1,
+            startedAt: now,
+            leaseVersion: { increment: 1 }
+          }
+        });
+        updatedJobs.push(updated);
+      }
+      return updatedJobs;
+    });
 
     if (jobs.length === 0) return 0;
 
@@ -98,9 +108,9 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
 
   private async processJob(job: any) {
     try {
-      const payload = job.payload as { inboundReplyId: string; integrationId?: string };
-      if (!payload || !payload.inboundReplyId) {
-        throw new Error('Invalid job payload: missing inboundReplyId');
+      const payload = job.payload as { inboundReplyId: string; integrationId: string };
+      if (!payload || !payload.inboundReplyId || !payload.integrationId) {
+        throw new Error('Invalid job payload: missing inboundReplyId or integrationId');
       }
 
       const inboundReply = await this.prisma.inboundReply.findUnique({
@@ -110,28 +120,29 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       if (!inboundReply) {
         throw new Error(`InboundReply ${payload.inboundReplyId} not found`);
       }
-
+      if (inboundReply.workspaceId !== job.workspaceId) {
+        throw new Error(`Tenant mismatch: Job workspace ${job.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`);
+      }
       if (!inboundReply.providerEmailId) {
         throw new Error(`InboundReply ${payload.inboundReplyId} has no providerEmailId`);
       }
 
-      // Load integration
-      let integration;
-      if (payload.integrationId) {
-        integration = await this.prisma.integration.findUnique({
-          where: { id: payload.integrationId }
-        });
-      } else {
-        integration = await this.prisma.integration.findFirst({
-          where: {
-            workspaceId: inboundReply.workspaceId,
-            provider: inboundReply.provider as any
-          }
-        });
-      }
+      // Load integration directly by ID (no fallback)
+      const integration = await this.prisma.integration.findUnique({
+        where: { id: payload.integrationId }
+      });
 
-      if (!integration || !integration.secretReference) {
-        throw new Error(`Integration not found or missing provider secret`);
+      if (!integration) {
+        throw new Error(`Integration ${payload.integrationId} not found`);
+      }
+      if (integration.workspaceId !== inboundReply.workspaceId) {
+        throw new Error(`Tenant mismatch: Integration workspace ${integration.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`);
+      }
+      if (integration.provider !== inboundReply.provider) {
+        throw new Error(`Provider mismatch: Integration provider ${integration.provider} != InboundReply provider ${inboundReply.provider}`);
+      }
+      if (!integration.secretReference) {
+        throw new Error(`Integration missing provider secret`);
       }
 
             const apiCredentials = await this.secretResolver.resolve(
@@ -184,6 +195,8 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         await tx.inboundReply.update({
           where: { id: inboundReply.id },
           data: {
+            providerEmailId: retrieved.providerEmailId,
+            messageId: retrieved.messageId,
             bodyText: retrieved.text,
             bodyHtml: retrieved.html,
             inReplyTo: retrieved.inReplyTo,

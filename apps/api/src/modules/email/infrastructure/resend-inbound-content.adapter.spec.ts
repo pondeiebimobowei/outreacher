@@ -13,7 +13,17 @@ describe('ResendInboundContentAdapter', () => {
     (Resend as jest.Mock).mockImplementation(() => ({
       get: getMock
     }));
+  
+  it('handles AbortError/Timeout as TIMEOUT', async () => {
+    getMock.mockRejectedValue(new Error('The user aborted a request.')); // Resend fetch wrapper behavior
+
+    await expect(adapter.getEmailDetails('email-1', { apiKey: 'key' })).rejects.toMatchObject({
+      retrievalCode: 'TIMEOUT',
+      isRetryable: true
+    });
   });
+
+});
 
   it('maps successful response', async () => {
     getMock.mockResolvedValue({
