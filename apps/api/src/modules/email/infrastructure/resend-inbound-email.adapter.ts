@@ -8,7 +8,7 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
   verifySignature(context: WebhookVerificationContext): void {
     const wh = new Webhook(context.secret);
     try {
-      wh.verify(context.rawBody.toString('utf8'), context.headers);
+      wh.verify(context.rawBody.toString('utf8'), context.headers as Record<string, string>);
     } catch (err: any) {
       throw new AppValidationException(`Invalid webhook signature: ${err.message}`);
     }

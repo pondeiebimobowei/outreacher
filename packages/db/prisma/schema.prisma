@@ -489,6 +489,7 @@ model EmailSend {
   @@index([workspaceId, scheduledAt])
   @@index([workspaceId, senderAccountId, createdAt])
   @@index([providerMessageId])
+  @@index([workspaceId, messageId])
   @@map("email_sends")
 }
 
@@ -606,16 +607,16 @@ model IdempotencyRecord {
 }
 
 model Integration {
-  id              String              @id @default(uuid())
-  workspaceId     String              @map("workspace_id")
-  provider        IntegrationProvider
-  name            String
-  status          IntegrationStatus   @default(ACTIVE)
-  secretReference String              @map("secret_reference")
-  webhookSecretReference String?    @map("webhook_secret_reference")
-  metadata        Json?
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  id                     String              @id @default(uuid())
+  workspaceId            String              @map("workspace_id")
+  provider               IntegrationProvider
+  name                   String
+  status                 IntegrationStatus   @default(ACTIVE)
+  secretReference        String              @map("secret_reference")
+  webhookSecretReference String?             @map("webhook_secret_reference")
+  metadata               Json?
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
 
   workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   senderAccounts SenderAccount[]
@@ -682,11 +683,11 @@ model InboundReply {
   campaignId        String? @map("campaign_id")
   campaignContactId String? @map("campaign_contact_id")
 
-  provider        String  @default("RESEND")
-  providerEventId String  @map("provider_event_id")
-  providerEmailId String? @map("provider_email_id")
-  messageId       String? @map("message_id")
-  inReplyTo       String? @map("in_reply_to")
+  provider        String   @default("RESEND")
+  providerEventId String   @map("provider_event_id")
+  providerEmailId String?  @map("provider_email_id")
+  messageId       String?  @map("message_id")
+  inReplyTo       String?  @map("in_reply_to")
   references      String[] @default([])
   replyToToken    String?  @map("reply_to_token")
 

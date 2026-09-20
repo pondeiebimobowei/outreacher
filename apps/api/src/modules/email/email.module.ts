@@ -20,6 +20,10 @@ import { EmailProviderRegistry } from './infrastructure/email-provider.registry'
 import { ResendEmailProviderAdapter } from './infrastructure/resend-email-provider.adapter';
 import { ResendInboundEmailAdapter } from './infrastructure/resend-inbound-email.adapter';
 import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.adapter';
+import { ResendInboundContentAdapter } from './infrastructure/resend-inbound-content.adapter';
+import { ReplyCorrelationService } from './domain/reply-correlation.service';
+import { InboundReplyWorker } from './application/inbound-reply.worker';
+import { InboundEmailContentAdapterRegistry } from './infrastructure/inbound-email-content-adapter.registry';
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
@@ -49,6 +53,13 @@ import { MockEmailProviderAdapter } from './infrastructure/mock-email-provider.a
     ResendInboundEmailAdapter,
     InboundWebhookService,
     MockEmailProviderAdapter,
+    ResendInboundContentAdapter,
+    ReplyCorrelationService,
+    InboundReplyWorker,
+    {
+      provide: 'INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN',
+      useClass: InboundEmailContentAdapterRegistry,
+    },
   ],
   exports: [
     SendEligibilityService,

@@ -80,7 +80,7 @@ export class PrismaResearchRepository implements IResearchRepository {
         const recentJobs = await tx.job.findMany({
           where: {
             workspaceId,
-            type: 'RESEARCH_COMPANY',
+            type: 'COMPANY_RESEARCH',
             createdAt: { gte: twentyFourHoursAgo },
           },
         });
@@ -109,7 +109,7 @@ export class PrismaResearchRepository implements IResearchRepository {
       await tx.job.create({
         data: {
           workspaceId,
-          type: 'RESEARCH_COMPANY',
+          type: 'COMPANY_RESEARCH',
           status: 'PENDING',
           idempotencyKey: `research:${researchRun.id}`,
           payload: {
@@ -355,7 +355,7 @@ export class PrismaResearchRepository implements IResearchRepository {
     const pendingOrRunningJobs = await this.prisma.job.findMany({
       where: {
         workspaceId,
-        type: 'RESEARCH_COMPANY',
+        type: 'COMPANY_RESEARCH',
         status: { in: ['PENDING', 'RUNNING'] },
       },
       orderBy: { createdAt: 'desc' },

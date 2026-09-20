@@ -45,7 +45,7 @@ export class ResearchWorker {
       >`
         SELECT id, attempt_count 
         from jobs 
-        WHERE type = 'RESEARCH_COMPANY' 
+        WHERE type = 'COMPANY_RESEARCH' 
           AND status = 'PENDING'
           AND available_at <= ${now}
         ORDER BY available_at ASC
@@ -233,7 +233,7 @@ export class ResearchWorker {
 
     const staleJobs = await this.prisma.job.findMany({
       where: {
-        type: 'RESEARCH_COMPANY',
+        type: 'COMPANY_RESEARCH',
         status: JobStatus.RUNNING,
         startedAt: { lt: staleTime },
       },

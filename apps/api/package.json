@@ -43,6 +43,7 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.28.1",
     "rxjs": "^7.8.1",
     "svix": "^2.5.0",
     "zod": "^4.6.5"
