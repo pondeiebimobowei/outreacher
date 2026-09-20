@@ -18,6 +18,10 @@ export class AssignCampaignSendersUseCase {
       throw new AppNotFoundException('Campaign not found');
     }
 
+    if (campaign.status === 'ARCHIVED' || campaign.status === 'COMPLETED') {
+      throw new AppValidationException(`Cannot assign senders to a campaign in ${campaign.status} status`);
+    }
+
     const uniqueSenderIds = [...new Set(dto.senderAccountIds)];
 
     if (uniqueSenderIds.length > 0) {
