@@ -240,6 +240,9 @@ describe('InboundReplyWorker Database Integration', () => {
 
     const updatedReply = await prisma.inboundReply.findUniqueOrThrow({ where: { id: inboundReplyId } });
     expect(updatedReply.status).toBe('CORRELATED');
+
+    const contactAfter = await prisma.campaignContact.findUniqueOrThrow({ where: { id: campaignContactId } });
+    expect(contactAfter.status).toBe('PENDING');
     expect(updatedReply.campaignContactId).toBe(campaignContactId);
     expect(updatedReply.bodyText).toBe('hello');
     expect(updatedReply.messageId).toBe('<retrieved-msg-id>');

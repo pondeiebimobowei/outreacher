@@ -6,6 +6,7 @@ import { INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN } from '../domain/inbound-
 import type { IInboundEmailContentAdapterRegistry } from '../domain/inbound-email-content.adapter';
 import { ReplyCorrelationService } from '../domain/reply-correlation.service';
 import { InboundRetrievalException } from '../infrastructure/resend-inbound-content.adapter';
+import { Prisma } from '@repo/db';
 
 @Injectable()
 export class InboundReplyWorker implements OnApplicationBootstrap {
@@ -69,7 +70,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
   }
 
   private async claimAndProcessJobs(): Promise<number> {
-    const jobs = await this.prisma.$transaction(async (tx) => {
+    const jobs = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const eligible = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
         SELECT id, attempt_count
         FROM jobs
@@ -196,7 +197,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
           where: { id: inboundReply.id },
           data: {
             providerEmailId: retrieved.providerEmailId,
-            messageId: retrieved.messageId,
+            messageId: retrieved.messageId || inboundReply.messageId,
             bodyText: retrieved.text,
             bodyHtml: retrieved.html,
             inReplyTo: retrieved.inReplyTo,

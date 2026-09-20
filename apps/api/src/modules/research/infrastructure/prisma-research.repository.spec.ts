@@ -162,7 +162,7 @@ describe('PrismaResearchRepository & MockCompanyResearchProvider', () => {
       expect(mockPrisma.job.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            type: 'RESEARCH_COMPANY',
+            type: 'COMPANY_RESEARCH',
             idempotencyKey: 'research:run-new',
             payload: {
               researchRunId: 'run-new',

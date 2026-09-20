@@ -20,7 +20,21 @@ describe('InboundReplyWorker', () => {
       inboundReply: { findUnique: jest.fn(), update: jest.fn() },
       integration: { findUnique: jest.fn() },
       campaignContact: { findUnique: jest.fn() },
-      job: { update: jest.fn(), updateMany: jest.fn() }
+      job: { 
+        update: jest.fn().mockImplementation((args) => {
+          if (args.data.status === 'RUNNING') {
+            return Promise.resolve({
+              ...mockJob,
+              id: args.where.id,
+              leaseVersion: (mockJob.leaseVersion || 1) + 1,
+              attemptCount: args.data.attemptCount || 1,
+              status: 'RUNNING'
+            });
+          }
+          return Promise.resolve({});
+        }), 
+        updateMany: jest.fn() 
+      }
     };
 
     adapterRegistryMock = {
@@ -57,7 +71,7 @@ describe('InboundReplyWorker', () => {
   const mockJob = {
     id: 'job-1',
     leaseVersion: 1,
-    attemptCount: 0,
+    attemptCount: 0, attempt_count: 0,
     maxAttempts: 3,
     payload: { inboundReplyId: 'reply-1', integrationId: 'int-1' }, workspaceId: 'ws-1'
   };
@@ -90,7 +104,7 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'COMPLETED' })
     });
     expect(prismaMock.inboundReply.update).toHaveBeenCalledWith({
@@ -116,7 +130,7 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'DEAD_LETTER' })
     });
   });
@@ -133,13 +147,13 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'PENDING', lastError: expect.any(String) })
     });
   });
 
   it('fails terminally if adapter throws retryable exception but maxAttempts reached', async () => {
-    const exhaustedJob = { ...mockJob, attemptCount: 3 }; // simulated RETURNING value after increment
+    const exhaustedJob = { ...mockJob, attemptCount: 3, attempt_count: 3 }; // simulated RETURNING value after increment
     prismaMock.$queryRaw.mockResolvedValue([exhaustedJob]);
     prismaMock.inboundReply.findUnique.mockResolvedValue(mockInboundReply);
     prismaMock.integration.findUnique.mockResolvedValue({ workspaceId: 'ws-1', secretReference: 'sec', provider: 'RESEND' });
@@ -151,7 +165,7 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'DEAD_LETTER', lastError: expect.any(String) })
     });
   });
@@ -168,7 +182,7 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'DEAD_LETTER' })
     });
   });
@@ -191,7 +205,7 @@ describe('InboundReplyWorker', () => {
     await (worker as any).claimAndProcessJobs();
 
     expect(prismaMock.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1', leaseVersion: 1 },
+      where: { id: 'job-1', leaseVersion: 2 },
       data: expect.objectContaining({ status: 'DEAD_LETTER' })
     });
   });

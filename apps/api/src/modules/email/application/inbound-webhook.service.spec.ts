@@ -142,7 +142,7 @@ describe('InboundWebhookService', () => {
         workspaceId: 'workspace-1',
         type: 'WEBHOOK_PROCESSING',
         idempotencyKey: 'webhook:RESEND:evt-123',
-        payload: { inboundReplyId: 'reply-1' },
+        payload: { inboundReplyId: 'reply-1', integrationId: 'integration-1' },
       },
     }));
 
