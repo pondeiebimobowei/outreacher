@@ -24,7 +24,7 @@ export class TestIntegrationUseCase {
       throw new AppNotFoundException('Integration not found');
     }
 
-    const resolvedSecret = await this.secretResolver.resolve(integration.secretReference, integration.provider);
+    const resolvedSecret = await this.secretResolver.resolve(integration.workspaceId, integration.secretReference, integration.provider);
     const tester = this.testerRegistry.getTester(integration.provider);
     const result = await tester.testConnection(resolvedSecret);
 

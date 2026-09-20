@@ -147,7 +147,7 @@ export class EmailDispatchWorker {
         throw new EmailProviderException(`Provider adapter not found for ${providerStr}`, EmailDispatchErrorCode.PROVIDER_UNSUPPORTED);
       }
 
-      const credentials = await this.secretResolver.resolve(senderAccount.integration.secretReference, providerStr);
+      const credentials = await this.secretResolver.resolve(workspaceId, senderAccount.integration.secretReference, providerStr);
 
       const recipientEmail = emailSend.campaignContact?.contact?.email;
       if (!recipientEmail) throw new Error('Contact recipient email is missing');

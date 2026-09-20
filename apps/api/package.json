@@ -25,6 +25,7 @@
     "db:migrate:deploy": "pnpm --filter @repo/db run prisma:migrate:deploy"
   },
   "dependencies": {
+    "@infisical/sdk": "^5.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^11.0.1",
