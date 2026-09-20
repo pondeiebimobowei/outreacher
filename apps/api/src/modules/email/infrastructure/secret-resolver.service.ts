@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ISecretResolver } from '../domain/secret-resolver.interface';
 import { ProviderCredentials, ResendCredentials, SesCredentials, SmtpCredentials } from '../domain/provider-credentials';
-import { AppValidationException } from '../../../common/errors/application.exception';
+import { AppValidationException, SystemConfigurationException, SecretResolutionException } from '../../../common/errors/application.exception';
 
 @Injectable()
 export class SecretResolverService implements ISecretResolver {
   private client: any = null;
   private authPromise: Promise<void> | null = null;
+  private authExpiresAt: number = 0;
 
   private async getInfisicalClient(): Promise<any> {
     const { InfisicalSDK } = require('@infisical/sdk');
@@ -15,7 +16,17 @@ export class SecretResolverService implements ISecretResolver {
     const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-      throw new Error(`SystemConfigurationException: Infisical bootstrap credentials missing`);
+      throw new SystemConfigurationException('Infisical bootstrap credentials missing');
+    }
+
+    const now = Date.now();
+    // Re-authenticate if within 60 seconds of expiry or expired
+    const isExpired = this.authExpiresAt && now >= this.authExpiresAt - 60000;
+
+    if (isExpired) {
+      this.client = null;
+      this.authPromise = null;
+      this.authExpiresAt = 0;
     }
 
     if (this.client && this.authPromise) {
@@ -27,11 +38,15 @@ export class SecretResolverService implements ISecretResolver {
     this.authPromise = this.client.auth().universalAuth.login({
       clientId,
       clientSecret,
+    }).then((authResponse: any) => {
+      // Typically, authResponse contains expiresIn. Defaulting to 7200s (2h) if unknown.
+      const expiresInSeconds = (authResponse && authResponse.expiresIn) ? authResponse.expiresIn : 7200;
+      this.authExpiresAt = Date.now() + expiresInSeconds * 1000;
     }).catch(() => {
       // Clear the promise so subsequent attempts can retry
       this.client = null;
       this.authPromise = null;
-      throw new Error('SecretResolutionException: Failed to authenticate to vault');
+      throw new SecretResolutionException('Failed to authenticate to vault');
     });
 
     await this.authPromise;
@@ -84,7 +99,7 @@ export class SecretResolverService implements ISecretResolver {
       const environment = process.env.INFISICAL_ENVIRONMENT;
 
       if (!projectId || !environment) {
-        throw new Error(`SystemConfigurationException: Infisical environment config missing`);
+        throw new SystemConfigurationException('Infisical environment config missing');
       }
 
       const withoutScheme = secretReference.replace('vault://', '');
@@ -97,6 +112,10 @@ export class SecretResolverService implements ISecretResolver {
 
       if (!secretPath || secretPath.includes('\\') || secretPath.includes('..') || secretPath.includes('//')) {
         throw new AppValidationException(`Invalid secret path format`);
+      }
+
+      if (!secretName || secretName.trim() === '') {
+        throw new AppValidationException(`Invalid secret name`);
       }
 
       const expectedPrefix = `/workspaces/${workspaceId}/`;
@@ -115,7 +134,7 @@ export class SecretResolverService implements ISecretResolver {
         });
 
         if (!secret || !secret.secretValue) {
-          throw new Error('SecretMissingException');
+          throw new SecretResolutionException('SecretMissingException');
         }
 
         const val = secret.secretValue;
@@ -145,11 +164,13 @@ export class SecretResolverService implements ISecretResolver {
             throw new AppValidationException(`Unsupported provider: ${provider}`);
         }
       } catch (e: any) {
-        if (e instanceof AppValidationException) throw e;
-        throw new Error(`SecretResolutionException: Failed to resolve vault secret`);
+        if (e instanceof AppValidationException || e instanceof SystemConfigurationException || e instanceof SecretResolutionException) {
+          throw e;
+        }
+        throw new SecretResolutionException('Failed to resolve vault secret');
       }
     }
 
-    throw new AppValidationException(`Unsupported secret reference format: ${secretReference}`);
+    throw new AppValidationException('Unsupported secret reference format');
   }
 }
