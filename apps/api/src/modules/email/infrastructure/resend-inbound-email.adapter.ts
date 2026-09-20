@@ -2,15 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { Webhook } from 'svix';
 import { InboundEmailProviderAdapter, CanonicalInboundReply, WebhookVerificationContext } from '../domain/inbound-email-provider.adapter';
 import { AppValidationException } from '../../../common/errors/application.exception';
-import * as crypto from 'crypto';
 
 @Injectable()
 export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
   verifySignature(context: WebhookVerificationContext): void {
+    const wh = new Webhook(context.secret);
     try {
-      const wh = new Webhook(context.secret);
-      const headers = context.headers as Record<string, string>;
-      wh.verify(context.rawBody.toString('utf8'), headers);
+      wh.verify(context.rawBody.toString('utf8'), context.headers);
     } catch (err: any) {
       throw new AppValidationException(`Invalid webhook signature: ${err.message}`);
     }
@@ -20,33 +18,43 @@ export class ResendInboundEmailAdapter extends InboundEmailProviderAdapter {
     let payload;
     try {
       payload = JSON.parse(rawBody.toString('utf8'));
-    } catch (e) {
+    } catch (err) {
       throw new AppValidationException('Malformed JSON payload');
+    }
+
+    if (payload.type !== 'email.received') {
+      throw new AppValidationException(`Unsupported webhook event type: ${payload.type}`);
     }
 
     const data = payload.data || payload;
 
-    // Resend webhooks via svix always include svix-id header which uniquely identifies the event delivery
     let svixId = headers['svix-id'] as string | undefined;
     if (Array.isArray(svixId)) svixId = svixId[0];
 
-    // Fallback: deterministic hash of the authenticated raw body
-    const providerEventId = svixId || crypto.createHash('sha256').update(rawBody).digest('hex');
+    if (!svixId) {
+      throw new AppValidationException('Missing svix-id header');
+    }
+    const providerEventId = svixId;
 
-    const fromField = data.from || '';
-    // simple extraction, actual extraction handled in 10C when fetching full email if needed
+    if (!data.email_id) throw new AppValidationException('Missing email_id in payload');
+    if (!data.message_id) throw new AppValidationException('Missing message_id in payload');
+    if (!data.from) throw new AppValidationException('Missing from address in payload');
+
+    const fromField = data.from;
     const fromEmailMatch = fromField.match(/<([^>]+)>/);
     const fromEmail = fromEmailMatch ? fromEmailMatch[1] : fromField;
 
     const toArray = Array.isArray(data.to) ? data.to : [data.to];
-    const toField = toArray[0] || '';
+    const toField = toArray[0];
+    if (!toField) throw new AppValidationException('Missing recipient in payload');
+    
     const toEmailMatch = toField.match(/<([^>]+)>/);
     const toEmail = toEmailMatch ? toEmailMatch[1] : toField;
 
     return {
       providerEventId,
-      providerEmailId: data.email_id || null,
-      messageId: data.message_id || null,
+      providerEmailId: data.email_id,
+      messageId: data.message_id,
       
       // These are not in the Resend webhook payload, must be fetched via Receiving API in 10C
       inReplyTo: null,

@@ -108,12 +108,17 @@ export class InboundWebhookService {
       });
     } catch (err: any) {
       if (err.code === 'P2002') {
+        
         const target = err.meta?.target;
         // Check if the unique constraint violation is on the idempotency record key or inbound reply unique constraint
+        const targetStr = Array.isArray(target) ? target.join(',') : String(target || '');
+        const errMessage = err.message || '';
         if (
-          (Array.isArray(target) && target.includes('key')) ||
-          (Array.isArray(target) && target.includes('providerEventId')) ||
-          (typeof target === 'string' && (target.includes('key') || target.includes('provider_event_id')))
+          targetStr.includes('key') || 
+          targetStr.includes('providerEventId') || 
+          targetStr.includes('provider_event_id') ||
+          errMessage.includes('inbound_replies_workspace_id_provider_provider_event_id_key') ||
+          errMessage.includes('idempotency_records')
         ) {
           this.logger.log(`Idempotent webhook deduplication for providerEventId: ${canonicalPayload.providerEventId}`);
           return;

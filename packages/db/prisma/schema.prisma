@@ -565,7 +565,7 @@ model EmailTemplate {
 model Job {
   id             String    @id @default(uuid())
   workspaceId    String    @map("workspace_id")
-  type           String
+  type           JobType
   status         JobStatus @default(PENDING)
   payload        Json
   attemptCount   Int       @default(0) @map("attempt_count")
@@ -711,4 +711,13 @@ model InboundReply {
   @@unique([workspaceId, provider, providerEventId])
   @@index([workspaceId])
   @@map("inbound_replies")
+}
+
+enum JobType {
+  COMPANY_RESEARCH
+  CONTACT_DISCOVERY
+  OUTREACH_GENERATION
+  EMAIL_DISPATCH
+  SCHEDULED_FOLLOW_UP_CHECK
+  WEBHOOK_PROCESSING
 }
