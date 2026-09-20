@@ -117,6 +117,7 @@ export class SecretResolverService implements ISecretResolver {
       }
       
       switch (provider) {
+        case 'WEBHOOK': return { provider: 'WEBHOOK', secret: val } as any;
         case 'RESEND':
           return { provider: 'RESEND', apiKey: val } as ResendCredentials;
         case 'SES':
@@ -191,7 +192,8 @@ export class SecretResolverService implements ISecretResolver {
         }
 
         switch (provider) {
-          case 'RESEND':
+          case 'WEBHOOK': return { provider: 'WEBHOOK', secret: val } as any;
+        case 'RESEND':
             return { provider: 'RESEND', apiKey: val } as ResendCredentials;
           case 'SES':
             const sesData = JSON.parse(val);

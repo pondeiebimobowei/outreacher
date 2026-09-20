@@ -19,4 +19,9 @@ export interface SmtpCredentials {
   secure: boolean;
 }
 
-export type ProviderCredentials = ResendCredentials | SesCredentials | SmtpCredentials;
+export interface WebhookCredentials {
+  provider: 'WEBHOOK';
+  secret: string;
+}
+
+export type ProviderCredentials = ResendCredentials | SesCredentials | SmtpCredentials | WebhookCredentials;

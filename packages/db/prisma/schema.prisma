@@ -205,6 +205,7 @@ model Workspace {
   integrations             Integration[]
   senderAccounts           SenderAccount[]
   campaignSenderAccounts   CampaignSenderAccount[]
+  inboundReplies           InboundReply[]
 
   @@map("workspaces")
 }
@@ -415,6 +416,7 @@ model Campaign {
   campaignContacts       CampaignContact[]
   emailSends             EmailSend[]
   campaignSenderAccounts CampaignSenderAccount[]
+  inboundReplies         InboundReply[]
 
   @@unique([workspaceId, id])
   @@unique([workspaceId, companyId, normalizedName])
@@ -437,12 +439,13 @@ model CampaignContact {
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
-  workspace           Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign            Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  contact             Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  selectedOpportunity Opportunity? @relation(fields: [selectedOpportunityId], references: [id], onDelete: SetNull)
+  workspace           Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign            Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact             Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  selectedOpportunity Opportunity?   @relation(fields: [selectedOpportunityId], references: [id], onDelete: SetNull)
   emailSends          EmailSend[]
   outcomes            Outcome[]
+  inboundReplies      InboundReply[]
 
   @@unique([workspaceId, campaignId, contactId])
   @@index([workspaceId, campaignId])
@@ -664,4 +667,45 @@ model CampaignSenderAccount {
   @@index([workspaceId, campaignId])
   @@index([workspaceId, senderAccountId])
   @@map("campaign_sender_accounts")
+}
+
+enum ReplyStatus {
+  UNCORRELATED
+  CORRELATED
+  AMBIGUOUS
+}
+
+model InboundReply {
+  id                String  @id @default(uuid())
+  workspaceId       String  @map("workspace_id")
+  campaignId        String? @map("campaign_id")
+  campaignContactId String? @map("campaign_contact_id")
+
+  providerMessageId String?  @unique @map("provider_message_id")
+  messageId         String?  @unique @map("message_id")
+  inReplyTo         String?  @map("in_reply_to")
+  references        String[] @default([])
+  replyToToken      String?  @map("reply_to_token")
+
+  fromName  String? @map("from_name")
+  fromEmail String  @map("from_email")
+  toEmail   String  @map("to_email")
+
+  subject  String?
+  bodyText String? @map("body_text")
+  bodyHtml String? @map("body_html")
+
+  status ReplyStatus @default(UNCORRELATED)
+
+  receivedAt DateTime @default(now()) @map("received_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaignContact CampaignContact? @relation(fields: [campaignContactId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([campaignContactId])
+  @@map("inbound_replies")
 }
