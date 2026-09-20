@@ -7,6 +7,8 @@ import type { IInboundEmailContentAdapterRegistry } from '../domain/inbound-emai
 import { ReplyCorrelationService } from '../domain/reply-correlation.service';
 import { InboundRetrievalException } from '../infrastructure/resend-inbound-content.adapter';
 import { Prisma } from '@repo/db';
+import { MarkContactRepliedUseCase, ContactStateTransitionException } from './mark-contact-replied.use-case';
+
 
 @Injectable()
 export class InboundReplyWorker implements OnApplicationBootstrap {
@@ -18,7 +20,8 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
     @Inject(INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN) private readonly adapterRegistry: IInboundEmailContentAdapterRegistry,
-    private readonly correlationService: ReplyCorrelationService
+    private readonly correlationService: ReplyCorrelationService,
+    private readonly markContactRepliedUseCase: MarkContactRepliedUseCase
   ) {}
 
   onApplicationBootstrap() {
@@ -70,7 +73,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
   }
 
   private async claimAndProcessJobs(): Promise<number> {
-    const jobs = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const jobs: [] = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const eligible = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
         SELECT id, attempt_count
         FROM jobs
@@ -98,7 +101,7 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         });
         updatedJobs.push(updated);
       }
-      return updatedJobs;
+      return updatedJobs as [];
     });
 
     if (jobs.length === 0) return 0;
@@ -175,14 +178,8 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         retrieved.references
       );
 
-      // DB Transaction
+      // 10C Transaction
       await this.prisma.$transaction(async (tx: any) => {
-        // Optimistic concurrency on job
-        const updatedJob = await tx.job.update({
-          where: { id: job.id, leaseVersion: job.leaseVersion },
-          data: { status: 'COMPLETED', updatedAt: new Date(), completedAt: new Date() }
-        });
-
         // Tenant safety check - although correlation already scopes by workspaceId, we double check
         if (correlation.status === 'CORRELATED') {
            const contact = await tx.campaignContact.findUnique({
@@ -208,11 +205,24 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         });
       });
 
+      // 10D Transaction
+      if (correlation.status === 'CORRELATED' && correlation.campaignContactId) {
+        await this.markContactRepliedUseCase.execute(correlation.campaignContactId, inboundReply.workspaceId);
+      }
+
+      // Completion Transaction
+      await this.prisma.job.update({
+        where: { id: job.id, leaseVersion: job.leaseVersion },
+        data: { status: 'COMPLETED', updatedAt: new Date(), completedAt: new Date() }
+      });
+
     } catch (err: any) {
       this.logger.error(`Failed to process WEBHOOK_PROCESSING job ${job.id}`, err);
 
       let isRetryable = false;
       if (err instanceof InboundRetrievalException) {
+        isRetryable = err.isRetryable;
+      } else if (err instanceof ContactStateTransitionException) {
         isRetryable = err.isRetryable;
       } else if (err.code && err.code !== 'P2025') {
         // Unexpected errors (DB timeouts etc.) are usually retryable

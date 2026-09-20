@@ -4,6 +4,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
 import { INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN } from '../domain/inbound-email-content.adapter';
 import { ReplyCorrelationService } from '../domain/reply-correlation.service';
+import { MarkContactRepliedUseCase, ContactStateTransitionException } from './mark-contact-replied.use-case';
 import { InboundRetrievalException, InboundRetrievalErrorCode } from '../infrastructure/resend-inbound-content.adapter';
 
 describe('InboundReplyWorker', () => {
@@ -12,6 +13,7 @@ describe('InboundReplyWorker', () => {
   let adapterRegistryMock: any;
   let secretResolverMock: any;
   let correlationServiceMock: any;
+  let markContactRepliedUseCaseMock: any;
 
   beforeEach(async () => {
     prismaMock = {
@@ -47,6 +49,10 @@ describe('InboundReplyWorker', () => {
       resolve: jest.fn().mockResolvedValue({ apiKey: 'test-key' })
     };
 
+        markContactRepliedUseCaseMock = {
+      execute: jest.fn().mockResolvedValue(undefined)
+    };
+
     correlationServiceMock = {
       correlate: jest.fn()
     };
@@ -57,7 +63,8 @@ describe('InboundReplyWorker', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: SECRET_RESOLVER_TOKEN, useValue: secretResolverMock },
         { provide: INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN, useValue: adapterRegistryMock },
-        { provide: ReplyCorrelationService, useValue: correlationServiceMock }
+        { provide: ReplyCorrelationService, useValue: correlationServiceMock },
+        { provide: MarkContactRepliedUseCase, useValue: markContactRepliedUseCaseMock }
       ]
     }).compile();
 

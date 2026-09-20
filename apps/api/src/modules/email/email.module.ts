@@ -1,3 +1,4 @@
+import { MarkContactRepliedUseCase } from './application/mark-contact-replied.use-case';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
@@ -29,6 +30,7 @@ import { InboundEmailContentAdapterRegistry } from './infrastructure/inbound-ema
   imports: [PrismaModule, WorkspaceModule],
   controllers: [EmailController, InboundWebhookController],
   providers: [
+    MarkContactRepliedUseCase,
     {
       provide: SUPPRESSION_CHECKER_TOKEN,
       useClass: PrismaSuppressionChecker,
