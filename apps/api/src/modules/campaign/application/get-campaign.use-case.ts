@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Campaign } from '@repo/db';
+import { CampaignWithSenders } from '../domain/campaign.repository.interface';
 import { AppNotFoundException } from '../../../common/errors/application.exception';
 import {
   CAMPAIGN_REPOSITORY_TOKEN,
@@ -13,7 +14,7 @@ export class GetCampaignUseCase {
     private readonly campaignRepository: ICampaignRepository,
   ) {}
 
-  async execute(workspaceId: string, id: string): Promise<Campaign> {
+  async execute(workspaceId: string, id: string): Promise<CampaignWithSenders> {
     const campaign = await this.campaignRepository.findById(workspaceId, id);
     if (!campaign) {
       throw new AppNotFoundException('Campaign');

@@ -15,3 +15,5 @@ docs
 packages/db/generated/
 .agents
 AGENTS.md
+
+skills-lock.json

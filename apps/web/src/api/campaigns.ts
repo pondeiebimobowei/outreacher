@@ -1,5 +1,6 @@
 import { normalizeCampaignName } from '@repo/shared';
 import { apiClient, ApiError } from './client';
+import type { CampaignSenderSummary } from './campaign-senders';
 
 export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
 
@@ -23,6 +24,7 @@ export interface CampaignDto {
   name: string;
   normalizedName?: string;
   status: CampaignStatus;
+  senders?: CampaignSenderSummary[];
   sendingIdentity: string | null;
   followUpDelayBusinessDays: number;
   createdAt: string;

@@ -5,15 +5,45 @@ import {
   CampaignDuplicateNameError,
   CreateCampaignData,
   ICampaignRepository,
+  CampaignWithSenders,
 } from '../domain/campaign.repository.interface';
+import { CampaignSenderSummary } from '../dto/campaign-sender-summary.dto';
+
+const campaignInclude = {
+  campaignSenderAccounts: {
+    include: {
+      senderAccount: {
+        include: {
+          integration: true,
+        },
+      },
+    },
+  },
+};
+
+type CampaignWithPrismaIncludes = Prisma.CampaignGetPayload<{ include: typeof campaignInclude }>;
+
+function mapCampaign(campaign: CampaignWithPrismaIncludes): CampaignWithSenders {
+  return {
+    ...campaign,
+    senders: campaign.campaignSenderAccounts.map((csa) => ({
+      assignmentStatus: csa.status,
+      senderAccountId: csa.senderAccountId,
+      fromName: csa.senderAccount.fromName,
+      fromEmail: csa.senderAccount.fromEmail,
+      senderStatus: csa.senderAccount.status,
+      integrationStatus: csa.senderAccount.integration.status as CampaignSenderSummary['integrationStatus'],
+    })),
+  };
+}
 
 @Injectable()
 export class PrismaCampaignRepository implements ICampaignRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: CreateCampaignData): Promise<Campaign> {
+  async create(data: CreateCampaignData): Promise<CampaignWithSenders> {
     try {
-      return await this.prisma.campaign.create({
+      const campaign = await this.prisma.campaign.create({
         data: {
           workspaceId: data.workspaceId,
           companyId: data.companyId,
@@ -22,7 +52,9 @@ export class PrismaCampaignRepository implements ICampaignRepository {
           sendingIdentity: data.sendingIdentity ?? null,
           followUpDelayBusinessDays: data.followUpDelayBusinessDays ?? 4,
         },
+        include: campaignInclude,
       });
+      return mapCampaign(campaign);
     } catch (error: any) {
       if (this.isCampaignUniqueConstraintError(error)) {
         throw new CampaignDuplicateNameError(
@@ -35,46 +67,54 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     }
   }
 
-  async findById(workspaceId: string, id: string): Promise<Campaign | null> {
-    return this.prisma.campaign.findFirst({
+  async findById(workspaceId: string, id: string): Promise<CampaignWithSenders | null> {
+    const campaign = await this.prisma.campaign.findFirst({
       where: { id, workspaceId },
+      include: campaignInclude,
     });
+    return campaign ? mapCampaign(campaign) : null;
   }
 
   async findByNormalizedName(
     workspaceId: string,
     companyId: string,
     normalizedName: string,
-  ): Promise<Campaign | null> {
-    return this.prisma.campaign.findFirst({
+  ): Promise<CampaignWithSenders | null> {
+    const campaign = await this.prisma.campaign.findFirst({
       where: {
         workspaceId,
         companyId,
         normalizedName,
       },
+      include: campaignInclude,
     });
+    return campaign ? mapCampaign(campaign) : null;
   }
 
-  async findManyByWorkspace(workspaceId: string): Promise<Campaign[]> {
-    return this.prisma.campaign.findMany({
+  async findManyByWorkspace(workspaceId: string): Promise<CampaignWithSenders[]> {
+    const campaigns = await this.prisma.campaign.findMany({
       where: { workspaceId },
       orderBy: { updatedAt: 'desc' },
+      include: campaignInclude,
     });
+    return campaigns.map(mapCampaign);
   }
 
   async updateStatus(
     workspaceId: string,
     id: string,
     status: CampaignStatus,
-  ): Promise<Campaign | null> {
+  ): Promise<CampaignWithSenders | null> {
     const existing = await this.findById(workspaceId, id);
     if (!existing) {
       return null;
     }
-    return this.prisma.campaign.update({
+    const campaign = await this.prisma.campaign.update({
       where: { id },
       data: { status },
+      include: campaignInclude,
     });
+    return mapCampaign(campaign);
   }
 
   async findExistingContactBindings(

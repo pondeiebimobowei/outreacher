@@ -1,4 +1,9 @@
 import { Campaign, CampaignContact, CampaignStatus } from '@repo/db';
+import { CampaignSenderSummary } from '../dto/campaign-sender-summary.dto';
+
+export type CampaignWithSenders = Campaign & {
+  senders?: CampaignSenderSummary[];
+};
 
 export class CampaignDuplicateNameError extends Error {
   constructor(
@@ -23,19 +28,19 @@ export interface CreateCampaignData {
 }
 
 export interface ICampaignRepository {
-  create(data: CreateCampaignData): Promise<Campaign>;
-  findById(workspaceId: string, id: string): Promise<Campaign | null>;
+  create(data: CreateCampaignData): Promise<CampaignWithSenders>;
+  findById(workspaceId: string, id: string): Promise<CampaignWithSenders | null>;
   findByNormalizedName(
     workspaceId: string,
     companyId: string,
     normalizedName: string,
-  ): Promise<Campaign | null>;
-  findManyByWorkspace(workspaceId: string): Promise<Campaign[]>;
+  ): Promise<CampaignWithSenders | null>;
+  findManyByWorkspace(workspaceId: string): Promise<CampaignWithSenders[]>;
   updateStatus(
     workspaceId: string,
     id: string,
     status: CampaignStatus,
-  ): Promise<Campaign | null>;
+  ): Promise<CampaignWithSenders | null>;
   findExistingContactBindings(
     workspaceId: string,
     campaignId: string,

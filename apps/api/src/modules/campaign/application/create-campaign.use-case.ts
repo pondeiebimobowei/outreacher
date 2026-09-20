@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Campaign } from '@repo/db';
+import { CampaignWithSenders } from '../domain/campaign.repository.interface';
 import { normalizeCampaignName } from '@repo/shared';
 import {
   AppNotFoundException,
@@ -29,7 +30,7 @@ export class CreateCampaignUseCase {
   async execute(
     workspaceId: string,
     dto: CreateCampaignDto,
-  ): Promise<Campaign> {
+  ): Promise<CampaignWithSenders> {
     // Validate companyId belongs to the server-authoritative workspaceId
     const company = await this.companyRepository.findById(
       workspaceId,

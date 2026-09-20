@@ -6,8 +6,10 @@ import {
   pauseCampaign,
   resumeCampaign,
 } from '../../api/campaigns';
+import { assignCampaignSenders } from '../../api/campaign-senders';
 import { fetchCampaignContacts } from '../../api/outreach';
 import { CampaignReviewHub, type ReviewFilter } from '../../components/campaign/campaign-review-hub';
+import { SenderAssignmentModal } from '../../components/campaign/sender-assignment-modal';
 import { OutreachReviewDrawer } from '../../components/outreach/outreach-review-drawer';
 import { LoadingState, ErrorState } from '../../components/states';
 import type { CampaignContactSummaryDto } from '../../api/outreach';
@@ -82,6 +84,16 @@ function CampaignReviewHubRoute() {
     },
   });
 
+  const [isSenderModalOpen, setIsSenderModalOpen] = useState(false);
+  
+  const assignSendersMutation = useMutation({
+    mutationFn: (senderIds: string[]) => assignCampaignSenders(campaignId, senderIds),
+    onSuccess: () => {
+      setIsSenderModalOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
+    },
+  });
+
   const isPauseResumeLoading = pauseMutation.isPending || resumeMutation.isPending;
 
   // ── Loading / error states ────────────────────────────────────────────────
@@ -124,6 +136,19 @@ function CampaignReviewHubRoute() {
         onResume={() => resumeMutation.mutate()}
         isPauseResumeLoading={isPauseResumeLoading}
         companyName={companyName}
+        onOpenAssignSenders={() => setIsSenderModalOpen(true)}
+      />
+
+      <SenderAssignmentModal
+        isOpen={isSenderModalOpen}
+        onClose={() => setIsSenderModalOpen(false)}
+        onSave={(senderIds) => assignSendersMutation.mutate(senderIds)}
+        isSaving={assignSendersMutation.isPending}
+        initialSelectedIds={
+          campaign.senders
+            ?.filter((s) => s.assignmentStatus === 'ACTIVE')
+            .map((s) => s.senderAccountId) ?? []
+        }
       />
 
       {/*

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Campaign } from '@repo/db';
+import { CampaignWithSenders } from '../domain/campaign.repository.interface';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -18,7 +19,7 @@ export class ChangeCampaignStatusUseCase {
     private readonly campaignRepository: ICampaignRepository,
   ) {}
 
-  async pause(workspaceId: string, campaignId: string): Promise<Campaign> {
+  async pause(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status !== 'ACTIVE') {
@@ -40,7 +41,7 @@ export class ChangeCampaignStatusUseCase {
     return updated;
   }
 
-  async resume(workspaceId: string, campaignId: string): Promise<Campaign> {
+  async resume(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status !== 'PAUSED') {
@@ -62,7 +63,7 @@ export class ChangeCampaignStatusUseCase {
     return updated;
   }
 
-  async archive(workspaceId: string, campaignId: string): Promise<Campaign> {
+  async archive(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status === 'ARCHIVED') {
@@ -88,7 +89,7 @@ export class ChangeCampaignStatusUseCase {
     workspaceId: string,
     campaignId: string,
     action: CampaignLifecycleAction,
-  ): Promise<Campaign> {
+  ): Promise<CampaignWithSenders> {
     switch (action) {
       case 'PAUSE':
         return this.pause(workspaceId, campaignId);
@@ -106,7 +107,7 @@ export class ChangeCampaignStatusUseCase {
   private async findCampaignOrThrow(
     workspaceId: string,
     campaignId: string,
-  ): Promise<Campaign> {
+  ): Promise<CampaignWithSenders> {
     const campaign = await this.campaignRepository.findById(
       workspaceId,
       campaignId,

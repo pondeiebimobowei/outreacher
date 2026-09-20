@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CampaignDto, CampaignStatus, fetchCampaigns, pauseCampaign, resumeCampaign } from '../../api/campaigns';
 import { CompanyDto, fetchCompanies } from '../../api/companies';
 import { EmptyState, ErrorState, LoadingState } from '../../components/states';
+import { computeCampaignReadiness } from '../../domain/campaign-readiness';
 
 export const Route = createFileRoute('/_authed/campaigns/')({
   component: CampaignsIndexComponent,
@@ -205,9 +206,36 @@ function CampaignsIndexComponent() {
                         <div className="text-sm text-slate-700">{company?.name || 'Unknown'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusConf.classes}`}>
-                          {statusConf.label}
-                        </span>
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusConf.classes}`}>
+                            {statusConf.label}
+                          </span>
+                          {(() => {
+                            const readiness = computeCampaignReadiness(campaign.status, campaign.senders);
+                            if (readiness.state === 'READY') {
+                              return (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {readiness.eligibleSenderCount} Sender{readiness.eligibleSenderCount > 1 ? 's' : ''} Ready
+                                </span>
+                              );
+                            }
+                            if (readiness.state === 'NEEDS_SENDER') {
+                              return (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                  Needs Sender
+                                </span>
+                              );
+                            }
+                            if (readiness.state === 'ALL_SENDERS_INELIGIBLE' || readiness.state === 'READINESS_UNKNOWN') {
+                              return (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                  Sender Issues
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                         {new Date(campaign.updatedAt).toLocaleDateString()}
