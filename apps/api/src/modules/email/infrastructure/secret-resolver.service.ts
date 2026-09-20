@@ -6,51 +6,99 @@ import { AppValidationException, SystemConfigurationException, SecretResolutionE
 @Injectable()
 export class SecretResolverService implements ISecretResolver {
   private client: any = null;
-  private authPromise: Promise<void> | null = null;
-  private authExpiresAt: number = 0;
+  private isAuthenticating = false;
+  private authWaiters: Array<(client: any) => void> = [];
+  private authErrors: Array<(err: any) => void> = [];
 
-  private async getInfisicalClient(): Promise<any> {
-    const { InfisicalSDK } = require('@infisical/sdk');
+  private isAuthenticationFailure(error: any): boolean {
+    if (!error) return false;
+    const status = error.status ?? error.statusCode ?? error.response?.status ?? error.response?.statusCode;
+    if (status === 401) return true;
+    if (error.message && typeof error.message === 'string' && error.message.includes('401')) return true;
+    return false;
+  }
 
-    const clientId = process.env.INFISICAL_CLIENT_ID;
-    const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new SystemConfigurationException('Infisical bootstrap credentials missing');
-    }
-
-    const now = Date.now();
-    // Re-authenticate if within 60 seconds of expiry or expired
-    const isExpired = this.authExpiresAt && now >= this.authExpiresAt - 60000;
-
-    if (isExpired) {
-      this.client = null;
-      this.authPromise = null;
-      this.authExpiresAt = 0;
-    }
-
-    if (this.client && this.authPromise) {
-      await this.authPromise;
+  private async getClientAuth(forceRecover = false): Promise<any> {
+    if (this.client && !forceRecover && !this.isAuthenticating) {
       return this.client;
     }
 
-    this.client = new InfisicalSDK();
-    this.authPromise = this.client.auth().universalAuth.login({
-      clientId,
-      clientSecret,
-    }).then((authResponse: any) => {
-      // Typically, authResponse contains expiresIn. Defaulting to 7200s (2h) if unknown.
-      const expiresInSeconds = (authResponse && authResponse.expiresIn) ? authResponse.expiresIn : 7200;
-      this.authExpiresAt = Date.now() + expiresInSeconds * 1000;
-    }).catch(() => {
-      // Clear the promise so subsequent attempts can retry
-      this.client = null;
-      this.authPromise = null;
-      throw new SecretResolutionException('Failed to authenticate to vault');
-    });
+    if (this.isAuthenticating) {
+      return new Promise((resolve, reject) => {
+        this.authWaiters.push(resolve);
+        this.authErrors.push(reject);
+      });
+    }
 
-    await this.authPromise;
-    return this.client;
+    this.isAuthenticating = true;
+
+    try {
+      if (this.client && forceRecover) {
+        try {
+          await this.client.auth().universalAuth.renew();
+        } catch (renewErr) {
+          // If renew fails, clear client to trigger full login immediately below
+          this.client = null;
+        }
+      }
+
+      if (!this.client) {
+        const { InfisicalSDK } = require('@infisical/sdk');
+        const clientId = process.env.INFISICAL_CLIENT_ID;
+        const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
+
+        if (!clientId || !clientSecret) {
+          throw new SystemConfigurationException('Infisical bootstrap credentials missing');
+        }
+
+        this.client = new InfisicalSDK();
+        await this.client.auth().universalAuth.login({
+          clientId,
+          clientSecret,
+        });
+      }
+
+      const client = this.client;
+      this.isAuthenticating = false;
+      this.authWaiters.forEach((resolve) => resolve(client));
+      this.authWaiters = [];
+      this.authErrors = [];
+      return client;
+    } catch (err) {
+      this.client = null;
+      this.isAuthenticating = false;
+      let finalErr = err;
+      if (!(err instanceof SystemConfigurationException)) {
+        finalErr = new SecretResolutionException('Failed to authenticate to vault');
+      }
+      this.authErrors.forEach((reject) => reject(finalErr));
+      this.authWaiters = [];
+      this.authErrors = [];
+      throw finalErr;
+    }
+  }
+
+  private async executeGetSecret(client: any, environment: string, projectId: string, secretPath: string, secretName: string): Promise<string> {
+    try {
+      const secret = await client.secrets().getSecret({
+        environment,
+        projectId,
+        path: secretPath,
+        secretName,
+      });
+      if (!secret || !secret.secretValue) {
+        throw new SecretResolutionException('SecretMissingException');
+      }
+      return secret.secretValue;
+    } catch (error: any) {
+      if (error instanceof SecretResolutionException) throw error;
+
+      const status = error.status ?? error.statusCode ?? error.response?.status;
+      if (status === 404 || (error.message && error.message.includes('404'))) {
+        throw new SecretResolutionException('SecretMissingException');
+      }
+      throw error;
+    }
   }
 
   async resolve(workspaceId: string, secretReference: string, provider: string): Promise<ProviderCredentials> {
@@ -124,20 +172,23 @@ export class SecretResolverService implements ISecretResolver {
       }
 
       try {
-        const client = await this.getInfisicalClient();
+        let client = await this.getClientAuth(false);
+        let val: string;
 
-        const secret = await client.secrets().getSecret({
-          environment,
-          projectId,
-          path: secretPath,
-          secretName,
-        });
-
-        if (!secret || !secret.secretValue) {
-          throw new SecretResolutionException('SecretMissingException');
+        try {
+          val = await this.executeGetSecret(client, environment, projectId, secretPath, secretName);
+        } catch (e: any) {
+          if (e instanceof SecretResolutionException && e.message === 'SecretMissingException') {
+            throw e; // Let outer block handle this as a resolution failure
+          }
+          
+          if (this.isAuthenticationFailure(e)) {
+            client = await this.getClientAuth(true);
+            val = await this.executeGetSecret(client, environment, projectId, secretPath, secretName);
+          } else {
+            throw e;
+          }
         }
-
-        const val = secret.secretValue;
 
         switch (provider) {
           case 'RESEND':
