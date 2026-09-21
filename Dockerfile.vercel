@@ -12,6 +12,6 @@ COPY packages ./packages
 
 # Install and build using Turbo to ensure @repo/db and @repo/shared are built
 RUN pnpm install --frozen-lockfile
-RUN pnpm run build --filter=api
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" pnpm run build --filter=api
 
 CMD ["node", "apps/api/dist/main.js"]
