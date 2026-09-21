@@ -15,5 +15,5 @@ docs
 packages/db/generated/
 .agents
 AGENTS.md
-
+.vercel
 skills-lock.json
