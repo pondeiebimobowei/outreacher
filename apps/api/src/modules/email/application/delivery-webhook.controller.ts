@@ -1,6 +1,6 @@
 import { Controller, Post, Param, Req, Res, HttpCode } from '@nestjs/common';
-import { RawBodyRequest } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { type RawBodyRequest } from '@nestjs/common';
+import { type Request, type Response } from 'express';
 import { DeliveryWebhookService } from './delivery-webhook.service';
 
 @Controller('webhooks/email/delivery')
@@ -18,3 +18,5 @@ export class DeliveryWebhookController {
     res.status(202).send({ accepted: true });
   }
 }
+
+

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { Prisma } from '@repo/db';
 
 export class ContactStateTransitionException extends Error {
   constructor(
@@ -18,7 +19,7 @@ export class MarkContactRepliedUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(campaignContactId: string, workspaceId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient ) => {
       // 1. Lock the contact row
       const contacts = await tx.$queryRaw<Array<{ id: string; workspace_id: string; status: string }>>`
         SELECT id, workspace_id, status 

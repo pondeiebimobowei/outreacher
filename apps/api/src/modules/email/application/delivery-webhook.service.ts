@@ -60,7 +60,7 @@ export class DeliveryWebhookService {
     const result = adapter.parsePayload(req.rawBody, req.headers as Record<string, string>);
 
     if (result.status === 'INVALID') {
-      throw new AppValidationException(result.reason, 400);
+      throw new AppValidationException(result.reason);
     }
 
     if (result.status === 'UNSUPPORTED') {
