@@ -4,8 +4,9 @@
       "root": "apps/web"
     },
     "api": {
-      "root": "apps/api",
-      "entrypoint": "src/main.ts"
+      "root": ".",
+      "entrypoint": "apps/api/Dockerfile.vercel",
+      "runtime": "container"
     }
   },
   "rewrites": [
