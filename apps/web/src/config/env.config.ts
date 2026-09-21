@@ -14,3 +14,5 @@ export const webEnv = {
     (import.meta.env && import.meta.env.PROD) ||
     (typeof process !== 'undefined' ? process.env?.NODE_ENV === 'production' : false),
 };
+
+console.log('webEnv initialized:', webEnv);
