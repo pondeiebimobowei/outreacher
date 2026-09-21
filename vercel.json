@@ -5,7 +5,7 @@
     },
     "api": {
       "root": ".",
-      "entrypoint": "apps/api/Dockerfile.vercel",
+      "entrypoint": "Dockerfile.vercel",
       "runtime": "container"
     }
   },

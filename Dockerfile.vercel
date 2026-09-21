@@ -1,0 +1,17 @@
+FROM node:24-alpine
+WORKDIR /app
+ENV CI=true
+
+# Prepare pnpm
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+
+# Context is now monorepo root, allowing us to copy workspace files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY apps ./apps
+COPY packages ./packages
+
+# Install and build using Turbo to ensure @repo/db and @repo/shared are built
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build --filter=api
+
+CMD ["node", "apps/api/dist/main.js"]
