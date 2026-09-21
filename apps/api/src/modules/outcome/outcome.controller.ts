@@ -6,7 +6,7 @@ import { WorkspaceGuard } from '../workspaces/workspace.guard';
 import { RecordUserOutcomeUseCase } from './application/record-user-outcome.use-case';
 import { RecordOutcomeDto } from './dto/record-outcome.dto';
 
-@Controller('api/v1/campaign-contacts')
+@Controller('campaign-contacts')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class OutcomeController {
   constructor(private readonly recordUserOutcome: RecordUserOutcomeUseCase) {}

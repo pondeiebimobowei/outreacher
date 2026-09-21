@@ -47,6 +47,7 @@ describe('OutcomeController (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
   });
