@@ -12,5 +12,5 @@
   "transform": {
     "^.+\\.(t|j|mj)s$": "ts-jest"
   },
-  "transformIgnorePatterns": ["/node_modules/(?!(\\.pnpm|@nestjs|@prisma))"]
+  "transformIgnorePatterns": ["/node_modules/(?!(\\.pnpm|@nestjs|@prisma|svix))"]
 }
