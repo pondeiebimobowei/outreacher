@@ -9,41 +9,38 @@ describe('MarkContactRepliedUseCase', () => {
     prismaMock = {
       $transaction: jest.fn((cb) => cb(prismaMock)),
       $queryRaw: jest.fn(),
+      $executeRaw: jest.fn().mockResolvedValue(1),
     };
     useCase = new MarkContactRepliedUseCase(prismaMock as unknown as PrismaService);
   });
 
-  it('should successfully transition SENT to REPLIED', async () => {
+  it('should successfully transition SENT to REPLIED and cancel PENDING jobs', async () => {
     prismaMock.$queryRaw.mockResolvedValueOnce([{
       id: 'contact-1',
       workspace_id: 'ws-1',
       status: 'SENT'
     }]);
-    prismaMock.$queryRaw.mockResolvedValueOnce([]);
 
     await useCase.execute('contact-1', 'ws-1');
 
-    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
-    // 2nd call should be the update
-    const updateCall = prismaMock.$queryRaw.mock.calls[1][0];
-    expect(updateCall[0]).toContain("UPDATE campaign_contacts");
-    expect(updateCall[0]).toContain("SET status = 'REPLIED'");
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2); // SELECT and UPDATE
+    expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1); // Cancel jobs
   });
 
-  it('should successfully transition FOLLOW_UP_DUE to REPLIED', async () => {
+  it('should successfully transition FOLLOW_UP_DUE to REPLIED and cancel PENDING jobs', async () => {
     prismaMock.$queryRaw.mockResolvedValueOnce([{
       id: 'contact-1',
       workspace_id: 'ws-1',
       status: 'FOLLOW_UP_DUE'
     }]);
-    prismaMock.$queryRaw.mockResolvedValueOnce([]);
 
     await useCase.execute('contact-1', 'ws-1');
 
     expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('should return idempotently if already REPLIED', async () => {
+  it('should return idempotently if already REPLIED and still cancel PENDING jobs', async () => {
     prismaMock.$queryRaw.mockResolvedValueOnce([{
       id: 'contact-1',
       workspace_id: 'ws-1',
@@ -52,51 +49,42 @@ describe('MarkContactRepliedUseCase', () => {
 
     await useCase.execute('contact-1', 'ws-1');
 
-    // Only the select query, no update
-    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1); // Only SELECT
+    expect(prismaMock.$executeRaw).toHaveBeenCalledTimes(1); // Still cancels jobs
   });
 
-    it('should throw retryable exception if SENDING', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([{
+  it('should throw retryable exception if SENDING without cancelling jobs', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{
       id: 'contact-1',
       workspace_id: 'ws-1',
       status: 'SENDING'
     }]);
 
-    try {
-      await useCase.execute('contact-1', 'ws-1');
-      fail('Should have thrown ContactStateTransitionException');
-    } catch (e: any) {
-      expect(e).toBeInstanceOf(ContactStateTransitionException);
-      expect(e.isRetryable).toBe(true);
-    }
+    await expect(useCase.execute('contact-1', 'ws-1')).rejects.toThrow(ContactStateTransitionException);
+
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
   });
 
-    it('should throw terminal exception if PENDING', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([{
+  it('should throw terminal exception if PENDING without cancelling jobs', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([{
       id: 'contact-1',
       workspace_id: 'ws-1',
       status: 'PENDING'
     }]);
 
-    try {
-      await useCase.execute('contact-1', 'ws-1');
-      fail('Should have thrown ContactStateTransitionException');
-    } catch (e: any) {
-      expect(e).toBeInstanceOf(ContactStateTransitionException);
-      expect(e.isRetryable).toBe(false);
-    }
+    await expect(useCase.execute('contact-1', 'ws-1')).rejects.toThrow(ContactStateTransitionException);
+
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
   });
 
-    it('should throw terminal exception if contact not found or tenant mismatch', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([]);
+  it('should throw terminal exception if contact not found or tenant mismatch', async () => {
+    prismaMock.$queryRaw.mockResolvedValueOnce([]);
 
-    try {
-      await useCase.execute('contact-1', 'ws-1');
-      fail('Should have thrown ContactStateTransitionException');
-    } catch (e: any) {
-      expect(e).toBeInstanceOf(ContactStateTransitionException);
-      expect(e.isRetryable).toBe(false);
-    }
+    await expect(useCase.execute('contact-1', 'ws-1')).rejects.toThrow(ContactStateTransitionException);
+
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
   });
 });

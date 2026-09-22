@@ -211,7 +211,31 @@ describe('InboundReplyWorker Database Integration', () => {
       }
     });
 
+    
+    const followUpJobId = randomUUID();
     await prisma.job.create({
+      data: {
+        id: followUpJobId,
+        workspaceId,
+        type: 'SCHEDULED_FOLLOW_UP_CHECK',
+        status: 'PENDING',
+        payload: { campaignContactId }
+      }
+    });
+    
+    // Also add an unrelated job to ensure it's not touched
+    const unrelatedJobId = randomUUID();
+    await prisma.job.create({
+      data: {
+        id: unrelatedJobId,
+        workspaceId,
+        type: 'EMAIL_DISPATCH',
+        status: 'PENDING',
+        payload: { campaignContactId }
+      }
+    });
+
+await prisma.job.create({
       data: {
         id: jobId,
         workspaceId,
@@ -249,6 +273,15 @@ describe('InboundReplyWorker Database Integration', () => {
     expect(updatedReply.campaignContactId).toBe(campaignContactId);
     expect(updatedReply.bodyText).toBe('hello');
     expect(updatedReply.messageId).toBe('<retrieved-msg-id>');
+
+    // 10E Verification: Follow-up jobs must be cancelled
+    const followUpJob = await prisma.job.findUniqueOrThrow({ where: { id: followUpJobId } });
+    expect(followUpJob.status).toBe('COMPLETED');
+    expect(followUpJob.lastError).toBe('Cancelled due to inbound reply');
+
+    // Unrelated jobs should not be touched
+    const unrelatedJob = await prisma.job.findUniqueOrThrow({ where: { id: unrelatedJobId } });
+    expect(unrelatedJob.status).toBe('PENDING');
   });
 
   it('should process job and set status to UNCORRELATED', async () => {
@@ -486,6 +519,66 @@ describe('InboundReplyWorker Database Integration', () => {
     // 6. Verify 10D transition occurred
     const contactAfterSecond = await prisma.campaignContact.findUnique({ where: { id: campaignContactIdRace } });
     expect(contactAfterSecond?.status).toBe('REPLIED');
+  });
+
+
+  it('should completely roll back both CampaignContact and Job changes if a failure occurs before commit', async () => {
+    const workspaceId = randomUUID();
+    const campaignContactId = randomUUID();
+    const followUpJobId = randomUUID();
+
+    await prisma.workspace.create({ data: { id: workspaceId, name: 'Rollback WS' } });
+
+    const company = await prisma.company.create({
+      data: { id: randomUUID(), workspaceId, name: 'Rollback Co', normalizedName: 'rbco' }
+    });
+    const campaign = await prisma.campaign.create({
+      data: { id: randomUUID(), workspaceId, companyId: company.id, name: 'Rollback Camp', normalizedName: 'rbcamp', status: 'DRAFT', sendingIdentity: 'ME' }
+    });
+    const contact = await prisma.contact.create({
+      data: { id: randomUUID(), workspaceId, companyId: company.id, contactKind: 'PERSON', name: 'John Doe', email: 'user@example.com' }
+    });
+    const campaignContact = await prisma.campaignContact.create({
+      data: {
+        id: campaignContactId,
+        workspaceId,
+        campaignId: campaign.id,
+        contactId: contact.id,
+        status: 'SENT',
+        targetRole: 'test'
+      }
+    });
+
+    await prisma.job.create({
+      data: {
+        id: followUpJobId,
+        workspaceId,
+        type: 'SCHEDULED_FOLLOW_UP_CHECK',
+        status: 'PENDING',
+        payload: { campaignContactId }
+      }
+    });
+
+    const { MarkContactRepliedUseCase } = require('./mark-contact-replied.use-case');
+    const useCase = new MarkContactRepliedUseCase(prisma);
+
+    // Spy on the logger to throw an error exactly at the end of the transaction
+    const loggerSpy = jest.spyOn((useCase as any).logger, 'log').mockImplementation((msg: string) => {
+      if (msg.includes('Cancelled')) {
+        throw new Error('Simulated failure before commit');
+      }
+    });
+
+    await expect(useCase.execute(campaignContactId, workspaceId)).rejects.toThrow('Simulated failure before commit');
+
+    loggerSpy.mockRestore();
+
+    // Assert that PostgreSQL rolled back the atomic transaction
+    const contactAfter = await prisma.campaignContact.findUniqueOrThrow({ where: { id: campaignContactId } });
+    expect(contactAfter.status).toBe('SENT'); // NOT REPLIED
+
+    const followUpJobAfter = await prisma.job.findUniqueOrThrow({ where: { id: followUpJobId } });
+    expect(followUpJobAfter.status).toBe('PENDING'); // NOT COMPLETED
   });
 
 });

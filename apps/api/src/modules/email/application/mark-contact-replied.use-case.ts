@@ -37,10 +37,7 @@ export class MarkContactRepliedUseCase {
       // 2. Evaluate state
       if (contact.status === 'REPLIED') {
         this.logger.log(`CampaignContact ${campaignContactId} is already REPLIED. Idempotent success.`);
-        return;
-      }
-
-      if (contact.status === 'SENT' || contact.status === 'FOLLOW_UP_DUE') {
+      } else if (contact.status === 'SENT' || contact.status === 'FOLLOW_UP_DUE') {
         this.logger.log(`Transitioning CampaignContact ${campaignContactId} from ${contact.status} to REPLIED.`);
         await tx.$queryRaw`
           UPDATE campaign_contacts 
@@ -48,16 +45,31 @@ export class MarkContactRepliedUseCase {
           WHERE id = ${campaignContactId} 
             AND workspace_id = ${workspaceId}
         `;
-        return;
-      }
-
-      if (contact.status === 'SENDING') {
+      } else if (contact.status === 'SENDING') {
         this.logger.warn(`CampaignContact ${campaignContactId} is SENDING. Deferring REPLIED transition (retryable race).`);
-        throw new ContactStateTransitionException(`CampaignContact is SENDING. Defers transition.`, true);
+        throw new ContactStateTransitionException(`CampaignContact is SENDING. Deferring transition.`, true);
+      } else {
+        this.logger.error(`CampaignContact ${campaignContactId} in invalid source state ${contact.status} for REPLIED transition.`);
+        throw new ContactStateTransitionException(`Invalid source state: ${contact.status}`, false);
       }
 
-      this.logger.error(`CampaignContact ${campaignContactId} in invalid source state ${contact.status} for REPLIED transition.`);
-      throw new ContactStateTransitionException(`Invalid source state: ${contact.status}`, false);
+      // 3. Cancel eligible pending follow-up jobs for this contact
+      const cancelledJobs = await tx.$executeRaw`
+        UPDATE jobs
+        SET
+          status = 'COMPLETED'::"JobStatus",
+          completed_at = NOW(),
+          last_error = 'Cancelled due to inbound reply'
+        WHERE
+          workspace_id = ${workspaceId}
+          AND type = 'SCHEDULED_FOLLOW_UP_CHECK'::"JobType"
+          AND status = 'PENDING'::"JobStatus"
+          AND payload->>'campaignContactId' = ${campaignContactId}
+      `;
+      
+      if (cancelledJobs > 0) {
+        this.logger.log(`Cancelled ${cancelledJobs} PENDING SCHEDULED_FOLLOW_UP_CHECK job(s) for CampaignContact ${campaignContactId}.`);
+      }
     });
   }
 }
