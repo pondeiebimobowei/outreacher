@@ -23,6 +23,7 @@ import { IntegrationModule } from './modules/integration/integration.module';
 import { SenderAccountModule } from './modules/sender-account/sender-account.module';
 import { CampaignSenderModule } from './modules/campaign-sender/campaign-sender.module';
 import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-summary.module';
+import { OutcomeModule } from './modules/outcome/outcome.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-su
     SenderAccountModule,
     CampaignSenderModule,
     WorkspaceSummaryModule,
+    OutcomeModule,
   ],
   controllers: [AppController],
   providers: [

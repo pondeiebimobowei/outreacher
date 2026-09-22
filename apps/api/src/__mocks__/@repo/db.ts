@@ -314,4 +314,23 @@ export class PrismaClient {
     update: jest.fn(),
     delete: jest.fn(),
   };
+
+  outcome = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+}
+
+export enum OutcomeType {
+  QUALIFIED_CONVERSATION = 'QUALIFIED_CONVERSATION',
+  REFERRAL = 'REFERRAL',
+  MEETING_BOOKED = 'MEETING_BOOKED',
+  NOT_INTERESTED = 'NOT_INTERESTED',
+  NO_REPLY = 'NO_REPLY',
+  BOUNCED = 'BOUNCED',
+  OTHER = 'OTHER',
 }
