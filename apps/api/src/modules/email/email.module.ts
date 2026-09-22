@@ -25,10 +25,14 @@ import { ResendInboundContentAdapter } from './infrastructure/resend-inbound-con
 import { ReplyCorrelationService } from './domain/reply-correlation.service';
 import { InboundReplyWorker } from './application/inbound-reply.worker';
 import { InboundEmailContentAdapterRegistry } from './infrastructure/inbound-email-content-adapter.registry';
+import { DeliveryWebhookController } from './application/delivery-webhook.controller';
+import { DeliveryWebhookService } from './application/delivery-webhook.service';
+import { ProcessDeliveryEventUseCase } from './application/process-delivery-event.use-case';
+import { ResendDeliveryEventAdapter } from './infrastructure/resend-delivery-event.adapter';
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
-  controllers: [EmailController, InboundWebhookController],
+  controllers: [EmailController, InboundWebhookController, DeliveryWebhookController],
   providers: [
     MarkContactRepliedUseCase,
     {
@@ -58,6 +62,9 @@ import { InboundEmailContentAdapterRegistry } from './infrastructure/inbound-ema
     ResendInboundContentAdapter,
     ReplyCorrelationService,
     InboundReplyWorker,
+    DeliveryWebhookService,
+    ProcessDeliveryEventUseCase,
+    ResendDeliveryEventAdapter,
     {
       provide: 'INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN',
       useClass: InboundEmailContentAdapterRegistry,
