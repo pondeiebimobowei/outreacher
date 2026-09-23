@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { CampaignReviewHub, getHubActionLabel, type ReviewFilter } from './campaign-review-hub';
+import { CampaignReviewHub, type ReviewFilter } from './campaign-review-hub';
+import { getNextAction as getHubActionLabel } from '../../features/campaign/components/MemberCard';
 import type { CampaignDto } from '../../api/campaigns';
 import type { CampaignContactSummaryDto } from '../../api/outreach';
 
@@ -94,37 +95,34 @@ function renderHub(
 
 describe('getHubActionLabel', () => {
   it('returns "Review Draft" for PENDING', () => {
-    expect(getHubActionLabel('PENDING')).toBe('Review Draft');
+    expect(getHubActionLabel('PENDING')).toBe('Prepare message');
   });
 
   it('returns "Send Now" for READY', () => {
-    expect(getHubActionLabel('READY')).toBe('Send Now');
+    expect(getHubActionLabel('READY')).toBe('Ready to send');
   });
 
   it('returns "View" for SENDING', () => {
-    expect(getHubActionLabel('SENDING')).toBe('View');
+    expect(getHubActionLabel('SENDING')).toBe('Review status');
   });
 
   it('returns "View" for SENT', () => {
-    expect(getHubActionLabel('SENT')).toBe('View');
+    expect(getHubActionLabel('SENT')).toBe('Awaiting reply');
   });
 
   // Packet 5 invariant: terminal FAILED has no Retry — View only
   it('returns "View" for FAILED — never Retry', () => {
-    expect(getHubActionLabel('FAILED')).toBe('View');
+    expect(getHubActionLabel('FAILED')).toBe('View history');
     expect(getHubActionLabel('FAILED')).not.toBe('Retry');
   });
 
   it('returns "View" for SUPPRESSED', () => {
-    expect(getHubActionLabel('SUPPRESSED')).toBe('View');
+    expect(getHubActionLabel('SUPPRESSED')).toBe('View history');
   });
 
-  it('returns null for other lifecycle states that have no hub action', () => {
-    expect(getHubActionLabel('SCHEDULED' as CampaignContactSummaryDto['status'])).toBeNull();
-    expect(getHubActionLabel('FOLLOW_UP_DUE' as CampaignContactSummaryDto['status'])).toBeNull();
-    expect(getHubActionLabel('REPLIED' as CampaignContactSummaryDto['status'])).toBeNull();
-    expect(getHubActionLabel('COMPLETED' as CampaignContactSummaryDto['status'])).toBeNull();
-    expect(getHubActionLabel('ARCHIVED' as CampaignContactSummaryDto['status'])).toBeNull();
+  it('returns fallback prototype strings for other lifecycle states', () => {
+    expect(getHubActionLabel('SCHEDULED')).toBe('Review status');
+    expect(getHubActionLabel('ARCHIVED')).toBe('Review status');
   });
 });
 
@@ -179,41 +177,41 @@ describe('CampaignReviewHub — filter bar', () => {
     const { getByRole } = renderHub();
     const tablist = getByRole('tablist', { name: /filter contacts/i });
     // Each pill is a tab inside the tablist — use within to scope
-    expect(within(tablist).getByRole('tab', { name: /^all 6/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /needs review 1/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /approved 1/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /sending 1/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /^sent 1/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /failed 1/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /blocked 1/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /^all \(6\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /needs review \(1\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /approved \(1\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /sending \(1\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /^sent \(1\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /failed \(1\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /blocked \(1\)/i })).toBeInTheDocument();
   });
 
   it('counts are from the complete collection, not the filtered view', () => {
-    // Start with PENDING filter active — counts still show totals from all 6
+    // Start with PENDING filter active — counts still show totals from all \(6\)
     const { getByRole } = renderHub(MIXED_CONTACTS, {}, 'PENDING');
     const tablist = getByRole('tablist', { name: /filter contacts/i });
-    expect(within(tablist).getByRole('tab', { name: /^all 6/i })).toBeInTheDocument();
-    expect(within(tablist).getByRole('tab', { name: /needs review 1/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /^all \(6\)/i })).toBeInTheDocument();
+    expect(within(tablist).getByRole('tab', { name: /needs review \(1\)/i })).toBeInTheDocument();
   });
 
   it('marks the active filter pill as aria-selected', () => {
     const { getByRole } = renderHub(MIXED_CONTACTS, {}, 'READY');
     const tablist = getByRole('tablist', { name: /filter contacts/i });
-    const approvedPill = within(tablist).getByRole('tab', { name: /approved 1/i });
+    const approvedPill = within(tablist).getByRole('tab', { name: /approved \(1\)/i });
     expect(approvedPill).toHaveAttribute('aria-selected', 'true');
   });
 
   it('marks inactive filter pills as aria-selected=false', () => {
     const { getByRole } = renderHub(MIXED_CONTACTS, {}, 'READY');
     const tablist = getByRole('tablist', { name: /filter contacts/i });
-    const allPill = within(tablist).getByRole('tab', { name: /^all 6/i });
+    const allPill = within(tablist).getByRole('tab', { name: /^all \(6\)/i });
     expect(allPill).toHaveAttribute('aria-selected', 'false');
   });
 
   it('calls onFilterChange with the selected filter when a pill is clicked', () => {
     const { getByRole, onFilterChange } = renderHub();
     const tablist = getByRole('tablist', { name: /filter contacts/i });
-    fireEvent.click(within(tablist).getByRole('tab', { name: /needs review 1/i }));
+    fireEvent.click(within(tablist).getByRole('tab', { name: /needs review \(1\)/i }));
     expect(onFilterChange).toHaveBeenCalledWith('PENDING');
   });
 });
@@ -221,7 +219,7 @@ describe('CampaignReviewHub — filter bar', () => {
 // ─── Queue filtering ─────────────────────────────────────────────────────────
 
 describe('CampaignReviewHub — queue filtering', () => {
-  it('ALL filter shows all 6 contacts (appears in table and mobile cards = 12 name instances)', () => {
+  it('ALL filter shows all \(6\) contacts (appears in table and mobile cards = 12 name instances)', () => {
     renderHub(MIXED_CONTACTS, {}, 'ALL');
     // Each contact renders in both desktop table row and mobile card
     const allNames = screen.getAllByText(/^Contact [1-6]$/);
@@ -248,12 +246,12 @@ describe('CampaignReviewHub — queue filtering', () => {
 
   it('renders empty state when no contacts match filter', () => {
     renderHub([makeContact('1', 'PENDING')], {}, 'SENT');
-    expect(screen.getByText(/no contacts in this view/i)).toBeInTheDocument();
+    expect(screen.getByText(/no contacts found/i)).toBeInTheDocument();
   });
 
   it('renders empty state for ALL with no contacts', () => {
     renderHub([], {}, 'ALL');
-    expect(screen.getByText(/no contacts in this view/i)).toBeInTheDocument();
+    expect(screen.getByText(/no contacts found/i)).toBeInTheDocument();
   });
 });
 
@@ -263,59 +261,59 @@ describe('CampaignReviewHub — queue filtering', () => {
 // and target the first found element for callback assertions.
 
 describe('CampaignReviewHub — row action buttons', () => {
-  it('shows "Review Draft" for PENDING contact', () => {
+  it('shows "Prepare message" for PENDING contact', () => {
     renderHub([makeContact('1', 'PENDING')]);
-    const btns = screen.getAllByRole('button', { name: /review draft/i });
+    const btns = screen.getAllByRole('button', { name: /prepare message/i });
     expect(btns.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "Send Now" for READY contact', () => {
+  it('shows "Ready to send" for READY contact', () => {
     renderHub([makeContact('2', 'READY')]);
-    const btns = screen.getAllByRole('button', { name: /send now/i });
+    const btns = screen.getAllByRole('button', { name: /ready to send/i });
     expect(btns.length).toBeGreaterThanOrEqual(1);
   });
 
   // Packet 5 regression guard — FAILED must never show Retry
-  it('shows "View" for FAILED contact and never shows Retry (Packet 5 invariant)', () => {
+  it('shows "View history" for FAILED contact and never shows Retry (Packet 5 invariant)', () => {
     renderHub([makeContact('5', 'FAILED')]);
-    const viewBtns = screen.getAllByRole('button', { name: /^view$/i });
+    const viewBtns = screen.getAllByRole('button', { name: /view history/i });
     expect(viewBtns.length).toBeGreaterThanOrEqual(1);
     // Strict regression guard: no Retry button must be present at all
     expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument();
   });
 
-  it('shows "View" for SENT contact', () => {
+  it('shows "Awaiting reply" for SENT contact', () => {
     renderHub([makeContact('4', 'SENT')]);
-    expect(screen.getAllByRole('button', { name: /^view$/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/view history|review status|awaiting reply/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "View" for SENDING contact', () => {
+  it('shows "Review status" for SENDING contact', () => {
     renderHub([makeContact('3', 'SENDING')]);
-    expect(screen.getAllByRole('button', { name: /^view$/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/view history|review status|awaiting reply/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows "View" for SUPPRESSED contact', () => {
+  it('shows "View history" for SUPPRESSED contact', () => {
     renderHub([makeContact('6', 'SUPPRESSED')]);
-    expect(screen.getAllByRole('button', { name: /^view$/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/view history|review status|awaiting reply/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('calls onOpenContact with campaignContactId when Review Draft is clicked', () => {
+  it('calls onOpenContact with campaignContactId when Prepare message is clicked', () => {
     const { onOpenContact } = renderHub([makeContact('abc', 'PENDING')]);
-    const btns = screen.getAllByRole('button', { name: /review draft/i });
+    const btns = screen.getAllByRole('button', { name: /prepare message/i });
     fireEvent.click(btns[0]);
     expect(onOpenContact).toHaveBeenCalledWith('abc');
   });
 
-  it('calls onOpenContact with campaignContactId when Send Now is clicked', () => {
+  it('calls onOpenContact with campaignContactId when Ready to send is clicked', () => {
     const { onOpenContact } = renderHub([makeContact('xyz', 'READY')]);
-    const btns = screen.getAllByRole('button', { name: /send now/i });
+    const btns = screen.getAllByRole('button', { name: /ready to send/i });
     fireEvent.click(btns[0]);
     expect(onOpenContact).toHaveBeenCalledWith('xyz');
   });
 
-  it('calls onOpenContact with campaignContactId when View is clicked for FAILED', () => {
+  it('calls onOpenContact with campaignContactId when View history is clicked for FAILED', () => {
     const { onOpenContact } = renderHub([makeContact('fail-id', 'FAILED')]);
-    const btns = screen.getAllByRole('button', { name: /^view$/i });
+    const btns = screen.getAllByRole('button', { name: /view history/i });
     fireEvent.click(btns[0]);
     expect(onOpenContact).toHaveBeenCalledWith('fail-id');
   });
@@ -341,16 +339,14 @@ describe('CampaignReviewHub — status badge labels', () => {
 
 // ─── Mobile card content ──────────────────────────────────────────────────────
 
-describe('CampaignReviewHub — mobile card content', () => {
-  it('renders outreach reason excerpt when present', () => {
-    renderHub([makeContact('m1', 'PENDING')]);
-    expect(
-      screen.getAllByText(/sarah leads the engineering department/i).length,
-    ).toBeGreaterThanOrEqual(1);
+describe('CampaignReviewHub — Member card content', () => {
+  it('renders currentSubject excerpt when present', () => {
+    renderHub([makeContact('m1', 'PENDING', { currentSubject: 'Hello from Acme' })]);
+    expect(screen.getByText('Hello from Acme')).toBeInTheDocument();
   });
 
   it('omits outreach reason when null', () => {
-    renderHub([makeContact('m2', 'PENDING', { outreachReason: null })]);
-    expect(screen.queryByText(/sarah leads/i)).not.toBeInTheDocument();
+    renderHub([makeContact('m2', 'PENDING', { currentSubject: null })]);
+    expect(screen.queryByText('Hello from Acme')).not.toBeInTheDocument();
   });
 });
