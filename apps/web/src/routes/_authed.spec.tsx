@@ -14,8 +14,8 @@ jest.mock('../components/profile-banner', () => ({
 }));
 
 jest.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (config: Record<string, unknown>) => config,
-  Link: ({ children, to, onClick, className }: unknown) => (
+  createFileRoute: () => (config: any) => config,
+  Link: ({ children, to, onClick, className }: any) => (
     <a href={to} onClick={onClick} className={className} data-testid={`nav-link-${to}`}>
       {children}
     </a>

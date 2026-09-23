@@ -11,14 +11,25 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestRouteImport } from './routes/_guest'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedCampaignsRouteImport } from './routes/_authed/campaigns'
+import { Route as AuthedContactsRouteImport } from './routes/_authed/contacts'
+import { Route as AuthedConversationsRouteImport } from './routes/_authed/conversations'
+import { Route as AuthedOpportunitiesRouteImport } from './routes/_authed/opportunities'
+import { Route as AuthedOutreachesRouteImport } from './routes/_authed/outreaches'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedTemplatesRouteImport } from './routes/_authed/templates'
+import { Route as GuestForgotPasswordRouteImport } from './routes/_guest/forgot-password'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
+import { Route as GuestSignupRouteImport } from './routes/_guest/signup'
 import { Route as AuthedCampaignsIndexRouteImport } from './routes/_authed/campaigns.index'
 import { Route as AuthedCompaniesIndexRouteImport } from './routes/_authed/companies.index'
 import { Route as AuthedCompaniesIdRouteImport } from './routes/_authed/companies.$id'
+import { Route as AuthedContactsIndexRouteImport } from './routes/_authed/contacts.index'
+import { Route as AuthedConversationsIndexRouteImport } from './routes/_authed/conversations.index'
+import { Route as AuthedOpportunitiesIndexRouteImport } from './routes/_authed/opportunities.index'
+import { Route as AuthedOutreachesIndexRouteImport } from './routes/_authed/outreaches.index'
 import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
 import { Route as AuthedSettingsCareerProfileRouteImport } from './routes/_authed/settings/career-profile'
 import { Route as AuthedSettingsIntegrationsRouteImport } from './routes/_authed/settings/integrations'
@@ -33,6 +44,11 @@ const GuestRoute = GuestRouteImport.update({
   id: '/_guest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedIndexRoute = AuthedIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -41,6 +57,26 @@ const AuthedIndexRoute = AuthedIndexRouteImport.update({
 const AuthedCampaignsRoute = AuthedCampaignsRouteImport.update({
   id: '/campaigns',
   path: '/campaigns',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedContactsRoute = AuthedContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedConversationsRoute = AuthedConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedOpportunitiesRoute = AuthedOpportunitiesRouteImport.update({
+  id: '/opportunities',
+  path: '/opportunities',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedOutreachesRoute = AuthedOutreachesRouteImport.update({
+  id: '/outreaches',
+  path: '/outreaches',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
@@ -53,9 +89,19 @@ const AuthedTemplatesRoute = AuthedTemplatesRouteImport.update({
   path: '/templates',
   getParentRoute: () => AuthedRoute,
 } as any)
+const GuestForgotPasswordRoute = GuestForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => GuestRoute,
+} as any)
 const GuestLoginRoute = GuestLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => GuestRoute,
+} as any)
+const GuestSignupRoute = GuestSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => GuestRoute,
 } as any)
 const AuthedCampaignsIndexRoute = AuthedCampaignsIndexRouteImport.update({
@@ -72,6 +118,28 @@ const AuthedCompaniesIdRoute = AuthedCompaniesIdRouteImport.update({
   id: '/companies/$id',
   path: '/companies/$id',
   getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedContactsIndexRoute = AuthedContactsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedContactsRoute,
+} as any)
+const AuthedConversationsIndexRoute =
+  AuthedConversationsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedConversationsRoute,
+  } as any)
+const AuthedOpportunitiesIndexRoute =
+  AuthedOpportunitiesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedOpportunitiesRoute,
+  } as any)
+const AuthedOutreachesIndexRoute = AuthedOutreachesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedOutreachesRoute,
 } as any)
 const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
   id: '/',
@@ -104,29 +172,47 @@ const AuthedCampaignsCampaignIdReviewRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthedIndexRoute
+  '/onboarding': typeof OnboardingRoute
   '/campaigns': typeof AuthedCampaignsRouteWithChildren
+  '/contacts': typeof AuthedContactsRouteWithChildren
+  '/conversations': typeof AuthedConversationsRouteWithChildren
+  '/opportunities': typeof AuthedOpportunitiesRouteWithChildren
+  '/outreaches': typeof AuthedOutreachesRouteWithChildren
   '/settings': typeof AuthedSettingsRouteWithChildren
   '/templates': typeof AuthedTemplatesRoute
+  '/forgot-password': typeof GuestForgotPasswordRoute
   '/login': typeof GuestLoginRoute
+  '/signup': typeof GuestSignupRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
   '/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/settings/integrations': typeof AuthedSettingsIntegrationsRoute
   '/settings/senders': typeof AuthedSettingsSendersRoute
   '/campaigns/': typeof AuthedCampaignsIndexRoute
   '/companies/': typeof AuthedCompaniesIndexRoute
+  '/contacts/': typeof AuthedContactsIndexRoute
+  '/conversations/': typeof AuthedConversationsIndexRoute
+  '/opportunities/': typeof AuthedOpportunitiesIndexRoute
+  '/outreaches/': typeof AuthedOutreachesIndexRoute
   '/settings/': typeof AuthedSettingsIndexRoute
   '/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthedIndexRoute
+  '/onboarding': typeof OnboardingRoute
   '/templates': typeof AuthedTemplatesRoute
+  '/forgot-password': typeof GuestForgotPasswordRoute
   '/login': typeof GuestLoginRoute
+  '/signup': typeof GuestSignupRoute
   '/companies/$id': typeof AuthedCompaniesIdRoute
   '/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/settings/integrations': typeof AuthedSettingsIntegrationsRoute
   '/settings/senders': typeof AuthedSettingsSendersRoute
   '/campaigns': typeof AuthedCampaignsIndexRoute
   '/companies': typeof AuthedCompaniesIndexRoute
+  '/contacts': typeof AuthedContactsIndexRoute
+  '/conversations': typeof AuthedConversationsIndexRoute
+  '/opportunities': typeof AuthedOpportunitiesIndexRoute
+  '/outreaches': typeof AuthedOutreachesIndexRoute
   '/settings': typeof AuthedSettingsIndexRoute
   '/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
@@ -134,10 +220,17 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
   '/_authed/campaigns': typeof AuthedCampaignsRouteWithChildren
+  '/_authed/contacts': typeof AuthedContactsRouteWithChildren
+  '/_authed/conversations': typeof AuthedConversationsRouteWithChildren
+  '/_authed/opportunities': typeof AuthedOpportunitiesRouteWithChildren
+  '/_authed/outreaches': typeof AuthedOutreachesRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
   '/_authed/templates': typeof AuthedTemplatesRoute
+  '/_guest/forgot-password': typeof GuestForgotPasswordRoute
   '/_guest/login': typeof GuestLoginRoute
+  '/_guest/signup': typeof GuestSignupRoute
   '/_authed/': typeof AuthedIndexRoute
   '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
   '/_authed/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
@@ -145,6 +238,10 @@ export interface FileRoutesById {
   '/_authed/settings/senders': typeof AuthedSettingsSendersRoute
   '/_authed/campaigns/': typeof AuthedCampaignsIndexRoute
   '/_authed/companies/': typeof AuthedCompaniesIndexRoute
+  '/_authed/contacts/': typeof AuthedContactsIndexRoute
+  '/_authed/conversations/': typeof AuthedConversationsIndexRoute
+  '/_authed/opportunities/': typeof AuthedOpportunitiesIndexRoute
+  '/_authed/outreaches/': typeof AuthedOutreachesIndexRoute
   '/_authed/settings/': typeof AuthedSettingsIndexRoute
   '/_authed/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
@@ -152,39 +249,64 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/onboarding'
     | '/campaigns'
+    | '/contacts'
+    | '/conversations'
+    | '/opportunities'
+    | '/outreaches'
     | '/settings'
     | '/templates'
+    | '/forgot-password'
     | '/login'
+    | '/signup'
     | '/companies/$id'
     | '/settings/career-profile'
     | '/settings/integrations'
     | '/settings/senders'
     | '/campaigns/'
     | '/companies/'
+    | '/contacts/'
+    | '/conversations/'
+    | '/opportunities/'
+    | '/outreaches/'
     | '/settings/'
     | '/campaigns/$campaignId/review'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/onboarding'
     | '/templates'
+    | '/forgot-password'
     | '/login'
+    | '/signup'
     | '/companies/$id'
     | '/settings/career-profile'
     | '/settings/integrations'
     | '/settings/senders'
     | '/campaigns'
     | '/companies'
+    | '/contacts'
+    | '/conversations'
+    | '/opportunities'
+    | '/outreaches'
     | '/settings'
     | '/campaigns/$campaignId/review'
   id:
     | '__root__'
     | '/_authed'
     | '/_guest'
+    | '/onboarding'
     | '/_authed/campaigns'
+    | '/_authed/contacts'
+    | '/_authed/conversations'
+    | '/_authed/opportunities'
+    | '/_authed/outreaches'
     | '/_authed/settings'
     | '/_authed/templates'
+    | '/_guest/forgot-password'
     | '/_guest/login'
+    | '/_guest/signup'
     | '/_authed/'
     | '/_authed/companies/$id'
     | '/_authed/settings/career-profile'
@@ -192,6 +314,10 @@ export interface FileRouteTypes {
     | '/_authed/settings/senders'
     | '/_authed/campaigns/'
     | '/_authed/companies/'
+    | '/_authed/contacts/'
+    | '/_authed/conversations/'
+    | '/_authed/opportunities/'
+    | '/_authed/outreaches/'
     | '/_authed/settings/'
     | '/_authed/campaigns/$campaignId/review'
   fileRoutesById: FileRoutesById
@@ -199,6 +325,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   GuestRoute: typeof GuestRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -217,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed/': {
       id: '/_authed/'
       path: '/'
@@ -229,6 +363,34 @@ declare module '@tanstack/react-router' {
       path: '/campaigns'
       fullPath: '/campaigns'
       preLoaderRoute: typeof AuthedCampaignsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/contacts': {
+      id: '/_authed/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof AuthedContactsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/conversations': {
+      id: '/_authed/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof AuthedConversationsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/opportunities': {
+      id: '/_authed/opportunities'
+      path: '/opportunities'
+      fullPath: '/opportunities'
+      preLoaderRoute: typeof AuthedOpportunitiesRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/outreaches': {
+      id: '/_authed/outreaches'
+      path: '/outreaches'
+      fullPath: '/outreaches'
+      preLoaderRoute: typeof AuthedOutreachesRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/settings': {
@@ -245,11 +407,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedTemplatesRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_guest/forgot-password': {
+      id: '/_guest/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof GuestForgotPasswordRouteImport
+      parentRoute: typeof GuestRoute
+    }
     '/_guest/login': {
       id: '/_guest/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof GuestLoginRouteImport
+      parentRoute: typeof GuestRoute
+    }
+    '/_guest/signup': {
+      id: '/_guest/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof GuestSignupRouteImport
       parentRoute: typeof GuestRoute
     }
     '/_authed/campaigns/': {
@@ -272,6 +448,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/companies/$id'
       preLoaderRoute: typeof AuthedCompaniesIdRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/contacts/': {
+      id: '/_authed/contacts/'
+      path: '/'
+      fullPath: '/contacts/'
+      preLoaderRoute: typeof AuthedContactsIndexRouteImport
+      parentRoute: typeof AuthedContactsRoute
+    }
+    '/_authed/conversations/': {
+      id: '/_authed/conversations/'
+      path: '/'
+      fullPath: '/conversations/'
+      preLoaderRoute: typeof AuthedConversationsIndexRouteImport
+      parentRoute: typeof AuthedConversationsRoute
+    }
+    '/_authed/opportunities/': {
+      id: '/_authed/opportunities/'
+      path: '/'
+      fullPath: '/opportunities/'
+      preLoaderRoute: typeof AuthedOpportunitiesIndexRouteImport
+      parentRoute: typeof AuthedOpportunitiesRoute
+    }
+    '/_authed/outreaches/': {
+      id: '/_authed/outreaches/'
+      path: '/'
+      fullPath: '/outreaches/'
+      preLoaderRoute: typeof AuthedOutreachesIndexRouteImport
+      parentRoute: typeof AuthedOutreachesRoute
     }
     '/_authed/settings/': {
       id: '/_authed/settings/'
@@ -325,6 +529,51 @@ const AuthedCampaignsRouteWithChildren = AuthedCampaignsRoute._addFileChildren(
   AuthedCampaignsRouteChildren,
 )
 
+interface AuthedContactsRouteChildren {
+  AuthedContactsIndexRoute: typeof AuthedContactsIndexRoute
+}
+
+const AuthedContactsRouteChildren: AuthedContactsRouteChildren = {
+  AuthedContactsIndexRoute: AuthedContactsIndexRoute,
+}
+
+const AuthedContactsRouteWithChildren = AuthedContactsRoute._addFileChildren(
+  AuthedContactsRouteChildren,
+)
+
+interface AuthedConversationsRouteChildren {
+  AuthedConversationsIndexRoute: typeof AuthedConversationsIndexRoute
+}
+
+const AuthedConversationsRouteChildren: AuthedConversationsRouteChildren = {
+  AuthedConversationsIndexRoute: AuthedConversationsIndexRoute,
+}
+
+const AuthedConversationsRouteWithChildren =
+  AuthedConversationsRoute._addFileChildren(AuthedConversationsRouteChildren)
+
+interface AuthedOpportunitiesRouteChildren {
+  AuthedOpportunitiesIndexRoute: typeof AuthedOpportunitiesIndexRoute
+}
+
+const AuthedOpportunitiesRouteChildren: AuthedOpportunitiesRouteChildren = {
+  AuthedOpportunitiesIndexRoute: AuthedOpportunitiesIndexRoute,
+}
+
+const AuthedOpportunitiesRouteWithChildren =
+  AuthedOpportunitiesRoute._addFileChildren(AuthedOpportunitiesRouteChildren)
+
+interface AuthedOutreachesRouteChildren {
+  AuthedOutreachesIndexRoute: typeof AuthedOutreachesIndexRoute
+}
+
+const AuthedOutreachesRouteChildren: AuthedOutreachesRouteChildren = {
+  AuthedOutreachesIndexRoute: AuthedOutreachesIndexRoute,
+}
+
+const AuthedOutreachesRouteWithChildren =
+  AuthedOutreachesRoute._addFileChildren(AuthedOutreachesRouteChildren)
+
 interface AuthedSettingsRouteChildren {
   AuthedSettingsCareerProfileRoute: typeof AuthedSettingsCareerProfileRoute
   AuthedSettingsIntegrationsRoute: typeof AuthedSettingsIntegrationsRoute
@@ -345,6 +594,10 @@ const AuthedSettingsRouteWithChildren = AuthedSettingsRoute._addFileChildren(
 
 interface AuthedRouteChildren {
   AuthedCampaignsRoute: typeof AuthedCampaignsRouteWithChildren
+  AuthedContactsRoute: typeof AuthedContactsRouteWithChildren
+  AuthedConversationsRoute: typeof AuthedConversationsRouteWithChildren
+  AuthedOpportunitiesRoute: typeof AuthedOpportunitiesRouteWithChildren
+  AuthedOutreachesRoute: typeof AuthedOutreachesRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedTemplatesRoute: typeof AuthedTemplatesRoute
   AuthedIndexRoute: typeof AuthedIndexRoute
@@ -354,6 +607,10 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedCampaignsRoute: AuthedCampaignsRouteWithChildren,
+  AuthedContactsRoute: AuthedContactsRouteWithChildren,
+  AuthedConversationsRoute: AuthedConversationsRouteWithChildren,
+  AuthedOpportunitiesRoute: AuthedOpportunitiesRouteWithChildren,
+  AuthedOutreachesRoute: AuthedOutreachesRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedTemplatesRoute: AuthedTemplatesRoute,
   AuthedIndexRoute: AuthedIndexRoute,
@@ -365,11 +622,15 @@ const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 interface GuestRouteChildren {
+  GuestForgotPasswordRoute: typeof GuestForgotPasswordRoute
   GuestLoginRoute: typeof GuestLoginRoute
+  GuestSignupRoute: typeof GuestSignupRoute
 }
 
 const GuestRouteChildren: GuestRouteChildren = {
+  GuestForgotPasswordRoute: GuestForgotPasswordRoute,
   GuestLoginRoute: GuestLoginRoute,
+  GuestSignupRoute: GuestSignupRoute,
 }
 
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
@@ -377,6 +638,7 @@ const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   GuestRoute: GuestRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

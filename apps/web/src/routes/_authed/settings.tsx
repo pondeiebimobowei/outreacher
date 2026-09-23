@@ -9,15 +9,17 @@ export function SettingsLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto">
+    <div className="flex flex-col md:flex-row gap-8 max-w-6xl mx-auto p-4 md:p-8">
       {/* Settings Navigation */}
       <aside className="w-full md:w-56 lg:w-64 shrink-0">
-        <h2 className="text-xl font-bold tracking-tight text-slate-900 mb-6">Settings</h2>
+        <h2 className="text-[20px] font-bold tracking-tight mb-6" style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+          Settings
+        </h2>
         
         <nav className="space-y-8">
           {SETTINGS_NAVIGATION.map((group) => (
             <div key={group.title}>
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <h3 className="text-[12px] font-bold uppercase tracking-wide mb-3" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 {group.title}
               </h3>
               <div className="space-y-1">
@@ -26,10 +28,11 @@ export function SettingsLayout() {
                     return (
                       <div
                         key={link.label}
-                        className="flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-400 cursor-not-allowed"
+                        className="flex items-center justify-between px-3 py-2 text-[14px] font-medium cursor-not-allowed opacity-60"
+                        style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}
                       >
                         <span>{link.label}</span>
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: 'var(--color-muted)', color: 'var(--color-muted-fg)' }}>
                           Soon
                         </span>
                       </div>
@@ -42,11 +45,16 @@ export function SettingsLayout() {
                     <Link
                       key={link.label}
                       to={link.to}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                      className={`flex items-center px-3 py-2 text-[14px] rounded-lg transition-colors ${
                         isActive 
-                          ? 'bg-slate-100 text-slate-900 font-semibold' 
-                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'font-semibold' 
+                          : 'font-medium'
                       }`}
+                      style={{
+                        background: isActive ? 'var(--color-muted)' : 'transparent',
+                        color: isActive ? 'var(--color-primary)' : 'var(--color-muted-fg)',
+                        fontFamily: 'Inter, sans-serif'
+                      }}
                     >
                       {link.label}
                     </Link>
@@ -59,7 +67,7 @@ export function SettingsLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-w-0 bg-white md:bg-transparent rounded-lg md:rounded-none md:shadow-none shadow-sm md:p-0 p-4 border md:border-0 border-slate-200">
+      <div className="flex-1 min-w-0">
         <Outlet />
       </div>
     </div>
