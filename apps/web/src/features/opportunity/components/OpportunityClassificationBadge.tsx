@@ -7,18 +7,17 @@ export const OPP_STATUS_CFG: Record<ClassificationType, { label: string; color: 
   UNCLASSIFIED: { label: 'Unclassified', color: '#92400E', bg: '#FEF3C7', border: '#FDE68A', dot: '#F59E0B', desc: 'Not enough evidence yet to classify. Research must be complete before classification.' },
 };
 
-export function OpportunityClassificationBadge({ type }: { type: string }) {
-  const t = (type as ClassificationType) || 'UNCLASSIFIED';
-  const cfg = OPP_STATUS_CFG[t] || OPP_STATUS_CFG.UNCLASSIFIED;
+export function OpportunityClassificationBadge({ type }: { type: ClassificationType }) {
+  const cfg = OPP_STATUS_CFG[type] || OPP_STATUS_CFG.UNCLASSIFIED;
 
   return (
     <span
       className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full"
-      style={{ 
-        background: cfg.bg, 
-        color: cfg.color, 
-        border: `1px solid ${cfg.border}`, 
-        fontFamily: 'Plus Jakarta Sans, sans-serif' 
+      style={{
+        background: cfg.bg,
+        color: cfg.color,
+        border: `1px solid ${cfg.border}`,
+        fontFamily: 'Plus Jakarta Sans, sans-serif'
       }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />

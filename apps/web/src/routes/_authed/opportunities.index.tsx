@@ -6,6 +6,7 @@ import { fetchCompanyResearch } from '../../api/research';
 import { Briefcase, Search } from 'lucide-react';
 import { OpportunityCard } from '../../features/opportunity/components/OpportunityCard';
 import { OPP_STATUS_CFG, ClassificationType } from '../../features/opportunity/components/OpportunityClassificationBadge';
+import { getEffectiveClassification } from '../../features/opportunity/utils';
 import { LoadingState } from '../../components/states';
 
 export const Route = createFileRoute('/_authed/opportunities/')({
@@ -24,7 +25,7 @@ function OpportunitiesIndexComponent() {
     queryFn: fetchCompanies,
   });
 
-  // Fetch research for all companies to enable global status filtering
+  // Fetch research for all companies
   const researchQueries = useQueries({
     queries: (companies ?? []).map((company) => ({
       queryKey: ['company-research', company.id],
@@ -33,41 +34,46 @@ function OpportunitiesIndexComponent() {
     })),
   });
 
-  const isLoadingResearch = researchQueries.some(q => q.isLoading);
+  const isLoadingResearch = researchQueries.some((q) => q.isLoading);
   const isLoading = isLoadingCompanies || (companies && companies.length > 0 && isLoadingResearch);
 
-  const companiesWithStatus = useMemo(() => {
+  // Flatten all opportunities with their company context
+  const oppEntries = useMemo(() => {
     if (!companies) return [];
-    return companies.map((company, index) => {
-      const research = researchQueries[index]?.data;
-      const latestOpp = research?.opportunities?.[0];
-      const activeStatus: ClassificationType = latestOpp 
-        ? (latestOpp.opportunityType as ClassificationType) 
-        : research?.status === 'COMPLETED' ? 'PROACTIVE' : 'UNCLASSIFIED';
-      
-      const hasResearch = research?.status && research.status !== 'NOT_STARTED';
-
-      return { company, activeStatus, hasResearch };
+    const entries: { company: any; opportunity: any }[] = [];
+    companies.forEach((company, idx) => {
+      const research = researchQueries[idx]?.data;
+      if (research?.opportunities) {
+        research.opportunities.forEach((opp) => {
+          entries.push({ company, opportunity: opp });
+        });
+      }
     });
+    return entries;
   }, [companies, researchQueries]);
 
-  // Only show companies that have started research (have some opportunity context)
-  const withOpportunities = companiesWithStatus.filter(e => e.hasResearch || e.activeStatus !== 'UNCLASSIFIED');
+  // Apply filter and search
+  const filtered = useMemo(() => {
+    return oppEntries.filter(({ company, opportunity }) => {
+      const activeStatus = getEffectiveClassification(opportunity);
+      const matchesFilter = filter === 'ALL' || activeStatus === filter;
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        company.name.toLowerCase().includes(searchLower) ||
+        (company.domain || '').toLowerCase().includes(searchLower) ||
+        opportunity.roleTitle?.toLowerCase().includes(searchLower);
+      return matchesFilter && matchesSearch;
+    });
+  }, [oppEntries, filter, search]);
 
-  const filtered = withOpportunities.filter(e => {
-    const matchFilter = filter === 'ALL' || e.activeStatus === filter;
-    const searchLower = search.toLowerCase();
-    const matchSearch = e.company.name.toLowerCase().includes(searchLower) || 
-                        (e.company.domain || '').toLowerCase().includes(searchLower);
-    return matchFilter && matchSearch;
-  });
-
-  const counts = {
-    ALL: withOpportunities.length,
-    CONFIRMED: withOpportunities.filter(e => e.activeStatus === 'CONFIRMED').length,
-    PROACTIVE: withOpportunities.filter(e => e.activeStatus === 'PROACTIVE').length,
-    UNCLASSIFIED: withOpportunities.filter(e => e.activeStatus === 'UNCLASSIFIED').length,
-  };
+  // Count per classification
+  const counts = useMemo(() => {
+    const all = oppEntries.length;
+    const confirmed = oppEntries.filter(({ opportunity }) => getEffectiveClassification(opportunity) === 'CONFIRMED').length;
+    const proactive = oppEntries.filter(({ opportunity }) => getEffectiveClassification(opportunity) === 'PROACTIVE').length;
+    const unclassified = oppEntries.filter(({ opportunity }) => getEffectiveClassification(opportunity) === 'UNCLASSIFIED').length;
+    return { ALL: all, CONFIRMED: confirmed, PROACTIVE: proactive, UNCLASSIFIED: unclassified };
+  }, [oppEntries]);
 
   if (isLoading && (!companies || companies.length === 0)) {
     return (
@@ -91,13 +97,15 @@ function OpportunitiesIndexComponent() {
         </div>
       </div>
 
-      {withOpportunities.length === 0 ? (
+      {oppEntries.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-6 py-24 px-8">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-500">
             <Briefcase className="w-6 h-6" strokeWidth={1.5} />
           </div>
           <div className="text-center max-w-md">
-            <h2 className="text-[20px] font-bold mb-2 text-gray-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>No opportunities yet</h2>
+            <h2 className="text-[20px] font-bold mb-2 text-gray-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              No opportunities yet
+            </h2>
             <p className="text-[14px] leading-relaxed text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
               Opportunities appear when your company research gives you a credible reason to pursue a relationship.
             </p>
@@ -122,7 +130,7 @@ function OpportunitiesIndexComponent() {
               </span>
               <input
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search companies…"
                 className="w-full pl-9 pr-3 py-2.5 rounded-lg text-[13.5px] outline-none border border-gray-200 bg-gray-50 text-gray-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 style={{ fontFamily: 'Inter, sans-serif' }}
@@ -132,27 +140,24 @@ function OpportunitiesIndexComponent() {
 
           {/* Filter pills */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {(['ALL', 'CONFIRMED', 'PROACTIVE', 'UNCLASSIFIED'] as OppFilter[]).map(f => {
+            {(['ALL', 'CONFIRMED', 'PROACTIVE', 'UNCLASSIFIED'] as OppFilter[]).map((f) => {
               const count = counts[f];
               if (f !== 'ALL' && count === 0) return null;
-              
               const isActive = filter === f;
               const cfg = f !== 'ALL' ? OPP_STATUS_CFG[f] : null;
-              
               return (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
                   className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5"
                   style={{
-                    background: isActive ? (cfg?.bg ?? 'var(--color-primary)') : 'var(--color-muted)',
-                    color: isActive ? (cfg?.color ?? 'white') : 'var(--color-muted-fg)',
+                    background: isActive ? cfg?.bg ?? 'var(--color-primary)' : 'var(--color-muted)',
+                    color: isActive ? cfg?.color ?? 'white' : 'var(--color-muted-fg)',
                     border: isActive ? `1px solid ${cfg?.border ?? 'transparent'}` : '1px solid var(--color-border)',
                     fontFamily: 'Plus Jakarta Sans, sans-serif',
                   }}
                 >
-                  {f === 'ALL' ? 'All' : cfg?.label} 
-                  <span className={isActive ? 'opacity-90' : 'opacity-60'}>· {count}</span>
+                  {f === 'ALL' ? 'All' : cfg?.label} <span className={isActive ? 'opacity-90' : 'opacity-60'}>· {count}</span>
                 </button>
               );
             })}
@@ -165,8 +170,8 @@ function OpportunitiesIndexComponent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map(({ company }) => (
-                <OpportunityCard key={company.id} company={company} />
+              {filtered.map(({ company, opportunity }) => (
+                <OpportunityCard key={opportunity.id} company={company} opportunity={opportunity} />
               ))}
             </div>
           )}

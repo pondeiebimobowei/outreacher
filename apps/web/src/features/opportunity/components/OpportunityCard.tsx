@@ -1,33 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ArrowRight } from 'lucide-react';
 import { CompanyDto } from '../../../api/companies';
-import { fetchCompanyResearch } from '../../../api/research';
-import { OpportunityClassificationBadge, ClassificationType } from './OpportunityClassificationBadge';
+import { OpportunityDto } from '../../../api/research';
+import { OpportunityClassificationBadge } from './OpportunityClassificationBadge';
+import { getEffectiveClassification } from '../utils';
+import { OpportunityLifecycleBadge } from './OpportunityLifecycleBadge';
 
-export function OpportunityCard({ company }: { company: CompanyDto }) {
-  const { data: research, isLoading } = useQuery({
-    queryKey: ['company-research', company.id],
-    queryFn: () => fetchCompanyResearch(company.id),
-  });
+type Props = {
+  company: CompanyDto;
+  opportunity: OpportunityDto;
+};
 
-  const latestOpp = research?.opportunities?.[0];
-  const activeStatus: ClassificationType = latestOpp 
-    ? (latestOpp.opportunityType as ClassificationType) 
-    : research?.status === 'COMPLETED' ? 'PROACTIVE' : 'UNCLASSIFIED';
+export function OpportunityCard({ company, opportunity }: Props) {
+  const activeStatus = getEffectiveClassification(opportunity);
 
-  let snippet = 'Research not started';
-  if (isLoading) {
-    snippet = 'Loading research...';
-  } else if (latestOpp) {
-    snippet = `Active opportunity: ${latestOpp.roleTitle}`;
-  } else if (research?.evidence && research.evidence.length > 0) {
-    snippet = `${research.evidence.length} piece${research.evidence.length > 1 ? 's' : ''} of evidence found`;
-  } else if (research?.status === 'COMPLETED') {
-    snippet = 'Research complete';
-  } else if (research?.status === 'RUNNING' || research?.status === 'QUEUED') {
-    snippet = 'Research in progress';
-  }
+  const snippet = opportunity.roleTitle ?? 'Opportunity details';
 
   return (
     <Link
@@ -39,7 +26,10 @@ export function OpportunityCard({ company }: { company: CompanyDto }) {
       <div className="flex flex-col h-full">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0" style={{ background: 'var(--color-muted)', color: 'var(--color-primary)', border: '1px solid var(--color-border)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0"
+              style={{ background: 'var(--color-muted)', color: 'var(--color-primary)', border: '1px solid var(--color-border)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
               {company.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -52,6 +42,7 @@ export function OpportunityCard({ company }: { company: CompanyDto }) {
             </div>
           </div>
           <OpportunityClassificationBadge type={activeStatus} />
+          {            <OpportunityLifecycleBadge status={opportunity.status} />}
         </div>
 
         <p className="text-[12.5px] mb-4 leading-relaxed flex-1" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
@@ -60,7 +51,7 @@ export function OpportunityCard({ company }: { company: CompanyDto }) {
 
         <div className="flex items-center justify-between mt-auto pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
           <span className="text-[11.5px]" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
-            {research?.run?.updatedAt ? `Updated ${new Date(research.run.updatedAt).toLocaleDateString()}` : `Added ${new Date(company.createdAt).toLocaleDateString()}`}
+            Updated {new Date(opportunity.updatedAt ?? opportunity.createdAt).toLocaleDateString()}
           </span>
           <span className="text-[12px] font-medium flex items-center gap-1 group-hover:underline" style={{ color: 'var(--color-accent)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
             View opportunity <ArrowRight className="w-3 h-3" />
