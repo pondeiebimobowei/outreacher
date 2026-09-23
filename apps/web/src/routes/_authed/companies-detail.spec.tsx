@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { apiClient, ApiError } from '../../api/client';
+import { apiClient } from '../../api/client';
 import { Route as CompanyDetailRoute } from './companies.$id';
 
 const mockNavigate = jest.fn();

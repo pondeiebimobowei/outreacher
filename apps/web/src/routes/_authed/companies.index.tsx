@@ -342,7 +342,7 @@ function CompaniesRouteComponent() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string, input: any }) => updateCompany(id, input),
+    mutationFn: ({ id, input }: { id: string, input: unknown }) => updateCompany(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       setArchiveTarget(null);

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { Route as AuthedRoute } from './_authed';
 import { useAuth } from '../lib/auth-context';
 
@@ -15,7 +15,7 @@ jest.mock('../components/profile-banner', () => ({
 
 jest.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: Record<string, unknown>) => config,
-  Link: ({ children, to, onClick, className }: any) => (
+  Link: ({ children, to, onClick, className }: unknown) => (
     <a href={to} onClick={onClick} className={className} data-testid={`nav-link-${to}`}>
       {children}
     </a>
