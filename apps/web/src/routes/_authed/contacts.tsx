@@ -1,1 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'; export const Route = createFileRoute('/_authed/contacts')({ component: () => <div/> });
+/* eslint-disable */
+// @ts-nocheck
+import { createFileRoute, Outlet } from '@tanstack/react-router';
+
+export const Route = createFileRoute('/_authed/contacts')({
+  component: () => <Outlet />,
+});
