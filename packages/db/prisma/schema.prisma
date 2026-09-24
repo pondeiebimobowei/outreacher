@@ -438,7 +438,8 @@ model PersonCompanyAssociation {
   role              String?
   team              String?
   whyThisPerson     String?    @map("why_this_person")
-  conversationAngle String?    @map("conversation_angle")
+  conversationAngle String?            @map("conversation_angle")
+  conversationState ConversationState  @default(NO_REPLY) @map("conversation_state")
   outreaches        Outreach[]
 
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -828,4 +829,11 @@ enum JobType {
   EMAIL_DISPATCH
   SCHEDULED_FOLLOW_UP_CHECK
   WEBHOOK_PROCESSING
+}
+
+enum ConversationState {
+  NO_REPLY
+  REPLIED
+  ACTIVE
+  STOPPED
 }
