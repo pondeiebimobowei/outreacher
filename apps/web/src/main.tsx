@@ -8,6 +8,22 @@ import { queryClient } from './config/query';
 import { AuthProvider } from './lib/auth-context';
 import './index.css';
 
+// WORKAROUND: Prevent Phantom Wallet from silently swallowing React 19 errors.
+// Phantom injects a `process` EventEmitter which tricks React 19's error reporter
+// into using `process.emit('uncaughtException')` instead of `console.error`.
+if (
+  typeof window !== 'undefined' &&
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).process &&
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  typeof (window as any).process.emit === 'function' &&
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  !(window as any).process.env
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (window as any).process;
+}
+
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',

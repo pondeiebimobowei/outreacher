@@ -29,12 +29,12 @@ export function SettingsLandingPage() {
             key={group.title}
             className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs"
           >
-            <h3
+            <h2
               className="text-[14px] font-bold uppercase tracking-wider text-slate-900 mb-4 pb-2 border-b border-slate-100"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {group.title}
-            </h3>
+            </h2>
             <div className="space-y-4">
               {group.links.map((link) => (
                 <div key={link.label}>

@@ -104,6 +104,9 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
         {/* Notifications */}
         <button
           type="button"
+          disabled
+          aria-disabled="true"
+          title="Notifications not yet available"
           className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
           aria-label="Notifications"
         >

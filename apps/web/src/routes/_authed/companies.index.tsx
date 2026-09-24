@@ -155,7 +155,7 @@ function CompanyRow({ company, onClick, onArchive, onUnarchive }: {
 
   return (
     <div
-      className="cursor-pointer transition-colors"
+      className="group cursor-pointer transition-colors"
       style={{ borderBottom: '1px solid var(--color-border)', opacity: isArchived ? 0.6 : 1 }}
       onClick={onClick}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-muted)')}
