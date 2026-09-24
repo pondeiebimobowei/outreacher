@@ -3,7 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { fetchCompanies, type CompanyDto } from '../../api/companies';
 import { fetchCompanyResearch, type OpportunityDto } from '../../api/research';
-import { Briefcase, Search } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { BriefcaseIcon, SearchIcon } from '@hugeicons/core-free-icons';;
 import { OpportunityCard } from '../../features/opportunity/components/OpportunityCard';
 import { OPP_STATUS_CFG, ClassificationType } from '../../features/opportunity/components/OpportunityClassificationBadge';
 import { getEffectiveClassification } from '../../features/opportunity/utils';
@@ -91,7 +92,7 @@ function OpportunitiesIndexComponent() {
           <h1 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
             Opportunities
           </h1>
-          <p className="text-[14px] mt-1" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}>
             Evidence-backed reasons to pursue a relationship with each company.
           </p>
         </div>
@@ -99,21 +100,21 @@ function OpportunitiesIndexComponent() {
 
       {oppEntries.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-6 py-24 px-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-500">
-            <Briefcase className="w-6 h-6" strokeWidth={1.5} />
+          <div className="w-14 h-14 rounded-none-none flex items-center justify-center bg-gray-100 text-gray-500">
+            <HugeiconsIcon icon={BriefcaseIcon} className="w-6 h-6" strokeWidth={1.5} />
           </div>
           <div className="text-center max-w-md">
             <h2 className="text-[20px] font-bold mb-2 text-gray-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
               No opportunities yet
             </h2>
-            <p className="text-[14px] leading-relaxed text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <p className="text-[14px] leading-relaxed text-gray-500" style={{ fontFamily: 'sans-serif' }}>
               Opportunities appear when your company research gives you a credible reason to pursue a relationship.
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => navigate({ to: '/companies' })}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all bg-gray-900 text-white hover:bg-gray-800"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-none-none text-[13.5px] font-semibold  bg-gray-900 text-white hover:bg-gray-800"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               Research a company
@@ -126,14 +127,14 @@ function OpportunitiesIndexComponent() {
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
             <div className="flex-1 relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Search className="w-4 h-4" />
+                <HugeiconsIcon icon={SearchIcon} className="w-4 h-4" />
               </span>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search companies…"
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg text-[13.5px] outline-none border border-gray-200 bg-gray-50 text-gray-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                className="w-full pl-9 pr-3 py-2.5 rounded-none-none text-[13.5px] outline-none border border-gray-200 bg-gray-50 text-gray-900 focus:bg-slate-50 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 "
+                style={{ fontFamily: 'sans-serif' }}
               />
             </div>
           </div>
@@ -149,7 +150,7 @@ function OpportunitiesIndexComponent() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5"
+                  className="text-[12px] font-semibold px-3 py-1.5 rounded-none-full  flex items-center gap-1.5"
                   style={{
                     background: isActive ? cfg?.bg ?? 'var(--color-primary)' : 'var(--color-muted)',
                     color: isActive ? cfg?.color ?? 'white' : 'var(--color-muted-fg)',
@@ -166,7 +167,7 @@ function OpportunitiesIndexComponent() {
           {/* Cards grid */}
           {filtered.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-[14px] text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>No opportunities match your filter.</p>
+              <p className="text-[14px] text-gray-500" style={{ fontFamily: 'sans-serif' }}>No opportunities match your filter.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

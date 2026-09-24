@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { FileText } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { FileTextIcon } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/_authed/templates')({
   component: TemplatesComingSoonComponent,
@@ -54,7 +55,7 @@ function TemplatesComingSoonComponent() {
         </h1>
         <p
           className="text-[14px] mt-1 text-[var(--color-muted-fg)]"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          style={{ fontFamily: 'sans-serif' }}
         >
           Create reusable outreach messages that can be adapted for different
           companies and contacts.
@@ -63,7 +64,7 @@ function TemplatesComingSoonComponent() {
 
       {/* Main coming-soon card */}
       <div
-        className="rounded-2xl overflow-hidden"
+        className="rounded-none-none overflow-hidden"
         style={{
           background: 'var(--color-card)',
           border: '1px solid var(--color-border)',
@@ -77,13 +78,13 @@ function TemplatesComingSoonComponent() {
         >
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              className="w-9 h-9 rounded-none-none flex items-center justify-center"
               style={{
                 background: 'var(--color-muted)',
                 color: 'var(--color-muted-fg)',
               }}
             >
-              <FileText className="w-[18px] h-[18px]" strokeWidth={1.5} />
+              <HugeiconsIcon icon={FileTextIcon} className="w-[18px] h-[18px]" strokeWidth={1.5} />
             </div>
             <h2
               className="text-[15px] font-bold text-[var(--color-primary)]"
@@ -95,7 +96,7 @@ function TemplatesComingSoonComponent() {
 
           {/* Coming soon badge */}
           <span
-            className="text-[11px] font-semibold px-2.5 py-1 rounded-full tracking-wide"
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-none-full tracking-wide"
             style={{
               background: '#F5F3FF',
               color: '#5B21B6',
@@ -112,19 +113,19 @@ function TemplatesComingSoonComponent() {
         {/* Empty state body */}
         <div className="flex flex-col items-center justify-center gap-6 py-16 px-8">
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            className="w-14 h-14 rounded-none-none flex items-center justify-center"
             style={{
               background: 'var(--color-muted)',
               color: 'var(--color-muted-fg)',
             }}
           >
-            <FileText className="w-7 h-7" strokeWidth={1.5} />
+            <HugeiconsIcon icon={FileTextIcon} className="w-7 h-7" strokeWidth={1.5} />
           </div>
 
           <div className="text-center max-w-md">
             <p
               className="text-[14px] leading-relaxed text-[var(--color-muted-fg)]"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               Template management is on the roadmap. When available, you will be
               able to save, organise, and reuse outreach messages across
@@ -155,7 +156,7 @@ function TemplatesComingSoonComponent() {
               {PLANNED_CATEGORIES.map((cat) => (
                 <span
                   key={cat.label}
-                  className="text-[11.5px] font-semibold px-2.5 py-1 rounded-full"
+                  className="text-[11.5px] font-semibold px-2.5 py-1 rounded-none-full"
                   style={{
                     background: cat.bg,
                     color: cat.color,
@@ -185,7 +186,7 @@ function TemplatesComingSoonComponent() {
               {PLANNED_VARIABLES.map(({ tag, description }) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1.5 text-[11.5px] font-mono px-2.5 py-1 rounded-lg"
+                  className="inline-flex items-center gap-1.5 text-[11.5px] font-mono px-2.5 py-1 rounded-none-none"
                   style={{
                     background: 'var(--color-muted)',
                     color: 'var(--color-primary)',

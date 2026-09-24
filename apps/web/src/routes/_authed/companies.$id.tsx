@@ -3,7 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { fetchCompanyById } from '../../api/companies';
 import { fetchCompanyResearch } from '../../api/research';
-import { ArrowLeft, ExternalLink, MapPin, Building2, ArrowRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowLeftIcon, ExternalLinkIcon, MapPinIcon, Building02Icon, ArrowRightIcon } from '@hugeicons/core-free-icons';;
 import { OverviewTab } from '../../features/company/components/OverviewTab';
 import { ResearchTab } from '../../features/company/components/ResearchTab';
 import { OpportunitiesTab } from '../../features/company/components/OpportunitiesTab';
@@ -69,7 +70,7 @@ function CompanyDetailRouteComponent() {
   if (isLoadingCompany) {
     return (
       <div className="max-w-[1220px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+        <div className="bg-slate-50 rounded-none-none border border-slate-200 p-8 text-center">
           <div className="inline-flex items-center gap-2 text-[13.5px] text-slate-500">
             <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -86,12 +87,12 @@ function CompanyDetailRouteComponent() {
       <div className="max-w-[1220px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
         <button
           onClick={() => navigate({ to: '/companies' })}
-          className="flex items-center gap-1.5 text-[13px] font-medium mb-5 transition-colors"
+          className="flex items-center gap-1.5 text-[13px] font-medium mb-5 "
           style={{ color: 'var(--color-muted-fg)' }}
           onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
           onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-muted-fg)')}
         >
-          <ArrowLeft size={14} /> Companies
+          <HugeiconsIcon icon={ArrowLeftIcon} size={14} /> Companies
         </button>
         <div className="flex flex-col items-center gap-4 py-16">
           <p className="text-[16px] font-bold" style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
@@ -118,21 +119,21 @@ function CompanyDetailRouteComponent() {
       {/* Breadcrumb */}
       <button
         onClick={() => navigate({ to: '/companies' })}
-        className="flex items-center gap-1.5 text-[13px] font-medium mb-5 transition-colors"
+        className="flex items-center gap-1.5 text-[13px] font-medium mb-5 "
         style={{ color: 'var(--color-muted-fg)' }}
         onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
         onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-muted-fg)')}
       >
-        <ArrowLeft size={14} /> Companies
+        <HugeiconsIcon icon={ArrowLeftIcon} size={14} /> Companies
       </button>
 
       {/* Workspace header */}
-      <div className="rounded-xl p-5 mb-4" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+      <div className="rounded-none-none p-5 mb-4" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-4">
             {/* Monogram — uses the same color logic as the list */}
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-[18px] shrink-0"
+              className="w-12 h-12 rounded-none-none flex items-center justify-center font-bold text-[18px] shrink-0"
               style={{
                 background: isArchived ? 'var(--color-muted)' : monoColors.bg,
                 color: isArchived ? 'var(--color-muted-fg)' : monoColors.text,
@@ -153,7 +154,7 @@ function CompanyDetailRouteComponent() {
                   {company.name}
                 </h1>
                 <span
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-full"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-none-full"
                   style={{
                     background: oppCfg.bg,
                     color: oppCfg.color,
@@ -162,12 +163,12 @@ function CompanyDetailRouteComponent() {
                     letterSpacing: '0.04em',
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: oppCfg.dot }} />
+                  <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: oppCfg.dot }} />
                   {oppCfg.label}
                 </span>
                 {isArchived && (
                   <span
-                    className="text-[10.5px] font-semibold px-2 py-0.5 rounded"
+                    className="text-[10.5px] font-semibold px-2 py-0.5 rounded-none"
                     style={{ background: 'var(--color-muted)', color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
                     Archived
@@ -181,12 +182,12 @@ function CompanyDetailRouteComponent() {
                   href={`https://${company.domain}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[12.5px] flex items-center gap-1 mt-1 transition-colors"
+                  className="text-[12.5px] flex items-center gap-1 mt-1 "
                   style={{ color: 'var(--color-muted-fg)' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-accent)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-muted-fg)')}
                 >
-                  {company.domain} <ExternalLink size={11} />
+                  {company.domain} <HugeiconsIcon icon={ExternalLinkIcon} size={11} />
                 </a>
               )}
 
@@ -194,14 +195,14 @@ function CompanyDetailRouteComponent() {
               {(company.industry || company.location) && (
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   {company.industry && (
-                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
-                      <Building2 size={11} />
+                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}>
+                      <HugeiconsIcon icon={Building02Icon} size={11} />
                       {company.industry}
                     </span>
                   )}
                   {company.location && (
-                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
-                      <MapPin size={11} />
+                    <span className="flex items-center gap-1 text-[12px]" style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}>
+                      <HugeiconsIcon icon={MapPinIcon} size={11} />
                       {company.location}
                     </span>
                   )}
@@ -212,7 +213,7 @@ function CompanyDetailRouteComponent() {
               {company.description && (
                 <p
                   className="text-[12.5px] mt-2 max-w-[480px] leading-relaxed"
-                  style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}
                 >
                   {company.description}
                 </p>
@@ -224,12 +225,12 @@ function CompanyDetailRouteComponent() {
           <div className="shrink-0">
             <button
               onClick={() => setActiveTab(primaryAction.tab)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-none-none text-[13.5px] font-semibold  whitespace-nowrap"
               style={{ background: 'var(--color-primary)', color: 'white', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               onMouseEnter={e => (e.currentTarget.style.background = '#1E2D4A')}
               onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}
             >
-              {primaryAction.label} <ArrowRight size={13} />
+              {primaryAction.label} <HugeiconsIcon icon={ArrowRightIcon} size={13} />
             </button>
           </div>
         </div>
@@ -244,7 +245,7 @@ function CompanyDetailRouteComponent() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className="shrink-0 sm:flex-1 px-4 sm:px-3 py-2 rounded-lg text-[13.5px] font-medium transition-all whitespace-nowrap"
+            className="shrink-0 sm:flex-1 px-4 sm:px-3 py-2 rounded-none-none text-[13.5px] font-medium  whitespace-nowrap"
             style={{
               background: activeTab === tab ? 'var(--color-card)' : 'transparent',
               color: activeTab === tab ? 'var(--color-primary)' : 'var(--color-muted-fg)',

@@ -21,7 +21,7 @@ function AuthedLayoutComponent() {
   if (status === 'bootstrap_error') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-4">
-        <div className="w-full max-w-md rounded-lg border border-red-200 bg-white p-6 shadow-xs text-center">
+        <div className="w-full max-w-md rounded-none-none border border-red-200 bg-slate-50 p-6 -xs text-center">
           <div className="mb-3 text-red-600 font-semibold text-lg">Connection Error</div>
           <p className="text-sm text-slate-600 mb-4">
             {error?.message || 'Unable to connect to the authentication service.'}
@@ -29,7 +29,7 @@ function AuthedLayoutComponent() {
           <button
             type="button"
             onClick={() => void retryBootstrap()}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-slate-800"
+            className="w-full rounded-none-none bg-slate-900 px-4 py-2 text-sm font-semibold text-white -xs hover:bg-slate-800"
           >
             Retry Connection
           </button>

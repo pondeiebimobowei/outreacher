@@ -148,8 +148,8 @@ export function SettingsComponent() {
   if (status === 'loading') {
     return (
       <div className="max-w-4xl space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-slate-200" />
-        <div className="h-64 animate-pulse rounded-xl bg-slate-100 border border-slate-200" />
+        <div className="h-8 w-48 animate-pulse rounded-none-none bg-slate-200" />
+        <div className="h-64 animate-pulse rounded-none-none bg-slate-100 border border-slate-200" />
       </div>
     );
   }
@@ -167,7 +167,7 @@ export function SettingsComponent() {
             </h1>
             {status === 'dirty' && (
               <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
+                className="inline-flex items-center gap-1.5 rounded-none-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
                 style={{
                   background: '#FFFBEB',
                   color: '#B45309',
@@ -175,13 +175,13 @@ export function SettingsComponent() {
                   fontFamily: 'Plus Jakarta Sans, sans-serif',
                 }}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="w-1.5 h-1.5 rounded-none-full bg-amber-500" />
                 Unsaved changes
               </span>
             )}
             {status === 'saved' && (
               <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
+                className="inline-flex items-center gap-1.5 rounded-none-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide"
                 style={{
                   background: '#ECFDF5',
                   color: '#065F46',
@@ -189,14 +189,14 @@ export function SettingsComponent() {
                   fontFamily: 'Plus Jakarta Sans, sans-serif',
                 }}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="w-1.5 h-1.5 rounded-none-full bg-emerald-500" />
                 Saved
               </span>
             )}
           </div>
           <p
             className="mt-1 text-[13px] text-slate-500"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Define your targeting goals and background to enable automated company research and
             outreach.
@@ -206,7 +206,7 @@ export function SettingsComponent() {
           type="button"
           onClick={(e) => void handleSave(e)}
           disabled={status === 'submitting'}
-          className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center justify-center rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs -opacity hover:opacity-90 disabled:opacity-50"
           style={{
             background: 'var(--color-primary)',
             fontFamily: 'Plus Jakarta Sans, sans-serif',
@@ -219,8 +219,8 @@ export function SettingsComponent() {
       {errorMessage && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4 text-[13px] text-red-700 flex items-start gap-2.5 shadow-xs"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className="rounded-none-none border border-red-200 bg-red-50 p-4 text-[13px] text-red-700 flex items-start gap-2.5 -xs"
+          style={{ fontFamily: 'sans-serif' }}
         >
           <span className="font-bold shrink-0">Error:</span>
           <span>{errorMessage}</span>
@@ -229,8 +229,8 @@ export function SettingsComponent() {
 
       {successMessage && (
         <div
-          className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-[13px] text-emerald-800 flex items-start gap-2.5 shadow-xs"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className="rounded-none-none border border-emerald-200 bg-emerald-50 p-4 text-[13px] text-emerald-800 flex items-start gap-2.5 -xs"
+          style={{ fontFamily: 'sans-serif' }}
         >
           <span>{successMessage}</span>
         </div>
@@ -238,7 +238,7 @@ export function SettingsComponent() {
 
       <form onSubmit={(e) => void handleSave(e)} className="space-y-6">
         {/* Section 1: Targeting Preferences */}
-        <section className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+        <section className="rounded-none-none border border-slate-200 bg-slate-50 overflow-hidden -xs">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h2
               className="text-[15px] font-bold text-slate-900"
@@ -248,7 +248,7 @@ export function SettingsComponent() {
             </h2>
             <p
               className="text-[12px] text-slate-500 mt-0.5"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               Primary drivers used by research engines to score company and opening relevance.
             </p>
@@ -304,7 +304,7 @@ export function SettingsComponent() {
         </section>
 
         {/* Section 2: Background & Positioning */}
-        <section className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+        <section className="rounded-none-none border border-slate-200 bg-slate-50 overflow-hidden -xs">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h2
               className="text-[15px] font-bold text-slate-900"
@@ -314,7 +314,7 @@ export function SettingsComponent() {
             </h2>
             <p
               className="text-[12px] text-slate-500 mt-0.5"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               Feeds AI outreach generation and evidence matching context.
             </p>
@@ -338,8 +338,8 @@ export function SettingsComponent() {
                   markDirty();
                 }}
                 placeholder="e.g. Staff Engineer specializing in high-throughput backend architecture"
-                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 transition-colors"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 "
+                style={{ fontFamily: 'sans-serif' }}
               />
             </div>
             <div>
@@ -360,8 +360,8 @@ export function SettingsComponent() {
                   markDirty();
                 }}
                 placeholder="Overview of your career narrative and core strengths..."
-                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 resize-none transition-colors leading-relaxed"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 resize-none  leading-relaxed"
+                style={{ fontFamily: 'sans-serif' }}
               />
             </div>
             <div>
@@ -382,15 +382,15 @@ export function SettingsComponent() {
                   markDirty();
                 }}
                 placeholder="Key technical achievements, team leadership scale, or domain impacts..."
-                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 resize-none transition-colors leading-relaxed"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 resize-none  leading-relaxed"
+                style={{ fontFamily: 'sans-serif' }}
               />
             </div>
           </div>
         </section>
 
         {/* Section 3: Professional Links */}
-        <section className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+        <section className="rounded-none-none border border-slate-200 bg-slate-50 overflow-hidden -xs">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h2
               className="text-[15px] font-bold text-slate-900"
@@ -400,7 +400,7 @@ export function SettingsComponent() {
             </h2>
             <p
               className="text-[12px] text-slate-500 mt-0.5"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               External links included in outreach communications and verification evidence.
             </p>
@@ -425,8 +425,8 @@ export function SettingsComponent() {
                     markDirty();
                   }}
                   placeholder="https://linkedin.com/in/username"
-                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 transition-colors"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
+                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 "
+                  style={{ fontFamily: 'sans-serif' }}
                 />
               </div>
               <div>
@@ -447,8 +447,8 @@ export function SettingsComponent() {
                     markDirty();
                   }}
                   placeholder="https://github.com/username"
-                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 transition-colors"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
+                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 "
+                  style={{ fontFamily: 'sans-serif' }}
                 />
               </div>
               <div>
@@ -469,8 +469,8 @@ export function SettingsComponent() {
                     markDirty();
                   }}
                   placeholder="https://portfolio.example.com"
-                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 transition-colors"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
+                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 "
+                  style={{ fontFamily: 'sans-serif' }}
                 />
               </div>
               <div>
@@ -491,8 +491,8 @@ export function SettingsComponent() {
                     markDirty();
                   }}
                   placeholder="https://website.example.com"
-                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-lg border border-slate-300 text-slate-900 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 transition-colors"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
+                  className="block w-full px-3.5 py-2.5 text-[13.5px] rounded-none-none border border-slate-300 text-slate-900 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none disabled:opacity-50 disabled:bg-slate-50 "
+                  style={{ fontFamily: 'sans-serif' }}
                 />
               </div>
             </div>
@@ -503,7 +503,7 @@ export function SettingsComponent() {
           <button
             type="submit"
             disabled={status === 'submitting'}
-            className="inline-flex items-center justify-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-none-none px-5 py-2.5 text-[13px] font-semibold text-white -xs -opacity hover:opacity-90 disabled:opacity-50"
             style={{
               background: 'var(--color-primary)',
               fontFamily: 'Plus Jakarta Sans, sans-serif',

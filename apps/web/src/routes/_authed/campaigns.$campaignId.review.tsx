@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowLeftIcon } from '@hugeicons/core-free-icons';;
 import {
   fetchCampaignById,
   pauseCampaign,
@@ -131,10 +132,10 @@ function CampaignReviewHubRoute() {
       <button
         type="button"
         onClick={() => navigate({ to: '/campaigns' })}
-        className="flex items-center gap-1.5 text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+        className="flex items-center gap-1.5 text-[13px] font-medium text-slate-500 hover:text-slate-900  cursor-pointer"
         style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
       >
-        <ArrowLeft size={14} /> Campaigns
+        <HugeiconsIcon icon={ArrowLeftIcon} size={14} /> Campaigns
       </button>
 
       <CampaignReviewHub

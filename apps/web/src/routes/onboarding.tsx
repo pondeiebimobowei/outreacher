@@ -6,7 +6,8 @@ import { apiClient } from '../api/client';
 import { LoadingState } from '../components/states/LoadingState';
 import { useAuth } from '../lib/auth-context';
 import { TagInput } from '../components/ui/tag-input';
-import { Check, ArrowRight, ArrowLeft, AlertCircle, LogOut } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CheckIcon, ArrowRightIcon, ArrowLeftIcon, AlertCircleIcon, LogOutIcon } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/onboarding')({
   component: OnboardingComponent,
@@ -215,7 +216,7 @@ function OnboardingComponent() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-background)]">
         <div className="w-full max-w-130 text-center py-8">
-          <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-6 bg-gradient-to-br from-indigo-600 to-purple-600 shadow-md">
+          <div className="w-16 h-16 rounded-none-none mx-auto flex items-center justify-center mb-6 text-indigo-700 ">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -229,10 +230,10 @@ function OnboardingComponent() {
           <button
             type="button"
             onClick={() => navigate({ to: '/dashboard' })}
-            className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-xl font-semibold text-[15px] transition-all bg-[var(--color-primary)] text-white shadow-xs hover:bg-opacity-95 active:scale-[0.99] font-heading cursor-pointer"
+            className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-none-none font-semibold text-[15px]  bg-[var(--color-primary)] text-white -xs hover:bg-opacity-95 active:scale-[0.99] font-heading cursor-pointer"
           >
             <span>Enter Outreacher</span>
-            <ArrowRight size={16} />
+            <HugeiconsIcon icon={ArrowRightIcon} size={16} />
           </button>
         </div>
       </div>
@@ -247,7 +248,7 @@ function OnboardingComponent() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 sm:px-8 h-15 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-card)] select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
+          <div className="w-7 h-7 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -260,16 +261,16 @@ function OnboardingComponent() {
           <button
             type="button"
             onClick={() => navigate({ to: '/' })}
-            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] transition-colors font-body cursor-pointer"
+            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]  font-body cursor-pointer"
           >
             Skip for now
           </button>
           <button
             type="button"
             onClick={() => void logout()}
-            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-red-600 transition-colors font-body flex items-center gap-1 cursor-pointer"
+            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-red-600  font-body flex items-center gap-1 cursor-pointer"
           >
-            <LogOut size={13} />
+            <HugeiconsIcon icon={LogOutIcon} size={13} />
             <span>Log out</span>
           </button>
         </div>
@@ -287,16 +288,16 @@ function OnboardingComponent() {
                 <div key={s.id} className="flex items-center flex-1 last:flex-none">
                   <div className="flex flex-col items-center gap-1.5">
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold transition-all font-heading ${
+                      className={`w-7 h-7 rounded-none-full flex items-center justify-center text-[12px] font-bold  font-heading ${
                         doneStep
                           ? 'bg-[var(--color-accent)] text-white'
                           : activeStep
-                          ? 'bg-[var(--color-primary)] text-white shadow-xs ring-2 ring-[var(--color-accent)]/30'
+                          ? 'bg-[var(--color-primary)] text-white -xs ring-2 ring-[var(--color-accent)]/30'
                           : 'bg-slate-100 text-slate-400 border border-slate-200'
                       }`}
                       aria-current={activeStep ? 'step' : undefined}
                     >
-                      {doneStep ? <Check size={13} strokeWidth={2.5} /> : i + 1}
+                      {doneStep ? <HugeiconsIcon icon={CheckIcon} size={13} strokeWidth={2.5} /> : i + 1}
                     </div>
                     <span
                       className={`text-[11px] font-medium hidden sm:block font-heading ${
@@ -312,7 +313,7 @@ function OnboardingComponent() {
                   </div>
                   {i < STEPS.length - 1 && (
                     <div
-                      className={`flex-1 h-px mx-2 mb-4 transition-all ${
+                      className={`flex-1 h-px mx-2 mb-4  ${
                         doneStep ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
                       }`}
                     />
@@ -323,7 +324,7 @@ function OnboardingComponent() {
           </div>
 
           {/* Card */}
-          <div className="rounded-2xl p-6 sm:p-8 bg-[var(--color-card)] border border-[var(--color-border)] shadow-xs">
+          <div className="rounded-none-none p-6 sm:p-8 bg-[var(--color-card)] border border-[var(--color-border)] -xs">
             <div className="mb-6">
               <h2 className="text-[22px] font-bold leading-tight font-heading tracking-tight text-[var(--color-primary)]">
                 {currentStep.label}
@@ -334,8 +335,8 @@ function OnboardingComponent() {
             </div>
 
             {serverError && (
-              <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-6 text-[13px] bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]">
-                <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-none-none mb-6 text-[13px] bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]">
+                <HugeiconsIcon icon={AlertCircleIcon} size={15} className="mt-0.5 shrink-0" />
                 <span className="font-body leading-relaxed">{serverError}</span>
               </div>
             )}
@@ -358,7 +359,7 @@ function OnboardingComponent() {
                       value={form.headline}
                       onChange={(e) => update('headline', e.target.value)}
                       placeholder="e.g. Senior Frontend Engineer"
-                      className="w-full px-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full px-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
                       style={{
                         borderColor: errors.headline ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.headline ? '#FEF2F2' : 'var(--color-card)',
@@ -373,7 +374,7 @@ function OnboardingComponent() {
                   </div>
                   {errors.headline && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.headline}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.headline}
                     </p>
                   )}
                 </div>
@@ -391,7 +392,7 @@ function OnboardingComponent() {
                   </p>
                   {errors.targetRoles && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.targetRoles}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.targetRoles}
                     </p>
                   )}
                 </div>
@@ -414,7 +415,7 @@ function OnboardingComponent() {
                   </p>
                   {errors.skills && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.skills}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.skills}
                     </p>
                   )}
                 </div>
@@ -434,7 +435,7 @@ function OnboardingComponent() {
                             update('skills', [...form.skills, s]);
                           }
                         }}
-                        className="text-[11.5px] px-2.5 py-1 rounded-md transition-all bg-[var(--color-muted)] text-[var(--color-muted-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] font-body cursor-pointer"
+                        className="text-[11.5px] px-2.5 py-1 rounded-none-none  bg-[var(--color-muted)] text-[var(--color-muted-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] font-body cursor-pointer"
                       >
                         + {s}
                       </button>
@@ -461,7 +462,7 @@ function OnboardingComponent() {
                     value={form.summary}
                     onChange={(e) => update('summary', e.target.value)}
                     placeholder="e.g. I'm a software engineer with 6 years of experience building payment infrastructure at scale. I've led backend systems handling millions of transactions and I'm looking for my next challenge..."
-                    className="w-full px-4 py-3 rounded-lg text-[14px] outline-none transition-all resize-none border bg-[var(--color-card)] text-[var(--color-primary)] font-body leading-relaxed"
+                    className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-[var(--color-card)] text-[var(--color-primary)] font-body leading-relaxed"
                     style={{
                       borderColor: errors.summary ? '#FCA5A5' : 'var(--color-border)',
                       backgroundColor: errors.summary ? '#FEF2F2' : 'var(--color-card)',
@@ -483,7 +484,7 @@ function OnboardingComponent() {
                 </div>
                 {errors.summary && (
                   <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                    <AlertCircle size={12} /> {errors.summary}
+                    <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.summary}
                   </p>
                 )}
               </div>
@@ -502,7 +503,7 @@ function OnboardingComponent() {
                     <label htmlFor="linkedinUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
                       LinkedIn URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
                       Optional
                     </span>
                   </div>
@@ -518,7 +519,7 @@ function OnboardingComponent() {
                       value={form.linkedinUrl}
                       onChange={(e) => update('linkedinUrl', e.target.value)}
                       placeholder="https://linkedin.com/in/username"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
                       style={{
                         borderColor: errors.linkedinUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.linkedinUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -533,7 +534,7 @@ function OnboardingComponent() {
                   </div>
                   {errors.linkedinUrl && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.linkedinUrl}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.linkedinUrl}
                     </p>
                   )}
                 </div>
@@ -544,7 +545,7 @@ function OnboardingComponent() {
                     <label htmlFor="githubUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
                       GitHub URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
                       Optional
                     </span>
                   </div>
@@ -560,7 +561,7 @@ function OnboardingComponent() {
                       value={form.githubUrl}
                       onChange={(e) => update('githubUrl', e.target.value)}
                       placeholder="https://github.com/username"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
                       style={{
                         borderColor: errors.githubUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.githubUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -575,7 +576,7 @@ function OnboardingComponent() {
                   </div>
                   {errors.githubUrl && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.githubUrl}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.githubUrl}
                     </p>
                   )}
                 </div>
@@ -586,7 +587,7 @@ function OnboardingComponent() {
                     <label htmlFor="portfolioUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
                       Portfolio / Website URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
                       Optional
                     </span>
                   </div>
@@ -602,7 +603,7 @@ function OnboardingComponent() {
                       value={form.portfolioUrl}
                       onChange={(e) => update('portfolioUrl', e.target.value)}
                       placeholder="https://yoursite.com"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
                       style={{
                         borderColor: errors.portfolioUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.portfolioUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -617,7 +618,7 @@ function OnboardingComponent() {
                   </div>
                   {errors.portfolioUrl && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                      <AlertCircle size={12} /> {errors.portfolioUrl}
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.portfolioUrl}
                     </p>
                   )}
                 </div>
@@ -630,18 +631,18 @@ function OnboardingComponent() {
                 type="button"
                 onClick={handleBack}
                 disabled={step === 0}
-                className={`flex items-center gap-1.5 text-[13.5px] font-medium transition-all font-body cursor-pointer ${
+                className={`flex items-center gap-1.5 text-[13.5px] font-medium  font-body cursor-pointer ${
                   step === 0 ? 'invisible pointer-events-none' : 'text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]'
                 }`}
               >
-                <ArrowLeft size={15} /> Back
+                <HugeiconsIcon icon={ArrowLeftIcon} size={15} /> Back
               </button>
 
               <button
                 type="button"
                 onClick={handleNext}
                 disabled={mutation.isPending}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[14px] font-semibold transition-all bg-[var(--color-primary)] text-white shadow-xs font-heading cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-none-none text-[14px] font-semibold  bg-[var(--color-primary)] text-white -xs font-heading cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
               >
                 {mutation.isPending ? (
                   <>
@@ -653,12 +654,12 @@ function OnboardingComponent() {
                 ) : isLastStep ? (
                   <>
                     <span>Complete profile</span>
-                    <Check size={14} strokeWidth={2.5} />
+                    <HugeiconsIcon icon={CheckIcon} size={14} strokeWidth={2.5} />
                   </>
                 ) : (
                   <>
                     <span>Continue</span>
-                    <ArrowRight size={14} />
+                    <HugeiconsIcon icon={ArrowRightIcon} size={14} />
                   </>
                 )}
               </button>

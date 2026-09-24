@@ -44,11 +44,11 @@ export function PreDispatchHold({
       role="region"
       aria-label="Pre-dispatch hold"
       data-testid="pre-dispatch-hold"
-      className="w-full bg-amber-50 border border-amber-200 rounded-lg p-3.5 space-y-2.5 shadow-xs"
+      className="w-full bg-amber-50 border border-amber-200 rounded-none-none p-3.5 space-y-2.5 -xs"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center space-x-2 text-xs text-amber-900 font-semibold">
-          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+          <span className="inline-block w-2 h-2 rounded-none-full bg-amber-500 animate-ping" />
           <span aria-live="polite">
             Sending {contactName ? `to ${contactName} ` : ''}in {remainingSeconds}s...
           </span>
@@ -57,7 +57,7 @@ export function PreDispatchHold({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-[48px] sm:min-h-[44px] px-3.5 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+          className="min-h-[48px] sm:min-h-[44px] px-3.5 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
         >
           Cancel Send
         </button>
@@ -65,14 +65,14 @@ export function PreDispatchHold({
 
       {/* Depleting progress bar */}
       <div
-        className="w-full h-1.5 bg-amber-200/60 rounded-full overflow-hidden"
+        className="w-full h-1.5 bg-amber-200/60 rounded-none-full overflow-hidden"
         role="progressbar"
         aria-valuenow={progressPercent}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className="h-full bg-amber-500 transition-all duration-75 ease-linear rounded-full"
+          className="h-full bg-amber-500   ease-linear rounded-none-full"
           style={{ width: `${progressPercent}%` }}
         />
       </div>

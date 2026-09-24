@@ -69,7 +69,7 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
     };
   }, [isPollingActive]);
 
-  // Track discrete status transitions for accessibility announcements
+  // Track discrete status s for accessibility announcements
   useEffect(() => {
     if (!contactsData) return;
     const currentStatus = contactsData.status;

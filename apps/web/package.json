@@ -11,11 +11,12 @@
     "test": "jest --config jest.config.cjs"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.3.5",
     "@repo/shared": "workspace:*",
     "@repo/ui": "workspace:*",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "^1.170.36",
-    "lucide-react": "^1.47.0",
+    "hugeicons-react": "^0.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

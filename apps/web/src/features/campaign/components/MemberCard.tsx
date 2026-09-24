@@ -1,4 +1,5 @@
-import { ArrowRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowRightIcon } from '@hugeicons/core-free-icons';;
 import type { CampaignContactStatus } from '../../../api/campaigns';
 import type { CampaignContactSummaryDto } from '../../../api/outreach';
 
@@ -65,13 +66,13 @@ export function MemberCard({
 
   return (
     <div
-      className="rounded-xl p-4 transition-all"
+      className="rounded-none-none p-4 "
       style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)' }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0"
+            className="w-9 h-9 rounded-none-none flex items-center justify-center font-bold text-[13px] shrink-0"
             style={{
               background: MONOGRAM_COLORS['default'].bg,
               color: MONOGRAM_COLORS['default'].text,
@@ -89,14 +90,14 @@ export function MemberCard({
             </p>
             <p
               className="text-[12px] font-medium"
-              style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}
+              style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}
             >
               {companyName}
             </p>
           </div>
         </div>
         <span
-          className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+          className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-none-full"
           style={{
             background: cfg.bg,
             color: cfg.color,
@@ -104,14 +105,14 @@ export function MemberCard({
             fontFamily: '"Plus Jakarta Sans", sans-serif',
           }}
         >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+          <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: cfg.dot }} />
           {MEMBER_STATUS_LABELS[member.status] || member.status}
         </span>
       </div>
 
       {member.currentSubject && (
         <div
-          className="rounded-lg px-3 py-2 mb-3"
+          className="rounded-none-none px-3 py-2 mb-3"
           style={{ background: 'var(--color-muted, #F3F4F6)', border: '1px solid var(--color-border, #E5E7EB)' }}
         >
           <p
@@ -122,7 +123,7 @@ export function MemberCard({
           </p>
           <p
             className="text-[12.5px] truncate"
-            style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Inter", sans-serif' }}
+            style={{ color: 'var(--color-primary, #111827)', fontFamily: 'sans-serif' }}
           >
             {member.currentSubject}
           </p>
@@ -132,22 +133,22 @@ export function MemberCard({
       <div className="flex items-center justify-between">
         <span
           className="text-[12px]"
-          style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}
+          style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}
         >
           {new Date(member.updatedAt).toLocaleDateString()}
         </span>
         {isActionable ? (
           <button
             onClick={onOpenContact}
-            className="text-[12px] font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity cursor-pointer"
+            className="text-[12px] font-semibold flex items-center gap-1 hover:opacity-80 -opacity cursor-pointer"
             style={{ color: 'var(--color-accent, #4F46E5)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
           >
-            {nextAction} <ArrowRight size={11} />
+            {nextAction} <HugeiconsIcon icon={ArrowRightIcon} size={11} />
           </button>
         ) : (
           <span
             className="text-[12px]"
-            style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}
+            style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}
           >
             {nextAction}
           </span>

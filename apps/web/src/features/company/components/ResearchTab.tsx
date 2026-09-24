@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CompanyDto } from '../../../api/companies';
 import { CompanyResearchDetailsDto, startCompanyResearch } from '../../../api/research';
-import { RefreshCw, Play, ShieldCheck, ExternalLink } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { RefreshCwIcon, PlayIcon, ShieldCheckIcon, ExternalLinkIcon } from '@hugeicons/core-free-icons';;
 
 export function ResearchTab({
   company,
@@ -24,7 +25,7 @@ export function ResearchTab({
   return (
     <div className="space-y-6">
       {/* Research Status Card */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-slate-50 p-6 rounded-none-none border border-slate-200 -2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
             Research Status
@@ -39,8 +40,8 @@ export function ResearchTab({
         </div>
         <div className="flex items-center gap-3">
           {isRunning ? (
-            <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
-              <RefreshCw className="animate-spin" size={16} /> Running...
+            <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-none-none">
+              <HugeiconsIcon icon={RefreshCwIcon} className="animate-spin" size={16} /> Running...
             </span>
           ) : (
             <>
@@ -48,7 +49,7 @@ export function ResearchTab({
                 <button
                   type="button"
                   onClick={() => startResearchMutation.mutate({ forceRefresh: true })}
-                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Force Refresh
@@ -57,10 +58,10 @@ export function ResearchTab({
               <button
                 type="button"
                 onClick={() => startResearchMutation.mutate()}
-                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900"
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
-                <Play size={14} className="fill-current" /> {research?.status === 'COMPLETED' ? 'Refresh' : 'Start Research'}
+                <HugeiconsIcon icon={PlayIcon} size={14} className="fill-current" /> {research?.status === 'COMPLETED' ? 'Refresh' : 'Start Research'}
               </button>
             </>
           )}
@@ -69,7 +70,7 @@ export function ResearchTab({
 
       {/* Executive Summary */}
       {research?.run?.summary && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs space-y-2">
+        <div className="bg-slate-50 p-6 rounded-none-none border border-slate-200 -2xs space-y-2">
           <h4
             className="text-xs font-bold uppercase tracking-wider text-slate-500"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -82,7 +83,7 @@ export function ResearchTab({
 
       {/* Key Findings */}
       {research?.run?.keyFindings && research.run.keyFindings.length > 0 && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div className="bg-slate-50 p-6 rounded-none-none border border-slate-200 -2xs space-y-3">
           <h4
             className="text-xs font-bold uppercase tracking-wider text-slate-500"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -92,7 +93,7 @@ export function ResearchTab({
           <ul className="space-y-2.5">
             {research.run.keyFindings.map((finding, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mt-2 shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-none-full bg-indigo-600 mt-2 shrink-0" />
                 <span className="leading-relaxed">{finding}</span>
               </li>
             ))}
@@ -102,9 +103,9 @@ export function ResearchTab({
 
       {/* Supporting Evidence (if present) */}
       {research?.evidence && research.evidence.length > 0 && (
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        <div className="bg-slate-50 p-6 rounded-none-none border border-slate-200 -2xs space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-indigo-600" />
+            <HugeiconsIcon icon={ShieldCheckIcon} size={16} className="text-indigo-600" />
             <h4
               className="text-xs font-bold uppercase tracking-wider text-slate-500"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -118,7 +119,7 @@ export function ResearchTab({
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-slate-900 leading-relaxed">{ev.claim}</p>
                   {ev.sourceExcerpt && (
-                    <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded border border-slate-100">
+                    <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-none border border-slate-100">
                       "{ev.sourceExcerpt}"
                     </p>
                   )}
@@ -132,7 +133,7 @@ export function ResearchTab({
                       rel="noopener noreferrer"
                       className="text-indigo-600 hover:text-indigo-800"
                     >
-                      <ExternalLink size={12} />
+                      <HugeiconsIcon icon={ExternalLinkIcon} size={12} />
                     </a>
                   )}
                 </div>

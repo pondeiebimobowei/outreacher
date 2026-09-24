@@ -16,7 +16,7 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
         aria-expanded={isOpen}
         aria-controls={`provenance-details-${contact.id}`}
         onClick={() => setIsOpen(!isOpen)}
-        className="min-h-[44px] text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded px-3 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center"
+        className="min-h-[44px] text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-none px-3 py-2  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center"
       >
         {isOpen ? 'Hide Provenance ▲' : 'Inspect Provenance ▼'}
       </button>
@@ -26,7 +26,7 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
           id={`provenance-details-${contact.id}`}
           role="region"
           aria-labelledby={`provenance-toggle-${contact.id}`}
-          className="mt-3 p-3 bg-white border border-slate-200 rounded-md space-y-2 text-slate-700"
+          className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-none-none space-y-2 text-slate-700"
         >
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-900 border-b border-slate-100 pb-1">
             <span>Discovery Ground Truth & Provenance</span>
@@ -69,7 +69,7 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
                 href={contact.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-slate-900 hover:underline font-mono inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1 min-h-[44px] sm:min-h-0"
+                className="text-slate-900 hover:underline font-mono inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded-none px-1 min-h-[44px] sm:min-h-0"
               >
                 <span>View Source Page</span>
                 <span>↗</span>

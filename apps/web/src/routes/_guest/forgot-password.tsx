@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Mail, AlertCircle, ArrowLeft } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MailIcon, AlertCircleIcon, ArrowLeftIcon } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/_guest/forgot-password')({
   component: ForgotPasswordComponent,
@@ -33,7 +34,7 @@ function ForgotPasswordComponent() {
     <div className="w-full max-w-100 mx-auto">
       {/* Mobile logo */}
       <div className="flex items-center gap-2.5 mb-8 lg:hidden select-none">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
+        <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
           </svg>
@@ -51,8 +52,8 @@ function ForgotPasswordComponent() {
       </p>
 
       {error && (
-        <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-5 text-[13px] bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]">
-          <AlertCircle size={15} className="mt-0.5 shrink-0" />
+        <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-none-none mb-5 text-[13px] bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]">
+          <HugeiconsIcon icon={AlertCircleIcon} size={15} className="mt-0.5 shrink-0" />
           <span className="font-body leading-relaxed">{error}</span>
         </div>
       )}
@@ -64,7 +65,7 @@ function ForgotPasswordComponent() {
           </label>
           <div className="relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
-              <Mail size={15} />
+              <HugeiconsIcon icon={MailIcon} size={15} />
             </div>
             <input
               id="reset-email"
@@ -76,7 +77,7 @@ function ForgotPasswordComponent() {
               }}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+              className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
               style={{
                 borderColor: error ? '#FCA5A5' : 'var(--color-border)',
                 backgroundColor: error ? '#FEF2F2' : 'var(--color-card)',
@@ -94,7 +95,7 @@ function ForgotPasswordComponent() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-lg text-[14px] font-semibold transition-all flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
+          className="w-full py-2.5 rounded-none-none text-[14px] font-semibold  flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white -xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
         >
           {loading ? (
             <>
@@ -112,9 +113,9 @@ function ForgotPasswordComponent() {
       <div className="mt-6 text-center">
         <Link
           to="/login"
-          className="text-[13px] inline-flex items-center justify-center gap-1.5 text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] transition-colors font-body font-medium"
+          className="text-[13px] inline-flex items-center justify-center gap-1.5 text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]  font-body font-medium"
         >
-          <ArrowLeft size={14} /> Back to sign in
+          <HugeiconsIcon icon={ArrowLeftIcon} size={14} /> Back to sign in
         </Link>
       </div>
     </div>

@@ -353,7 +353,7 @@ describe('OutreachReviewDrawer', () => {
     expect(subjectInput.value).toBe('Freshly Generated Subject');
   });
 
-  it('explicitly approves draft and transitions to READY', async () => {
+  it('explicitly approves draft and s to READY', async () => {
     (outreachApi.approveOutreachDraft as jest.Mock).mockResolvedValue({
       ...mockContactDetails,
       status: 'READY',

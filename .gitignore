@@ -17,3 +17,4 @@ packages/db/generated/
 AGENTS.md
 .vercel
 skills-lock.json
+.env*

@@ -11,7 +11,7 @@ export function OpportunitiesTab({
 }) {
   if (!research?.opportunities || research.opportunities.length === 0) {
     return (
-      <div className="bg-white p-12 rounded-xl border border-slate-200 shadow-2xs text-center space-y-3">
+      <div className="bg-slate-50 p-12 rounded-none-none border border-slate-200 -2xs text-center space-y-3">
         <h3
           className="text-base font-bold text-slate-900"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}

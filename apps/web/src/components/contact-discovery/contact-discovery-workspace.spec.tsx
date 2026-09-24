@@ -211,7 +211,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(screen.getByText(/Top Recommendations/i)).toBeInTheDocument();
     expect(screen.getByText(/Additional Candidates/i)).toBeInTheDocument();
 
-    // Verify transition banner when contact is selected
+    // Verify  banner when contact is selected
     expect(screen.getByText(/Target Contact Selected/i)).toBeInTheDocument();
     const prepareBtn = screen.getByRole('button', { name: /Prepare Outreach & Campaign Context/i });
     fireEvent.click(prepareBtn);
@@ -480,7 +480,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     const selectBtn = await screen.findByRole('button', { name: /Select Target Contact/i });
     fireEvent.click(selectBtn);
 
-    // Verify transition banner displays bound campaign and PENDING status
+    // Verify  banner displays bound campaign and PENDING status
     expect(await screen.findByText('Outreach — Acme Corp')).toBeInTheDocument();
     expect(await screen.findByText('PENDING')).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /Review Outreach Draft/i })).toBeInTheDocument();

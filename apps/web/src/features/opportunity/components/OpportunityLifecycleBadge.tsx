@@ -12,7 +12,7 @@ export function OpportunityLifecycleBadge({ status }: { status: 'ACTIVE' | 'CLOS
 
   return (
     <span
-      className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+      className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-none-full"
       style={{
         background: cfg.bg,
         color: cfg.color,

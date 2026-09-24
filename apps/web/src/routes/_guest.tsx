@@ -26,7 +26,7 @@ function GuestLayoutComponent() {
       {/* Left brand panel */}
       <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-[var(--color-sidebar)] select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
+          <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -52,7 +52,7 @@ function GuestLayoutComponent() {
 
       {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10 overflow-y-auto">
-        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-7 sm:p-9">
+        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-none-none  border border-[var(--color-border)] p-7 sm:p-9">
           <Outlet />
         </div>
       </div>

@@ -39,7 +39,7 @@ export function CampaignCard({
   return (
     <div
       role="article"
-      className="rounded-xl p-5 cursor-pointer transition-all"
+      className="rounded-none-none p-5 cursor-pointer "
       style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)' }}
       onClick={onClick}
       onMouseEnter={(e) => {
@@ -61,13 +61,13 @@ export function CampaignCard({
           </h3>
           <p
             className="text-[12px] mt-0.5 truncate"
-            style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}
+            style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}
           >
             Target: {company?.name || 'Unknown'}
           </p>
         </div>
         <span
-          className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+          className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-none-full"
           style={{
             background: cfg.bg,
             color: cfg.color,
@@ -75,7 +75,7 @@ export function CampaignCard({
             fontFamily: '"Plus Jakarta Sans", sans-serif',
           }}
         >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+          <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: cfg.dot }} />
           {CAMPAIGN_STATUS_LABELS[campaign.status]}
         </span>
       </div>
@@ -89,7 +89,7 @@ export function CampaignCard({
         <div>
           {readiness.state === 'READY' && (
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+              className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider"
               style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0' }}
             >
               {readiness.eligibleSenderCount} Sender{readiness.eligibleSenderCount > 1 ? 's' : ''} Ready
@@ -97,7 +97,7 @@ export function CampaignCard({
           )}
           {readiness.state === 'NEEDS_SENDER' && (
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+              className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider"
               style={{ background: '#FFF7ED', color: '#9A3412', border: '1px solid #FFEDD5' }}
             >
               Needs Sender
@@ -105,7 +105,7 @@ export function CampaignCard({
           )}
           {(readiness.state === 'ALL_SENDERS_INELIGIBLE' || readiness.state === 'READINESS_UNKNOWN') && (
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+              className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider"
               style={{ background: '#FEF2F2', color: '#991B1B', border: '1px solid #FEE2E2' }}
             >
               Sender Issues
@@ -117,7 +117,7 @@ export function CampaignCard({
       <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--color-border, #E5E7EB)' }}>
         <span
           className="text-[12px]"
-          style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}
+          style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}
         >
           {new Date(campaign.updatedAt).toLocaleDateString()}
         </span>
@@ -126,7 +126,7 @@ export function CampaignCard({
             <button
               aria-label="Pause campaign"
               onClick={(e) => { e.stopPropagation(); onPause(); }}
-              className="text-[12px] font-semibold transition-opacity hover:opacity-80"
+              className="text-[12px] font-semibold -opacity hover:opacity-80"
               style={{ color: '#D97706', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
               Pause
@@ -136,7 +136,7 @@ export function CampaignCard({
             <button
               aria-label="Resume campaign"
               onClick={(e) => { e.stopPropagation(); onResume(); }}
-              className="text-[12px] font-semibold transition-opacity hover:opacity-80"
+              className="text-[12px] font-semibold -opacity hover:opacity-80"
               style={{ color: '#059669', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
               Resume

@@ -14,8 +14,8 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   retryLabel = 'Try again',
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
+    <div className="flex flex-col items-center justify-center rounded-none-none border border-red-200 bg-red-50 p-8 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-none-full bg-red-100 text-red-600">
         <svg
           className="h-6 w-6"
           fill="none"
@@ -37,7 +37,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
         <button
           type="button"
           onClick={onRetry}
-          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-none-none bg-red-600 px-4 py-2 text-sm font-semibold text-white -xs hover:bg-red-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
         >
           {retryLabel}
         </button>

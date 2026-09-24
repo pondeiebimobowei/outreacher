@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Megaphone, Plus } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MegaphoneIcon, PlusIcon } from '@hugeicons/core-free-icons';;
 import { CampaignDto, CampaignStatus, fetchCampaigns, pauseCampaign, resumeCampaign } from '../../api/campaigns';
 import { CompanyDto, fetchCompanies } from '../../api/companies';
 import { ErrorState, LoadingState } from '../../components/states';
@@ -33,25 +34,25 @@ const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-24 px-8">
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'var(--color-muted, #F3F4F6)', color: 'var(--color-muted-fg, #6B7280)' }}>
-        <Megaphone size={26} strokeWidth={1.5} />
+      <div className="w-14 h-14 rounded-none-none flex items-center justify-center" style={{ background: 'var(--color-muted, #F3F4F6)', color: 'var(--color-muted-fg, #6B7280)' }}>
+        <HugeiconsIcon icon={MegaphoneIcon} size={26} strokeWidth={1.5} />
       </div>
       <div className="text-center max-w-100">
         <h2 className="text-[20px] font-bold mb-2" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
           No campaigns yet
         </h2>
-        <p className="text-[14px] leading-relaxed" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+        <p className="text-[14px] leading-relaxed" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}>
           Create a campaign when you're ready to reach multiple people with a reusable outreach message.
         </p>
       </div>
       <button
         onClick={onCreate}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all"
+        className="flex items-center gap-2 px-5 py-2.5 rounded-none-none text-[13.5px] font-semibold "
         style={{ background: 'var(--color-primary, #111827)', color: 'white', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
         onMouseEnter={(e) => (e.currentTarget.style.background = '#1E2D4A')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-primary, #111827)')}
       >
-        <Plus size={15} /> Create campaign
+        <HugeiconsIcon icon={PlusIcon} size={15} /> Create campaign
       </button>
     </div>
   );
@@ -121,26 +122,26 @@ function CampaignsIndexComponent() {
           <h1 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
             Campaigns
           </h1>
-          <p className="text-[14px] mt-1" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}>
             Workspace directory of all outreach initiatives, active queues, and historical campaigns.
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => navigate({ to: '/companies' })}
-            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-none-none text-[13px] font-semibold  border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
             style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
           >
             Target Companies
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all shadow-xs"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-none-none text-[13px] font-semibold  -xs"
             style={{ background: 'var(--color-primary, #111827)', color: 'white', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#1E2D4A')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-primary, #111827)')}
           >
-            <Plus size={14} /> Create campaign
+            <HugeiconsIcon icon={PlusIcon} size={14} /> Create campaign
           </button>
         </div>
       </div>
@@ -161,7 +162,7 @@ function CampaignsIndexComponent() {
                 <button
                   key={st}
                   onClick={() => setStatusFilter(statusFilter === st ? 'ALL' : st)}
-                  className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-full transition-all cursor-pointer hover:opacity-80"
+                  className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1 rounded-none-full  cursor-pointer hover:opacity-80"
                   style={{
                     background: isSelected ? cfg.bg : '#ffffff',
                     color: isSelected ? cfg.color : '#6B7280',
@@ -169,7 +170,7 @@ function CampaignsIndexComponent() {
                     opacity: isSelected ? 1 : 0.6
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+                  <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: cfg.dot }} />
                   {CAMPAIGN_STATUS_LABELS[st]} · {count}
                 </button>
               );

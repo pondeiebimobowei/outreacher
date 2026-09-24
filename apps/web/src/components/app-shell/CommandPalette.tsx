@@ -1,43 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import {
-  LayoutDashboard,
-  Building2,
-  Briefcase,
-  Users,
-  Megaphone,
-  Mail,
-  MessageSquare,
-  FileText,
-  Settings,
-  AtSign,
-  Zap,
-  User,
-  Plus,
-  Search,
-  X,
-  LucideIcon,
-} from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { LayoutDashboardIcon, BriefcaseIcon, UsersIcon, MegaphoneIcon, MailIcon, MessageSquareIcon, FileTextIcon, SettingsIcon, AtSignIcon, ZapIcon, UserIcon, PlusIcon, SearchIcon, XIcon, HousePlusIcon, KeyframesMultipleAddIcon, DashboardSquare02Icon, BuildingIcon, Briefcase, UserMultiple02FreeIcons, Megaphone, Mail, MessageSquare, FileText, Settings, AtSign, Zap, User } from '@hugeicons/core-free-icons';
+import { IconSvgObject } from '@hugeicons/core-free-icons/types';
+;
 
 export interface PaletteCommand {
   id: string;
   label: string;
   group: 'Navigation' | 'Actions';
-  icon: LucideIcon;
+  icon: IconSvgObject;
   route: string;
   keywords?: string[];
 }
 
 export const PALETTE_COMMANDS: PaletteCommand[] = [
   // Actions
-  { id: 'action-add-company', label: 'Add company', group: 'Actions', icon: Plus, route: '/companies', keywords: ['create', 'new', 'company'] },
-  { id: 'action-create-campaign', label: 'Create campaign', group: 'Actions', icon: Plus, route: '/campaigns', keywords: ['new', 'outreach', 'campaign'] },
+  { id: 'action-add-company', label: 'Add company', group: 'Actions', icon: HousePlusIcon, route: '/companies', keywords: ['create', 'new', 'company'] },
+  { id: 'action-create-campaign', label: 'Create campaign', group: 'Actions', icon: KeyframesMultipleAddIcon, route: '/campaigns', keywords: ['new', 'outreach', 'campaign'] },
 
   // Navigation
-  { id: 'nav-dashboard', label: 'Go to Dashboard', group: 'Navigation', icon: LayoutDashboard, route: '/', keywords: ['home', 'overview'] },
-  { id: 'nav-companies', label: 'Go to Companies', group: 'Navigation', icon: Building2, route: '/companies', keywords: ['accounts', 'employers'] },
+  { id: 'nav-dashboard', label: 'Go to Dashboard', group: 'Navigation', icon: DashboardSquare02Icon, route: '/', keywords: ['home', 'overview'] },
+  { id: 'nav-companies', label: 'Go to Companies', group: 'Navigation', icon: BuildingIcon, route: '/companies', keywords: ['accounts', 'employers'] },
   { id: 'nav-opportunities', label: 'Go to Opportunities', group: 'Navigation', icon: Briefcase, route: '/opportunities', keywords: ['jobs', 'roles', 'leads'] },
-  { id: 'nav-contacts', label: 'Go to Contacts', group: 'Navigation', icon: Users, route: '/contacts', keywords: ['people', 'leads', 'recipients'] },
+  { id: 'nav-contacts', label: 'Go to Contacts', group: 'Navigation', icon: UserMultiple02FreeIcons, route: '/contacts', keywords: ['people', 'leads', 'recipients'] },
   { id: 'nav-campaigns', label: 'Go to Campaigns', group: 'Navigation', icon: Megaphone, route: '/campaigns', keywords: ['outreach', 'sequences'] },
   { id: 'nav-outreaches', label: 'Go to Outreaches', group: 'Navigation', icon: Mail, route: '/outreaches', keywords: ['emails', 'messages', 'drafts'] },
   { id: 'nav-conversations', label: 'Go to Conversations', group: 'Navigation', icon: MessageSquare, route: '/conversations', keywords: ['replies', 'inbox', 'threads'] },
@@ -149,7 +135,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs -opacity"
         onClick={onClose}
         aria-hidden="true"
         data-testid="palette-backdrop"
@@ -160,7 +146,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
-        className="fixed z-50 flex flex-col overflow-hidden bg-white shadow-2xl border border-[var(--color-border)] rounded-2xl w-[min(620px,calc(100vw-32px))] max-h-[min(520px,calc(100vh-96px))]"
+        className="fixed z-50 flex flex-col overflow-hidden bg-slate-50  border border-[var(--color-border)] rounded-none-none w-[min(620px,calc(100vw-32px))] max-h-[min(520px,calc(100vh-96px))]"
         style={{
           top: 'clamp(16px, 10vh, 80px)',
           left: '50%',
@@ -170,7 +156,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       >
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-4 h-14 border-b border-[var(--color-border)] shrink-0">
-          <Search size={16} className="text-[var(--color-muted-fg)] shrink-0" aria-hidden="true" />
+          <HugeiconsIcon icon={SearchIcon} size={16} className="text-[var(--color-muted-fg)] shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -194,13 +180,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 setQuery('');
                 inputRef.current?.focus();
               }}
-              className="p-1 rounded-md text-[var(--color-muted-fg)] hover:bg-[var(--color-muted)] hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+              className="p-1 rounded-none-none text-[var(--color-muted-fg)] hover:bg-[var(--color-muted)] hover:text-[var(--color-primary)]  cursor-pointer"
               aria-label="Clear input"
             >
-              <X size={14} />
+              <HugeiconsIcon icon={XIcon} size={14} />
             </button>
           )}
-          <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-muted)] text-[var(--color-muted-fg)] border border-[var(--color-border)] font-body">
+          <kbd className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] border border-[var(--color-border)] font-body">
             esc
           </kbd>
         </div>
@@ -215,8 +201,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         >
           {flatCommands.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--color-muted)] text-[var(--color-muted-fg)] mb-3">
-                <Search size={18} />
+              <div className="w-10 h-10 rounded-none-none flex items-center justify-center bg-[var(--color-muted)] text-[var(--color-muted-fg)] mb-3">
+                <HugeiconsIcon icon={SearchIcon} size={18} />
               </div>
               <p className="text-[14px] font-semibold text-[var(--color-primary)] font-heading mb-1">
                 No commands found
@@ -246,20 +232,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           type="button"
                           onClick={() => handleSelect(cmd)}
                           onMouseEnter={() => setActiveIdx(idx)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer min-h-[44px] ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-[44px] ${
                             active
                               ? 'bg-[var(--color-muted)] text-[var(--color-primary)]'
                               : 'text-slate-700 hover:bg-[var(--color-muted)]'
                           }`}
                         >
                           <div
-                            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                            className={`w-7 h-7 rounded-none-none flex items-center justify-center shrink-0  ${
                               active
-                                ? 'bg-white shadow-xs border border-[var(--color-border)] text-[var(--color-accent)]'
+                                ? 'bg-slate-50 -xs border border-[var(--color-border)] text-[var(--color-accent)]'
                                 : 'bg-[var(--color-muted)] text-[var(--color-muted-fg)]'
                             }`}
                           >
-                            <cmd.icon size={14} />
+                            <HugeiconsIcon icon={cmd.icon} size={14} />
                           </div>
                           <span className="flex-1 text-[13.5px] font-medium font-heading">
                             {cmd.label}
@@ -293,20 +279,20 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           type="button"
                           onClick={() => handleSelect(cmd)}
                           onMouseEnter={() => setActiveIdx(idx)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer min-h-[44px] ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-[44px] ${
                             active
                               ? 'bg-[var(--color-muted)] text-[var(--color-primary)]'
                               : 'text-slate-700 hover:bg-[var(--color-muted)]'
                           }`}
                         >
                           <div
-                            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                            className={`w-7 h-7 rounded-none-none flex items-center justify-center shrink-0  ${
                               active
-                                ? 'bg-white shadow-xs border border-[var(--color-border)] text-[var(--color-accent)]'
+                                ? 'bg-slate-50 -xs border border-[var(--color-border)] text-[var(--color-accent)]'
                                 : 'bg-[var(--color-muted)] text-[var(--color-muted-fg)]'
                             }`}
                           >
-                            <cmd.icon size={14} />
+                            <HugeiconsIcon icon={cmd.icon} size={14} />
                           </div>
                           <span className="flex-1 text-[13.5px] font-medium font-heading">
                             {cmd.label}
@@ -327,22 +313,22 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         {/* Footer with keyboard hints */}
         <div className="flex items-center gap-5 px-4 py-2.5 border-t border-[var(--color-border)] bg-slate-50/70 text-[11px] text-[var(--color-muted-fg)] font-body select-none">
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-white border border-[var(--color-border)] text-[10px] shadow-2xs">
+            <kbd className="px-1.5 py-0.5 rounded-none bg-slate-50 border border-[var(--color-border)] text-[10px] -2xs">
               ↑
             </kbd>
-            <kbd className="px-1.5 py-0.5 rounded bg-white border border-[var(--color-border)] text-[10px] shadow-2xs">
+            <kbd className="px-1.5 py-0.5 rounded-none bg-slate-50 border border-[var(--color-border)] text-[10px] -2xs">
               ↓
             </kbd>
             <span>navigate</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-white border border-[var(--color-border)] text-[10px] shadow-2xs">
+            <kbd className="px-1.5 py-0.5 rounded-none bg-slate-50 border border-[var(--color-border)] text-[10px] -2xs">
               ↵
             </kbd>
             <span>select</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 rounded bg-white border border-[var(--color-border)] text-[10px] shadow-2xs">
+            <kbd className="px-1.5 py-0.5 rounded-none bg-slate-50 border border-[var(--color-border)] text-[10px] -2xs">
               esc
             </kbd>
             <span>close</span>

@@ -9,7 +9,8 @@ import {
 import { useIntegrations, Integration } from '../../../api/integrations';
 import { ApiError } from '../../../api/client';
 import { Modal } from '../../../components/ui/Modal';
-import { Plus, Mail, Zap, AlertTriangle } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { PlusIcon, MailIcon, ZapIcon, AlertTriangle } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/_authed/settings/senders')({
   component: SenderAccountsPage,
@@ -169,7 +170,7 @@ function SenderAccountsPage() {
 
   if (sendersError) {
     return (
-      <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm">
+      <div className="p-4 rounded-none-none bg-red-50 border border-red-200 text-red-800 text-sm">
         Failed to load sender accounts.
       </div>
     );
@@ -187,7 +188,7 @@ function SenderAccountsPage() {
           </h2>
           <p
             className="text-[14px] text-slate-500 mt-1"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Manage the email identities and sender accounts used for campaign
             outreach.
@@ -195,21 +196,21 @@ function SenderAccountsPage() {
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:opacity-90 self-start sm:self-auto shrink-0"
+          className="inline-flex items-center gap-1.5 rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs  hover:opacity-90 self-start sm:self-auto shrink-0"
           style={{
             background: 'var(--color-primary)',
             fontFamily: 'Plus Jakarta Sans, sans-serif',
           }}
         >
-          <Plus size={15} />
+          <HugeiconsIcon icon={PlusIcon} size={15} />
           Add sender
         </button>
       </header>
 
       {isIntegrationsError && (
-        <div className="rounded-xl bg-slate-50 p-4 border border-slate-200">
+        <div className="rounded-none-none bg-slate-50 p-4 border border-slate-200">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <HugeiconsIcon icon={AlertTriangle} className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <h3
                 className="text-[13.5px] font-semibold text-slate-900"
@@ -219,7 +220,7 @@ function SenderAccountsPage() {
               </h3>
               <p
                 className="mt-1 text-[13px] text-slate-600 leading-relaxed"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                style={{ fontFamily: 'sans-serif' }}
               >
                 We could not load your integration connections. The effective
                 readiness of active sender accounts cannot be determined right
@@ -231,15 +232,15 @@ function SenderAccountsPage() {
       )}
 
       {senders?.length === 0 ? (
-        <div className="text-center rounded-xl border border-dashed border-slate-300 p-12 bg-white">
+        <div className="text-center rounded-none-none border border-dashed border-slate-300 p-12 bg-slate-50">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+            className="w-12 h-12 rounded-none-none flex items-center justify-center mx-auto mb-3"
             style={{
               background: 'var(--color-muted)',
               color: 'var(--color-muted-fg)',
             }}
           >
-            <Mail size={22} strokeWidth={1.6} />
+            <HugeiconsIcon icon={MailIcon} size={22} strokeWidth={1.6} />
           </div>
           <h3
             className="text-[16px] font-bold text-slate-900 mb-1"
@@ -249,7 +250,7 @@ function SenderAccountsPage() {
           </h3>
           <p
             className="text-[13.5px] text-slate-500 max-w-sm mx-auto"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Get started by adding a sender account based on an existing
             integration.
@@ -350,13 +351,13 @@ function SenderAccountCard({
 
   return (
     <>
-      <div className="rounded-lg rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between overflow-hidden shadow-xs">
+      <div className="rounded-none-none rounded-none-none border border-slate-200 bg-slate-50 hover:border-indigo-300 hover:-xs  flex flex-col justify-between overflow-hidden -xs">
         <div className="p-5 flex-1">
           {/* Header Row */}
           <div className="flex justify-between items-start gap-2 mb-3">
             <div className="flex items-center gap-3 min-w-0">
               <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0"
+                className="w-9 h-9 rounded-none-none flex items-center justify-center font-bold text-[13px] shrink-0"
                 style={{
                   background: '#EEF2FF',
                   color: '#4F46E5',
@@ -380,7 +381,7 @@ function SenderAccountCard({
 
             {/* Readiness Badge Pill */}
             <span
-              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-full"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-none-full"
               style={{
                 background: readiness.bg,
                 color: readiness.text,
@@ -389,7 +390,7 @@ function SenderAccountCard({
               }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
+                className="w-1.5 h-1.5 rounded-none-full shrink-0"
                 style={{ background: readiness.dot }}
               />
               {readiness.label}
@@ -399,14 +400,14 @@ function SenderAccountCard({
           {/* Details */}
           <div className="space-y-1.5 mt-3 pt-3 border-t border-slate-100">
             <div className="flex items-center gap-1.5 text-[12px] text-slate-600">
-              <Zap size={13} className="text-slate-400 shrink-0" />
+              <HugeiconsIcon icon={ZapIcon} size={13} className="text-slate-400 shrink-0" />
               <span className="truncate">{providerLabel}</span>
             </div>
 
             {sender.replyTo && sender.replyTo !== sender.fromEmail && (
               <p
                 className="text-[12px] text-slate-500 truncate"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                style={{ fontFamily: 'sans-serif' }}
               >
                 <span className="text-slate-400">Reply-to:</span> {sender.replyTo}
               </p>
@@ -415,7 +416,7 @@ function SenderAccountCard({
             {sender.dailyLimit && (
               <p
                 className="text-[12px] text-slate-500"
-                style={{ fontFamily: 'Inter, sans-serif' }}
+                style={{ fontFamily: 'sans-serif' }}
               >
                 <span className="text-slate-400">Daily limit:</span>{' '}
                 {sender.dailyLimit} messages
@@ -424,7 +425,7 @@ function SenderAccountCard({
           </div>
 
           {mutationError && (
-            <div className="mt-3 p-3 text-xs text-red-700 bg-red-50 rounded-lg border border-red-100 flex flex-col gap-1.5">
+            <div className="mt-3 p-3 text-xs text-red-700 bg-red-50 rounded-none-none border border-red-100 flex flex-col gap-1.5">
               <p>{mutationError} Your current sender state is unchanged.</p>
               <div className="flex justify-end">
                 <button
@@ -446,7 +447,7 @@ function SenderAccountCard({
                 <button
                   onClick={() => handleStatusChange('PAUSED')}
                   disabled={updateMutation.isPending}
-                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 "
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Pause
@@ -454,7 +455,7 @@ function SenderAccountCard({
                 <button
                   onClick={() => setIsEditModalOpen(true)}
                   disabled={updateMutation.isPending}
-                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 "
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Edit
@@ -463,7 +464,7 @@ function SenderAccountCard({
               <button
                 onClick={() => setIsDisableModalOpen(true)}
                 disabled={updateMutation.isPending}
-                className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 transition-colors"
+                className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 "
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
                 Disconnect
@@ -476,7 +477,7 @@ function SenderAccountCard({
                 <button
                   onClick={() => handleStatusChange('ACTIVE')}
                   disabled={updateMutation.isPending}
-                  className="text-[12.5px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+                  className="text-[12.5px] font-semibold text-emerald-600 hover:text-emerald-700 "
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Resume
@@ -484,7 +485,7 @@ function SenderAccountCard({
                 <button
                   onClick={() => setIsEditModalOpen(true)}
                   disabled={updateMutation.isPending}
-                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 "
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Edit
@@ -493,7 +494,7 @@ function SenderAccountCard({
               <button
                 onClick={() => setIsDisableModalOpen(true)}
                 disabled={updateMutation.isPending}
-                className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 transition-colors"
+                className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 "
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
                 Disconnect
@@ -504,7 +505,7 @@ function SenderAccountCard({
             <button
               onClick={handleReconnect}
               disabled={updateMutation.isPending}
-              className="text-[12.5px] font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
+              className="text-[12.5px] font-semibold text-emerald-600 hover:text-emerald-700 "
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               Reconnect
@@ -599,7 +600,7 @@ function EditSenderModal({
 
         <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3 text-xs text-red-600 bg-red-50 rounded-lg border border-red-100">
+            <div className="p-3 text-xs text-red-600 bg-red-50 rounded-none-none border border-red-100">
               {error}
             </div>
           )}
@@ -619,7 +620,7 @@ function EditSenderModal({
               value={fromName}
               onChange={(e) => setFromName(e.target.value)}
               required
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -637,7 +638,7 @@ function EditSenderModal({
               value={fromEmail}
               onChange={(e) => setFromEmail(e.target.value)}
               required
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -657,7 +658,7 @@ function EditSenderModal({
               id="edit-replyTo"
               value={replyTo}
               onChange={(e) => setReplyTo(e.target.value)}
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -679,7 +680,7 @@ function EditSenderModal({
               onChange={(e) => setDailyLimit(e.target.value)}
               min="1"
               placeholder="e.g. 500"
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -689,7 +690,7 @@ function EditSenderModal({
             type="button"
             onClick={onClose}
             disabled={updateMutation.isPending}
-            className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-900 "
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             Cancel
@@ -697,7 +698,7 @@ function EditSenderModal({
           <button
             type="submit"
             disabled={updateMutation.isPending}
-            className="px-4 py-2 text-[13px] font-semibold text-white rounded-lg shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
+            className="px-4 py-2 text-[13px] font-semibold text-white rounded-none-none -xs -opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
             style={{
               background: 'var(--color-primary)',
               fontFamily: 'Plus Jakarta Sans, sans-serif',
@@ -774,8 +775,8 @@ function DisableConfirmModal({
     >
       <div className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-red-100 text-red-600">
-            <AlertTriangle size={20} />
+          <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-none-none bg-red-100 text-red-600">
+            <HugeiconsIcon icon={AlertTriangle} size={20} />
           </div>
           <h3
             id="modal-title"
@@ -794,7 +795,7 @@ function DisableConfirmModal({
         </div>
 
         {error && (
-          <div className="mt-4 p-3 text-xs text-red-600 bg-red-50 rounded-lg border border-red-100">
+          <div className="mt-4 p-3 text-xs text-red-600 bg-red-50 rounded-none-none border border-red-100">
             {error}
           </div>
         )}
@@ -806,7 +807,7 @@ function DisableConfirmModal({
           type="button"
           onClick={onClose}
           disabled={updateMutation.isPending}
-          className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-none-none -xs hover:bg-slate-50 "
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           Cancel
@@ -815,7 +816,7 @@ function DisableConfirmModal({
           type="button"
           onClick={handleDisconnect}
           disabled={updateMutation.isPending}
-          className="px-4 py-2 text-[13px] font-semibold text-white bg-red-600 rounded-lg shadow-xs hover:bg-red-700 transition-colors flex items-center"
+          className="px-4 py-2 text-[13px] font-semibold text-white bg-red-600 rounded-none-none -xs hover:bg-red-700  flex items-center"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           {updateMutation.isPending ? (
@@ -931,7 +932,7 @@ function AddSenderModal({
 
         <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3 text-xs text-red-600 bg-red-50 rounded-lg border border-red-100">
+            <div className="p-3 text-xs text-red-600 bg-red-50 rounded-none-none border border-red-100">
               {error}
             </div>
           )}
@@ -946,15 +947,15 @@ function AddSenderModal({
             </label>
 
             {isLoading ? (
-              <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-none-none border border-slate-200">
                 Loading integrations...
               </div>
             ) : isError ? (
-              <div className="text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+              <div className="text-xs text-red-600 bg-red-50 p-3 rounded-none-none border border-red-200">
                 Failed to load integrations.
               </div>
             ) : integrations.length === 0 ? (
-              <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+              <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-none-none border border-amber-200">
                 You have no configured integrations. Please set up an
                 integration first.
               </div>
@@ -965,7 +966,7 @@ function AddSenderModal({
                   id="integrationId"
                   value={integrationId}
                   onChange={(e) => setIntegrationId(e.target.value)}
-                  className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                  className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-slate-50"
                   required
                 >
                   {integrations.map((int) => (
@@ -975,7 +976,7 @@ function AddSenderModal({
                   ))}
                 </select>
                 {isSelectedIntegrationDegraded && (
-                  <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-100">
+                  <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2.5 rounded-none-none border border-amber-100">
                     <strong>Note:</strong> The selected integration is
                     currently{' '}
                     <em>
@@ -1004,7 +1005,7 @@ function AddSenderModal({
               onChange={(e) => setFromName(e.target.value)}
               required
               placeholder="e.g. Jane Doe"
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -1023,7 +1024,7 @@ function AddSenderModal({
               onChange={(e) => setFromEmail(e.target.value)}
               required
               placeholder="e.g. jane@example.com"
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -1044,7 +1045,7 @@ function AddSenderModal({
               value={replyTo}
               onChange={(e) => setReplyTo(e.target.value)}
               placeholder="Defaults to from email"
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
 
@@ -1066,7 +1067,7 @@ function AddSenderModal({
               onChange={(e) => setDailyLimit(e.target.value)}
               min="1"
               placeholder="e.g. 500"
-              className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-300 shadow-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-300 -xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>
         </div>
@@ -1076,7 +1077,7 @@ function AddSenderModal({
             type="button"
             onClick={onClose}
             disabled={createMutation.isPending}
-            className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="px-4 py-2 text-[13px] font-semibold text-slate-600 hover:text-slate-900 "
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             Cancel
@@ -1089,7 +1090,7 @@ function AddSenderModal({
               isLoading ||
               isError
             }
-            className="px-4 py-2 text-[13px] font-semibold text-white rounded-lg shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
+            className="px-4 py-2 text-[13px] font-semibold text-white rounded-none-none -xs -opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
             style={{
               background: 'var(--color-primary)',
               fontFamily: 'Plus Jakarta Sans, sans-serif',

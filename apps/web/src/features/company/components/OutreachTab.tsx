@@ -3,7 +3,8 @@ import { CompanyDto } from '../../../api/companies';
 import { resolveCanonicalCompanyCampaign } from '../../../api/campaigns';
 import { fetchCampaignContacts, CampaignContactSummaryDto } from '../../../api/outreach';
 import { GateCard } from './GateCard';
-import { Send, Search, ChevronRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { SendIcon, SearchIcon, ChevronRightIcon, Search, Search01Icon } from '@hugeicons/core-free-icons';;
 import { useNavigate } from '@tanstack/react-router';
 
 function statusBadge(status: string) {
@@ -16,10 +17,10 @@ function statusBadge(status: string) {
   const s = cfg[status] ?? cfg.DRAFT;
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1 rounded-none-full whitespace-nowrap"
       style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.04em' }}
     >
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
+      <span className="w-1.5 h-1.5 rounded-none-full shrink-0" style={{ background: s.dot }} />
       {status}
     </span>
   );
@@ -49,7 +50,7 @@ export function OutreachTab({
   if (!researchComplete) {
     return (
       <GateCard
-        icon={Search}
+        icon={Search01Icon}
         heading="Complete research first"
         body="Complete company research before preparing outreach. Research provides the evidence that makes outreach credible."
       />
@@ -58,7 +59,7 @@ export function OutreachTab({
 
   if (isLoading || (campaign && campaignContacts === undefined)) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+      <div className="bg-slate-50 rounded-none-none border border-slate-200 p-8 text-center">
         <div className="inline-flex items-center gap-2 text-[13.5px] text-slate-500">
           <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -74,7 +75,7 @@ export function OutreachTab({
   if (contacts.length === 0) {
     return (
       <GateCard
-        icon={Send}
+        icon={SendIcon}
         heading="No contacts in outreach yet"
         body="Discover and select contacts in the Contacts tab. Once a contact is selected, Outreacher will prepare a personalised email for review."
       />
@@ -92,12 +93,12 @@ export function OutreachTab({
             onClick={() =>
               navigate({ to: '/campaigns/$campaignId/review', params: { campaignId: campaign.id } })
             }
-            className="flex items-center gap-1 text-[13px] font-semibold transition-colors"
+            className="flex items-center gap-1 text-[13px] font-semibold "
             style={{ color: 'var(--color-accent)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#4338CA')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-accent)')}
           >
-            Open campaign review <ChevronRight size={14} />
+            Open campaign review <HugeiconsIcon icon={ChevronRightIcon} size={14} />
           </button>
         </div>
       )}
@@ -112,13 +113,13 @@ export function OutreachTab({
         return (
           <div
             key={c.id}
-            className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+            className="bg-slate-50 rounded-none-none border border-slate-200  overflow-hidden"
           >
             {/* Contact identity row */}
             <div className="flex items-start justify-between gap-4 p-5">
               <div className="flex items-start gap-3 min-w-0">
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-[14px] shrink-0"
+                  className="w-10 h-10 rounded-none-none flex items-center justify-center font-bold text-[14px] shrink-0"
                   style={{
                     background: '#EEF2FF',
                     color: '#4F46E5',
@@ -137,7 +138,7 @@ export function OutreachTab({
                   {personTitle && (
                     <p
                       className="text-[12.5px] truncate mt-0.5"
-                      style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}
+                      style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}
                     >
                       {personTitle}
                     </p>
@@ -169,7 +170,7 @@ export function OutreachTab({
                 </p>
                 <p
                   className="text-[13px] truncate"
-                  style={{ color: 'var(--color-primary)', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--color-primary)', fontFamily: 'sans-serif' }}
                 >
                   {c.currentSubject}
                 </p>
@@ -189,12 +190,12 @@ export function OutreachTab({
                       params: { campaignId: campaign.id },
                     })
                   }
-                  className="flex items-center gap-1.5 text-[13px] font-semibold transition-colors"
+                  className="flex items-center gap-1.5 text-[13px] font-semibold "
                   style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-accent)')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-primary)')}
                 >
-                  Review outreach <ChevronRight size={14} />
+                  Review outreach <HugeiconsIcon icon={ChevronRightIcon} size={14} />
                 </button>
               </div>
             )}

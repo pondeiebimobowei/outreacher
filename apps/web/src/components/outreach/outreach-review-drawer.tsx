@@ -460,7 +460,7 @@ export function OutreachReviewDrawer({
 
     const keyToUse = activeSendIdempotencyKey;
 
-    // Primary authority: immediately transition CampaignContact status to SENDING
+    // Primary authority: immediately  CampaignContact status to SENDING
     setContactDetails((prev) =>
       prev ? { ...prev, status: 'SENDING' } : null,
     );
@@ -672,7 +672,7 @@ export function OutreachReviewDrawer({
     <>
       {/* 1. Backdrop Scrim (Desktop and Tablet) */}
       <div
-        className="fixed inset-0 bg-slate-900/20 z-40 transition-opacity backdrop-blur-[1px]"
+        className="fixed inset-0 bg-slate-900/20 z-40 -opacity backdrop-blur-[1px]"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -683,7 +683,7 @@ export function OutreachReviewDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="outreach-drawer-title"
-        className="fixed inset-0 z-50 bg-white flex flex-col sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[80vw] lg:w-[540px] border-l border-slate-200 shadow-2xl overflow-hidden"
+        className="fixed inset-0 z-50 bg-slate-50 flex flex-col sm:inset-y-0 sm:right-0 sm:left-auto sm:w-[80vw] lg:w-[540px] border-l border-slate-200  overflow-hidden"
       >
         {/* ARIA Live Region for Status Announcements */}
         <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -691,7 +691,7 @@ export function OutreachReviewDrawer({
         </div>
 
         {/* ─── HEADER ──────────────────────────────────────────────────────── */}
-        <header className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3.5 flex items-center justify-between z-10 shrink-0">
+        <header className="sticky top-0 bg-slate-50 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between z-10 shrink-0">
           <div className="space-y-0.5 max-w-[65%]">
             <div className="flex items-center space-x-2">
               <h2
@@ -703,31 +703,31 @@ export function OutreachReviewDrawer({
               </h2>
               {/* Status Badge (CampaignContact.status is primary authority) */}
               {isGenerating ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
                   Generating Draft...
                 </span>
               ) : currentStatus === 'SENT' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
                   Sent
                 </span>
               ) : currentStatus === 'FAILED' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300">
                   Send Failed
                 </span>
               ) : currentStatus === 'SENDING' || isDispatching ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
                   Dispatching...
                 </span>
               ) : currentStatus === 'READY' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-300">
                   Approved
                 </span>
               ) : currentStatus === 'SUPPRESSED' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300">
                   Blocked (Suppressed)
                 </span>
               ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
                   Needs Review
                 </span>
               )}
@@ -742,12 +742,12 @@ export function OutreachReviewDrawer({
           <div className="flex items-center space-x-2">
             {/* Sequential Cycling Controls */}
             {hasMultipleContacts && (
-              <div className="flex items-center space-x-1 border border-slate-200 rounded-md p-0.5 bg-slate-50">
+              <div className="flex items-center space-x-1 border border-slate-200 rounded-none-none p-0.5 bg-slate-50">
                 <button
                   type="button"
                   onClick={() => handleNavigate('PREV')}
                   disabled={!canGoPrevious || isOperationLocked}
-                  className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded hover:bg-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded-none hover:bg-slate-200  focus:outline-none focus:ring-1 focus:ring-slate-900"
                   title="Previous Contact ([)"
                   aria-label="Previous Contact"
                 >
@@ -760,7 +760,7 @@ export function OutreachReviewDrawer({
                   type="button"
                   onClick={() => handleNavigate('NEXT')}
                   disabled={!canGoNext || isOperationLocked}
-                  className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded hover:bg-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  className="px-2 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 disabled:opacity-40 rounded-none hover:bg-slate-200  focus:outline-none focus:ring-1 focus:ring-slate-900"
                   title="Next Contact (])"
                   aria-label="Next Contact"
                 >
@@ -774,7 +774,7 @@ export function OutreachReviewDrawer({
               id="outreach-drawer-close-btn"
               type="button"
               onClick={onClose}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-700 rounded-none-none hover:bg-slate-100  focus:outline-none focus:ring-2 focus:ring-slate-900"
               aria-label="Close outreach review drawer"
             >
               <span className="text-lg font-bold leading-none">&times;</span>
@@ -786,8 +786,8 @@ export function OutreachReviewDrawer({
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
           {/* Global Fetch Loading / Error States */}
           {isLoadingDetails && (
-            <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-              <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-none-none space-y-2">
+              <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-none-full animate-spin mx-auto" />
               <p className="text-xs text-slate-600 font-medium">
                 Loading draft context...
               </p>
@@ -797,7 +797,7 @@ export function OutreachReviewDrawer({
           {fetchError && (
             <div
               role="alert"
-              className="p-4 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-2"
+              className="p-4 bg-rose-50 border border-rose-200 rounded-none-none text-xs text-rose-800 space-y-2"
             >
               <p className="font-bold">Failed to load outreach draft</p>
               <p>{fetchError}</p>
@@ -818,7 +818,7 @@ export function OutreachReviewDrawer({
               {/* 1. MANDATORY NOTICE BANNER (AI Assisted — Review Required) */}
               <div
                 role="note"
-                className="bg-amber-50 border border-amber-200 p-3.5 rounded-lg text-xs text-amber-900 space-y-1 shadow-xs"
+                className="bg-amber-50 border border-amber-200 p-3.5 rounded-none-none text-xs text-amber-900 space-y-1 -xs"
               >
                 <div className="flex items-center space-x-1.5 font-bold text-amber-950">
                   <span aria-hidden="true">&#9432;</span>
@@ -834,7 +834,7 @@ export function OutreachReviewDrawer({
               {concurrencyError && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-amber-50 border border-amber-300 rounded-lg text-xs text-amber-900 space-y-1.5"
+                  className="p-3.5 bg-amber-50 border border-amber-300 rounded-none-none text-xs text-amber-900 space-y-1.5"
                 >
                   <p className="font-bold">Concurrency Notice</p>
                   <p>{concurrencyError}</p>
@@ -854,7 +854,7 @@ export function OutreachReviewDrawer({
               {suppressionError && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none-none text-xs text-rose-900 space-y-1"
                 >
                   <p className="font-bold">Suppression Warning</p>
                   <p>{suppressionError}</p>
@@ -868,7 +868,7 @@ export function OutreachReviewDrawer({
                 !isDispatching && (
                   <div
                     role="status"
-                    className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-center justify-between"
+                    className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-none-none text-xs text-emerald-900 flex items-center justify-between"
                   >
                     <div className="flex items-center space-x-2">
                       <span className="font-bold text-emerald-700">&#10003;</span>
@@ -881,7 +881,7 @@ export function OutreachReviewDrawer({
               {sendError && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none-none text-xs text-rose-900 space-y-1"
                 >
                   <p className="font-bold">Send Dispatch Failed</p>
                   <p>{sendError}</p>
@@ -892,7 +892,7 @@ export function OutreachReviewDrawer({
               {currentStatus === 'SENT' && (
                 <div
                   role="status"
-                  className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-lg text-xs text-emerald-900 space-y-1"
+                  className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-none-none text-xs text-emerald-900 space-y-1"
                 >
                   <div className="flex items-center space-x-1.5 font-bold text-emerald-950">
                     <span>&#10003;</span>
@@ -914,7 +914,7 @@ export function OutreachReviewDrawer({
               {currentStatus === 'FAILED' && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none-none text-xs text-rose-900 space-y-1"
                 >
                   <div className="flex items-center space-x-1.5 font-bold text-rose-950">
                     <span>&#9888;</span>
@@ -930,7 +930,7 @@ export function OutreachReviewDrawer({
               {/* 2. EVIDENTIARY BASIS & OUTREACH REASON CARD */}
               <section
                 aria-labelledby="evidentiary-basis-heading"
-                className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3"
+                className="bg-slate-50 border border-slate-200 rounded-none-none p-4 space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <h3
@@ -941,7 +941,7 @@ export function OutreachReviewDrawer({
                   </h3>
                   {contactDetails.selectedOpportunity && (
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase ${
                         contactDetails.selectedOpportunity.opportunityType ===
                         'CONFIRMED'
                           ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
@@ -959,7 +959,7 @@ export function OutreachReviewDrawer({
                     <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
                       Deterministic Outreach Reason:
                     </span>
-                    <p className="text-xs text-slate-800 bg-white p-2.5 rounded border border-slate-200 leading-relaxed font-medium">
+                    <p className="text-xs text-slate-800 bg-slate-50 p-2.5 rounded-none border border-slate-200 leading-relaxed font-medium">
                       "{contactDetails.outreachReason}"
                     </p>
                   </div>
@@ -988,11 +988,11 @@ export function OutreachReviewDrawer({
                         {contactDetails.evidence.map((ev) => (
                           <div
                             key={ev.id}
-                            className="bg-white p-2.5 rounded border border-slate-200 text-xs space-y-1"
+                            className="bg-slate-50 p-2.5 rounded-none border border-slate-200 text-xs space-y-1"
                           >
                             <div className="flex items-center space-x-2">
                               <span
-                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                className={`px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider ${
                                   ev.classification === 'FACT'
                                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                     : 'bg-amber-100 text-amber-800 border border-amber-300'
@@ -1030,10 +1030,10 @@ export function OutreachReviewDrawer({
               {isGenerating && (
                 <div
                   role="status"
-                  className="p-6 bg-sky-50 border border-sky-200 rounded-lg text-center space-y-3"
+                  className="p-6 bg-sky-50 border border-sky-200 rounded-none-none text-center space-y-3"
                 >
                   <div className="inline-flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 bg-sky-600 rounded-full animate-ping" />
+                    <span className="w-2.5 h-2.5 bg-sky-600 rounded-none-full animate-ping" />
                     <span className="text-xs font-bold uppercase tracking-wider text-sky-900">
                       Evaluating Evidence & Drafting Message...
                     </span>
@@ -1048,8 +1048,8 @@ export function OutreachReviewDrawer({
                     )}
                   </p>
                   <div className="space-y-2 pt-2">
-                    <div className="h-4 bg-sky-200/60 rounded animate-pulse w-3/4 mx-auto" />
-                    <div className="h-16 bg-sky-200/60 rounded animate-pulse w-full" />
+                    <div className="h-4 bg-sky-200/60 rounded-none animate-pulse w-3/4 mx-auto" />
+                    <div className="h-16 bg-sky-200/60 rounded-none animate-pulse w-full" />
                   </div>
                 </div>
               )}
@@ -1058,7 +1058,7 @@ export function OutreachReviewDrawer({
               {isStillRunningTimeout && !isGenerating && (
                 <div
                   role="alert"
-                  className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900"
+                  className="p-4 bg-amber-50 border border-amber-200 rounded-none-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900"
                 >
                   <div className="space-y-1">
                     <span className="font-bold uppercase tracking-wider text-[11px] block">
@@ -1074,7 +1074,7 @@ export function OutreachReviewDrawer({
                     onClick={() =>
                       campaignContactId && loadContactDetails(campaignContactId)
                     }
-                    className="px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors shrink-0"
+                    className="px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-none-none  shrink-0"
                   >
                     Check Status
                   </button>
@@ -1085,7 +1085,7 @@ export function OutreachReviewDrawer({
               {generationError && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-200 rounded-none-none text-xs text-rose-800 space-y-1"
                 >
                   <p className="font-bold">Generation Error</p>
                   <p>{generationError}</p>
@@ -1131,12 +1131,12 @@ export function OutreachReviewDrawer({
                       onBlur={handleBlur}
                       disabled={isOperationLocked || currentStatus !== 'PENDING'}
                       placeholder="e.g. Acme platform scaling & lead architect role"
-                      className={`w-full px-3 py-2 text-base sm:text-xs rounded-md border shadow-xs transition-colors focus:outline-none focus:ring-2 ${
+                      className={`w-full px-3 py-2 text-base sm:text-xs rounded-none-none border -xs  focus:outline-none focus:ring-2 ${
                         isSubjectTooLong || isSubjectTooShort
                           ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
                           : isSubjectAmber
                             ? 'border-amber-400 focus:ring-amber-500'
-                            : 'border-slate-300 focus:ring-slate-900 bg-white'
+                            : 'border-slate-300 focus:ring-slate-900 bg-slate-50'
                       }`}
                     />
                     {isSubjectTooShort && (
@@ -1180,12 +1180,12 @@ export function OutreachReviewDrawer({
                       onBlur={handleBlur}
                       disabled={isOperationLocked || currentStatus !== 'PENDING'}
                       placeholder="Hi Sarah,\n\nI noticed Acme is scaling its distributed architecture..."
-                      className={`w-full p-3 text-base sm:text-xs rounded-md border shadow-xs transition-colors leading-relaxed focus:outline-none focus:ring-2 ${
+                      className={`w-full p-3 text-base sm:text-xs rounded-none-none border -xs  leading-relaxed focus:outline-none focus:ring-2 ${
                         isBodyTooLong || isBodyTooShort
                           ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
                           : isBodyAmber
                             ? 'border-amber-400 focus:ring-amber-500'
-                            : 'border-slate-300 focus:ring-slate-900 bg-white'
+                            : 'border-slate-300 focus:ring-slate-900 bg-slate-50'
                       }`}
                     />
                     {isBodyTooShort && (
@@ -1204,14 +1204,14 @@ export function OutreachReviewDrawer({
                   {saveStatusText && (
                     <div className="flex items-center justify-end space-x-1.5 text-[11px] text-slate-400 font-medium">
                       {isAutosaving && (
-                        <span className="w-2 h-2 rounded-full bg-slate-400 animate-pulse" />
+                        <span className="w-2 h-2 rounded-none-full bg-slate-400 animate-pulse" />
                       )}
                       <span>{saveStatusText}</span>
                     </div>
                   )}
 
                   {!hasRecipientEmail && (
-                    <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded border border-amber-200">
+                    <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-none border border-amber-200">
                       <strong>Deliverability Notice:</strong> This contact has no
                       email address on record. An email must be provided before
                       approval can be granted.
@@ -1224,7 +1224,7 @@ export function OutreachReviewDrawer({
         </div>
 
         {/* ─── FOOTER ACTIONS (Sticky on Mobile) ────────────────────────────── */}
-        <footer className="sticky bottom-0 bg-white border-t border-slate-200 p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-10 shrink-0">
+        <footer className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-4  flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 z-10 shrink-0">
           {isPreDispatchHoldActive ? (
             <PreDispatchHold
               durationMs={5000}
@@ -1239,7 +1239,7 @@ export function OutreachReviewDrawer({
                   type="button"
                   onClick={handleGenerate}
                   disabled={isOperationLocked || currentStatus !== 'PENDING'}
-                  className="min-h-[48px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-[48px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                 >
                   {subject || bodyText ? 'Regenerate Draft' : 'Generate Draft'}
                 </button>
@@ -1251,7 +1251,7 @@ export function OutreachReviewDrawer({
                     type="button"
                     onClick={handleApprove}
                     disabled={!isEligibleForApproval}
-                    className={`min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center ${
+                    className={`min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center ${
                       isEligibleForApproval
                         ? 'bg-slate-900 hover:bg-slate-800 text-white'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -1267,7 +1267,7 @@ export function OutreachReviewDrawer({
                     type="button"
                     onClick={handleSendNowClick}
                     disabled={isOperationLocked}
-                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-600 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-none-none   focus:outline-none focus:ring-2 focus:ring-emerald-600 inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
                     style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                   >
                     Send Now
@@ -1278,21 +1278,21 @@ export function OutreachReviewDrawer({
                   <button
                     type="button"
                     disabled
-                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-md shadow-sm inline-flex items-center justify-center bg-sky-600 text-white cursor-not-allowed space-x-1.5 opacity-90"
+                    className="min-h-[48px] sm:min-h-[44px] px-5 py-2 text-xs font-bold rounded-none-none  inline-flex items-center justify-center bg-sky-600 text-white cursor-not-allowed space-x-1.5 opacity-90"
                   >
-                    <span className="inline-block w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="inline-block w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-none-full animate-spin" />
                     <span>Dispatching...</span>
                   </button>
                 )}
 
                 {currentStatus === 'SENT' && (
-                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md inline-flex items-center justify-center">
+                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-none-none inline-flex items-center justify-center">
                     Sent &#10003;
                   </span>
                 )}
 
                 {currentStatus === 'FAILED' && (
-                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md inline-flex items-center justify-center">
+                  <span className="min-h-[48px] sm:min-h-[44px] px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-none-none inline-flex items-center justify-center">
                     Send Failed
                   </span>
                 )}

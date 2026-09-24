@@ -76,7 +76,7 @@ export function SendConfirmationModal({
         aria-modal="true"
         aria-labelledby="confirm-send-modal-title"
         aria-describedby="confirm-send-modal-desc"
-        className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 text-slate-800"
+        className="bg-slate-50 rounded-none-none  border border-slate-200 max-w-lg w-full p-6 space-y-5 text-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-1">
@@ -92,7 +92,7 @@ export function SendConfirmationModal({
         </div>
 
         {/* Recipient Card */}
-        <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2 text-xs">
+        <div className="bg-slate-50 p-3.5 rounded-none-none border border-slate-200 space-y-2 text-xs">
           <div>
             <span className="text-slate-400 font-medium">Recipient: </span>
             <span className="font-semibold text-slate-900">
@@ -122,7 +122,7 @@ export function SendConfirmationModal({
             type="checkbox"
             checked={dontAskAgain}
             onChange={(e) => setDontAskAgain(e.target.checked)}
-            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
+            className="rounded-none border-slate-300 text-slate-900 focus:ring-slate-900 w-4 h-4 cursor-pointer"
           />
           <span>Don&apos;t ask again for single sends</span>
         </label>
@@ -132,7 +132,7 @@ export function SendConfirmationModal({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             Cancel
           </button>
@@ -140,7 +140,7 @@ export function SendConfirmationModal({
             ref={confirmButtonRef}
             type="button"
             onClick={() => onConfirm(dontAskAgain)}
-            className="min-h-[44px] px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="min-h-[44px] px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             Confirm &amp; Send
           </button>

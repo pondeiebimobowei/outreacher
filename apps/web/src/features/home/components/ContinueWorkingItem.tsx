@@ -8,11 +8,11 @@ export interface ContinueWorkingItemProps {
 
 export const ContinueWorkingItem: React.FC<ContinueWorkingItemProps> = ({ item }) => {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-sm">
+    <div className="flex flex-col justify-between rounded-none-none border border-slate-200 bg-slate-50 p-5 -xs  hover:border-slate-300 hover:">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide border ${item.badgeClasses}`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-none-full text-[11px] font-bold tracking-wide border ${item.badgeClasses}`}
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             {item.badgeLabel}
@@ -20,7 +20,7 @@ export const ContinueWorkingItem: React.FC<ContinueWorkingItemProps> = ({ item }
           {item.campaignName && (
             <span
               className="text-[12px] font-medium text-slate-500 truncate max-w-[180px]"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               {item.campaignName}
             </span>
@@ -34,13 +34,13 @@ export const ContinueWorkingItem: React.FC<ContinueWorkingItemProps> = ({ item }
         </h3>
         <p
           className="text-[12.5px] font-medium text-slate-500"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          style={{ fontFamily: 'sans-serif' }}
         >
           {item.stateLabel}
         </p>
         <p
           className="text-[13px] text-slate-600 leading-relaxed"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          style={{ fontFamily: 'sans-serif' }}
         >
           <span className="font-semibold text-slate-800">Next:</span> {item.nextActionLabel}
         </p>
@@ -49,7 +49,7 @@ export const ContinueWorkingItem: React.FC<ContinueWorkingItemProps> = ({ item }
         <Link
           to={item.destination.to}
           params={item.destination.params}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-none-none border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-700 -2xs hover:bg-slate-50  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           {item.actionLabel}

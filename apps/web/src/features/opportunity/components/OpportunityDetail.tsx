@@ -22,11 +22,11 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
       <span className="sr-only">{company.name}</span>
       {/* State explanation */}
       <div
-        className="rounded-xl p-4 flex items-start gap-3"
+        className="rounded-none-none p-4 flex items-start gap-3"
         style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}
       >
-        <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: cfg.dot }} />
-        <p className="text-[13.5px] leading-relaxed" style={{ color: cfg.color, fontFamily: 'Inter, sans-serif' }}>
+        <span className="w-1.5 h-1.5 rounded-none-full shrink-0 mt-1.5" style={{ background: cfg.dot }} />
+        <p className="text-[13.5px] leading-relaxed" style={{ color: cfg.color, fontFamily: 'sans-serif' }}>
           {stateExplanation}
         </p>
       </div>
@@ -34,7 +34,7 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
       <div className="flex flex-col xl:flex-row gap-5">
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           {/* Opening Details */}
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
+          <div className="rounded-none-none overflow-hidden" style={{ border: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
             <div className="px-5 py-3.5" style={{ background: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}>
               <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.07em' }}>
                 Opening
@@ -44,7 +44,7 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
               <p className="text-[17px] font-bold mb-1" style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
                 {opportunity.roleTitle}
               </p>
-              <p className="text-[13.5px] mb-3" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
+              <p className="text-[13.5px] mb-3" style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}>
                 {opportunity.roleLocation || 'Remote'}
               </p>
               <div className="grid grid-cols-2 gap-3 mb-4">
@@ -52,7 +52,7 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
                   <p className="text-[11px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.06em' }}>
                     Status
                   </p>
-                  <p className="text-[13px]" style={{ color: 'var(--color-primary)', fontFamily: 'Inter, sans-serif' }}>
+                  <p className="text-[13px]" style={{ color: 'var(--color-primary)', fontFamily: 'sans-serif' }}>
                     {opportunity.status}
                   </p>
                 </div>
@@ -60,7 +60,7 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
                   <p className="text-[11px] font-bold uppercase tracking-wide mb-0.5" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.06em' }}>
                     Source
                   </p>
-                  <p className="text-[13px]" style={{ color: 'var(--color-accent)', fontFamily: 'Inter, sans-serif' }}>
+                  <p className="text-[13px]" style={{ color: 'var(--color-accent)', fontFamily: 'sans-serif' }}>
                     {opportunity.openingSourceUrl ? (
                       <a href={opportunity.openingSourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
                         View Listing
@@ -86,11 +86,11 @@ export function OpportunityDetail({ company, opportunity }: { company: CompanyDt
 
         {/* Sidebar / Next Steps */}
         <div className="w-full xl:w-80 flex flex-col gap-5 shrink-0">
-          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
+          <div className="rounded-none-none p-5" style={{ background: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
             <p className="text-[11px] font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.07em' }}>
               What to do next
             </p>
-            <p className="text-[13.5px] mb-4 text-gray-700" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <p className="text-[13.5px] mb-4 text-gray-700" style={{ fontFamily: 'sans-serif' }}>
               {activeStatus === 'CONFIRMED'
                 ? 'Review the opening details, then proceed to contact discovery to find the right person to reach.'
                 : activeStatus === 'PROACTIVE'

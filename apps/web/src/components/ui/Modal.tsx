@@ -88,7 +88,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>(
         <div 
           ref={internalRef}
           tabIndex={-1}
-          className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClasses[maxWidth]} overflow-hidden focus:outline-none`}
+          className={`bg-slate-50 rounded-none-none  w-full ${maxWidthClasses[maxWidth]} overflow-hidden focus:outline-none`}
           role="dialog" 
           aria-modal="true" 
           aria-labelledby="modal-title"

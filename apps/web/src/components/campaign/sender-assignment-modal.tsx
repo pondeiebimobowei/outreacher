@@ -40,7 +40,7 @@ export function SenderAssignmentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-slate-50 rounded-none-none  max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200">
           <h2 className="text-lg font-bold text-slate-900">Assign Sender Accounts</h2>
           <p className="text-sm text-slate-500 mt-1">
@@ -53,7 +53,7 @@ export function SenderAssignmentModal({
           {isError && <p className="text-sm text-red-500 text-center">Failed to load sender accounts.</p>}
 
           {!isLoading && !isError && senderAccounts && senderAccounts.length === 0 && (
-            <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="text-center p-4 bg-slate-50 rounded-none-none border border-slate-200">
               <p className="text-sm font-medium text-slate-700">No sender accounts configured.</p>
               <p className="text-xs text-slate-500 mt-1">Please create a sender account in Settings first.</p>
             </div>
@@ -68,7 +68,7 @@ export function SenderAssignmentModal({
                 return (
                   <label
                     key={sender.id}
-                    className={`flex items-start p-4 border rounded-lg cursor-pointer transition-colors ${
+                    className={`flex items-start p-4 border rounded-none-none cursor-pointer  ${
                       isSelected
                         ? 'border-slate-900 bg-slate-50/50'
                         : 'border-slate-200 hover:bg-slate-50'
@@ -79,7 +79,7 @@ export function SenderAssignmentModal({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggle(sender.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                        className="h-4 w-4 rounded-none border-slate-300 text-slate-900 focus:ring-slate-900"
                       />
                     </div>
                     <div className="ml-3 flex-1">
@@ -110,14 +110,14 @@ export function SenderAssignmentModal({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-md"
+              className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-none-none"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-md disabled:opacity-50"
+              className="px-4 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-none-none disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : 'Save Assignments'}
             </button>

@@ -63,11 +63,11 @@ describe('Sender Accounts Page', () => {
       expect(screen.getByText('alice@example.com')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('alice@example.com').closest('.rounded-lg')).toHaveTextContent('Ready');
-    expect(screen.getByText('bob@example.com').closest('.rounded-lg')).toHaveTextContent('Needs attention');
-    expect(screen.getByText('charlie@example.com').closest('.rounded-lg')).toHaveTextContent('Unavailable');
-    expect(screen.getByText('dave@example.com').closest('.rounded-lg')).toHaveTextContent('Paused');
-    expect(screen.getByText('eve@example.com').closest('.rounded-lg')).toHaveTextContent('Disconnected');
+    expect(screen.getByText('alice@example.com').closest('.rounded-none-none')).toHaveTextContent('Ready');
+    expect(screen.getByText('bob@example.com').closest('.rounded-none-none')).toHaveTextContent('Needs attention');
+    expect(screen.getByText('charlie@example.com').closest('.rounded-none-none')).toHaveTextContent('Unavailable');
+    expect(screen.getByText('dave@example.com').closest('.rounded-none-none')).toHaveTextContent('Paused');
+    expect(screen.getByText('eve@example.com').closest('.rounded-none-none')).toHaveTextContent('Disconnected');
   });
 
   it('handles empty, loading, and error states for integrations in the add modal', async () => {

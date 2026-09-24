@@ -12,7 +12,7 @@ export function OpportunityClassificationBadge({ type }: { type: ClassificationT
 
   return (
     <span
-      className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full"
+      className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-none-full"
       style={{
         background: cfg.bg,
         color: cfg.color,
@@ -20,7 +20,7 @@ export function OpportunityClassificationBadge({ type }: { type: ClassificationT
         fontFamily: 'Plus Jakarta Sans, sans-serif'
       }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+      <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: cfg.dot }} />
       {cfg.label}
     </span>
   );

@@ -14,8 +14,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 p-8 text-center bg-white">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+    <div className="flex flex-col items-center justify-center rounded-none-none border border-dashed border-slate-300 p-8 text-center bg-slate-50">
+      <div className="flex h-12 w-12 items-center justify-center rounded-none-full bg-slate-100 text-slate-400">
         <svg
           className="h-6 w-6"
           fill="none"
@@ -37,7 +37,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         <button
           type="button"
           onClick={onAction}
-          className="mt-4 rounded-md bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="mt-4 rounded-none-none bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white -xs hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
         >
           {actionLabel}
         </button>

@@ -18,10 +18,10 @@ export const RecentActivityItem: React.FC<RecentActivityItemProps> = ({ item, is
       )}
       {/* Timeline dot */}
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 relative z-10 bg-slate-100 border border-slate-200"
+        className="w-6 h-6 rounded-none-full flex items-center justify-center shrink-0 mt-0.5 relative z-10 bg-slate-100 border border-slate-200"
         aria-hidden="true"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
+        <span className="w-1.5 h-1.5 rounded-none-full bg-indigo-600" />
       </div>
       <div className="flex-auto pb-4">
         <div className="flex items-baseline justify-between gap-x-4">
@@ -34,14 +34,14 @@ export const RecentActivityItem: React.FC<RecentActivityItemProps> = ({ item, is
           <time
             dateTime={item.occurredAt}
             className="flex-none text-[12px] font-medium text-slate-400"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             {item.relativeTime}
           </time>
         </div>
         <p
           className="mt-0.5 text-[13px] text-slate-600 leading-relaxed"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          style={{ fontFamily: 'sans-serif' }}
         >
           {item.description}
         </p>

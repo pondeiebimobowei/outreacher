@@ -19,9 +19,20 @@ export class PrismaService
   private readonly clientInstance: PrismaClient;
 
   constructor(configService: ConfigService) {
-    const connectionString = configService.getOrThrow<string>('DATABASE_URL');
+    const connectionString =
+      configService.get<string>('DATABASE_URL') ||
+      configService.get<string>('POSTGRES_PRISMA_URL') ||
+      configService.get<string>('POSTGRES_URL');
 
-    const pool = new pg.Pool({ connectionString });
+    if (!connectionString) {
+      throw new Error('Database connection string is missing (DATABASE_URL, POSTGRES_PRISMA_URL, or POSTGRES_URL must be set)');
+    }
+
+    const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+    const pool = new pg.Pool({
+      connectionString,
+      ssl: isLocalhost ? false : { rejectUnauthorized: false },
+    });
     const adapter = new PrismaPg(pool);
 
     super({ adapter });

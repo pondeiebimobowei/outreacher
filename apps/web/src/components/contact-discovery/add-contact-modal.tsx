@@ -135,7 +135,7 @@ export function AddContactModal({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 focus:outline-none animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto"
+        className="bg-slate-50 rounded-none-none border border-slate-200  max-w-lg w-full p-6 space-y-5 focus:outline-none animate-in fade-in zoom-in-95  max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
@@ -152,7 +152,7 @@ export function AddContactModal({
           </div>
           <button
             aria-label="Close modal"
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-none-none hover:bg-slate-100  focus:outline-none focus:ring-2 focus:ring-slate-900"
             onClick={onClose}
             type="button"
           >
@@ -161,7 +161,7 @@ export function AddContactModal({
         </div>
 
         {errors.form && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 font-medium">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-none-none text-xs text-rose-800 font-medium">
             {errors.form}
           </div>
         )}
@@ -178,7 +178,7 @@ export function AddContactModal({
             <input
               aria-describedby={errors.name ? 'contact-name-error' : undefined}
               aria-invalid={Boolean(errors.name)}
-              className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 transition-all"
+              className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
               id="contact-name-input"
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Jane Doe"
@@ -204,7 +204,7 @@ export function AddContactModal({
               <input
                 aria-describedby={errors.email ? 'contact-email-error' : undefined}
                 aria-invalid={Boolean(errors.email)}
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 transition-all"
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
                 id="contact-email-input"
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jane.doe@acme.com"
@@ -227,7 +227,7 @@ export function AddContactModal({
                 Role Title <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <input
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 transition-all"
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
                 id="contact-title-input"
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="VP of Engineering"
@@ -247,7 +247,7 @@ export function AddContactModal({
                 Contact Type
               </label>
               <select
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 bg-white transition-all"
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 bg-slate-50 "
                 id="contact-kind-select"
                 onChange={(e) => setContactKind(e.target.value as ContactKind)}
                 value={contactKind}
@@ -268,7 +268,7 @@ export function AddContactModal({
               <input
                 aria-describedby={errors.sourceUrl ? 'contact-url-error' : undefined}
                 aria-invalid={Boolean(errors.sourceUrl)}
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg shadow-2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 transition-all"
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
                 id="contact-url-input"
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="https://acme.com/team"
@@ -285,7 +285,7 @@ export function AddContactModal({
 
           <div className="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
             <button
-              className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
               onClick={onClose}
               type="button"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -293,7 +293,7 @@ export function AddContactModal({
               Cancel
             </button>
             <button
-              className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center space-x-1"
+              className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center space-x-1"
               disabled={mutation.isPending}
               type="submit"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}

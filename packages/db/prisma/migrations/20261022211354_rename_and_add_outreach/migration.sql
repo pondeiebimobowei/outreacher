@@ -33,52 +33,52 @@ CREATE TYPE "OutreachStatus" AS ENUM ('DRAFT', 'SCHEDULED', 'SENDING', 'SENT', '
 CREATE TYPE "CampaignMemberStatus" AS ENUM ('PENDING', 'READY', 'SCHEDULED', 'SENDING', 'SENT', 'FOLLOW_UP_DUE', 'REPLIED', 'COMPLETED', 'SUPPRESSED', 'FAILED', 'ARCHIVED');
 
 -- DropForeignKey
-ALTER TABLE "campaign_contacts" DROP CONSTRAINT "campaign_contacts_campaign_id_fkey";
+ALTER TABLE "campaign_contacts" DROP CONSTRAINT IF EXISTS "campaign_contacts_campaign_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "campaign_contacts" DROP CONSTRAINT "campaign_contacts_contact_id_fkey";
+ALTER TABLE "campaign_contacts" DROP CONSTRAINT IF EXISTS "campaign_contacts_contact_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "campaign_contacts" DROP CONSTRAINT "campaign_contacts_selected_opportunity_id_fkey";
+ALTER TABLE "campaign_contacts" DROP CONSTRAINT IF EXISTS "campaign_contacts_selected_opportunity_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "campaign_contacts" DROP CONSTRAINT "campaign_contacts_workspace_id_fkey";
+ALTER TABLE "campaign_contacts" DROP CONSTRAINT IF EXISTS "campaign_contacts_workspace_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "company_contact_selections" DROP CONSTRAINT "company_contact_selections_company_id_fkey";
+ALTER TABLE "company_contact_selections" DROP CONSTRAINT IF EXISTS "company_contact_selections_company_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "company_contact_selections" DROP CONSTRAINT "company_contact_selections_contact_id_fkey";
+ALTER TABLE "company_contact_selections" DROP CONSTRAINT IF EXISTS "company_contact_selections_contact_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "company_contact_selections" DROP CONSTRAINT "company_contact_selections_workspace_id_fkey";
+ALTER TABLE "company_contact_selections" DROP CONSTRAINT IF EXISTS "company_contact_selections_workspace_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "contacts" DROP CONSTRAINT "contacts_company_id_fkey";
+ALTER TABLE "contacts" DROP CONSTRAINT IF EXISTS "contacts_company_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "contacts" DROP CONSTRAINT "contacts_workspace_id_fkey";
+ALTER TABLE "contacts" DROP CONSTRAINT IF EXISTS "contacts_workspace_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "email_sends" DROP CONSTRAINT "email_sends_campaign_contact_id_fkey";
+ALTER TABLE "email_sends" DROP CONSTRAINT IF EXISTS "email_sends_campaign_contact_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "evidence" DROP CONSTRAINT "evidence_contact_id_fkey";
+ALTER TABLE "evidence" DROP CONSTRAINT IF EXISTS "evidence_contact_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "inbound_replies" DROP CONSTRAINT "inbound_replies_campaign_contact_id_fkey";
+ALTER TABLE "inbound_replies" DROP CONSTRAINT IF EXISTS "inbound_replies_campaign_contact_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "outcomes" DROP CONSTRAINT "outcomes_campaign_contact_id_fkey";
+ALTER TABLE "outcomes" DROP CONSTRAINT IF EXISTS "outcomes_campaign_contact_id_fkey";
 
 -- DropIndex
-DROP INDEX "email_sends_workspace_id_campaign_contact_id_idx";
+DROP INDEX IF EXISTS "email_sends_workspace_id_campaign_contact_id_idx";
 
 -- DropIndex
-DROP INDEX "evidence_workspace_id_contact_id_idx";
+DROP INDEX IF EXISTS "evidence_workspace_id_contact_id_idx";
 
 -- DropIndex
-DROP INDEX "outcomes_workspace_id_campaign_contact_id_idx";
+DROP INDEX IF EXISTS "outcomes_workspace_id_campaign_contact_id_idx";
 
 -- AlterTable
 ALTER TABLE "campaigns" DROP COLUMN "sending_identity",
@@ -116,23 +116,26 @@ ADD COLUMN     "campaign_member_id" TEXT NOT NULL;
 
 -- AlterTable
 ALTER TABLE "users" DROP COLUMN "name",
-ADD COLUMN     "first_name" TEXT NOT NULL,
-ADD COLUMN     "last_name" TEXT NOT NULL;
+ADD COLUMN     "first_name" TEXT NOT NULL DEFAULT 'User',
+ADD COLUMN     "last_name" TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE "users" ALTER COLUMN "first_name" DROP DEFAULT,
+ALTER COLUMN "last_name" DROP DEFAULT;
 
 -- DropTable
-DROP TABLE "campaign_contacts";
+DROP TABLE IF EXISTS "campaign_contacts";
 
 -- DropTable
-DROP TABLE "company_contact_selections";
+DROP TABLE IF EXISTS "company_contact_selections";
 
 -- DropTable
-DROP TABLE "contacts";
+DROP TABLE IF EXISTS "contacts";
 
 -- DropEnum
-DROP TYPE "CampaignContactStatus";
+DROP TYPE IF EXISTS "CampaignContactStatus";
 
 -- DropEnum
-DROP TYPE "ContactKind";
+DROP TYPE IF EXISTS "ContactKind";
 
 -- CreateTable
 CREATE TABLE "outreaches" (

@@ -133,7 +133,7 @@ export function ContactDiscoveryWorkspace({
   return (
     <section
       aria-labelledby="contact-discovery-heading"
-      className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6"
+      className="bg-slate-50 p-6 rounded-none-none border border-slate-200  space-y-6"
     >
       {/* ARIA Live region for discrete screen-reader announcements */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -152,7 +152,7 @@ export function ContactDiscoveryWorkspace({
               6. Contact Discovery & Selection
             </h2>
             {contactsData?.mock && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-none text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
                 Mock Data Provider
               </span>
             )}
@@ -168,7 +168,7 @@ export function ContactDiscoveryWorkspace({
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+            className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             + Add Contact
@@ -179,7 +179,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: false })}
               disabled={isDiscoverPending}
-              className="min-h-[40px] sm:min-h-0 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              className="min-h-[40px] sm:min-h-0 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {isDiscoverPending ? 'Starting...' : 'Find Relevant Contacts'}
@@ -193,7 +193,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: false })}
                   disabled={isDiscoverPending}
-                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Refresh Contacts
@@ -202,7 +202,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: true })}
                   disabled={isDiscoverPending}
-                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   title="Bypass 24h freshness cache (max 3 per company/24h)"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
@@ -216,7 +216,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: true })}
               disabled={isDiscoverPending}
-              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             >
               {isDiscoverPending ? 'Retrying...' : 'Retry Contact Discovery'}
             </button>
@@ -228,7 +228,7 @@ export function ContactDiscoveryWorkspace({
       {rateLimitError && (
         <div
           role="alert"
-          className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-800"
+          className="p-4 bg-rose-50 border border-rose-200 rounded-none-none flex items-center justify-between text-xs text-rose-800"
         >
           <div className="flex items-center space-x-2">
             <span className="font-bold">Notice:</span>
@@ -237,7 +237,7 @@ export function ContactDiscoveryWorkspace({
           <button
             type="button"
             onClick={() => setRateLimitError(null)}
-            className="text-rose-600 hover:text-rose-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1"
+            className="text-rose-600 hover:text-rose-900 font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900 rounded-none px-1"
           >
             Dismiss
           </button>
@@ -248,7 +248,7 @@ export function ContactDiscoveryWorkspace({
       {bindingError && (
         <div
           role="alert"
-          className="p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-800"
+          className="p-4 bg-rose-50 border border-rose-200 rounded-none-none flex items-center justify-between text-xs text-rose-800"
         >
           <div className="flex items-center space-x-2">
             <span className="font-bold">Campaign Binding Warning:</span>
@@ -259,14 +259,14 @@ export function ContactDiscoveryWorkspace({
 
       {/* State Machine Presentations */}
       {isLoading && (
-        <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-lg">
+        <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-none-none">
           <p className="text-xs font-medium text-slate-600">Loading contact candidates...</p>
         </div>
       )}
 
       {/* State: NOT_STARTED */}
       {rawStatus === 'NOT_STARTED' && !isPollingActive && !isLoading && (
-        <div className="p-8 bg-slate-50 border border-slate-200 rounded-lg text-center space-y-3">
+        <div className="p-8 bg-slate-50 border border-slate-200 rounded-none-none text-center space-y-3">
           <h3 className="text-sm font-bold text-slate-900">No Contact Discovery Executed Yet</h3>
           <p className="text-xs text-slate-600 max-w-lg mx-auto leading-relaxed">
             Discover key decision-makers, engineering managers, talent acquisition contacts, or role
@@ -277,7 +277,7 @@ export function ContactDiscoveryWorkspace({
             type="button"
             onClick={() => discoverContacts({ forceRefresh: false })}
             disabled={isDiscoverPending}
-            className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             {isDiscoverPending ? 'Starting...' : 'Find Relevant Contacts'}
           </button>
@@ -286,9 +286,9 @@ export function ContactDiscoveryWorkspace({
 
       {/* State: DISCOVERING (Polling active & under 30s) */}
       {isPollingActive && !isStillRunningTimeout && (
-        <div className="p-8 bg-sky-50 border border-sky-200 rounded-lg text-center space-y-3">
+        <div className="p-8 bg-sky-50 border border-sky-200 rounded-none-none text-center space-y-3">
           <div className="inline-flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 bg-sky-600 rounded-full animate-ping" />
+            <span className="w-2.5 h-2.5 bg-sky-600 rounded-none-full animate-ping" />
             <span className="text-xs font-bold uppercase tracking-wider text-sky-900">
               Finding Relevant Contacts at {companyName}...
             </span>
@@ -302,7 +302,7 @@ export function ContactDiscoveryWorkspace({
 
       {/* State: DISCOVERY_STILL_RUNNING (30s polling timeout elapsed - NOT a failure state!) */}
       {isStillRunningTimeout && (
-        <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-6 bg-amber-50 border border-amber-200 rounded-none-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1 text-xs text-amber-900">
             <span className="font-bold block uppercase tracking-wider text-[11px]">
               Discovery Still Processing in Background
@@ -315,7 +315,7 @@ export function ContactDiscoveryWorkspace({
           <button
             type="button"
             onClick={() => refetch()}
-            className="px-3.5 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="px-3.5 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 border border-amber-300 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             Check Status
           </button>
@@ -327,7 +327,7 @@ export function ContactDiscoveryWorkspace({
         <div className="space-y-6">
           {/* Contact-to-Outreach Transition Banner */}
           {selectedContact && (
-            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900 shadow-sm">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-none-none flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900 ">
               <div className="space-y-1">
                 <span className="font-bold uppercase tracking-wider text-[11px] text-emerald-800 block">
                   Target Contact Selected
@@ -343,7 +343,7 @@ export function ContactDiscoveryWorkspace({
                       Campaign: <strong className="font-semibold">{activeCampaign.name}</strong>
                     </span>
                     {boundCampaignContact && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-none text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
                         {boundCampaignContact.status}
                       </span>
                     )}
@@ -360,7 +360,7 @@ export function ContactDiscoveryWorkspace({
                   }
                 }}
                 disabled={isOpeningDrawer}
-                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-white hover:bg-emerald-100 border border-emerald-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-slate-50 hover:bg-emerald-100 border border-emerald-300 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
               >
                 {isOpeningDrawer ? 'Opening Draft...' : 'Prepare Outreach & Campaign Context \u2192'}
               </button>
@@ -368,7 +368,7 @@ export function ContactDiscoveryWorkspace({
           )}
 
           {/* Search & Cumulative Filter Controls Bar */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-none-none space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="relative flex-1 max-w-sm">
                 <label htmlFor="contact-search-input" className="sr-only">
@@ -380,7 +380,7 @@ export function ContactDiscoveryWorkspace({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name, title, or email..."
-                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white text-slate-900"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50 text-slate-900"
                 />
               </div>
 
@@ -388,7 +388,7 @@ export function ContactDiscoveryWorkspace({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-xs font-medium text-slate-500 hover:text-slate-900 underline focus:outline-none focus:ring-2 focus:ring-slate-900 rounded px-1 self-end sm:self-auto"
+                  className="text-xs font-medium text-slate-500 hover:text-slate-900 underline focus:outline-none focus:ring-2 focus:ring-slate-900 rounded-none px-1 self-end sm:self-auto"
                 >
                   Clear Filters
                 </button>
@@ -404,10 +404,10 @@ export function ContactDiscoveryWorkspace({
               <button
                 type="button"
                 onClick={() => setFilterRelevance((prev) => (prev === 'HIGH' ? 'ALL' : 'HIGH'))}
-                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${
                   filterRelevance === 'HIGH'
                     ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 High Relevance Only
@@ -416,10 +416,10 @@ export function ContactDiscoveryWorkspace({
               <button
                 type="button"
                 onClick={() => setFilterEmailAvailable((prev) => !prev)}
-                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 ${
+                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${
                   filterEmailAvailable
                     ? 'bg-sky-100 text-sky-800 border-sky-300 font-bold'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 Email Available
@@ -429,7 +429,7 @@ export function ContactDiscoveryWorkspace({
                 aria-label="Filter by Contact Type"
                 value={filterKind}
                 onChange={(e) => setFilterKind(e.target.value as 'ALL' | 'PERSON' | 'ROLE_ADDRESS')}
-                className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
                 <option value="ALL">All Contact Types</option>
                 <option value="PERSON">PERSON (Individuals)</option>
@@ -440,7 +440,7 @@ export function ContactDiscoveryWorkspace({
 
           {/* Filter Zero-Match State */}
           {filteredContacts.length === 0 && isFilterActive && (
-            <div className="p-8 bg-slate-50 border border-slate-200 rounded-lg text-center space-y-3">
+            <div className="p-8 bg-slate-50 border border-slate-200 rounded-none-none text-center space-y-3">
               <h3 className="text-sm font-bold text-slate-900">
                 {searchTerm.trim()
                   ? `No candidate contacts match '${searchTerm.trim()}'.`
@@ -452,7 +452,7 @@ export function ContactDiscoveryWorkspace({
               <button
                 type="button"
                 onClick={clearFilters}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900"
               >
                 Reset Search & Filters
               </button>
@@ -467,7 +467,7 @@ export function ContactDiscoveryWorkspace({
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                     Top Recommendations
                   </h3>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                     High Relevance ({topRecommendations.length})
                   </span>
                 </div>
@@ -525,7 +525,7 @@ export function ContactDiscoveryWorkspace({
 
       {/* State: NO_SUITABLE_CONTACTS_FOUND */}
       {rawStatus === 'COMPLETED' && !hasCandidates && !isPollingActive && (
-        <div className="p-8 bg-slate-50 border border-slate-200 rounded-lg text-center space-y-3">
+        <div className="p-8 bg-slate-50 border border-slate-200 rounded-none-none text-center space-y-3">
           <h3 className="text-sm font-bold text-slate-900">No Suitable Contacts Identified Yet</h3>
           <p className="text-xs text-slate-600 max-w-lg mx-auto leading-relaxed">
             Contact discovery completed, but no credible contact candidates were found for{' '}
@@ -535,7 +535,7 @@ export function ContactDiscoveryWorkspace({
             type="button"
             onClick={() => discoverContacts({ forceRefresh: true })}
             disabled={isDiscoverPending}
-            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             {isDiscoverPending ? 'Retrying...' : 'Retry Contact Discovery'}
           </button>
@@ -544,7 +544,7 @@ export function ContactDiscoveryWorkspace({
 
       {/* State: DISCOVERY_FAILED */}
       {rawStatus === 'FAILED' && !hasCandidates && !isPollingActive && (
-        <div className="p-8 bg-rose-50 border border-rose-200 rounded-lg text-center space-y-3">
+        <div className="p-8 bg-rose-50 border border-rose-200 rounded-none-none text-center space-y-3">
           <h3 className="text-sm font-bold text-rose-900">Contact Discovery Run Failed</h3>
           <p className="text-xs text-rose-800 max-w-lg mx-auto leading-relaxed">
             The background discovery job failed to complete. Review provider status or trigger a
@@ -554,7 +554,7 @@ export function ContactDiscoveryWorkspace({
             type="button"
             onClick={() => discoverContacts({ forceRefresh: true })}
             disabled={isDiscoverPending}
-            className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
             {isDiscoverPending ? 'Retrying...' : 'Retry Contact Discovery'}
           </button>

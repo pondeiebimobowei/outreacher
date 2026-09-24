@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Menu, Search, Bell, Settings, User, LogOut } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MenuIcon, SearchIcon, BellIcon, SettingsIcon, UserIcon, LogOutIcon } from '@hugeicons/core-free-icons';;
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 
@@ -59,10 +60,10 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
         <button
           type="button"
           onClick={onMenuClick}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center rounded-none-none text-[var(--color-foreground)] hover:bg-[var(--color-muted)]  cursor-pointer"
           aria-label="Open navigation menu"
         >
-          <Menu size={20} className="lucide-menu" />
+          <HugeiconsIcon icon={MenuIcon} size={20} className="lucide-menu" />
         </button>
         <span className="font-bold text-[15px] font-heading tracking-tight text-[var(--color-primary)]">
           Outreacher
@@ -74,16 +75,16 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
         <button
           type="button"
           onClick={onOpenSearch}
-          className="flex w-full items-center justify-between gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2 text-left text-sm shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all cursor-pointer group"
+          className="flex w-full items-center justify-between gap-2.5 rounded-none-none border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2 text-left text-sm -2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20  cursor-pointer group"
           aria-label="Search companies, contacts, campaigns... (⌘K)"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <Search size={15} className="text-[var(--color-muted-fg)] group-hover:text-[var(--color-primary)] transition-colors shrink-0" />
+            <HugeiconsIcon icon={SearchIcon} size={15} className="text-[var(--color-muted-fg)] group-hover:text-[var(--color-primary)]  shrink-0" />
             <span className="text-[13px] text-[var(--color-muted-fg)] font-body truncate">
               Search companies, contacts, campaigns...
             </span>
           </div>
-          <kbd className="hidden sm:inline-flex items-center rounded bg-[var(--color-muted)] px-1.5 py-0.5 text-[10.5px] font-body text-[var(--color-muted-fg)] border border-[var(--color-border)] shrink-0">
+          <kbd className="hidden sm:inline-flex items-center rounded-none bg-[var(--color-muted)] px-1.5 py-0.5 text-[10.5px] font-body text-[var(--color-muted-fg)] border border-[var(--color-border)] shrink-0">
             ⌘K
           </kbd>
         </button>
@@ -95,10 +96,10 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
         <button
           type="button"
           onClick={onOpenSearch}
-          className="sm:hidden flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          className="sm:hidden flex h-10 w-10 items-center justify-center rounded-none-none text-[var(--color-foreground)] hover:bg-[var(--color-muted)]  cursor-pointer"
           aria-label="Search"
         >
-          <Search size={18} />
+          <HugeiconsIcon icon={SearchIcon} size={18} />
         </button>
 
         {/* Notifications */}
@@ -107,10 +108,10 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
           disabled
           aria-disabled="true"
           title="Notifications not yet available"
-          className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          className="relative flex h-10 w-10 items-center justify-center rounded-none-none text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)]  cursor-pointer"
           aria-label="Notifications"
         >
-          <Bell size={18} />
+          <HugeiconsIcon icon={BellIcon} size={18} />
         </button>
 
         {/* User profile dropdown */}
@@ -118,12 +119,12 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
           <button
             type="button"
             onClick={() => setProfileOpen(!profileOpen)}
-            className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+            className="flex items-center gap-2.5 p-1 rounded-none-none hover:bg-[var(--color-muted)]  cursor-pointer"
             aria-expanded={profileOpen}
             aria-haspopup="menu"
             aria-label="User profile menu"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-xs font-heading">
+            <div className="flex h-8 w-8 items-center justify-center rounded-none-full text-indigo-700 text-xs font-bold text-white -xs font-heading">
               {initials}
             </div>
             <div className="hidden md:block text-left">
@@ -139,7 +140,7 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
           {profileOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white p-1 shadow-xl border border-[var(--color-border)] z-50 animate-in fade-in zoom-in-95 duration-100"
+              className="absolute right-0 mt-2 w-56 origin-top-right rounded-none-none bg-slate-50 p-1  border border-[var(--color-border)] z-50 animate-in fade-in zoom-in-95 "
             >
               <div className="px-3 py-2 border-b border-[var(--color-border)]">
                 <p className="truncate text-[13px] font-semibold text-[var(--color-primary)] font-heading">
@@ -158,9 +159,9 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
                     setProfileOpen(false);
                     navigate({ to: '/settings' });
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body transition-colors cursor-pointer min-h-[38px]"
+                  className="flex w-full items-center gap-2.5 rounded-none-none px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body  cursor-pointer min-h-[38px]"
                 >
-                  <Settings size={15} className="text-[var(--color-muted-fg)]" />
+                  <HugeiconsIcon icon={SettingsIcon} size={15} className="text-[var(--color-muted-fg)]" />
                   <span>Settings</span>
                 </button>
 
@@ -171,9 +172,9 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
                     setProfileOpen(false);
                     navigate({ to: '/settings/career-profile' });
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body transition-colors cursor-pointer min-h-[38px]"
+                  className="flex w-full items-center gap-2.5 rounded-none-none px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body  cursor-pointer min-h-[38px]"
                 >
-                  <User size={15} className="text-[var(--color-muted-fg)]" />
+                  <HugeiconsIcon icon={UserIcon} size={15} className="text-[var(--color-muted-fg)]" />
                   <span>Career Profile</span>
                 </button>
               </div>
@@ -183,9 +184,9 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
                   type="button"
                   role="menuitem"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 font-body transition-colors cursor-pointer min-h-[38px]"
+                  className="flex w-full items-center gap-2.5 rounded-none-none px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 font-body  cursor-pointer min-h-[38px]"
                 >
-                  <LogOut size={15} className="text-red-500" />
+                  <HugeiconsIcon icon={LogOutIcon} size={15} className="text-red-500" />
                   <span>Sign out</span>
                 </button>
               </div>

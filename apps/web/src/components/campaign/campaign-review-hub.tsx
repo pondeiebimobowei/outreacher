@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import type { CampaignDto, CampaignContactStatus } from '../../api/campaigns';
 import type { CampaignContactSummaryDto } from '../../api/outreach';
 import { MemberCard } from '../../features/campaign/components/MemberCard';
-import { Play, Pause } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { PlayIcon, PauseIcon } from '@hugeicons/react';;
 
 export type ReviewFilter =
   | 'ALL'
@@ -114,10 +115,10 @@ export function CampaignReviewHub({
               {campaign.name}
             </h2>
             <span
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-none-full"
               style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+              <span className="w-1.5 h-1.5 rounded-none-full" style={{ background: cfg.dot }} />
               {campaign.status}
             </span>
           </div>
@@ -129,10 +130,10 @@ export function CampaignReviewHub({
               type="button"
               onClick={onPause}
               disabled={isPauseResumeLoading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-none-none text-[13.5px] font-semibold  disabled:opacity-50"
               style={{ background: '#FFF7ED', color: '#9A3412', border: '1px solid #FFEDD5', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
-              <Pause size={14} /> Pause Campaign
+              <HugeiconsIcon icon={PauseIcon} size={14} /> Pause Campaign
             </button>
           )}
           {campaign.status === 'PAUSED' && (
@@ -140,10 +141,10 @@ export function CampaignReviewHub({
               type="button"
               onClick={onResume}
               disabled={isPauseResumeLoading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-none-none text-[13.5px] font-semibold  disabled:opacity-50"
               style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
-              <Play size={14} /> Resume Campaign
+              <HugeiconsIcon icon={PlayIcon} size={14} /> Resume Campaign
             </button>
           )}
         </div>
@@ -157,11 +158,11 @@ export function CampaignReviewHub({
           { label: 'Replied', value: replied, color: '#10B981' },
           { label: 'Follow-up due', value: followUpDue, color: '#F59E0B' },
         ].map(stat => (
-          <div key={stat.label} className="rounded-xl p-4" style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)' }}>
+          <div key={stat.label} className="rounded-none-none p-4" style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)' }}>
             <p className="text-[28px] font-bold leading-none mb-1" style={{ color: stat.color, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
               {stat.value}
             </p>
-            <p className="text-[12px]" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}>
               {stat.label}
             </p>
           </div>
@@ -169,7 +170,7 @@ export function CampaignReviewHub({
       </div>
 
       {/* Sender Review */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--color-muted, #F3F4F6)', border: '1px solid var(--color-border, #E5E7EB)' }}>
+      <div className="rounded-none-none p-4" style={{ background: 'var(--color-muted, #F3F4F6)', border: '1px solid var(--color-border, #E5E7EB)' }}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
             Sender identity
@@ -183,7 +184,7 @@ export function CampaignReviewHub({
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline gap-2">
             <span className="text-[11.5px] font-semibold w-14 shrink-0" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>Identity</span>
-            <span className="text-[13px]" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Inter", sans-serif' }}>{campaign.sendingIdentity || 'Not assigned'}</span>
+            <span className="text-[13px]" style={{ color: 'var(--color-primary, #111827)', fontFamily: 'sans-serif' }}>{campaign.sendingIdentity || 'Not assigned'}</span>
           </div>
         </div>
       </div>
@@ -199,7 +200,7 @@ export function CampaignReviewHub({
               role="tab"
               onClick={() => onFilterChange(filter)}
               aria-selected={isActive}
-              className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-none-full  cursor-pointer whitespace-nowrap"
               style={{
                 background: isActive ? 'var(--color-primary, #111827)' : 'var(--color-card, #ffffff)',
                 color: isActive ? 'white' : 'var(--color-muted-fg, #6B7280)',
@@ -220,7 +221,7 @@ export function CampaignReviewHub({
           <p className="text-[14px] font-semibold" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
             No contacts found
           </p>
-          <p className="text-[13px] mt-1" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+          <p className="text-[13px] mt-1" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: 'sans-serif' }}>
             Try selecting a different status filter.
           </p>
         </div>

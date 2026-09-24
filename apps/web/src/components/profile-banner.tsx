@@ -35,7 +35,7 @@ export function ProfileBanner() {
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+    <div className="mb-6 rounded-none-none border border-amber-200 bg-amber-50 p-4 text-amber-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
       <div>
         <h4 className="text-sm font-semibold text-amber-900">Career Profile Setup Required</h4>
         <p className="text-xs text-amber-700 mt-0.5">
@@ -45,7 +45,7 @@ export function ProfileBanner() {
       </div>
       <Link
         to="/settings"
-        className="shrink-0 rounded-md bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-800"
+        className="shrink-0 rounded-none-none bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white -xs hover:bg-amber-800"
       >
         Complete Profile
       </Link>

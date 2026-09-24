@@ -20,7 +20,7 @@ export const AttentionSection: React.FC<AttentionSectionProps> = ({ items, isDeg
         </h2>
         {items.length > 0 && (
           <span
-            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-900"
+            className="inline-flex items-center rounded-none-full px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-900"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             {items.length} {items.length === 1 ? 'item' : 'items'}
@@ -31,8 +31,8 @@ export const AttentionSection: React.FC<AttentionSectionProps> = ({ items, isDeg
       {isDegraded && (
         <div
           role="status"
-          className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-[13px] text-amber-800 shadow-2xs"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className="flex items-center gap-2.5 rounded-none-none border border-amber-200 bg-amber-50 p-3.5 text-[13px] text-amber-800 -2xs"
+          style={{ fontFamily: 'sans-serif' }}
         >
           <svg className="h-5 w-5 shrink-0 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
             <path
@@ -52,7 +52,7 @@ export const AttentionSection: React.FC<AttentionSectionProps> = ({ items, isDeg
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-xs">
+        <div className="rounded-none-none border border-slate-200 bg-slate-50 p-6 text-center -xs">
           <h3
             className="text-[15px] font-bold text-slate-900"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -61,7 +61,7 @@ export const AttentionSection: React.FC<AttentionSectionProps> = ({ items, isDeg
           </h3>
           <p
             className="mt-1 text-[13px] text-slate-500 max-w-md mx-auto"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Nothing currently requires your attention. Your active work is still available below.
           </p>

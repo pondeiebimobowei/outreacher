@@ -21,7 +21,7 @@ export const WorkspaceHeader: React.FC = () => {
       </h1>
       <p
         className="text-[14px] text-slate-500 mt-1"
-        style={{ fontFamily: 'Inter, sans-serif' }}
+        style={{ fontFamily: 'sans-serif' }}
       >
         Here's your workspace overview
         {workspace?.name ? (

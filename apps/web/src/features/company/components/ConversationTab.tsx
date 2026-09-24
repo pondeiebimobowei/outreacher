@@ -1,5 +1,6 @@
 import { CompanyDto } from '../../../api/companies';
-import { MessageSquare } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MessageSquareIcon } from '@hugeicons/core-free-icons';;
 
 export function ConversationTab({
   company,
@@ -10,10 +11,10 @@ export function ConversationTab({
     <div className="flex flex-col items-center justify-center gap-5 py-16 px-8">
       {/* Icon */}
       <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center"
+        className="w-12 h-12 rounded-none-none flex items-center justify-center"
         style={{ background: 'var(--color-muted)', color: 'var(--color-muted-fg)' }}
       >
-        <MessageSquare size={22} strokeWidth={1.6} />
+        <HugeiconsIcon icon={MessageSquareIcon} size={22} strokeWidth={1.6} />
       </div>
 
       {/* Text */}
@@ -26,7 +27,7 @@ export function ConversationTab({
         </p>
         <p
           className="text-[13.5px] leading-relaxed"
-          style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}
+          style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}
         >
           Conversations will appear here once outreach is sent and replies are received.
           The production backend does not yet track message threads natively — this view
@@ -36,14 +37,14 @@ export function ConversationTab({
 
       {/* Next step suggestion */}
       <div
-        className="w-full max-w-md rounded-xl px-5 py-4 flex items-start gap-3"
+        className="w-full max-w-md rounded-none-none px-5 py-4 flex items-start gap-3"
         style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border)' }}
       >
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+          className="w-7 h-7 rounded-none-none flex items-center justify-center shrink-0 mt-0.5"
           style={{ background: '#EEF2FF', color: '#4F46E5' }}
         >
-          <MessageSquare size={14} />
+          <HugeiconsIcon icon={MessageSquareIcon} size={14} />
         </div>
         <div>
           <p
@@ -54,7 +55,7 @@ export function ConversationTab({
           </p>
           <p
             className="text-[12.5px] leading-relaxed"
-            style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}
           >
             Go to Outreach → review the draft → send the email. Replies from contacts will appear here.
           </p>

@@ -70,12 +70,12 @@ export function TagInput({
       >
         {label}
       </label>
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300 bg-white p-2.5 text-[13px] shadow-xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-colors">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-none-none border border-slate-300 bg-slate-50 p-2.5 text-[13px] -xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 ">
         {tags.map((tag, idx) => (
           <span
             key={`${tag}-${idx}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 border border-slate-200/80 px-2.5 py-1 text-[12.5px] font-medium text-slate-800"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            className="inline-flex items-center gap-1.5 rounded-none-none bg-slate-100 border border-slate-200/80 px-2.5 py-1 text-[12.5px] font-medium text-slate-800"
+            style={{ fontFamily: 'sans-serif' }}
           >
             {tag}
             <button
@@ -83,7 +83,7 @@ export function TagInput({
               disabled={disabled}
               onClick={() => removeTag(idx)}
               aria-label={`Remove ${tag}`}
-              className="text-slate-400 hover:text-slate-700 focus:outline-hidden disabled:opacity-50 transition-colors"
+              className="text-slate-400 hover:text-slate-700 focus:outline-hidden disabled:opacity-50 "
             >
               &times;
             </button>
@@ -99,7 +99,7 @@ export function TagInput({
           onBlur={() => addTag(inputVal)}
           placeholder={tags.length === 0 ? placeholder : ''}
           className="min-w-[120px] flex-1 bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          style={{ fontFamily: 'sans-serif' }}
         />
       </div>
     </div>

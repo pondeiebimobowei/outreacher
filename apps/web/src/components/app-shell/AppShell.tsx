@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {mobileNavOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm -opacity"
             onClick={() => setMobileNavOpen(false)}
             aria-hidden="true"
           />

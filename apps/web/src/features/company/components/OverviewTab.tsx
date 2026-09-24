@@ -1,6 +1,7 @@
 import { CompanyDto } from '../../../api/companies';
 import { CompanyResearchDetailsDto } from '../../../api/research';
-import { ExternalLink, ArrowRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ExternalLinkIcon, ArrowRightIcon } from '@hugeicons/core-free-icons';;
 
 export function OverviewTab({
   company,
@@ -25,7 +26,7 @@ export function OverviewTab({
     <div className="flex flex-col xl:flex-row gap-5 items-start">
       <div className="flex-1 min-w-0 flex flex-col gap-4">
         {/* Next Step Card using real data state */}
-        <div className="rounded-xl p-5 relative overflow-hidden bg-white border border-slate-200 border-l-[3px] border-l-blue-600 shadow-2xs">
+        <div className="rounded-none-none p-5 relative overflow-hidden bg-slate-50 border border-slate-200 border-l-[3px] border-l-blue-600 -2xs">
           <p
             className="text-[11px] font-bold uppercase tracking-wide mb-2 text-slate-500"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: '0.07em' }}
@@ -40,7 +41,7 @@ export function OverviewTab({
           </h3>
           <p
             className="text-[13.5px] leading-relaxed mb-4 text-slate-500"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             {isResearchDone
               ? 'Research is complete. The next step is to find the right person to approach.'
@@ -50,15 +51,15 @@ export function OverviewTab({
           </p>
           <button
             onClick={() => onTabChange(isResearchDone ? 'Contacts' : 'Research')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all bg-slate-900 text-white hover:bg-slate-800 shadow-xs"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-none-none text-[13.5px] font-semibold  bg-slate-900 text-white hover:bg-slate-800 -xs"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
-            {isResearchDone ? 'Find contacts' : 'Start research'} <ArrowRight className="w-3.5 h-3.5" />
+            {isResearchDone ? 'Find contacts' : 'Start research'} <HugeiconsIcon icon={ArrowRightIcon} className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Opportunity State Card */}
-        <div className="rounded-xl p-5 bg-white border border-slate-200 shadow-2xs">
+        <div className="rounded-none-none p-5 bg-slate-50 border border-slate-200 -2xs">
           <div className="flex items-center gap-2 mb-3">
             <p
               className="text-[11.5px] font-bold uppercase tracking-wide text-slate-500"
@@ -67,7 +68,7 @@ export function OverviewTab({
               Opportunity
             </p>
             <span
-              className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+              className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-none-full ${
                 activeStatus === 'CONFIRMED'
                   ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                   : activeStatus === 'PROACTIVE'
@@ -79,7 +80,7 @@ export function OverviewTab({
               {activeStatus}
             </span>
           </div>
-          <p className="text-[13.5px] leading-relaxed text-slate-600" style={{ fontFamily: 'Inter, sans-serif' }}>
+          <p className="text-[13.5px] leading-relaxed text-slate-600" style={{ fontFamily: 'sans-serif' }}>
             {latestOpp
               ? `A relevant opening was found: ${latestOpp.roleTitle}`
               : isResearchDone
@@ -91,7 +92,7 @@ export function OverviewTab({
 
       <div className="w-full xl:w-72 shrink-0 flex flex-col gap-4">
         {/* Company Context Card */}
-        <div className="rounded-xl overflow-hidden bg-white border border-slate-200 shadow-2xs">
+        <div className="rounded-none-none overflow-hidden bg-slate-50 border border-slate-200 -2xs">
           <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/50">
             <p className="text-[13px] font-bold text-slate-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
               Company
@@ -99,7 +100,7 @@ export function OverviewTab({
           </div>
           <div className="px-5 py-4">
             {company.description && (
-              <p className="text-[12.5px] leading-relaxed mb-4 text-slate-600" style={{ fontFamily: 'Inter, sans-serif' }}>
+              <p className="text-[12.5px] leading-relaxed mb-4 text-slate-600" style={{ fontFamily: 'sans-serif' }}>
                 {company.description}
               </p>
             )}
@@ -118,7 +119,7 @@ export function OverviewTab({
                     rel="noopener noreferrer"
                     className="text-[12.5px] text-right text-indigo-600 hover:text-indigo-800 flex items-center gap-1 truncate max-w-[140px]"
                   >
-                    <span className="truncate">{company.domain}</span> <ExternalLink size={12} className="shrink-0" />
+                    <span className="truncate">{company.domain}</span> <HugeiconsIcon icon={ExternalLinkIcon} size={12} className="shrink-0" />
                   </a>
                 </div>
               )}

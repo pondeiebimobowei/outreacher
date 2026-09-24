@@ -9,7 +9,8 @@ import {
   Integration,
 } from '../../../api/integrations';
 import { useSenderAccounts, SenderAccount } from '../../../api/sender-accounts';
-import { Plus, Zap, AlertTriangle, Key, Users } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { PlusIcon, ZapIcon, AlertTriangle, KeyIcon, UsersIcon } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/_authed/settings/integrations')({
   component: IntegrationsPage,
@@ -62,7 +63,7 @@ export function IntegrationsPage() {
           </h1>
           <p
             className="text-[14px] text-slate-500 mt-1"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Manage email delivery provider connections for campaign outreach.
           </p>
@@ -70,20 +71,20 @@ export function IntegrationsPage() {
         <button
           ref={connectButtonRef}
           onClick={handleOpenModal}
-          className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:opacity-90 self-start sm:self-auto shrink-0"
+          className="inline-flex items-center gap-1.5 rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs  hover:opacity-90 self-start sm:self-auto shrink-0"
           style={{
             background: 'var(--color-primary)',
             fontFamily: 'Plus Jakarta Sans, sans-serif',
           }}
         >
-          <Plus size={15} />
+          <HugeiconsIcon icon={PlusIcon} size={15} />
           Connect provider
         </button>
       </header>
 
       {error ? (
         <div
-          className="rounded-xl bg-red-50 border border-red-200 p-4"
+          className="rounded-none-none bg-red-50 border border-red-200 p-4"
           role="alert"
         >
           <h3
@@ -102,19 +103,19 @@ export function IntegrationsPage() {
           aria-label="Loading integrations"
         >
           {[1, 2].map((i) => (
-            <div key={i} className="h-32 bg-slate-100 rounded-xl" />
+            <div key={i} className="h-32 bg-slate-100 rounded-none-none" />
           ))}
         </div>
       ) : !integrations || integrations.length === 0 ? (
-        <div className="text-center rounded-xl border border-dashed border-slate-300 p-12 bg-white">
+        <div className="text-center rounded-none-none border border-dashed border-slate-300 p-12 bg-slate-50">
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+            className="w-12 h-12 rounded-none-none flex items-center justify-center mx-auto mb-3"
             style={{
               background: 'var(--color-muted)',
               color: 'var(--color-muted-fg)',
             }}
           >
-            <Zap size={22} strokeWidth={1.6} />
+            <HugeiconsIcon icon={ZapIcon} size={22} strokeWidth={1.6} />
           </div>
           <h3
             className="text-[16px] font-bold text-slate-900 mb-1"
@@ -124,19 +125,19 @@ export function IntegrationsPage() {
           </h3>
           <p
             className="text-[13.5px] text-slate-500 max-w-sm mx-auto mb-4"
-            style={{ fontFamily: 'Inter, sans-serif' }}
+            style={{ fontFamily: 'sans-serif' }}
           >
             Get started by connecting an email provider.
           </p>
           <button
             onClick={handleOpenModal}
-            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-opacity"
+            className="inline-flex items-center gap-1.5 rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs -opacity"
             style={{
               background: 'var(--color-primary)',
               fontFamily: 'Plus Jakarta Sans, sans-serif',
             }}
           >
-            <Plus size={15} /> Connect provider
+            <HugeiconsIcon icon={PlusIcon} size={15} /> Connect provider
           </button>
         </div>
       ) : (
@@ -239,7 +240,7 @@ function IntegrationCard({
 
   return (
     <>
-      <div className="rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between relative shadow-xs">
+      <div className="rounded-none-none border border-slate-200 bg-slate-50 hover:border-indigo-300 hover:-xs  flex flex-col justify-between relative -xs">
         <div className="p-5 flex-1">
           <div className="flex items-start justify-between gap-2 mb-3">
             <div className="min-w-0 pr-2">
@@ -249,7 +250,7 @@ function IntegrationCard({
               >
                 {integration.name}
               </h3>
-              <span className="inline-flex items-center text-[10.5px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono uppercase mt-1">
+              <span className="inline-flex items-center text-[10.5px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none font-mono uppercase mt-1">
                 {integration.provider}
               </span>
             </div>
@@ -258,11 +259,11 @@ function IntegrationCard({
 
           <div className="mt-4 space-y-2 pt-3 border-t border-slate-100">
             <p className="text-[12.5px] text-slate-600 flex items-center gap-1.5">
-              <Key size={13} className="text-slate-400 shrink-0" />
+              <HugeiconsIcon icon={KeyIcon} size={13} className="text-slate-400 shrink-0" />
               <span>Credential: Configured</span>
             </p>
             <p className="text-[12.5px] text-slate-600 flex items-center gap-1.5">
-              <Users size={13} className="text-slate-400 shrink-0" />
+              <HugeiconsIcon icon={UsersIcon} size={13} className="text-slate-400 shrink-0" />
               <span>
                 {dependentSenders === undefined
                   ? 'Loading sender accounts...'
@@ -275,7 +276,7 @@ function IntegrationCard({
 
           {transientFeedback && (
             <div
-              className={`mt-3 text-xs p-2.5 rounded-lg flex items-start ${
+              className={`mt-3 text-xs p-2.5 rounded-none-none flex items-start ${
                 transientFeedback.type === 'error'
                   ? 'bg-red-50 text-red-700 border border-red-200'
                   : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -288,11 +289,11 @@ function IntegrationCard({
           )}
         </div>
 
-        <div className="bg-slate-50/70 px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-3 rounded-b-xl">
+        <div className="bg-slate-50/70 px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-3 rounded-none-b-xl">
           <button
             onClick={handleTest}
             disabled={isBusy || integration.status === 'DISABLED'}
-            className="text-[12.5px] font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="text-[12.5px] font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed "
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             {isTesting ? 'Testing...' : 'Test connection'}
@@ -302,7 +303,7 @@ function IntegrationCard({
             <button
               onClick={handleEnable}
               disabled={isBusy}
-              className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-[12.5px] font-semibold text-slate-600 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed "
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {isEnabling ? 'Enabling...' : 'Enable'}
@@ -319,7 +320,7 @@ function IntegrationCard({
                     ? 'Cannot verify dependencies'
                     : undefined
               }
-              className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-[12.5px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed "
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               Disable
@@ -391,12 +392,12 @@ function DisableModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="disable-modal-title"
-        className="relative w-full max-w-sm transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8"
+        className="relative w-full max-w-sm transform overflow-hidden rounded-none-none bg-slate-50 text-left   sm:my-8"
       >
-        <div className="bg-white px-5 pt-5 pb-4">
+        <div className="bg-slate-50 px-5 pt-5 pb-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
-              <AlertTriangle size={20} />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none-none bg-red-100 text-red-600">
+              <HugeiconsIcon icon={AlertTriangle} size={20} />
             </div>
             <div>
               <h3
@@ -423,7 +424,7 @@ function DisableModal({
             type="button"
             onClick={onClose}
             disabled={disableMutation.isPending}
-            className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-none-none -xs hover:bg-slate-50 "
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             Cancel
@@ -432,7 +433,7 @@ function DisableModal({
             type="button"
             onClick={handleConfirm}
             disabled={disableMutation.isPending}
-            className="px-4 py-2 text-[13px] font-semibold text-white bg-red-600 rounded-lg shadow-xs hover:bg-red-700 transition-colors flex items-center"
+            className="px-4 py-2 text-[13px] font-semibold text-white bg-red-600 rounded-none-none -xs hover:bg-red-700  flex items-center"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             {disableMutation.isPending ? 'Disabling...' : 'Yes, disable'}
@@ -447,7 +448,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
   if (status === 'ACTIVE') {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+        className="inline-flex items-center gap-1.5 rounded-none-full px-2.5 py-0.5 text-[11px] font-bold"
         style={{
           background: '#ECFDF5',
           color: '#065F46',
@@ -456,7 +457,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
         }}
       >
         <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-none-full shrink-0"
           style={{ background: '#10B981' }}
         />
         Active
@@ -466,7 +467,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
   if (status === 'INVALID_CREDENTIALS') {
     return (
       <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+        className="inline-flex items-center gap-1.5 rounded-none-full px-2.5 py-0.5 text-[11px] font-bold"
         style={{
           background: '#FFFBEB',
           color: '#78350F',
@@ -475,7 +476,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
         }}
       >
         <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
+          className="w-1.5 h-1.5 rounded-none-full shrink-0"
           style={{ background: '#F59E0B' }}
         />
         Action Required
@@ -484,7 +485,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
   }
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+      className="inline-flex items-center gap-1.5 rounded-none-full px-2.5 py-0.5 text-[11px] font-bold"
       style={{
         background: '#F3F4F6',
         color: '#374151',
@@ -493,7 +494,7 @@ function StatusBadge({ status }: { status: Integration['status'] }) {
       }}
     >
       <span
-        className="w-1.5 h-1.5 rounded-full shrink-0"
+        className="w-1.5 h-1.5 rounded-none-full shrink-0"
         style={{ background: '#9CA3AF' }}
       />
       Disabled
@@ -639,10 +640,10 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="relative w-full max-w-md transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8"
+        className="relative w-full max-w-md transform overflow-hidden rounded-none-none bg-slate-50 text-left   sm:my-8"
       >
         <form onSubmit={handleSubmit} noValidate>
-          <div className="bg-white px-5 pt-5 pb-4 sm:p-6">
+          <div className="bg-slate-50 px-5 pt-5 pb-4 sm:p-6">
             <h3
               className="text-[17px] font-bold text-slate-900"
               id="modal-title"
@@ -652,14 +653,14 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
             </h3>
             <p
               className="text-[13px] text-slate-500 mt-1"
-              style={{ fontFamily: 'Inter, sans-serif' }}
+              style={{ fontFamily: 'sans-serif' }}
             >
               Add an email provider to send outbound campaigns.
             </p>
 
             {globalErrorMsg && (
               <div
-                className="mt-3.5 rounded-lg bg-red-50 border border-red-200 p-3"
+                className="mt-3.5 rounded-none-none bg-red-50 border border-red-200 p-3"
                 role="alert"
               >
                 <p className="text-xs text-red-800">{globalErrorMsg}</p>
@@ -679,7 +680,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                   id="provider"
                   name="provider"
                   disabled
-                  className="block w-full px-3.5 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-700 outline-none opacity-80"
+                  className="block w-full px-3.5 py-2 text-sm rounded-none-none border border-slate-200 bg-slate-50 text-slate-700 outline-none opacity-80"
                 >
                   <option value="RESEND">Resend</option>
                 </select>
@@ -709,7 +710,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                   placeholder="e.g., Resend Production"
                   aria-invalid={!!nameError}
                   aria-describedby={nameError ? 'name-error' : undefined}
-                  className={`block w-full px-3.5 py-2 text-sm rounded-lg border shadow-xs outline-none ${
+                  className={`block w-full px-3.5 py-2 text-sm rounded-none-none border -xs outline-none ${
                     nameError
                       ? 'border-red-300 focus:ring-1 focus:ring-red-500'
                       : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
@@ -730,7 +731,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                 >
                   Credential Environment Variable
                 </label>
-                <div className="relative rounded-lg shadow-xs">
+                <div className="relative rounded-none-none -xs">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <span className="text-slate-400 text-sm font-mono">
                       env://
@@ -752,7 +753,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                     aria-describedby={
                       credError ? 'cred-error' : 'cred-description'
                     }
-                    className={`block w-full pl-14 pr-3.5 py-2 text-sm rounded-lg border shadow-xs outline-none font-mono ${
+                    className={`block w-full pl-14 pr-3.5 py-2 text-sm rounded-none-none border -xs outline-none font-mono ${
                       credError
                         ? 'border-red-300 focus:ring-1 focus:ring-red-500'
                         : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
@@ -781,7 +782,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
               type="button"
               onClick={onClose}
               disabled={isProcessing}
-              className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-none-none -xs hover:bg-slate-50 "
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {createdIntegrationId ? 'Close' : 'Cancel'}
@@ -789,7 +790,7 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
             <button
               type="submit"
               disabled={isProcessing}
-              className="px-4 py-2 text-[13px] font-semibold text-white rounded-lg shadow-xs transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-4 py-2 text-[13px] font-semibold text-white rounded-none-none -xs -opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               style={{
                 background: 'var(--color-primary)',
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
