@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Menu, Search, Bell } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Menu, Search, Bell, Settings, User, LogOut } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 
@@ -9,100 +9,183 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, workspace, logout } = useAuth();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click or escape
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [profileOpen]);
 
   const handleLogout = async () => {
+    setProfileOpen(false);
     await logout();
     navigate({ to: '/login' });
   };
 
-  const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    }
-    if (email) {
-      return email.charAt(0).toUpperCase();
-    }
-    return 'U';
-  };
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : (user?.email?.[0] ?? 'U').toUpperCase();
+
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
 
   return (
-    <header className="sticky top-0 z-20 flex h-[60px] w-full items-center justify-between border-b border-[var(--color-border)] bg-[rgba(247,247,245,0.92)] px-4 backdrop-blur-sm">
-      <div className="flex items-center gap-4 lg:hidden">
+    <header className="sticky top-0 z-20 flex h-[60px] w-full items-center justify-between border-b border-[var(--color-border)] bg-[rgba(247,247,245,0.92)] px-3 sm:px-6 backdrop-blur-sm shrink-0">
+      {/* Mobile: Hamburger and Logo */}
+      <div className="flex items-center gap-3 lg:hidden">
         <button
+          type="button"
           onClick={onMenuClick}
-          className="flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          aria-label="Open navigation menu"
         >
-          <Menu size={20} />
+          <Menu size={20} className="lucide-menu" />
         </button>
-        <span className="font-[family-name:var(--font-sans)] font-semibold text-[var(--color-primary)]">
+        <span className="font-bold text-[15px] font-heading tracking-tight text-[var(--color-primary)]">
           Outreacher
         </span>
       </div>
 
-      {/* Spacer for mobile */}
-      <div className="hidden lg:block w-4"></div>
-
-      <div className="flex flex-1 justify-center sm:justify-start lg:px-4 max-w-2xl">
+      {/* Desktop Search trigger button */}
+      <div className="hidden sm:flex flex-1 max-w-xl">
         <button
+          type="button"
           onClick={onOpenSearch}
-          className="hidden sm:flex h-9 w-full max-w-md items-center justify-between rounded-md border border-[var(--color-border)] bg-white px-3 text-sm text-[var(--color-muted-fg)] shadow-sm hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          className="flex w-full items-center justify-between gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-3.5 py-2 text-left text-sm shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 transition-all cursor-pointer group"
+          aria-label="Search companies, contacts, campaigns... (⌘K)"
         >
-          <div className="flex items-center gap-2">
-            <Search size={16} />
-            <span>Search companies, contacts, campaigns...</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Search size={15} className="text-[var(--color-muted-fg)] group-hover:text-[var(--color-primary)] transition-colors shrink-0" />
+            <span className="text-[13px] text-[var(--color-muted-fg)] font-body truncate">
+              Search companies, contacts, campaigns...
+            </span>
           </div>
-          <kbd className="hidden rounded bg-[var(--color-muted)] px-1.5 py-0.5 font-sans text-xs font-medium text-[var(--color-muted-fg)] sm:inline-block">
+          <kbd className="hidden sm:inline-flex items-center rounded bg-[var(--color-muted)] px-1.5 py-0.5 text-[10.5px] font-body text-[var(--color-muted-fg)] border border-[var(--color-border)] shrink-0">
             ⌘K
           </kbd>
         </button>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      {/* Right controls */}
+      <div className="flex items-center gap-1.5 sm:gap-3 ml-auto">
+        {/* Mobile search icon button */}
         <button
+          type="button"
           onClick={onOpenSearch}
-          className="flex h-10 w-10 sm:hidden items-center justify-center rounded-md text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+          className="sm:hidden flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          aria-label="Search"
         >
-          <Search size={20} />
+          <Search size={18} />
         </button>
 
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-md text-[var(--color-foreground)] hover:bg-[var(--color-muted)]">
-          <Bell size={20} />
-          {/* <span className="absolute right-2 top-2 flex h-2 w-2 rounded-full bg-red-500"></span> */}
+        {/* Notifications */}
+        <button
+          type="button"
+          className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+          aria-label="Notifications"
+        >
+          <Bell size={18} />
         </button>
 
-        <div className="relative">
+        {/* User profile dropdown */}
+        <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setProfileOpen(!profileOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-sm font-medium text-indigo-700 hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2 focus:outline-none transition-all"
+            className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-[var(--color-muted)] transition-colors cursor-pointer"
+            aria-expanded={profileOpen}
+            aria-haspopup="menu"
+            aria-label="User profile menu"
           >
-            {getInitials(user?.name || undefined, user?.email)}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-xs font-bold text-white shadow-xs font-heading">
+              {initials}
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-[13px] font-semibold leading-tight font-heading text-[var(--color-primary)] truncate max-w-[120px]">
+                {displayName}
+              </p>
+              <p className="text-[11px] leading-tight text-[var(--color-muted-fg)] font-body truncate max-w-[120px]">
+                {workspace?.name || 'Workspace'}
+              </p>
+            </div>
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-              <div className="border-b border-[var(--color-border)] px-4 py-2">
-                <p className="truncate text-sm font-medium text-[var(--color-foreground)]">
-                  {user?.name || 'User'}
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white p-1 shadow-xl border border-[var(--color-border)] z-50 animate-in fade-in zoom-in-95 duration-100"
+            >
+              <div className="px-3 py-2 border-b border-[var(--color-border)]">
+                <p className="truncate text-[13px] font-semibold text-[var(--color-primary)] font-heading">
+                  {displayName}
                 </p>
-                <p className="truncate text-xs text-[var(--color-muted-fg)]">
+                <p className="truncate text-[11px] text-[var(--color-muted-fg)] font-body">
                   {user?.email}
                 </p>
               </div>
-              <button
-                onClick={() => { setProfileOpen(false); navigate({ to: '/settings' }); }}
-                className="block w-full px-4 py-2 text-left text-sm text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
-              >
-                Settings
-              </button>
-              <button
-                onClick={() => { setProfileOpen(false); handleLogout(); }}
-                className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-              >
-                Sign out
-              </button>
+
+              <div className="py-1">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    navigate({ to: '/settings' });
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body transition-colors cursor-pointer min-h-[38px]"
+                >
+                  <Settings size={15} className="text-[var(--color-muted-fg)]" />
+                  <span>Settings</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setProfileOpen(false);
+                    navigate({ to: '/settings/career-profile' });
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-[var(--color-primary)] hover:bg-[var(--color-muted)] font-body transition-colors cursor-pointer min-h-[38px]"
+                >
+                  <User size={15} className="text-[var(--color-muted-fg)]" />
+                  <span>Career Profile</span>
+                </button>
+              </div>
+
+              <div className="border-t border-[var(--color-border)] pt-1">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-red-600 hover:bg-red-50 font-body transition-colors cursor-pointer min-h-[38px]"
+                >
+                  <LogOut size={15} className="text-red-500" />
+                  <span>Sign out</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

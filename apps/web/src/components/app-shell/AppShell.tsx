@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouterState, Navigate } from '@tanstack/react-router';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { CommandPalette } from './CommandPalette';
 import { useAuth } from '../../lib/auth-context';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -16,10 +17,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setMobileNavOpen(false);
   }, [routerState.location.pathname]);
 
-  // Command K listener
+  // Global ⌘K / Ctrl+K listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        const target = e.target as HTMLElement | null;
+        // Don't intercept when user is typing in form inputs
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
         e.preventDefault();
         setPaletteOpen((prev) => !prev);
       }
@@ -33,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--color-background)] font-[family-name:var(--font-body)]">
+    <div className="flex h-screen w-full overflow-hidden bg-[var(--color-background)] font-body">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block shrink-0">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
@@ -48,12 +54,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-hidden="true"
           />
           <div className="relative flex w-64 max-w-xs flex-1 flex-col bg-[var(--color-sidebar)] pt-5 pb-4">
-            <Sidebar collapsed={false} onToggle={() => setMobileNavOpen(false)} onNavigate={() => setMobileNavOpen(false)} />
+            <Sidebar
+              collapsed={false}
+              onToggle={() => setMobileNavOpen(false)}
+              onNavigate={() => setMobileNavOpen(false)}
+            />
           </div>
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Main Content Column */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header 
           onMenuClick={() => setMobileNavOpen(true)} 
@@ -65,27 +75,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Placeholder for Command Palette */}
-      {paletteOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24">
-          <div 
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" 
-            onClick={() => setPaletteOpen(false)} 
-          />
-          <div className="relative w-full max-w-xl rounded-xl bg-white shadow-2xl overflow-hidden m-4">
-            <div className="p-4 border-b border-[var(--color-border)]">
-              <input 
-                autoFocus
-                placeholder="Search anything..." 
-                className="w-full bg-transparent text-lg outline-none text-[var(--color-foreground)]"
-              />
-            </div>
-            <div className="p-4 text-center text-sm text-[var(--color-muted-fg)]">
-              Search not implemented yet. Press Esc to close.
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Command Palette */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
