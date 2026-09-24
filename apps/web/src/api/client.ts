@@ -66,6 +66,7 @@ export function normalizeApiBaseUrl(rawOrigin: string): string {
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
+  timeoutMs?: number;
 }
 
 export class ApiClient {
@@ -92,9 +93,24 @@ export class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
+    const { timeoutMs = 15000, signal, ...restOptions } = options;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort(new Error(`Request timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    if (signal) {
+      if (signal.aborted) {
+        controller.abort(signal.reason);
+      } else {
+        signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+      }
+    }
+
     const config: RequestInit = {
       credentials: 'include',
-      ...options,
+      ...restOptions,
+      signal: controller.signal,
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     };
@@ -104,6 +120,8 @@ export class ApiClient {
       response = await fetch(url, config);
     } catch (err) {
       throw new ApiError(0, null, err instanceof Error ? err.message : 'Network failure');
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
