@@ -583,7 +583,7 @@ function AddSenderModal({
             ) : (
               <>
                 <select
-                  ref={initialFocusRef as any}
+                  ref={initialFocusRef as React.RefObject<HTMLSelectElement>}
                   id="integrationId"
                   value={integrationId}
                   onChange={(e) => setIntegrationId(e.target.value)}

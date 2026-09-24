@@ -47,7 +47,7 @@ export function computeCampaignReadiness(
     // Actually, in 9D-C we used an `isIntegrationUnknown` or something similar. 
     // Let's add a property `isIntegrationUnknown?: boolean` to the summary for frontend evaluation.
     
-    if ((sender as any).isIntegrationUnknown) {
+    if ('isIntegrationUnknown' in sender && Boolean((sender as { isIntegrationUnknown?: boolean }).isIntegrationUnknown)) {
       hasUnknown = true;
       continue;
     }

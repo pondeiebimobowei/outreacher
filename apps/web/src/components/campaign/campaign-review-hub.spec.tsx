@@ -219,7 +219,7 @@ describe('CampaignReviewHub — filter bar', () => {
 // ─── Queue filtering ─────────────────────────────────────────────────────────
 
 describe('CampaignReviewHub — queue filtering', () => {
-  it('ALL filter shows all \(6\) contacts (appears in table and mobile cards = 12 name instances)', () => {
+  it('ALL filter shows all (6) contacts (appears in table and mobile cards = 12 name instances)', () => {
     renderHub(MIXED_CONTACTS, {}, 'ALL');
     // Each contact renders in both desktop table row and mobile card
     const allNames = screen.getAllByText(/^Contact [1-6]$/);

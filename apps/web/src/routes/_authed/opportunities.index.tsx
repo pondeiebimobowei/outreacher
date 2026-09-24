@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { fetchCompanies } from '../../api/companies';
-import { fetchCompanyResearch } from '../../api/research';
+import { fetchCompanies, type CompanyDto } from '../../api/companies';
+import { fetchCompanyResearch, type OpportunityDto } from '../../api/research';
 import { Briefcase, Search } from 'lucide-react';
 import { OpportunityCard } from '../../features/opportunity/components/OpportunityCard';
 import { OPP_STATUS_CFG, ClassificationType } from '../../features/opportunity/components/OpportunityClassificationBadge';
@@ -40,7 +40,7 @@ function OpportunitiesIndexComponent() {
   // Flatten all opportunities with their company context
   const oppEntries = useMemo(() => {
     if (!companies) return [];
-    const entries: { company: any; opportunity: any }[] = [];
+    const entries: { company: CompanyDto; opportunity: OpportunityDto }[] = [];
     companies.forEach((company, idx) => {
       const research = researchQueries[idx]?.data;
       if (research?.opportunities) {

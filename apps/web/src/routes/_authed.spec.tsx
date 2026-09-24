@@ -14,8 +14,8 @@ jest.mock('../components/profile-banner', () => ({
 }));
 
 jest.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (config: any) => config,
-  Link: ({ children, to, onClick, className }: any) => (
+  createFileRoute: () => (config: unknown) => config,
+  Link: ({ children, to, onClick, className }: { children: React.ReactNode; to: string; onClick?: () => void; className?: string }) => (
     <a href={to} onClick={onClick} className={className} data-testid={`nav-link-${to}`}>
       {children}
     </a>
@@ -51,13 +51,13 @@ describe('AuthedLayoutComponent (Responsive Shell & Navigation)', () => {
       logout: mockLogout,
       refetchAuth: jest.fn(),
       retryBootstrap: mockRetryBootstrap,
-    } as any);
+    } as unknown as ReturnType<typeof useAuth>);
   });
 
   const AuthedLayout = (AuthedRoute as unknown as { component: React.ComponentType }).component;
 
   it('renders loading state when session resolution is in flight', () => {
-    mockUseAuth.mockReturnValue({ status: 'loading' } as any);
+    mockUseAuth.mockReturnValue({ status: 'loading' } as unknown as ReturnType<typeof useAuth>);
     render(<AuthedLayout />);
     expect(screen.getByTestId('loading-state')).toBeInTheDocument();
     expect(screen.getByText(/Resolving authenticated session/i)).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('AuthedLayoutComponent (Responsive Shell & Navigation)', () => {
       status: 'bootstrap_error',
       error: new Error('Network timeout'),
       retryBootstrap: mockRetryBootstrap,
-    } as any);
+    } as unknown as ReturnType<typeof useAuth>);
     render(<AuthedLayout />);
     expect(screen.getByText('Connection Error')).toBeInTheDocument();
     expect(screen.getByText('Network timeout')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('AuthedLayoutComponent (Responsive Shell & Navigation)', () => {
   });
 
   it('redirects to /login if user is unauthenticated', () => {
-    mockUseAuth.mockReturnValue({ status: 'unauthenticated', user: null } as any);
+    mockUseAuth.mockReturnValue({ status: 'unauthenticated', user: null } as unknown as ReturnType<typeof useAuth>);
     render(<AuthedLayout />);
     expect(screen.getByTestId('navigate-redirect')).toHaveAttribute('data-to', '/login');
   });

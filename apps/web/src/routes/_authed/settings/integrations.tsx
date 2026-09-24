@@ -147,7 +147,7 @@ function IntegrationCard({
         setTransientFeedback({ message: `Test failed: ${getReasonMessage(result.reason)}. Please try again later.`, type: 'error' });
       }
       setTimeout(() => setTransientFeedback(null), 5000);
-    } catch (e) {
+    } catch {
       setTransientFeedback({ message: 'An unexpected error occurred during testing.', type: 'error' });
       setTimeout(() => setTransientFeedback(null), 5000);
     }
@@ -483,11 +483,11 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
           
           setGlobalErrorMsg(`Test failed: ${reasonMsg} You can test again later.`);
         }
-      } catch (testErr) {
+      } catch {
         setIsProcessing(false);
         setGlobalErrorMsg('Network error occurred while testing. Integration was saved.');
       }
-    } catch (err: any) {
+    } catch {
       setGlobalErrorMsg('Failed to process provider integration. Please check your inputs or try again later.');
       setIsProcessing(false);
       setProcessingState(null);

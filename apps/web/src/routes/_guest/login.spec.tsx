@@ -10,7 +10,7 @@ jest.mock('../../lib/auth-context', () => ({
 jest.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: Record<string, unknown>) => ({ ...config, useSearch: () => ({ mode: 'login', error: new URLSearchParams(window.location.search).get('error') }) }),
   useNavigate: () => jest.fn(),
-  Link: ({ children, to, className, onClick }: any) => <a href={to} onClick={onClick} className={className}>{children}</a>,
+  Link: ({ children, to, className, onClick }: { children: React.ReactNode; to: string; className?: string; onClick?: () => void }) => <a href={to} onClick={onClick} className={className}>{children}</a>,
 }));
 
 describe('LoginComponent', () => {

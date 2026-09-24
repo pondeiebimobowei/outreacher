@@ -6,6 +6,7 @@ import { CampaignDto, CampaignStatus, fetchCampaigns, pauseCampaign, resumeCampa
 import { CompanyDto, fetchCompanies } from '../../api/companies';
 import { ErrorState, LoadingState } from '../../components/states';
 import { CampaignCard } from '../../features/campaign/components/CampaignCard';
+import { CreateCampaignModal } from '../../features/campaign/components/CreateCampaignModal';
 
 export const Route = createFileRoute('/_authed/campaigns/')({
   component: CampaignsIndexComponent,
@@ -70,6 +71,7 @@ function CampaignsIndexComponent() {
   });
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'ALL' | CampaignStatus>('ALL');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const {
     data: campaigns,
@@ -123,19 +125,28 @@ function CampaignsIndexComponent() {
             Workspace directory of all outreach initiatives, active queues, and historical campaigns.
           </p>
         </div>
-        <button
-          onClick={() => navigate({ to: '/companies' })}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all"
-          style={{ background: 'var(--color-primary, #111827)', color: 'white', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#1E2D4A')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-primary, #111827)')}
-        >
-          <Plus size={14} /> View Target Companies
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => navigate({ to: '/companies' })}
+            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+          >
+            Target Companies
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all shadow-xs"
+            style={{ background: 'var(--color-primary, #111827)', color: 'white', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#1E2D4A')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-primary, #111827)')}
+          >
+            <Plus size={14} /> Create campaign
+          </button>
+        </div>
       </div>
 
       {(campaigns ?? []).length === 0 ? (
-        <EmptyState onCreate={() => navigate({ to: '/companies' })} />
+        <EmptyState onCreate={() => setIsCreateModalOpen(true)} />
       ) : (
         <>
           {/* Status filter bar */}
@@ -180,6 +191,12 @@ function CampaignsIndexComponent() {
           </div>
         </>
       )}
+
+      <CreateCampaignModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        companies={companies ?? []}
+      />
     </div>
   );
 }

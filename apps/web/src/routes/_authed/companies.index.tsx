@@ -332,7 +332,7 @@ function CompaniesRouteComponent() {
       setIsModalOpen(false);
       navigate({ to: '/companies/$id', params: { id: newCompany.id } });
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       if (err instanceof ApiError) {
         setFormError(err.message);
       } else {
@@ -342,7 +342,7 @@ function CompaniesRouteComponent() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, input }: { id: string, input: any }) => updateCompany(id, input),
+    mutationFn: ({ id, input }: { id: string, input: Parameters<typeof updateCompany>[1] }) => updateCompany(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       setArchiveTarget(null);

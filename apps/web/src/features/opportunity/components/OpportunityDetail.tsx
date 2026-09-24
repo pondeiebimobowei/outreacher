@@ -4,7 +4,6 @@ import { ClassificationType, OPP_STATUS_CFG } from './OpportunityClassificationB
 import { OpportunityLifecycleBadge } from './OpportunityLifecycleBadge';
 import { getEffectiveClassification } from '../utils';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function OpportunityDetail({ company, opportunity }: { company: CompanyDto; opportunity: OpportunityDto; }) {
   const activeStatus: ClassificationType = getEffectiveClassification(opportunity);
   const cfg = OPP_STATUS_CFG[activeStatus] || OPP_STATUS_CFG.UNCLASSIFIED;
