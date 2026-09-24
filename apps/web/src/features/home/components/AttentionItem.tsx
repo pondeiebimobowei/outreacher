@@ -27,26 +27,43 @@ const getIconBg = (kind: string) => {
 
 export const AttentionItem: React.FC<AttentionItemProps> = ({ item }) => {
   return (
-    <div className="flex items-start justify-between rounded-xl border border-[var(--color-border)] bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md">
-      <div className="flex items-start gap-4">
-        <div className={`p-3 rounded-xl ${getIconBg(item.kind)}`}>
+    <div className="flex items-start justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-sm">
+      <div className="flex items-start gap-3.5 min-w-0">
+        <div className={`p-2.5 rounded-xl shrink-0 ${getIconBg(item.kind)}`}>
           {getIcon(item.kind)}
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0.5 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wide text-[var(--color-muted-fg)]">
+            <span
+              className="text-[11px] font-bold uppercase tracking-wider text-slate-500"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
               {item.companyName}
             </span>
           </div>
-          <h3 className="text-base font-semibold text-[var(--color-primary)]">{item.title}</h3>
-          <p className="text-sm text-[var(--color-muted-fg)] line-clamp-1">{item.description}</p>
+          <h3
+            className="text-[15px] font-bold text-slate-900 truncate"
+            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+          >
+            {item.title}
+          </h3>
+          <p
+            className="text-[13px] text-slate-600 line-clamp-1 leading-relaxed"
+            style={{ fontFamily: 'Inter, sans-serif' }}
+          >
+            {item.description}
+          </p>
         </div>
       </div>
-      <div className="ml-4 flex-shrink-0 flex items-center h-full pt-2">
+      <div className="ml-4 shrink-0 flex items-center h-full pt-1">
         <Link
           to={item.destination.to}
           params={item.destination.params}
-          className="bg-[var(--color-primary)] text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-800 transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 inline-flex items-center justify-center"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          style={{
+            background: 'var(--color-primary)',
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+          }}
         >
           {item.actionLabel}
         </Link>
