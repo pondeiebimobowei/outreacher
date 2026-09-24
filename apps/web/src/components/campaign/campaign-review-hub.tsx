@@ -1,8 +1,8 @@
-import React from 'react';
+import { useMemo } from 'react';
 import type { CampaignDto, CampaignContactStatus } from '../../api/campaigns';
 import type { CampaignContactSummaryDto } from '../../api/outreach';
-
-// ─── Status display helpers ──────────────────────────────────────────────────
+import { MemberCard } from '../../features/campaign/components/MemberCard';
+import { Play, Pause } from 'lucide-react';
 
 export type ReviewFilter =
   | 'ALL'
@@ -33,105 +33,6 @@ const FILTER_ORDER: ReviewFilter[] = [
   'SUPPRESSED',
 ];
 
-function statusMatchesFilter(
-  status: CampaignContactStatus,
-  filter: ReviewFilter,
-): boolean {
-  if (filter === 'ALL') return true;
-  return status === filter;
-}
-
-function getStatusBadge(status: CampaignContactStatus): React.ReactElement {
-  switch (status) {
-    case 'PENDING':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
-          Needs Review
-        </span>
-      );
-    case 'READY':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-          Approved
-        </span>
-      );
-    case 'SENDING':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200 animate-pulse">
-          Sending
-        </span>
-      );
-    case 'SENT':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Sent
-        </span>
-      );
-    case 'FAILED':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
-          Failed
-        </span>
-      );
-    case 'SUPPRESSED':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-          Blocked
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-200">
-          {status}
-        </span>
-      );
-  }
-}
-
-/**
- * Returns the hub action label for a given CampaignContact status.
- *
- * FAILED is terminal — no Retry. FAILED, SENT, SENDING, SUPPRESSED all get View.
- * Other lifecycle states (SCHEDULED, FOLLOW_UP_DUE, REPLIED, COMPLETED, ARCHIVED)
- * have no hub-invented action and return null.
- */
-export function getHubActionLabel(
-  status: CampaignContactStatus,
-): string | null {
-  switch (status) {
-    case 'PENDING':
-      return 'Review Draft';
-    case 'READY':
-      return 'Send Now';
-    case 'SENDING':
-    case 'SENT':
-    case 'FAILED':      // Terminal — View only, never Retry (Packet 5 invariant)
-    case 'SUPPRESSED':
-      return 'View';
-    default:
-      return null;
-  }
-}
-
-function formatRelativeTime(dateString: string | null | undefined): string {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '—';
-  const now = new Date();
-  const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diffSeconds < 0) return date.toLocaleDateString();
-  if (diffSeconds < 60) return 'just now';
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
-// ─── Props ───────────────────────────────────────────────────────────────────
-
 export interface CampaignReviewHubProps {
   campaign: CampaignDto;
   contacts: CampaignContactSummaryDto[];
@@ -145,7 +46,21 @@ export interface CampaignReviewHubProps {
   onOpenAssignSenders?: () => void;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const CAMPAIGN_STATUS_CFG: Record<string, { color: string; bg: string; border: string; dot: string }> = {
+  DRAFT: { color: '#374151', bg: '#F3F4F6', border: '#E5E7EB', dot: '#9CA3AF' },
+  READY: { color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE', dot: '#3B82F6' },
+  SENDING: { color: '#92400E', bg: '#FEF3C7', border: '#FDE68A', dot: '#F59E0B' },
+  ACTIVE: { color: '#065F46', bg: '#ECFDF5', border: '#A7F3D0', dot: '#10B981' },
+  PAUSED: { color: '#92400E', bg: '#FFF7ED', border: '#FED7AA', dot: '#F97316' },
+  COMPLETED: { color: '#374151', bg: '#F3F4F6', border: '#E5E7EB', dot: '#6B7280' },
+  SCHEDULED: { color: '#0369A1', bg: '#F0F9FF', border: '#BAE6FD', dot: '#38BDF8' },
+  ARCHIVED: { color: '#6B7280', bg: '#F9FAFB', border: '#F3F4F6', dot: '#D1D5DB' },
+};
+
+function statusMatchesFilter(status: CampaignContactStatus, filter: ReviewFilter): boolean {
+  if (filter === 'ALL') return true;
+  return status === filter;
+}
 
 export function CampaignReviewHub({
   campaign,
@@ -156,10 +71,10 @@ export function CampaignReviewHub({
   onPause,
   onResume,
   isPauseResumeLoading,
+  companyName,
   onOpenAssignSenders,
 }: CampaignReviewHubProps) {
-  // Filter counts always computed from the complete collection
-  const filterCounts = React.useMemo(() => {
+  const filterCounts = useMemo(() => {
     const counts: Record<ReviewFilter, number> = {
       ALL: contacts.length,
       PENDING: 0,
@@ -169,338 +84,158 @@ export function CampaignReviewHub({
       FAILED: 0,
       SUPPRESSED: 0,
     };
-    for (const c of contacts) {
-      switch (c.status) {
-        case 'PENDING':    counts.PENDING++;    break;
-        case 'READY':      counts.READY++;      break;
-        case 'SENDING':    counts.SENDING++;    break;
-        case 'SENT':       counts.SENT++;       break;
-        case 'FAILED':     counts.FAILED++;     break;
-        case 'SUPPRESSED': counts.SUPPRESSED++; break;
+    contacts.forEach((c) => {
+      if (counts[c.status as ReviewFilter] !== undefined) {
+        counts[c.status as ReviewFilter]++;
       }
-    }
+    });
     return counts;
   }, [contacts]);
 
-  // Filtered view — counts still come from the complete collection above
-  const visibleContacts = React.useMemo(
-    () =>
-      activeFilter === 'ALL'
-        ? contacts
-        : contacts.filter((c) => statusMatchesFilter(c.status, activeFilter)),
+  const visibleContacts = useMemo(
+    () => contacts.filter((c) => statusMatchesFilter(c.status, activeFilter)),
     [contacts, activeFilter],
   );
 
+  const total = contacts.length;
+  const sent = contacts.filter(m => ['SENT', 'REPLIED', 'FOLLOW_UP_DUE', 'COMPLETED'].includes(m.status)).length;
+  const replied = contacts.filter(m => m.status === 'REPLIED').length;
+  const followUpDue = contacts.filter(m => m.status === 'FOLLOW_UP_DUE').length;
+
+  const cfg = CAMPAIGN_STATUS_CFG[campaign.status] || CAMPAIGN_STATUS_CFG['DRAFT'];
+
   return (
     <div className="space-y-6">
-      {/* ── Campaign Header ──────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {campaign.name}
-          </h1>
-          <div className="flex items-center gap-2">
-            {getCampaignStatusBadge(campaign.status)}
-            {campaign.sendingIdentity && (
-              <span className="text-xs text-slate-500 font-mono">
-                {campaign.sendingIdentity}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Pause / Resume — campaign-level controls only */}
-        {campaign.status === 'ACTIVE' && (
-          <button
-            type="button"
-            onClick={onPause}
-            disabled={isPauseResumeLoading}
-            className="self-start bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Pause campaign"
-          >
-            {isPauseResumeLoading ? 'Pausing…' : 'Pause Campaign'}
-          </button>
-        )}
-        {campaign.status === 'PAUSED' && (
-          <button
-            type="button"
-            onClick={onResume}
-            disabled={isPauseResumeLoading}
-            className="self-start bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 rounded-md px-3 py-1.5 text-xs font-medium min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Resume campaign"
-          >
-            {isPauseResumeLoading ? 'Resuming…' : 'Resume Campaign'}
-          </button>
-        )}
-      </div>
-
-      {/* ── Sender Assignment Section ──────────────────────────────────────── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Sending Accounts</h2>
-          <p className="text-xs text-slate-500 mt-1">Configure which accounts will dispatch this campaign.</p>
+          <div className="flex items-center gap-3">
+            <h2 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+              {campaign.name}
+            </h2>
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
+              style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+              {campaign.status}
+            </span>
+          </div>
         </div>
         
-        {campaign.senders && campaign.senders.filter(s => s.assignmentStatus === 'ACTIVE').length > 0 ? (
-          <div className="space-y-3">
-            <div className="grid gap-2">
-              {campaign.senders.filter(s => s.assignmentStatus === 'ACTIVE').map(sender => {
-                const isReady = sender.senderStatus === 'ACTIVE' && sender.integrationStatus === 'ACTIVE';
-                const isUnknown = (sender as any).isIntegrationUnknown;
-                
-                let badge = null;
-                if (isUnknown) badge = <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Unknown</span>;
-                else if (isReady) badge = <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Ready</span>;
-                else if (sender.senderStatus === 'PAUSED' || sender.senderStatus === 'DISABLED') {
-                   badge = <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">{sender.senderStatus}</span>;
-                } else {
-                   badge = <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Needs Attention</span>;
-                }
-
-                return (
-                  <div key={sender.senderAccountId} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">
-                        {sender.fromName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{sender.fromName}</p>
-                        <p className="text-xs text-slate-500">{sender.fromEmail}</p>
-                      </div>
-                    </div>
-                    <div>{badge}</div>
-                  </div>
-                );
-              })}
-            </div>
-            {campaign.status !== 'ARCHIVED' && campaign.status !== 'COMPLETED' && (
-               <button
-                 type="button"
-                 onClick={onOpenAssignSenders}
-                 className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
-               >
-                 Manage Senders
-               </button>
-            )}
-          </div>
-        ) : (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-            <span className="text-amber-600 font-bold text-lg leading-none">⚠</span>
-            <div className="flex-1 space-y-1">
-              <h3 className="text-sm font-semibold text-amber-800">Needs sending account</h3>
-              <p className="text-xs text-amber-700/80">Assign a sending account before sending.</p>
-              {campaign.status !== 'ARCHIVED' && campaign.status !== 'COMPLETED' && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={onOpenAssignSenders}
-                    className="text-xs font-semibold text-amber-900 bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-md hover:bg-amber-200 transition-colors"
-                  >
-                    Assign senders
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {campaign.status === 'ACTIVE' && (
+            <button
+              type="button"
+              onClick={onPause}
+              disabled={isPauseResumeLoading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all disabled:opacity-50"
+              style={{ background: '#FFF7ED', color: '#9A3412', border: '1px solid #FFEDD5', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+            >
+              <Pause size={14} /> Pause Campaign
+            </button>
+          )}
+          {campaign.status === 'PAUSED' && (
+            <button
+              type="button"
+              onClick={onResume}
+              disabled={isPauseResumeLoading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all disabled:opacity-50"
+              style={{ background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+            >
+              <Play size={14} /> Resume Campaign
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ── Filter Bar ───────────────────────────────────────────────────── */}
-      <div
-        role="tablist"
-        aria-label="Filter contacts by status"
-        className="flex flex-wrap gap-2"
-      >
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Members', value: total, color: 'var(--color-primary, #111827)' },
+          { label: 'Sent', value: sent, color: '#8B5CF6' },
+          { label: 'Replied', value: replied, color: '#10B981' },
+          { label: 'Follow-up due', value: followUpDue, color: '#F59E0B' },
+        ].map(stat => (
+          <div key={stat.label} className="rounded-xl p-4" style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)' }}>
+            <p className="text-[28px] font-bold leading-none mb-1" style={{ color: stat.color, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+              {stat.value}
+            </p>
+            <p className="text-[12px]" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+              {stat.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Sender Review */}
+      <div className="rounded-xl p-4" style={{ background: 'var(--color-muted, #F3F4F6)', border: '1px solid var(--color-border, #E5E7EB)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+            Sender identity
+          </p>
+          {onOpenAssignSenders && (
+            <button onClick={onOpenAssignSenders} className="text-[11.5px] font-medium" style={{ color: 'var(--color-accent, #4F46E5)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+              Change
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[11.5px] font-semibold w-14 shrink-0" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>Identity</span>
+            <span className="text-[13px]" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Inter", sans-serif' }}>{campaign.sendingIdentity || 'Not assigned'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar" role="tablist" aria-label="Filter contacts">
         {FILTER_ORDER.map((filter) => {
+          if (filter !== 'ALL' && filterCounts[filter] === 0) return null;
           const isActive = activeFilter === filter;
           return (
             <button
               key={filter}
-              type="button"
               role="tab"
-              aria-selected={isActive}
               onClick={() => onFilterChange(filter)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors min-h-[32px] ${
-                isActive
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-              }`}
+              aria-selected={isActive}
+              className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap"
+              style={{
+                background: isActive ? 'var(--color-primary, #111827)' : 'var(--color-card, #ffffff)',
+                color: isActive ? 'white' : 'var(--color-muted-fg, #6B7280)',
+                border: `1px solid ${isActive ? 'var(--color-primary, #111827)' : 'var(--color-border, #E5E7EB)'}`,
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+              }}
             >
-              {FILTER_LABELS[filter]} {filterCounts[filter]}
+              {FILTER_LABELS[filter]}
+              <span className="opacity-70">({filterCounts[filter]})</span>
             </button>
           );
         })}
       </div>
 
-      {/* ── Contact Queue ────────────────────────────────────────────────── */}
+      {/* Member Grid */}
       {visibleContacts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-          <p className="text-sm font-medium text-slate-700">
-            No contacts in this view
+        <div className="py-12 text-center" style={{ background: 'var(--color-card, #ffffff)', border: '1px solid var(--color-border, #E5E7EB)', borderRadius: '12px' }}>
+          <p className="text-[14px] font-semibold" style={{ color: 'var(--color-primary, #111827)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+            No contacts found
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            {activeFilter === 'ALL'
-              ? 'This campaign has no contacts yet.'
-              : `No contacts with status "${FILTER_LABELS[activeFilter]}".`}
+          <p className="text-[13px] mt-1" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Inter", sans-serif' }}>
+            Try selecting a different status filter.
           </p>
         </div>
       ) : (
-        <>
-          {/* ── Desktop / Tablet Table (≥ 640px) ── */}
-          <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Contact / Title
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Opportunity
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Last Updated
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {visibleContacts.map((contact) => {
-                  const actionLabel = getHubActionLabel(contact.status);
-                  return (
-                    <tr
-                      key={contact.id}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-slate-900 text-xs">
-                          {contact.contact.name}
-                        </p>
-                        {contact.contact.title && (
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {contact.contact.title}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-600">
-                        {contact.targetRole ?? '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        {getStatusBadge(contact.status)}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">
-                        {formatRelativeTime(contact.updatedAt)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {actionLabel ? (
-                          <button
-                            type="button"
-                            onClick={() => onOpenContact(contact.id)}
-                            className="bg-slate-900 text-white hover:bg-slate-800 rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 min-h-[32px]"
-                          >
-                            {actionLabel}
-                          </button>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* ── Mobile Cards (< 640px) ── */}
-          <div className="sm:hidden space-y-3">
-            {visibleContacts.map((contact) => {
-              const actionLabel = getHubActionLabel(contact.status);
-              return (
-                <div
-                  key={contact.id}
-                  className="p-4 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-xs"
-                >
-                  {/* Top row: name + status */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-bold text-slate-900 text-sm">
-                      {contact.contact.name}
-                    </p>
-                    {getStatusBadge(contact.status)}
-                  </div>
-
-                  {/* Opportunity / title row */}
-                  {(contact.contact.title || contact.targetRole) && (
-                    <p className="text-xs text-slate-600">
-                      {[contact.contact.title, contact.targetRole]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  )}
-
-                  {/* Outreach reason excerpt */}
-                  {contact.outreachReason && (
-                    <p className="text-xs text-slate-500 italic line-clamp-2">
-                      {contact.outreachReason}
-                    </p>
-                  )}
-
-                  {/* Primary action */}
-                  {actionLabel && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenContact(contact.id)}
-                      className="w-full py-2.5 min-h-[44px] bg-slate-900 text-white text-xs font-semibold rounded-md transition-colors hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                    >
-                      {actionLabel}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {visibleContacts.map((contact) => (
+            <MemberCard
+              key={contact.id}
+              member={contact}
+              companyName={companyName || 'Unknown'}
+              onOpenContact={() => onOpenContact(contact.id)}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
-}
-
-// ─── Campaign status badge ────────────────────────────────────────────────────
-
-function getCampaignStatusBadge(status: CampaignDto['status']): React.ReactElement {
-  switch (status) {
-    case 'ACTIVE':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-          Active
-        </span>
-      );
-    case 'PAUSED':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
-          Paused
-        </span>
-      );
-    case 'DRAFT':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
-          Draft
-        </span>
-      );
-    case 'ARCHIVED':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
-          Archived
-        </span>
-      );
-    default:
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
-          {status}
-        </span>
-      );
-  }
 }

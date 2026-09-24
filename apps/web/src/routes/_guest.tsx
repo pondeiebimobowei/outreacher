@@ -11,7 +11,7 @@ function GuestLayoutComponent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+      <div className="flex min-h-screen items-center justify-center p-4 bg-[var(--color-background)]">
         <LoadingState message="Verifying session..." />
       </div>
     );
@@ -22,9 +22,39 @@ function GuestLayoutComponent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
-      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xs">
-        <Outlet />
+    <div className="min-h-screen flex bg-[var(--color-background)]">
+      {/* Left brand panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-[var(--color-sidebar)] select-none">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
+            </svg>
+          </div>
+          <span className="font-bold text-white text-[17px] tracking-tight font-heading">
+            Outreacher
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-[28px] font-bold text-white leading-snug font-heading tracking-tight">
+            Career outreach,<br />done deliberately.
+          </h2>
+          <p className="text-[14px] leading-relaxed text-white/50 font-body">
+            Research companies, identify the right contacts, and send outreach grounded in evidence — not guesswork.
+          </p>
+        </div>
+
+        <p className="text-[12px] text-white/30 font-body">
+          © 2026 Outreacher
+        </p>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 overflow-y-auto">
+        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-7 sm:p-9">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

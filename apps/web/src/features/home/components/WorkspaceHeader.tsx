@@ -11,26 +11,28 @@ export const WorkspaceHeader: React.FC = () => {
     return 'Good evening';
   };
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'there';
-
   return (
-    <header className="border-b border-slate-200 pb-5">
-      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {getGreeting()}, {displayName}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {workspace ? (
-              <>
-                Active workspace: <span className="font-semibold text-slate-800">{workspace.name}</span>
-              </>
-            ) : (
-              'Your workspace orientation and continuation surface.'
-            )}
-          </p>
-        </div>
-      </div>
+    <header className="mb-8">
+      <h1
+        className="text-[26px] font-bold tracking-tight text-slate-900"
+        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+      >
+        {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'there'}
+      </h1>
+      <p
+        className="text-[14px] text-slate-500 mt-1"
+        style={{ fontFamily: 'Inter, sans-serif' }}
+      >
+        Here's your workspace overview
+        {workspace?.name ? (
+          <>
+            {' '}
+            &mdash;{' '}
+            <span className="text-slate-700 font-medium">{workspace.name}</span>
+          </>
+        ) : null}
+        .
+      </p>
     </header>
   );
 };

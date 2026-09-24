@@ -42,7 +42,7 @@ describe('Sender Accounts Page', () => {
   });
 
   const renderComponent = () => {
-    const Component = (Route as any).component;
+    const Component = (Route as unknown as { component: React.ComponentType }).component;
     return render(
       <QueryClientProvider client={queryClient}>
         <Component />
@@ -71,7 +71,7 @@ describe('Sender Accounts Page', () => {
   });
 
   it('handles empty, loading, and error states for integrations in the add modal', async () => {
-    let resolveIntegrations: any;
+    let resolveIntegrations!: (value: unknown) => void;
     const integrationsPromise = new Promise((resolve) => { resolveIntegrations = resolve; });
 
     (apiClient.get as jest.Mock).mockImplementation(async (url) => {

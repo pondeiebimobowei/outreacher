@@ -8,8 +8,9 @@ jest.mock('../../lib/auth-context', () => ({
 }));
 
 jest.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (config: Record<string, unknown>) => config,
+  createFileRoute: () => (config: Record<string, unknown>) => ({ ...config, useSearch: () => ({ mode: 'login', error: new URLSearchParams(window.location.search).get('error') }) }),
   useNavigate: () => jest.fn(),
+  Link: ({ children, to, className, onClick }: { children: React.ReactNode; to: string; className?: string; onClick?: () => void }) => <a href={to} onClick={onClick} className={className}>{children}</a>,
 }));
 
 describe('LoginComponent', () => {
@@ -37,11 +38,12 @@ describe('LoginComponent', () => {
   const LoginComponent = (Route as unknown as { component: React.ComponentType }).component;
 
   it('renders sign in form with proper HTML autocomplete attributes', () => {
+    console.log('Route object:', Route);
     render(<LoginComponent />);
 
-    expect(screen.getByRole('heading', { name: /sign in to outreacher/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
 
-    const emailInput = screen.getByLabelText(/email address/i);
+    const emailInput = screen.getByLabelText(/^email$/i);
     const passwordInput = screen.getByLabelText(/password/i);
 
     expect(emailInput).toHaveAttribute('autoComplete', 'email');
@@ -81,7 +83,7 @@ describe('LoginComponent', () => {
 
     render(<LoginComponent />);
 
-    fireEvent.change(screen.getByLabelText(/email address/i), {
+    fireEvent.change(screen.getByLabelText(/^email$/i), {
       target: { value: 'user@example.com' },
     });
     fireEvent.change(screen.getByLabelText(/password/i), {

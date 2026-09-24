@@ -17,7 +17,7 @@ function HomeComponent() {
   const { data, isLoading, isError, error, refetch } = useWorkspaceSummary();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-12">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 pb-12">
       {/* 1. Workspace Identity */}
       <WorkspaceHeader />
 

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft } from 'lucide-react';
 import {
   fetchCampaignById,
   pauseCampaign,
@@ -21,6 +22,7 @@ export const Route = createFileRoute('/_authed/campaigns/$campaignId/review')({
 function CampaignReviewHubRoute() {
   const { campaignId } = Route.useParams();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // ── Filter state ─────────────────────────────────────────────────────────
   const [activeFilter, setActiveFilter] = useState<ReviewFilter>('ALL');
@@ -126,6 +128,15 @@ function CampaignReviewHubRoute() {
 
   return (
     <div className="max-w-5xl space-y-6">
+      <button
+        type="button"
+        onClick={() => navigate({ to: '/campaigns' })}
+        className="flex items-center gap-1.5 text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+        style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+      >
+        <ArrowLeft size={14} /> Campaigns
+      </button>
+
       <CampaignReviewHub
         campaign={campaign}
         contacts={contacts}

@@ -13,7 +13,7 @@ import '@testing-library/jest-dom';
 jest.mock('../../../api/integrations');
 jest.mock('../../../api/sender-accounts');
 jest.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (component: any) => component,
+  createFileRoute: () => (component: unknown) => component,
 }));
 
 describe('IntegrationsPage', () => {
