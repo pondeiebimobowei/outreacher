@@ -147,6 +147,7 @@ export function ContactDiscoveryWorkspace({
             <h2
               id="contact-discovery-heading"
               className="text-base font-bold tracking-tight text-slate-900 uppercase tracking-wider text-xs"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               6. Contact Discovery & Selection
             </h2>
@@ -167,7 +168,8 @@ export function ContactDiscoveryWorkspace({
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+            className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             + Add Contact
           </button>
@@ -177,7 +179,8 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: false })}
               disabled={isDiscoverPending}
-              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              className="min-h-[40px] sm:min-h-0 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {isDiscoverPending ? 'Starting...' : 'Find Relevant Contacts'}
             </button>
@@ -190,7 +193,8 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: false })}
                   disabled={isDiscoverPending}
-                  className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Refresh Contacts
                 </button>
@@ -198,8 +202,9 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: true })}
                   disabled={isDiscoverPending}
-                  className="min-h-[44px] sm:min-h-0 px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-200 bg-slate-100 border border-slate-300 rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   title="Bypass 24h freshness cache (max 3 per company/24h)"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Force Refresh
                 </button>
