@@ -86,7 +86,8 @@ export class AuthService {
           const newUser = await tx.user.create({
             data: {
               email,
-              name: displayName,
+              firstName: displayName ? displayName.split(' ')[0] : 'User',
+              lastName: displayName && displayName.includes(' ') ? displayName.split(' ').slice(1).join(' ') : '',
             },
           });
 
@@ -277,7 +278,8 @@ export class AuthService {
         const newUser = await tx.user.create({
           data: {
             email: googleEmail,
-            name: displayName,
+            firstName: displayName ? displayName.split(' ')[0] : 'User',
+            lastName: displayName && displayName.includes(' ') ? displayName.split(' ').slice(1).join(' ') : '',
           },
         });
 

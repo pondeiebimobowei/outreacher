@@ -41,6 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       const res = await apiClient.get<{ user: User; workspace: Workspace }>('/auth/me');
+      if (!res || !res.user || !res.workspace) {
+        throw new Error('Invalid session data received');
+      }
       setUser(res.user);
       setWorkspace(res.workspace);
       setStatus('authenticated');
@@ -71,6 +74,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
+      if (!res || !res.user || !res.workspace) {
+        throw new Error('Invalid session data received on login');
+      }
       setUser(res.user);
       setWorkspace(res.workspace);
       setStatus('authenticated');
@@ -90,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         name,
       });
+      if (!res || !res.user || !res.workspace) {
+        throw new Error('Invalid session data received on signup');
+      }
       setUser(res.user);
       setWorkspace(res.workspace);
       setStatus('authenticated');
