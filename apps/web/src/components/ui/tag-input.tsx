@@ -62,15 +62,20 @@ export function TagInput({
   };
 
   return (
-    <div className="space-y-2">
-      <label htmlFor={id} className="block text-xs font-medium text-slate-700">
+    <div className="space-y-1.5">
+      <label
+        htmlFor={id}
+        className="block text-[12px] font-bold uppercase tracking-wide text-slate-700"
+        style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+      >
         {label}
       </label>
-      <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-300 bg-white p-2 text-xs focus-within:border-slate-800 focus-within:ring-1 focus-within:ring-slate-800">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300 bg-white p-2.5 text-[13px] shadow-xs focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-colors">
         {tags.map((tag, idx) => (
           <span
             key={`${tag}-${idx}`}
-            className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 font-medium text-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 border border-slate-200/80 px-2.5 py-1 text-[12.5px] font-medium text-slate-800"
+            style={{ fontFamily: 'Inter, sans-serif' }}
           >
             {tag}
             <button
@@ -78,7 +83,7 @@ export function TagInput({
               disabled={disabled}
               onClick={() => removeTag(idx)}
               aria-label={`Remove ${tag}`}
-              className="text-slate-400 hover:text-slate-600 focus:outline-hidden disabled:opacity-50"
+              className="text-slate-400 hover:text-slate-700 focus:outline-hidden disabled:opacity-50 transition-colors"
             >
               &times;
             </button>
@@ -93,7 +98,8 @@ export function TagInput({
           onKeyDown={handleKeyDown}
           onBlur={() => addTag(inputVal)}
           placeholder={tags.length === 0 ? placeholder : ''}
-          className="min-w-[120px] flex-1 bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-w-[120px] flex-1 bg-transparent text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ fontFamily: 'Inter, sans-serif' }}
         />
       </div>
     </div>
