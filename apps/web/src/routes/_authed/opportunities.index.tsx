@@ -1,76 +1,176 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { fetchCompanies } from '../../api/companies';
-import { LoadingState, ErrorState, EmptyState } from '../../components/states';
-import { Briefcase, Building2 } from 'lucide-react';
+import { fetchCompanyResearch } from '../../api/research';
+import { Briefcase, Search } from 'lucide-react';
+import { OpportunityCard } from '../../features/opportunity/components/OpportunityCard';
+import { OPP_STATUS_CFG, ClassificationType } from '../../features/opportunity/components/OpportunityClassificationBadge';
+import { LoadingState } from '../../components/states';
 
 export const Route = createFileRoute('/_authed/opportunities/')({
   component: OpportunitiesIndexComponent,
 });
 
+type OppFilter = 'ALL' | ClassificationType;
+
 function OpportunitiesIndexComponent() {
-  const { data: companies, isLoading, error } = useQuery({
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<OppFilter>('ALL');
+  const [search, setSearch] = useState('');
+
+  const { data: companies, isLoading: isLoadingCompanies } = useQuery({
     queryKey: ['companies'],
     queryFn: fetchCompanies,
   });
 
+  // Fetch research for all companies to enable global status filtering
+  const researchQueries = useQueries({
+    queries: (companies ?? []).map((company) => ({
+      queryKey: ['company-research', company.id],
+      queryFn: () => fetchCompanyResearch(company.id),
+      staleTime: 60000,
+    })),
+  });
+
+  const isLoadingResearch = researchQueries.some(q => q.isLoading);
+  const isLoading = isLoadingCompanies || (companies && companies.length > 0 && isLoadingResearch);
+
+  const companiesWithStatus = useMemo(() => {
+    if (!companies) return [];
+    return companies.map((company, index) => {
+      const research = researchQueries[index]?.data;
+      const latestOpp = research?.opportunities?.[0];
+      const activeStatus: ClassificationType = latestOpp 
+        ? (latestOpp.opportunityType as ClassificationType) 
+        : research?.status === 'COMPLETED' ? 'PROACTIVE' : 'UNCLASSIFIED';
+      
+      const hasResearch = research?.status && research.status !== 'NOT_STARTED';
+
+      return { company, activeStatus, hasResearch };
+    });
+  }, [companies, researchQueries]);
+
+  // Only show companies that have started research (have some opportunity context)
+  const withOpportunities = companiesWithStatus.filter(e => e.hasResearch || e.activeStatus !== 'UNCLASSIFIED');
+
+  const filtered = withOpportunities.filter(e => {
+    const matchFilter = filter === 'ALL' || e.activeStatus === filter;
+    const searchLower = search.toLowerCase();
+    const matchSearch = e.company.name.toLowerCase().includes(searchLower) || 
+                        (e.company.domain || '').toLowerCase().includes(searchLower);
+    return matchFilter && matchSearch;
+  });
+
+  const counts = {
+    ALL: withOpportunities.length,
+    CONFIRMED: withOpportunities.filter(e => e.activeStatus === 'CONFIRMED').length,
+    PROACTIVE: withOpportunities.filter(e => e.activeStatus === 'PROACTIVE').length,
+    UNCLASSIFIED: withOpportunities.filter(e => e.activeStatus === 'UNCLASSIFIED').length,
+  };
+
+  if (isLoading && (!companies || companies.length === 0)) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <LoadingState message="Loading opportunities..." />
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', color: 'var(--color-primary)' }}>
+          <h1 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
             Opportunities
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Evaluate and track potential roles across companies.
+          <p className="text-[14px] mt-1" style={{ color: 'var(--color-muted-fg)', fontFamily: 'Inter, sans-serif' }}>
+            Evidence-backed reasons to pursue a relationship with each company.
           </p>
         </div>
       </div>
-      
-      {/* Info note */}
-      <div className="mb-6 p-4 rounded-lg border bg-indigo-50 border-indigo-200">
-        <p className="text-sm text-indigo-700 flex items-center gap-2">
-          <Briefcase className="w-4 h-4" />
-          Opportunities are discovered during company research and tracked in their workspaces.
-        </p>
-      </div>
 
-      {isLoading && <LoadingState message="Loading companies..." />}
-      {error && <ErrorState message="Failed to load companies." />}
-      {companies && companies.length === 0 && (
-        <EmptyState 
-          title="No opportunities found" 
-          description="Research a company to find relevant roles and opportunities." 
-        />
-      )}
-
-      {companies && companies.length > 0 && (
-        <div className="grid gap-3">
-          {companies.map(company => (
-            <div key={company.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 border shadow-sm">
-                  <span className="bg-white text-gray-700 text-sm font-semibold">
-                    {company.name.slice(0, 2).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{company.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs bg-white text-gray-600 border border-gray-200 px-2 py-0.5 rounded flex items-center inline-flex">
-                      <Building2 className="w-3 h-3 mr-1" />
-                      {company.industry || 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Link to={`/companies/$id`} params={{ id: company.id }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-md text-gray-900 inline-block">View Workspace</Link>
-              </div>
-            </div>
-          ))}
+      {withOpportunities.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-6 py-24 px-8">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-gray-100 text-gray-500">
+            <Briefcase className="w-6 h-6" strokeWidth={1.5} />
+          </div>
+          <div className="text-center max-w-md">
+            <h2 className="text-[20px] font-bold mb-2 text-gray-900" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>No opportunities yet</h2>
+            <p className="text-[14px] leading-relaxed text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>
+              Opportunities appear when your company research gives you a credible reason to pursue a relationship.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate({ to: '/companies' })}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13.5px] font-semibold transition-all bg-gray-900 text-white hover:bg-gray-800"
+              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+            >
+              Research a company
+            </button>
+          </div>
         </div>
+      ) : (
+        <>
+          {/* Search */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <div className="flex-1 relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search companies…"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg text-[13.5px] outline-none border border-gray-200 bg-gray-50 text-gray-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              />
+            </div>
+          </div>
+
+          {/* Filter pills */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {(['ALL', 'CONFIRMED', 'PROACTIVE', 'UNCLASSIFIED'] as OppFilter[]).map(f => {
+              const count = counts[f];
+              if (f !== 'ALL' && count === 0) return null;
+              
+              const isActive = filter === f;
+              const cfg = f !== 'ALL' ? OPP_STATUS_CFG[f] : null;
+              
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5"
+                  style={{
+                    background: isActive ? (cfg?.bg ?? 'var(--color-primary)') : 'var(--color-muted)',
+                    color: isActive ? (cfg?.color ?? 'white') : 'var(--color-muted-fg)',
+                    border: isActive ? `1px solid ${cfg?.border ?? 'transparent'}` : '1px solid var(--color-border)',
+                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  }}
+                >
+                  {f === 'ALL' ? 'All' : cfg?.label} 
+                  <span className={isActive ? 'opacity-90' : 'opacity-60'}>· {count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Cards grid */}
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-[14px] text-gray-500" style={{ fontFamily: 'Inter, sans-serif' }}>No opportunities match your filter.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(({ company }) => (
+                <OpportunityCard key={company.id} company={company} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
