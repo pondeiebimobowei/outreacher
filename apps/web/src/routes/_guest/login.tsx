@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 import { normalizeApiBaseUrl } from '../../api/client';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, User } from 'lucide-react';
 import { webEnv } from '../../config/env.config';
 
 type LoginSearch = {
@@ -105,26 +105,26 @@ function LoginComponent() {
   return (
     <div className="w-full max-w-100 mx-auto">
       {/* Mobile logo */}
-      <div className="flex items-center gap-2 mb-8 lg:hidden">
-        <div className="w-7 h-7 rounded-md flex items-center justify-center bg-[var(--color-accent)]">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-center gap-2.5 mb-8 lg:hidden select-none">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
           </svg>
         </div>
-        <span className="font-bold text-[15px] font-heading text-[var(--color-primary)]">Outreacher</span>
+        <span className="font-bold text-[16px] font-heading tracking-tight text-[var(--color-primary)]">Outreacher</span>
       </div>
 
-      <h1 className="text-[24px] font-bold mb-1 font-heading text-[var(--color-primary)]">
+      <h1 className="text-[24px] font-bold mb-1 font-heading tracking-tight text-[var(--color-primary)]">
         {mode === 'login' ? 'Welcome back' : 'Create your account'}
       </h1>
-      <p className="text-[14px] mb-7 text-[var(--color-muted-fg)]">
+      <p className="text-[14px] mb-7 text-[var(--color-muted-fg)] font-body">
         {mode === 'login' ? 'Sign in to your account to continue.' : 'Get started with your proactive career outreach workspace.'}
       </p>
 
       {formError && (
         <div role="alert" className="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-5 text-[13px] bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]">
           <AlertCircle size={15} className="mt-0.5 shrink-0" />
-          {formError}
+          <span className="font-body leading-relaxed">{formError}</span>
         </div>
       )}
 
@@ -135,6 +135,9 @@ function LoginComponent() {
               Full Name
             </label>
             <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+                <User size={15} />
+              </div>
               <input
                 id="name"
                 type="text"
@@ -145,7 +148,7 @@ function LoginComponent() {
                   if (errors.name) setErrors((v) => ({ ...v, name: undefined }));
                 }}
                 placeholder="Alex Smith"
-                className="w-full px-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                className="w-full pl-9 pr-4 py-2.5 rounded-lg text-[14px] outline-none transition-all border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
                 style={{
                   borderColor: errors.name ? '#FCA5A5' : 'var(--color-border)',
                   backgroundColor: errors.name ? '#FEF2F2' : 'var(--color-card)',
@@ -159,7 +162,7 @@ function LoginComponent() {
               />
             </div>
             {errors.name && (
-              <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444]">
+              <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
                 <AlertCircle size={12} /> {errors.name}
               </p>
             )}
@@ -172,7 +175,7 @@ function LoginComponent() {
             Email
           </label>
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)]">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
               <Mail size={15} />
             </div>
             <input
@@ -199,7 +202,7 @@ function LoginComponent() {
             />
           </div>
           {errors.email && (
-            <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444]">
+            <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
               <AlertCircle size={12} /> {errors.email}
             </p>
           )}
@@ -214,14 +217,14 @@ function LoginComponent() {
             {mode === 'login' && (
               <Link
                 to="/forgot-password"
-                className="text-[12.5px] font-medium transition-colors text-[var(--color-accent)] hover:underline"
+                className="text-[12.5px] font-medium transition-colors text-[var(--color-accent)] hover:underline font-body"
               >
                 Forgot password?
               </Link>
             )}
           </div>
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)]">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
               <Lock size={15} />
             </div>
             <input
@@ -249,13 +252,13 @@ function LoginComponent() {
             <button
               type="button"
               onClick={() => setShowPw((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] p-0.5 rounded focus:outline-none"
             >
               {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444]">
+            <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
               <AlertCircle size={12} /> {errors.password}
             </p>
           )}
@@ -264,14 +267,14 @@ function LoginComponent() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2.5 rounded-lg text-[14px] font-semibold transition-all mt-1 flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-90"
+          className="w-full py-2.5 rounded-lg text-[14px] font-semibold transition-all mt-1 flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white shadow-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
         >
           {submitting ? (
             <>
               <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
               </svg>
-              {mode === 'login' ? 'Signing in...' : 'Creating account...'}
+              <span>{mode === 'login' ? 'Signing in...' : 'Creating account...'}</span>
             </>
           ) : (
             mode === 'login' ? 'Sign in' : 'Create Account'
@@ -285,16 +288,16 @@ function LoginComponent() {
             <div className="w-full border-t border-[var(--color-border)]" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[var(--color-card)] px-2 text-[var(--color-muted-fg)] font-body">Or continue with</span>
+            <span className="bg-[var(--color-card)] px-2.5 text-[var(--color-muted-fg)] font-body text-[11px] tracking-wider">Or continue with</span>
           </div>
         </div>
 
         <div className="mt-4">
           <a
             href={googleAuthUrl}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 text-[14px] font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2"
+            className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 text-[14px] font-medium text-[var(--color-primary)] transition-all hover:bg-[var(--color-muted)] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 active:scale-[0.99] shadow-xs font-heading"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -305,7 +308,7 @@ function LoginComponent() {
         </div>
       </div>
 
-      <p className="text-center text-[13px] mt-6 text-[var(--color-muted-fg)]">
+      <p className="text-center text-[13px] mt-6 text-[var(--color-muted-fg)] font-body">
         {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
         <button
           type="button"
@@ -316,7 +319,7 @@ function LoginComponent() {
             // Update URL to match state without reloading
             navigate({ to: '/login', search: { mode: mode === 'login' ? 'signup' : undefined }, replace: true });
           }}
-          className="font-semibold transition-colors font-heading text-[var(--color-accent)] hover:underline"
+          className="font-semibold transition-colors font-heading text-[var(--color-accent)] hover:underline ml-0.5"
         >
           {mode === 'login' ? 'Sign up' : 'Sign in'}
         </button>

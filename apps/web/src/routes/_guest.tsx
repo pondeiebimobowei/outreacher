@@ -24,9 +24,9 @@ function GuestLayoutComponent() {
   return (
     <div className="min-h-screen flex bg-[var(--color-background)]">
       {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-[var(--color-sidebar)]">
+      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-[var(--color-sidebar)] select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-md flex items-center justify-center bg-[var(--color-accent)]">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-accent)] shadow-xs">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -36,23 +36,23 @@ function GuestLayoutComponent() {
           </span>
         </div>
 
-        <div>
-          <p className="text-[28px] font-bold text-white leading-snug font-heading">
+        <div className="space-y-3">
+          <h2 className="text-[28px] font-bold text-white leading-snug font-heading tracking-tight">
             Career outreach,<br />done deliberately.
-          </p>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--color-sidebar-fg)]">
+          </h2>
+          <p className="text-[14px] leading-relaxed text-white/50 font-body">
             Research companies, identify the right contacts, and send outreach grounded in evidence — not guesswork.
           </p>
         </div>
 
-        <p className="text-[12px] text-[var(--color-sidebar-fg)] opacity-50">
-          Outreacher v1.0
+        <p className="text-[12px] text-white/30 font-body">
+          © 2026 Outreacher
         </p>
       </div>
 
       {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10 overflow-y-auto">
-        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-xl shadow-sm border border-[var(--color-border)] p-8">
+        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-7 sm:p-9">
           <Outlet />
         </div>
       </div>
