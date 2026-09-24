@@ -1,6 +1,4 @@
-/* eslint-disable */
-// @ts-nocheck
-import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchCareerProfile } from '../api/profile';
 import { apiClient } from '../api/client';
@@ -10,21 +8,17 @@ import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 
 export const Route = createFileRoute('/onboarding')({
-  beforeLoad: ({ context }) => {
-    // If we can verify they are not authenticated, redirect to login
-    // In our setup, this might be handled by AuthContext, but let's check
-    const isAuthed = !!localStorage.getItem('token') || document.cookie.includes('session'); // Simple check, exact auth logic is in context
-  },
+  
   component: OnboardingComponent,
 });
 
 function OnboardingComponent() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [headline, setHeadline] = useState('');
   const [roles, setRoles] = useState('');
   
-  const { data: profile, isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: fetchCareerProfile,
   });
@@ -49,7 +43,7 @@ function OnboardingComponent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-4 right-4">
-        <button variant="ghost" size="sm" onClick={() => logout()} className="text-gray-500 hover:text-gray-900">
+        <button type="button" onClick={() => logout()} className="text-gray-500 hover:text-gray-900">
           <LogOut className="w-4 h-4 mr-2" />
           Log out
         </button>
@@ -78,31 +72,28 @@ function OnboardingComponent() {
           >
             <div>
               <label htmlFor="headline">Professional Headline</label>
-              <input 
-                id="headline" 
+              <input type="text" id="headline" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2" 
                 value={headline} 
                 onChange={e => setHeadline(e.target.value)}
                 placeholder="e.g. Senior Frontend Engineer" 
-                className="mt-1"
+                
                 required
               />
             </div>
 
             <div>
               <label htmlFor="roles">Target Roles (comma separated)</label>
-              <textarea 
-                id="roles" 
+              <textarea id="roles" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2" rows={3} 
                 value={roles}
                 onChange={e => setRoles(e.target.value)}
                 placeholder="Frontend Engineer, UI Engineer, Web Developer" 
-                className="mt-1"
+                
                 required
               />
             </div>
 
-            <button 
-              type="submit" 
-              className="w-full" 
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors" 
+               
               disabled={mutation.isPending}
             >
               {mutation.isPending ? 'Saving...' : 'Complete Setup'}

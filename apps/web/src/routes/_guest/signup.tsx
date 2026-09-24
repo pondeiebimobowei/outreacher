@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 import { createFileRoute, Navigate } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_guest/signup')({

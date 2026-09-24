@@ -1,10 +1,8 @@
-/* eslint-disable */
-// @ts-nocheck
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCampaigns } from '../../api/campaigns';
 import { LoadingState, ErrorState, EmptyState } from '../../components/states';
-import { MessageSquare, AlertCircle } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 export const Route = createFileRoute('/_authed/conversations/')({
   component: ConversationsIndexComponent,
@@ -42,7 +40,6 @@ function ConversationsIndexComponent() {
       {error && <ErrorState message="Failed to load campaigns." />}
       {campaigns && campaigns.length === 0 && (
         <EmptyState 
-          icon={<MessageSquare className="w-8 h-8 text-gray-400" />}
           title="No conversations yet" 
           description="Start a campaign to engage with contacts and track responses here." 
         />
@@ -55,17 +52,13 @@ function ConversationsIndexComponent() {
               <div>
                 <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <span variant={campaign.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
+                  <span className={`text-xs px-2 py-0.5 rounded ${campaign.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                     {campaign.status}
                   </span>
                 </div>
               </div>
               <div>
-                <button variant="outline" size="sm" asChild>
-                  <Link to={`/campaigns/$campaignId`} params={{ campaignId: campaign.id }}>
-                    View Campaign
-                  </Link>
-                </button>
+                <Link to={`/campaigns/$campaignId/review`} params={{ campaignId: campaign.id }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-md text-gray-900 inline-block">View Campaign</Link>
               </div>
             </div>
           ))}

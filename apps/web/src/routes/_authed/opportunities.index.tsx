@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCompanies } from '../../api/companies';
@@ -42,7 +40,6 @@ function OpportunitiesIndexComponent() {
       {error && <ErrorState message="Failed to load companies." />}
       {companies && companies.length === 0 && (
         <EmptyState 
-          icon={<Briefcase className="w-8 h-8 text-gray-400" />}
           title="No opportunities found" 
           description="Research a company to find relevant roles and opportunities." 
         />
@@ -61,7 +58,7 @@ function OpportunitiesIndexComponent() {
                 <div>
                   <h3 className="font-semibold text-gray-900">{company.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span variant="outline" className="text-xs bg-white text-gray-600">
+                    <span className="text-xs bg-white text-gray-600 border border-gray-200 px-2 py-0.5 rounded flex items-center inline-flex">
                       <Building2 className="w-3 h-3 mr-1" />
                       {company.industry || 'Unknown'}
                     </span>
@@ -69,11 +66,7 @@ function OpportunitiesIndexComponent() {
                 </div>
               </div>
               <div>
-                <button variant="secondary" size="sm" asChild>
-                  <Link to={`/companies/$companyId`} params={{ companyId: company.id }}>
-                    View Workspace
-                  </Link>
-                </button>
+                <Link to={`/companies/$id`} params={{ id: company.id }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-md text-gray-900 inline-block">View Workspace</Link>
               </div>
             </div>
           ))}

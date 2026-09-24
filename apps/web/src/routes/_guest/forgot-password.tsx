@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 import { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Mail, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
@@ -27,11 +25,9 @@ function ForgotPasswordComponent() {
     setError('');
     setLoading(true);
     
-    // TODO: Backend does not yet support password reset; this is UI-only
-    await new Promise((r) => setTimeout(r, 1000));
-    
+    // Backend does not support password reset yet.
     setLoading(false);
-    setSent(true);
+    setError('Password reset is not yet supported in this environment.');
   }
 
   return (

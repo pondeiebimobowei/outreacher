@@ -1,10 +1,8 @@
-/* eslint-disable */
-// @ts-nocheck
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCampaigns } from '../../api/campaigns';
 import { LoadingState, ErrorState, EmptyState } from '../../components/states';
-import { Send, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 export const Route = createFileRoute('/_authed/outreaches/')({
   component: OutreachesIndexComponent,
@@ -40,7 +38,6 @@ function OutreachesIndexComponent() {
       {error && <ErrorState message="Failed to load campaigns." />}
       {campaigns && campaigns.length === 0 && (
         <EmptyState 
-          icon={<Send className="w-8 h-8 text-gray-400" />}
           title="No outreaches found" 
           description="Create a campaign and add contacts to start sending." 
         />
@@ -53,7 +50,7 @@ function OutreachesIndexComponent() {
               <div>
                 <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
                 <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                  <span variant={campaign.status === 'ACTIVE' ? 'default' : 'secondary'} className="text-xs">
+                  <span className={`text-xs px-2 py-0.5 rounded ${campaign.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                     {campaign.status}
                   </span>
                   {campaign.sendingIdentity && (
@@ -62,11 +59,7 @@ function OutreachesIndexComponent() {
                 </div>
               </div>
               <div>
-                <button variant="secondary" size="sm" asChild>
-                  <Link to={`/campaigns/$campaignId`} params={{ campaignId: campaign.id }}>
-                    View Campaign
-                  </Link>
-                </button>
+                <Link to={`/campaigns/$campaignId/review`} params={{ campaignId: campaign.id }} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm font-medium rounded-md text-gray-900 inline-block">View Campaign</Link>
               </div>
             </div>
           ))}
