@@ -18,7 +18,8 @@ export interface CampaignContactSummaryDto {
   updatedAt: Date;
   person: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     title: string | null;
     email: string | null;
     personKind: 'PERSON' | 'ROLE_ADDRESS';
@@ -67,7 +68,8 @@ export class GetCampaignContactsUseCase {
       updatedAt: cc.updatedAt,
       person: {
         id: cc.person.id,
-        name: `${cc.person.firstName} ${cc.person.lastName}`,
+        firstName: cc.person.firstName,
+        lastName: cc.person.lastName,
         title: cc.person.title,
         email: cc.person.email,
         personKind: cc.person.personKind,

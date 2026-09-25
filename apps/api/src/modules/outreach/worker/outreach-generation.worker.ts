@@ -171,6 +171,7 @@ export class OutreachGenerationWorker {
             data: {
               currentSubject: validatedDraft.subject,
               currentBody: validatedDraft.body,
+              outreachReason: reasonResult.reasonText,
             },
           });
         } else if (outreachId) {

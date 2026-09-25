@@ -14,6 +14,10 @@ export interface CareerProfileDto {
   githubUrl?: string | null;
   linkedinUrl?: string | null;
   websiteUrl?: string | null;
+  currentRole?: string | null;
+  yearsExperience?: string | null;
+  careerGoals?: string | null;
+  backgroundAndPositioning?: string | null;
   createdAt: string;
   updatedAt: string;
 }

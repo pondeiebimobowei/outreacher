@@ -35,7 +35,7 @@ describe('AuthedLayoutComponent (Responsive Shell & Navigation)', () => {
   const mockRetryBootstrap = jest.fn();
   const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
-  const defaultUser = { id: 'u1', email: 'founder@startup.io', name: 'Founder Lead' };
+  const defaultUser = { id: 'u1', email: 'founder@startup.io', firstName: 'Founder', lastName: 'Lead' };
   const defaultWorkspace = { id: 'w1', name: 'Primary Outreacher Workspace' };
 
   beforeEach(() => {

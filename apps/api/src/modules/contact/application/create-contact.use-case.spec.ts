@@ -62,7 +62,7 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        personCompanyAssociations: { create: { companyId: 'comp-1' } },
+        personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
         personKind: 'PERSON',
         firstName: 'Jane',
         lastName: 'Doe',
@@ -88,16 +88,18 @@ describe('CreateContactUseCase', () => {
     );
 
     const result = await useCase.execute('ws-1', 'comp-1', {
-      name: 'Alex Rivera',
+      firstName: 'Alex',
+      lastName: 'Rivera',
       title: 'VP Engineering',
     });
 
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        personCompanyAssociations: { create: { companyId: 'comp-1' } },
+        personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
         personKind: 'PERSON',
-        name: 'Alex Rivera',
+        firstName: 'Alex',
+        lastName: 'Rivera',
         email: null,
         title: 'VP Engineering',
         source: 'USER_PROVIDED',
@@ -116,7 +118,7 @@ describe('CreateContactUseCase', () => {
     prismaMock.person.findFirst.mockResolvedValue({
       id: 'cont-existing',
       workspaceId: 'ws-1',
-      personCompanyAssociations: { create: { companyId: 'comp-1' } },
+      personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
       email: 'jane@acme.com',
     });
     prismaMock.person.update.mockImplementation(({ data }: any) =>
@@ -124,7 +126,8 @@ describe('CreateContactUseCase', () => {
     );
 
     const result = await useCase.execute('ws-1', 'comp-1', {
-      name: 'Jane Doe Updated',
+      firstName: 'Jane',
+      lastName: 'Doe Updated',
       email: 'jane@acme.com',
       title: 'CTO',
     });
@@ -132,14 +135,15 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.update).toHaveBeenCalledWith({
       where: { id: 'cont-existing' },
       data: {
-        name: 'Jane Doe Updated',
+        firstName: 'Jane',
+        lastName: 'Doe Updated',
         title: 'CTO',
         personKind: 'PERSON',
         source: 'USER_PROVIDED',
         sourceUrl: null,
       },
     });
-    expect(result.name).toBe('Jane Doe Updated');
+    expect(result.firstName).toBe('Jane');
   });
 
   it('creates new contact without deduplication when no email is provided', async () => {
@@ -152,7 +156,8 @@ describe('CreateContactUseCase', () => {
     );
 
     await useCase.execute('ws-1', 'comp-1', {
-      name: 'Same Name',
+      firstName: 'Same',
+      lastName: 'Name',
       title: 'Same Title',
     });
 
@@ -180,7 +185,8 @@ describe('CreateContactUseCase', () => {
 
     await expect(
       useCase.execute('ws-1', 'comp-1', {
-        name: 'John',
+        firstName: 'John',
+        lastName: 'Doe',
         email: 'invalid-email',
       }),
     ).rejects.toThrow(AppValidationException);
@@ -194,7 +200,8 @@ describe('CreateContactUseCase', () => {
 
     await expect(
       useCase.execute('ws-1', 'comp-1', {
-        name: 'John',
+        firstName: 'John',
+        lastName: 'Doe',
         sourceUrl: 'ftp://example.com',
       }),
     ).rejects.toThrow(AppValidationException);

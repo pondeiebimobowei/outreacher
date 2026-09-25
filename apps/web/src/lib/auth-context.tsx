@@ -4,7 +4,8 @@ import { apiClient, ApiError } from '../api/client';
 export interface User {
   id: string;
   email: string;
-  name?: string | null;
+  firstName: string;
+  lastName: string;
 }
 
 export interface Workspace {
@@ -22,7 +23,7 @@ export interface AuthContextType {
   isLoading: boolean;
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
   refetchAuth: () => Promise<void>;
   retryBootstrap: () => Promise<void>;
@@ -87,14 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (email: string, password: string, firstName: string, lastName: string) => {
     setStatus('loading');
     setError(null);
     try {
       const res = await apiClient.post<{ user: User; workspace: Workspace }>('/auth/signup', {
         email,
         password,
-        name,
+        firstName,
+        lastName,
       });
       if (!res || !res.user || !res.workspace) {
         throw new ApiError(401, null, 'Invalid session data received on signup');

@@ -21,7 +21,7 @@ function TestConsumer() {
       <button type="button" onClick={() => void login('test@example.com', 'pass')}>
         Login
       </button>
-      <button type="button" onClick={() => void signup('test@example.com', 'pass', 'Name')}>
+      <button type="button" onClick={() => void signup('test@example.com', 'pass', 'First', 'Last')}>
         Signup
       </button>
       <button type="button" onClick={() => void logout()}>

@@ -65,7 +65,7 @@ export class CreateCampaignUseCase {
         normalizedName,
         senderAccountId: dto.senderAccountId,
         templateId: dto.templateId,
-        status: dto.status,
+        status: dto.status ?? 'DRAFT',
         followUpDelayBusinessDays: dto.followUpDelayBusinessDays,
       });
     } catch (error: any) {

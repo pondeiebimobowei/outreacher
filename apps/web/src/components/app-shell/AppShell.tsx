@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileNavOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative flex w-64 max-w-xs flex-1 flex-col bg-(--color-sidebar) pt-5 pb-4">
+          <div className="relative flex max-w-xs flex-col bg-(--color-sidebar) pt-5 pb-4">
             <Sidebar
               collapsed={false}
               onToggle={() => setMobileNavOpen(false)}
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onOpenSearch={() => setPaletteOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 outline-none">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 lg:p-4 outline-none">
           {children}
         </main>
       </div>

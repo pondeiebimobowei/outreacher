@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { MenuIcon, SearchIcon, BellIcon, SettingsIcon, UserIcon, LogOutIcon } from '@hugeicons/core-free-icons';;
+import { MenuTwoLineIcon, SearchIcon, BellIcon, SettingsIcon, UserIcon, LogOutIcon } from '@hugeicons/core-free-icons';;
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 
@@ -42,16 +42,13 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
     navigate({ to: '/login' });
   };
 
-  const initials = user?.name
-    ? user.name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase()
+  const initials = user?.firstName
+    ? `${user.firstName[0] || ''}${user.lastName ? user.lastName[0] : ''}`.toUpperCase()
     : (user?.email?.[0] ?? 'U').toUpperCase();
 
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.firstName
+    ? `${user.firstName} ${user.lastName}`.trim()
+    : user?.email?.split('@')[0] || 'User';
 
   return (
     <header className="sticky top-0 z-20 flex h-[60px] w-full items-center justify-between border-b border-border bg-[rgba(247,247,245,0.92)] px-3 sm:px-6 backdrop-blur-sm shrink-0">
@@ -63,7 +60,7 @@ export function Header({ onMenuClick, onOpenSearch }: HeaderProps) {
           className="flex h-10 w-10 items-center justify-center rounded-none-none text-[var(--color-foreground)] hover:bg-(--color-muted)  cursor-pointer"
           aria-label="Open navigation menu"
         >
-          <HugeiconsIcon icon={MenuIcon} size={20} className="lucide-menu" />
+          <HugeiconsIcon icon={MenuTwoLineIcon} size={20} className="lucide-menu" />
         </button>
         <span className="font-bold text-[15px] font-heading tracking-tight text-(--color-primary)">
           Outreacher

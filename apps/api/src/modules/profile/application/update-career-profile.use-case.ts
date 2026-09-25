@@ -36,6 +36,10 @@ export class UpdateCareerProfileUseCase {
     if (dto.githubUrl !== undefined) changes.githubUrl = dto.githubUrl;
     if (dto.linkedinUrl !== undefined) changes.linkedinUrl = dto.linkedinUrl;
     if (dto.websiteUrl !== undefined) changes.websiteUrl = dto.websiteUrl;
+    if (dto.currentRole !== undefined) changes.currentRole = dto.currentRole;
+    if (dto.yearsExperience !== undefined) changes.yearsExperience = dto.yearsExperience;
+    if (dto.careerGoals !== undefined) changes.careerGoals = dto.careerGoals;
+    if (dto.backgroundAndPositioning !== undefined) changes.backgroundAndPositioning = dto.backgroundAndPositioning;
 
     return this.profileRepository.updateProfile(workspaceId, changes);
   }

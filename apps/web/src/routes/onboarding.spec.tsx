@@ -42,7 +42,7 @@ describe('OnboardingComponent', () => {
 
     mockUseAuth.mockReturnValue({
       status: 'authenticated',
-      user: { id: 'u1', email: 'alex@example.com', name: 'Alex Smith' },
+      user: { id: 'u1', email: 'alex@example.com', firstName: 'Alex', lastName: 'Smith' },
       workspace: { id: 'w1', name: "Alex's Workspace" },
       isLoading: false,
       error: null,
@@ -176,6 +176,14 @@ describe('OnboardingComponent', () => {
         linkedinUrl: 'https://linkedin.com/in/alexsmith',
         githubUrl: null,
         portfolioUrl: null,
+        backgroundAndPositioning: null,
+        careerGoals: null,
+        currentRole: null,
+        experienceSummary: null,
+        targetIndustries: [],
+        targetLocations: [],
+        websiteUrl: null,
+        yearsExperience: null,
       });
     });
 
@@ -187,7 +195,7 @@ describe('OnboardingComponent', () => {
     // Enter Outreacher button
     const enterBtn = screen.getByRole('button', { name: /enter outreacher/i });
     fireEvent.click(enterBtn);
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/' });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/dashboard' });
   });
 
   it('allows clicking Skip for now to navigate to / without mutating', async () => {

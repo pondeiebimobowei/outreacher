@@ -33,7 +33,7 @@ function getAllowlistedErrorMessage(errorParam: string | null): string | null {
   return GOOGLE_ERROR_COPY_MAP[errorParam] || 'An authentication error occurred. Please try again.';
 }
 
-type FieldError = { email?: string; password?: string; name?: string };
+type FieldError = { email?: string; password?: string; firstName?: string; lastName?: string };
 
 function LoginComponent() {
   const { login, signup } = useAuth();
@@ -46,7 +46,8 @@ function LoginComponent() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<FieldError>({});
 
@@ -70,7 +71,10 @@ function LoginComponent() {
 
   function validate() {
     const e: FieldError = {};
-    if (mode === 'signup' && !name.trim()) e.name = 'Name is required.';
+    if (mode === 'signup') {
+      if (!firstName.trim()) e.firstName = 'First name is required.';
+      if (!lastName.trim()) e.lastName = 'Last name is required.';
+    }
     if (!email.trim()) e.email = 'Email is required.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email address.';
     if (!password) e.password = 'Password is required.';
@@ -95,7 +99,7 @@ function LoginComponent() {
         await login(email, password);
         await navigate({ to: '/dashboard' });
       } else {
-        await signup(email, password, name || undefined);
+        await signup(email, password, firstName.trim(), lastName.trim());
         await navigate({ to: '/onboarding' });
       }
     } catch (err) {
@@ -133,42 +137,82 @@ function LoginComponent() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {mode === 'signup' && (
-          <div>
-            <label htmlFor="name" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
-              Full Name
-            </label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
-                <HugeiconsIcon icon={UserIcon} size={15} />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label htmlFor="firstName" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                First Name
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
+                  <HugeiconsIcon icon={UserIcon} size={15} />
+                </div>
+                <input
+                  id="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+                    if (errors.firstName) setErrors((v) => ({ ...v, firstName: undefined }));
+                  }}
+                  placeholder="Alex"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none border bg-(--color-card) text-(--color-primary) font-body"
+                  style={{
+                    borderColor: errors.firstName ? '#FCA5A5' : 'var(--color-border)',
+                    backgroundColor: errors.firstName ? '#FEF2F2' : 'var(--color-card)',
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.firstName) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                  }}
+                  onBlur={(e) => {
+                    if (!errors.firstName) e.currentTarget.style.borderColor = 'var(--color-border)';
+                  }}
+                />
               </div>
-              <input
-                id="name"
-                type="text"
-                autoComplete="name"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors((v) => ({ ...v, name: undefined }));
-                }}
-                placeholder="Alex Smith"
-                className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
-                style={{
-                  borderColor: errors.name ? '#FCA5A5' : 'var(--color-border)',
-                  backgroundColor: errors.name ? '#FEF2F2' : 'var(--color-card)',
-                }}
-                onFocus={(e) => {
-                  if (!errors.name) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                }}
-                onBlur={(e) => {
-                  if (!errors.name) e.currentTarget.style.borderColor = 'var(--color-border)';
-                }}
-              />
+              {errors.firstName && (
+                <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                  <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.firstName}
+                </p>
+              )}
             </div>
-            {errors.name && (
-              <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.name}
-              </p>
-            )}
+
+            <div className="flex-1">
+              <label htmlFor="lastName" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                Last Name
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
+                  <HugeiconsIcon icon={UserIcon} size={15} />
+                </div>
+                <input
+                  id="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+                    if (errors.lastName) setErrors((v) => ({ ...v, lastName: undefined }));
+                  }}
+                  placeholder="Smith"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none border bg-(--color-card) text-(--color-primary) font-body"
+                  style={{
+                    borderColor: errors.lastName ? '#FCA5A5' : 'var(--color-border)',
+                    backgroundColor: errors.lastName ? '#FEF2F2' : 'var(--color-card)',
+                  }}
+                  onFocus={(e) => {
+                    if (!errors.lastName) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                  }}
+                  onBlur={(e) => {
+                    if (!errors.lastName) e.currentTarget.style.borderColor = 'var(--color-border)';
+                  }}
+                />
+              </div>
+              {errors.lastName && (
+                <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                  <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.lastName}
+                </p>
+              )}
+            </div>
           </div>
         )}
 

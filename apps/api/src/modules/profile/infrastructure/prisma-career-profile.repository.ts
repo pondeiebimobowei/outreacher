@@ -37,7 +37,7 @@ export class PrismaCareerProfileRepository implements ICareerProfileRepository {
     workspaceId: string,
     changes: CareerProfileChanges,
   ): Promise<CareerProfileDomain> {
-    const record = await this.prisma.careerProfile.upsert({
+    const record: CareerProfileDomain = await this.prisma.careerProfile.upsert({
       where: { workspaceId },
       create: {
         workspaceId,
@@ -68,13 +68,25 @@ export class PrismaCareerProfileRepository implements ICareerProfileRepository {
         ...(changes.websiteUrl !== undefined && {
           websiteUrl: changes.websiteUrl,
         }),
+        ...(changes.currentRole !== undefined && {
+          currentRole: changes.currentRole,
+        }),
+        ...(changes.yearsExperience !== undefined && {
+          yearsExperience: changes.yearsExperience,
+        }),
+        ...(changes.careerGoals !== undefined && {
+          careerGoals: changes.careerGoals,
+        }),
+        ...(changes.backgroundAndPositioning !== undefined && {
+          backgroundAndPositioning: changes.backgroundAndPositioning,
+        }),
       },
       update: changes,
     });
     return this.mapToDomain(record);
   }
 
-  private mapToDomain(record: any): CareerProfileDomain {
+  private mapToDomain(record: CareerProfileDomain): CareerProfileDomain {
     return {
       id: record.id,
       workspaceId: record.workspaceId,
@@ -88,7 +100,10 @@ export class PrismaCareerProfileRepository implements ICareerProfileRepository {
       portfolioUrl: record.portfolioUrl,
       githubUrl: record.githubUrl,
       linkedinUrl: record.linkedinUrl,
-      websiteUrl: record.websiteUrl,
+      currentRole: record.currentRole,
+      yearsExperience: record.yearsExperience,
+      careerGoals: record.careerGoals,
+      backgroundAndPositioning: record.backgroundAndPositioning,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };

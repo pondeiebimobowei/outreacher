@@ -42,6 +42,14 @@ interface OnboardingFormData {
   linkedinUrl: string;
   githubUrl: string;
   portfolioUrl: string;
+  currentRole: string;
+  yearsExperience: string;
+  careerGoals: string;
+  backgroundAndPositioning: string;
+  targetIndustries: string[];
+  targetLocations: string[];
+  experienceSummary: string;
+  websiteUrl: string;
 }
 
 const formatNull = (val: string) => {
@@ -83,6 +91,14 @@ function OnboardingComponent() {
     linkedinUrl: '',
     githubUrl: '',
     portfolioUrl: '',
+    currentRole: '',
+    yearsExperience: '',
+    careerGoals: '',
+    backgroundAndPositioning: '',
+    targetIndustries: [],
+    targetLocations: [],
+    experienceSummary: '',
+    websiteUrl: '',
   });
 
   const [initialized, setInitialized] = useState(false);
@@ -96,6 +112,14 @@ function OnboardingComponent() {
         linkedinUrl: initialProfile.linkedinUrl ?? '',
         githubUrl: initialProfile.githubUrl ?? '',
         portfolioUrl: initialProfile.portfolioUrl ?? '',
+        currentRole: initialProfile.currentRole ?? '',
+        yearsExperience: initialProfile.yearsExperience ?? '',
+        careerGoals: initialProfile.careerGoals ?? '',
+        backgroundAndPositioning: initialProfile.backgroundAndPositioning ?? '',
+        targetIndustries: initialProfile.targetIndustries ?? [],
+        targetLocations: initialProfile.targetLocations ?? [],
+        experienceSummary: initialProfile.experienceSummary ?? '',
+        websiteUrl: initialProfile.websiteUrl ?? '',
       });
       setInitialized(true);
     }
@@ -123,6 +147,14 @@ function OnboardingComponent() {
         linkedinUrl: formatNull(payload.linkedinUrl),
         githubUrl: formatNull(payload.githubUrl),
         portfolioUrl: formatNull(payload.portfolioUrl),
+        currentRole: formatNull(payload.currentRole),
+        yearsExperience: formatNull(payload.yearsExperience),
+        careerGoals: formatNull(payload.careerGoals),
+        backgroundAndPositioning: formatNull(payload.backgroundAndPositioning),
+        targetIndustries: payload.targetIndustries,
+        targetLocations: payload.targetLocations,
+        experienceSummary: formatNull(payload.experienceSummary),
+        websiteUrl: formatNull(payload.websiteUrl),
       });
     },
     onSuccess: () => {
@@ -146,6 +178,18 @@ function OnboardingComponent() {
       } else if (form.targetRoles.length > 20) {
         errs.targetRoles = 'Maximum 20 target roles.';
       }
+      if (form.currentRole && form.currentRole.length > 120) {
+        errs.currentRole = 'Current role must be 120 characters or fewer.';
+      }
+      if (form.yearsExperience && form.yearsExperience.length > 120) {
+        errs.yearsExperience = 'Years of experience must be 120 characters or fewer.';
+      }
+      if (form.targetIndustries.length > 20) {
+        errs.targetIndustries = 'Maximum 20 target industries.';
+      }
+      if (form.targetLocations.length > 20) {
+        errs.targetLocations = 'Maximum 20 target locations.';
+      }
     } else if (stepIndex === 1) {
       if (form.skills.length === 0) {
         errs.skills = 'Please add at least one core skill.';
@@ -156,6 +200,15 @@ function OnboardingComponent() {
       if (form.summary.length > 2000) {
         errs.summary = 'Summary must be 2000 characters or fewer.';
       }
+      if (form.experienceSummary.length > 5000) {
+        errs.experienceSummary = 'Experience summary must be 5000 characters or fewer.';
+      }
+      if (form.careerGoals.length > 2000) {
+        errs.careerGoals = 'Career goals must be 2000 characters or fewer.';
+      }
+      if (form.backgroundAndPositioning.length > 5000) {
+        errs.backgroundAndPositioning = 'Background and positioning must be 5000 characters or fewer.';
+      }
     } else if (stepIndex === 3) {
       if (form.linkedinUrl.trim() && !isValidUrl(form.linkedinUrl)) {
         errs.linkedinUrl = 'Please enter a valid URL (e.g. https://linkedin.com/in/...).';
@@ -165,6 +218,9 @@ function OnboardingComponent() {
       }
       if (form.portfolioUrl.trim() && !isValidUrl(form.portfolioUrl)) {
         errs.portfolioUrl = 'Please enter a valid URL (e.g. https://...).';
+      }
+      if (form.websiteUrl.trim() && !isValidUrl(form.websiteUrl)) {
+        errs.websiteUrl = 'Please enter a valid URL (e.g. https://...).';
       }
     }
     return errs;
@@ -212,7 +268,7 @@ function OnboardingComponent() {
   }
 
   if (done) {
-    const firstName = user?.name ? user.name.split(' ')[0] : 'there';
+    const firstName = user?.firstName || 'there';
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-(--color-background)">
         <div className="w-full max-w-130 text-center py-8">
@@ -393,6 +449,112 @@ function OnboardingComponent() {
                     </p>
                   )}
                 </div>
+
+                <div>
+                  <TagInput
+                    id="targetIndustries"
+                    label="Target Industries"
+                    tags={form.targetIndustries}
+                    onChange={(industries) => update('targetIndustries', industries)}
+                    placeholder="Type an industry and press Enter (e.g. Fintech)..."
+                  />
+                  <p className="text-[12px] mt-1 text-muted-fg font-body">
+                    Add industries you are interested in.
+                  </p>
+                  {errors.targetIndustries && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.targetIndustries}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <TagInput
+                    id="targetLocations"
+                    label="Target Locations"
+                    tags={form.targetLocations}
+                    onChange={(locations) => update('targetLocations', locations)}
+                    placeholder="Type a location and press Enter (e.g. Remote, New York)..."
+                  />
+                  <p className="text-[12px] mt-1 text-muted-fg font-body">
+                    Add locations you are targeting for your next role.
+                  </p>
+                  {errors.targetLocations && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.targetLocations}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="currentRole" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Current Role
+                  </label>
+                  <p className="text-[12.5px] mb-2 text-muted-fg font-body">
+                    Your current or most recent job title.
+                  </p>
+                  <div className="relative">
+                    <input
+                      id="currentRole"
+                      type="text"
+                      maxLength={120}
+                      value={form.currentRole}
+                      onChange={(e) => update('currentRole', e.target.value)}
+                      placeholder="e.g. Senior Software Engineer"
+                      className="w-full px-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
+                      style={{
+                        borderColor: errors.currentRole ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.currentRole ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.currentRole) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      }}
+                      onBlur={(e) => {
+                        if (!errors.currentRole) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      }}
+                    />
+                  </div>
+                  {errors.currentRole && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.currentRole}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="yearsExperience" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Years of Experience
+                  </label>
+                  <p className="text-[12.5px] mb-2 text-muted-fg font-body">
+                    How many years of professional experience do you have?
+                  </p>
+                  <div className="relative">
+                    <input
+                      id="yearsExperience"
+                      type="text"
+                      maxLength={120}
+                      value={form.yearsExperience}
+                      onChange={(e) => update('yearsExperience', e.target.value)}
+                      placeholder="e.g. 5+ years"
+                      className="w-full px-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
+                      style={{
+                        borderColor: errors.yearsExperience ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.yearsExperience ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.yearsExperience) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      }}
+                      onBlur={(e) => {
+                        if (!errors.yearsExperience) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      }}
+                    />
+                  </div>
+                  {errors.yearsExperience && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.yearsExperience}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -444,7 +606,8 @@ function OnboardingComponent() {
 
             {/* Step 3: Professional Summary */}
             {step === 2 && (
-              <div>
+                <>
+                <div>
                 <label htmlFor="summary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
                   Professional Summary
                 </label>
@@ -466,14 +629,12 @@ function OnboardingComponent() {
                     }}
                     onFocus={(e) => {
                       if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                    }}
+                    } }
                     onBlur={(e) => {
                       if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-border)';
-                    }}
-                  />
+                    } } />
                   <span
-                    className={`absolute bottom-3 right-3 text-[11.5px] font-body ${form.summary.length > 1800 ? 'text-amber-500' : 'text-muted-fg'
-                      }`}
+                    className={`absolute bottom-3 right-3 text-[11.5px] font-body ${form.summary.length > 1800 ? 'text-amber-500' : 'text-muted-fg'}`}
                   >
                     {form.summary.length}/2000
                   </span>
@@ -483,7 +644,103 @@ function OnboardingComponent() {
                     <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.summary}
                   </p>
                 )}
-              </div>
+              </div><div className="mt-5">
+                  <label htmlFor="experienceSummary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Experience Summary
+                  </label>
+                  <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
+                    A brief summary of your past experience.
+                  </p>
+                  <div className="relative">
+                    <textarea
+                      id="experienceSummary"
+                      rows={4}
+                      maxLength={5000}
+                      value={form.experienceSummary}
+                      onChange={(e) => update('experienceSummary', e.target.value)}
+                      placeholder="e.g. Worked at Google for 4 years on search infrastructure..."
+                      className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
+                      style={{
+                        borderColor: errors.experienceSummary ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.experienceSummary ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.experienceSummary) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      } }
+                      onBlur={(e) => {
+                        if (!errors.experienceSummary) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      } } />
+                  </div>
+                  {errors.experienceSummary && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.experienceSummary}
+                    </p>
+                  )}
+                </div><div className="mt-5">
+                  <label htmlFor="careerGoals" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Career Goals
+                  </label>
+                  <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
+                    What are you looking for next in your career?
+                  </p>
+                  <div className="relative">
+                    <textarea
+                      id="careerGoals"
+                      rows={4}
+                      maxLength={2000}
+                      value={form.careerGoals}
+                      onChange={(e) => update('careerGoals', e.target.value)}
+                      placeholder="e.g. Seeking a leadership role in a fast-paced environment..."
+                      className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
+                      style={{
+                        borderColor: errors.careerGoals ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.careerGoals ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.careerGoals) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      } }
+                      onBlur={(e) => {
+                        if (!errors.careerGoals) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      } } />
+                  </div>
+                  {errors.careerGoals && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.careerGoals}
+                    </p>
+                  )}
+                </div><div className="mt-5">
+                  <label htmlFor="backgroundAndPositioning" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Background & Positioning
+                  </label>
+                  <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
+                    Context on your background and how you position yourself.
+                  </p>
+                  <div className="relative">
+                    <textarea
+                      id="backgroundAndPositioning"
+                      rows={4}
+                      maxLength={5000}
+                      value={form.backgroundAndPositioning}
+                      onChange={(e) => update('backgroundAndPositioning', e.target.value)}
+                      placeholder="Details about your background..."
+                      className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
+                      style={{
+                        borderColor: errors.backgroundAndPositioning ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.backgroundAndPositioning ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.backgroundAndPositioning) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      } }
+                      onBlur={(e) => {
+                        if (!errors.backgroundAndPositioning) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      } } />
+                  </div>
+                  {errors.backgroundAndPositioning && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.backgroundAndPositioning}
+                    </p>
+                  )}
+                </div></>
             )}
 
             {/* Step 4: Presence & Links */}
@@ -581,7 +838,7 @@ function OnboardingComponent() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label htmlFor="portfolioUrl" className="text-[13px] font-medium font-heading text-(--color-primary)">
-                      Portfolio / Website URL
+                      Portfolio URL
                     </label>
                     <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-(--color-muted) text-muted-fg font-body">
                       Optional
@@ -598,7 +855,7 @@ function OnboardingComponent() {
                       type="url"
                       value={form.portfolioUrl}
                       onChange={(e) => update('portfolioUrl', e.target.value)}
-                      placeholder="https://yoursite.com"
+                      placeholder="https://yourportfolio.com"
                       className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                       style={{
                         borderColor: errors.portfolioUrl ? '#FCA5A5' : 'var(--color-border)',
@@ -615,6 +872,48 @@ function OnboardingComponent() {
                   {errors.portfolioUrl && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
                       <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.portfolioUrl}
+                    </p>
+                  )}
+                </div>
+
+                {/* Website */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="websiteUrl" className="text-[13px] font-medium font-heading text-(--color-primary)">
+                      Website URL
+                    </label>
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-(--color-muted) text-muted-fg font-body">
+                      Optional
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    </div>
+                    <input
+                      id="websiteUrl"
+                      type="url"
+                      value={form.websiteUrl}
+                      onChange={(e) => update('websiteUrl', e.target.value)}
+                      placeholder="https://yoursite.com"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
+                      style={{
+                        borderColor: errors.websiteUrl ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.websiteUrl ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.websiteUrl) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      }}
+                      onBlur={(e) => {
+                        if (!errors.websiteUrl) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      }}
+                    />
+                  </div>
+                  {errors.websiteUrl && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.websiteUrl}
                     </p>
                   )}
                 </div>

@@ -11,7 +11,10 @@ export interface CareerProfileDomain {
   portfolioUrl: string | null;
   githubUrl: string | null;
   linkedinUrl: string | null;
-  websiteUrl: string | null;
+  currentRole: string | null;
+  yearsExperience: string | null;
+  careerGoals: string | null;
+  backgroundAndPositioning: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,4 +31,8 @@ export type CareerProfileChanges = {
   githubUrl?: string | null;
   linkedinUrl?: string | null;
   websiteUrl?: string | null;
+  currentRole?: string | null;
+  yearsExperience?: string | null;
+  careerGoals?: string | null;
+  backgroundAndPositioning?: string | null;
 };

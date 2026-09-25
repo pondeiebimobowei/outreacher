@@ -15,7 +15,8 @@ import { GoogleUserInfo } from './google-oidc.service';
 export interface SignupDto {
   email: string;
   password: string;
-  name?: string;
+  firstName: string;
+  lastName: string;
 }
 
 export interface LoginDto {
@@ -75,9 +76,10 @@ export class AuthService {
       }
 
       const passwordHash = await bcrypt.hash(dto.password, 10);
-      const displayName = dto.name?.trim() || null;
-      const workspaceName = displayName
-        ? `${displayName}'s Workspace`
+      const firstName = dto.firstName.trim();
+      const lastName = dto.lastName.trim();
+      const workspaceName = firstName
+        ? `${firstName}'s Workspace`
         : 'Personal Workspace';
 
       // Single transaction for atomic User + AuthIdentity + Workspace + WorkspaceMember creation
@@ -86,11 +88,8 @@ export class AuthService {
           const newUser = await tx.user.create({
             data: {
               email,
-              firstName: displayName ? displayName.split(' ')[0] : 'User',
-              lastName:
-                displayName && displayName.includes(' ')
-                  ? displayName.split(' ').slice(1).join(' ')
-                  : '',
+              firstName,
+              lastName,
             },
           });
 
@@ -128,7 +127,8 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          firstName: user.firstName,
+          lastName: user.lastName,
         },
         workspace: {
           id: workspace.id,
@@ -196,7 +196,8 @@ export class AuthService {
       user: {
         id: identity.user.id,
         email: identity.user.email,
-        name: `${identity.user.firstName} ${identity.user.lastName}`,
+        firstName: identity.user.firstName,
+        lastName: identity.user.lastName,
       },
       workspace: {
         id: member.workspace.id,
@@ -249,7 +250,8 @@ export class AuthService {
         user: {
           id: existingIdentity.user.id,
           email: existingIdentity.user.email,
-          name: `${existingIdentity.user.firstName} ${existingIdentity.user.lastName}`,
+          firstName: existingIdentity.user.firstName,
+          lastName: existingIdentity.user.lastName,
         },
         workspace: {
           id: member.workspace.id,
@@ -271,9 +273,22 @@ export class AuthService {
     }
 
     // Atomic creation of new User + AuthIdentity + Workspace + WorkspaceMember
-    const displayName = userInfo.name?.trim() || null;
-    const workspaceName = displayName
-      ? `${displayName}'s Workspace`
+    let firstName = userInfo.givenName?.trim();
+    let lastName = userInfo.familyName?.trim();
+
+    // Fallback if given/family name are not present
+    if (!firstName) {
+      const displayName = userInfo.givenName?.trim() || null;
+      firstName = displayName ? displayName.split(' ')[0] : 'User';
+      if (!lastName) {
+        lastName = displayName && displayName.includes(' ')
+          ? displayName.split(' ').slice(1).join(' ')
+          : '';
+      }
+    }
+
+    const workspaceName = firstName
+      ? `${firstName}'s Workspace`
       : 'Personal Workspace';
 
     const { user, workspace } = await this.prisma.$transaction(
@@ -281,11 +296,8 @@ export class AuthService {
         const newUser = await tx.user.create({
           data: {
             email: googleEmail,
-            firstName: displayName ? displayName.split(' ')[0] : 'User',
-            lastName:
-              displayName && displayName.includes(' ')
-                ? displayName.split(' ').slice(1).join(' ')
-                : '',
+            firstName,
+            lastName: lastName || '',
           },
         });
 

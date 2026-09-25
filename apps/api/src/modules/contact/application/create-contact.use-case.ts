@@ -107,6 +107,7 @@ export class CreateContactUseCase {
         contact = await this.prisma.person.create({
           data: {
             workspaceId,
+            personCompanyAssociations: { create: { companyId, workspaceId } },
             personKind,
             firstName,
             lastName,
@@ -126,6 +127,7 @@ export class CreateContactUseCase {
       contact = await this.prisma.person.create({
         data: {
           workspaceId,
+          personCompanyAssociations: { create: { companyId, workspaceId } },
           personKind,
           firstName,
           lastName,

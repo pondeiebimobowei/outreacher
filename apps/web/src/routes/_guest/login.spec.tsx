@@ -56,7 +56,8 @@ describe('LoginComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
 
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
 
     const passwordInput = screen.getByLabelText(/password/i);
     expect(passwordInput).toHaveAttribute('autoComplete', 'new-password');

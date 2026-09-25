@@ -11,7 +11,8 @@ export interface GoogleUserInfo {
   sub: string;
   email: string;
   emailVerified: boolean;
-  name?: string;
+  givenName?: string;
+  familyName?: string;
   picture?: string;
 }
 
@@ -81,7 +82,8 @@ export class GoogleOidcService {
       email?: string;
       email_verified?: boolean | string;
       exp?: string | number;
-      name?: string;
+      given_name?: string;
+      family_name?: string;
       picture?: string;
     };
 
@@ -121,7 +123,8 @@ export class GoogleOidcService {
       sub: claims.sub,
       email: claims.email,
       emailVerified: true,
-      name: claims.name,
+      givenName: claims.given_name,
+      familyName: claims.family_name,
       picture: claims.picture,
     };
   }
@@ -147,7 +150,8 @@ export class GoogleOidcService {
         sub: mockSub,
         email: mockEmail,
         emailVerified: true,
-        name: `Google User ${mockSub}`,
+        givenName: 'Google',
+        familyName: `User ${mockSub}`,
       };
     }
 
