@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { fetchCompanies, CompanyDto } from '../../api/companies';
 import { LoadingState, ErrorState, EmptyState } from '../../components/states';
 import { HugeiconsIcon } from '@hugeicons/react';
+
 import { Building02Icon, UsersIcon, SearchIcon, ArrowRightIcon, MapPinIcon, GlobeIcon } from '@hugeicons/core-free-icons';;
 
 export const Route = createFileRoute('/_authed/contacts/')({
