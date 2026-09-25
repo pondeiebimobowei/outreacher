@@ -227,12 +227,13 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       const companyA = await createCompany(cookies!, 'Company A');
       const companyB = await createCompany(cookies!, 'Company B');
 
-      const contactA = await prisma.contact.create({
+      const contactA = await prisma.person.create({
         data: {
           workspaceId: workspace.id,
-          companyId: companyA.id,
-          contactKind: 'PERSON',
-          name: 'Alice A',
+
+          personKind: 'PERSON',
+          firstName: 'Alice A',
+          lastName: 'Alice A',
           email: 'alice@comp-a.com',
           title: 'CTO',
           source: 'COMPANY_WEBSITE',
@@ -240,12 +241,12 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
         },
       });
 
-      const contactB = await prisma.contact.create({
+      const contactB = await prisma.person.create({
         data: {
           workspaceId: workspace.id,
-          companyId: companyB.id,
-          contactKind: 'PERSON',
-          name: 'Bob B',
+          personKind: 'PERSON',
+          firstName: 'Bob B',
+          lastName: 'Bob B',
           email: 'bob@comp-b.com',
           title: 'CEO',
           source: 'COMPANY_WEBSITE',
@@ -277,7 +278,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
           },
         },
       });
-      expect(dbSelection?.contactId).toBe(contactA.id);
+      expect(dbSelection?.personId).toBe(contactA.id);
 
       // Attempting to select contactB (which belongs to companyB) for companyA must fail with 403 or 404
       await request(app.getHttpServer())
@@ -293,12 +294,12 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
       const user2 = await createAuthenticatedUser('user2@example.com');
       const company = await createCompany(user1.cookies!, 'User1 Corp');
 
-      const contact = await prisma.contact.create({
+      const contact = await prisma.person.create({
         data: {
           workspaceId: user1.workspace.id,
-          companyId: company.id,
-          contactKind: 'PERSON',
-          name: 'User1 Contact',
+          personKind: 'PERSON',
+          firstName: 'User1',
+          lastName: 'Contact',
           email: 'u1@example.com',
         },
       });
@@ -326,7 +327,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
           name: 'Sarah Connor',
           email: 'sarah@terminator.com',
           title: 'VP Operations',
-          contactKind: 'PERSON',
+          personKind: 'PERSON',
           sourceUrl: 'https://acme.com/execs',
         })
         .expect(201);
@@ -374,12 +375,12 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
         'Acme Preserved Selection Corp',
       );
 
-      const initialContact = await prisma.contact.create({
+      const initialContact = await prisma.person.create({
         data: {
           workspaceId: workspace.id,
-          companyId: company.id,
-          contactKind: 'PERSON',
-          name: 'Existing Selected Target',
+          personKind: 'PERSON',
+          firstName: 'Existing Selected Target',
+          lastName: '',
           email: 'initial@acme.com',
         },
       });
@@ -414,7 +415,7 @@ describe('Contact Discovery & Selection Engine (e2e)', () => {
           },
         },
       });
-      expect(dbSelection?.contactId).toBe(initialContact.id);
+      expect(dbSelection?.personId).toBe(initialContact.id);
     });
 
     it('enforces tenant isolation on manual contact creation', async () => {

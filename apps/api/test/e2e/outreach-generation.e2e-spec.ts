@@ -83,11 +83,11 @@ describe('Outreach Generation Engine (e2e)', () => {
   async function setupOutreachEntities(cookies: string[], workspaceId: string) {
     const company = await createCompany(cookies, 'Acme AI');
 
-    const contact = await prisma.contact.create({
+    const contact = await prisma.person.create({
       data: {
         workspaceId,
-        companyId: company.id,
-        name: 'Bob Ross',
+        firstName: '',
+        lastName: '',
         email: 'bob@acme.com',
         title: 'CTO',
       },
@@ -97,36 +97,38 @@ describe('Outreach Generation Engine (e2e)', () => {
       data: {
         workspaceId,
         companyId: company.id,
+        templateId: '',
+        senderAccountId: '',
         name: 'Outreach Campaign',
         normalizedName: 'outreach campaign',
         status: 'DRAFT',
       },
     });
 
-    const campaignContact = await prisma.campaignContact.create({
+    const campaignMember = await prisma.campaignMember.create({
       data: {
         workspaceId,
         campaignId: campaign.id,
-        contactId: contact.id,
+        personId: '',
         status: 'PENDING',
       },
     });
 
-    return { company, contact, campaign, campaignContact };
+    return { company, contact, campaign, campaignMember };
   }
 
   describe('POST /api/v1/campaign-contacts/:id/generate-outreach', () => {
     it('returns 202 Accepted and enqueues OUTREACH_GENERATION job', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user1@example.com');
-      const { campaignContact } = await setupOutreachEntities(
+      const { campaignMember } = await setupOutreachEntities(
         cookies!,
         workspace.id,
       );
 
       const res = await request(app.getHttpServer())
         .post(
-          `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
+          `/api/v1/campaign-contacts/${campaignMember.id}/generate-outreach`,
         )
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
@@ -154,8 +156,8 @@ describe('Outreach Generation Engine (e2e)', () => {
       expect(processed).toBe(true);
 
       // Verify CampaignContact was updated with generated subject/body while status stays PENDING
-      const updatedCC = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const updatedCC = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
       expect(updatedCC?.currentSubject).toBeTruthy();
       expect(updatedCC?.currentBody).toBeTruthy();
@@ -169,14 +171,14 @@ describe('Outreach Generation Engine (e2e)', () => {
       const { cookies: cookies2 } =
         await createAuthenticatedUser('user2@example.com');
 
-      const { campaignContact } = await setupOutreachEntities(
+      const { campaignMember } = await setupOutreachEntities(
         cookies1!,
         ws1.id,
       );
 
       await request(app.getHttpServer())
         .post(
-          `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
+          `/api/v1/campaign-contacts/${campaignMember.id}/generate-outreach`,
         )
         .set('Cookie', cookies2!)
         .set('X-Requested-With', 'XMLHttpRequest')
@@ -186,7 +188,7 @@ describe('Outreach Generation Engine (e2e)', () => {
     it('enforces 20 calls/hr rate limit per user/workspace with HTTP 429', async () => {
       const { cookies, workspace, user } =
         await createAuthenticatedUser('user1@example.com');
-      const { campaignContact } = await setupOutreachEntities(
+      const { campaignMember } = await setupOutreachEntities(
         cookies!,
         workspace.id,
       );
@@ -205,7 +207,7 @@ describe('Outreach Generation Engine (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(
-          `/api/v1/campaign-contacts/${campaignContact.id}/generate-outreach`,
+          `/api/v1/campaign-contacts/${campaignMember.id}/generate-outreach`,
         )
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')

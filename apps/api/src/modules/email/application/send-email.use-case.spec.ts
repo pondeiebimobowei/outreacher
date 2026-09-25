@@ -36,7 +36,7 @@ describe('SendEmailUseCase', () => {
       id: campaignId,
       workspaceId,
       status: CampaignStatus.DRAFT,
-      sendingIdentity: 'founder@startup.com',
+      senderAccountId: 'founder@startup.com',
     },
     person: {
       id: 'contact-1',

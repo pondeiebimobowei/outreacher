@@ -81,9 +81,9 @@ export function CampaignCard({
       </div>
 
       <div className="flex flex-col gap-2 mb-3">
-        {campaign.sendingIdentity && (
+        {campaign.senders?.[0]?.fromEmail && (
           <div className="text-[12px] font-mono" style={{ color: 'var(--color-muted-fg, #6B7280)' }}>
-            Identity: {campaign.sendingIdentity}
+            Identity: {campaign.senders[0].fromEmail}
           </div>
         )}
         <div>

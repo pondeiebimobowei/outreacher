@@ -1,12 +1,12 @@
-import { EvaluatedContactDto } from '../../api/contacts';
+import { EvaluatedPersonDto } from '../../api/contacts';
 import { ContactProvenance } from './contact-provenance';
 
 interface ContactCardProps {
-  contact: EvaluatedContactDto;
+  contact: EvaluatedPersonDto;
   onSelect: (contactId: string) => void;
   isSelectPending: boolean;
-  onReview?: (contact: EvaluatedContactDto) => void;
-  onReviewOutreach?: (contact: EvaluatedContactDto) => void;
+  onReview?: (contact: EvaluatedPersonDto) => void;
+  onReviewOutreach?: (contact: EvaluatedPersonDto) => void;
   isDrawerActive?: boolean;
 }
 
@@ -43,7 +43,7 @@ export function ContactCard({
   onReviewOutreach,
   isDrawerActive,
 }: ContactCardProps) {
-  const isPerson = contact.contactKind === 'PERSON';
+  const isPerson = contact.personKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
   const avatarBg = pickAvatarColor(contact.firstName || contact.id);
@@ -79,7 +79,7 @@ export function ContactCard({
                 }`}
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
-                {contact.firstName}
+                {contact.firstName} {contact.lastName}
               </h3>
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${
@@ -92,7 +92,7 @@ export function ContactCard({
                       : 'bg-amber-100 text-amber-800 border border-amber-300'
                 }`}
               >
-                {contact.contactKind}
+                {contact.personKind}
               </span>
               {contact.source === 'USER_PROVIDED' && (
                 <span

@@ -1,20 +1,24 @@
 import { apiClient } from './client';
 import type { 
-  EvaluatedContactDto, 
+  
+  EvaluatedPersonDto, 
   CompanyContactsResponse, 
   DiscoverContactsResponse, 
+
   CreateContactRequest,
-  ContactKind,
   ContactRelevance,
   EmailConfidenceStatus
 } from '@repo/shared';
 
+export const PERSON_KINDS = ['PERSON', 'ROLE_ADDRESS'] as const;
+export type PersonKind = typeof PERSON_KINDS[number];
+
 export type { 
-  EvaluatedContactDto, 
+  EvaluatedPersonDto, 
   CompanyContactsResponse, 
   DiscoverContactsResponse, 
   CreateContactRequest,
-  ContactKind,
+  
   ContactRelevance,
   EmailConfidenceStatus
 };
@@ -33,8 +37,8 @@ export async function discoverCompanyContacts(
   );
 }
 
-export async function fetchContactById(contactId: string): Promise<EvaluatedContactDto> {
-  return apiClient.get<EvaluatedContactDto>(`/contacts/${contactId}`);
+export async function fetchContactById(contactId: string): Promise<EvaluatedPersonDto> {
+  return apiClient.get<EvaluatedPersonDto>(`/contacts/${contactId}`);
 }
 
 export async function selectCompanyContact(
@@ -49,6 +53,6 @@ export async function selectCompanyContact(
 export async function createCompanyContact(
   companyId: string,
   input: CreateContactRequest,
-): Promise<EvaluatedContactDto> {
-  return apiClient.post<EvaluatedContactDto>(`/companies/${companyId}/contacts`, input);
+): Promise<EvaluatedPersonDto> {
+  return apiClient.post<EvaluatedPersonDto>(`/companies/${companyId}/contacts`, input);
 }

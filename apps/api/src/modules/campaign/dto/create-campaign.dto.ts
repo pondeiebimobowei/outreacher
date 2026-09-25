@@ -35,10 +35,6 @@ export class CreateCampaignDto implements CreateCampaignRequest {
   @IsNotEmpty()
   status!: CampaignStatus;
 
-  @IsString()
-  @IsOptional()
-  sendingIdentity?: string;
-
   @IsOptional()
   @IsInt()
   @Min(1)

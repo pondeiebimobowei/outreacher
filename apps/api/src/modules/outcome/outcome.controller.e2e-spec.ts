@@ -80,7 +80,7 @@ describe('OutcomeController (e2e)', () => {
       data: { id: workspaceId, name: 'E2E WS' },
     });
     await prisma.user.create({
-      data: { id: userId, email: `test-${userId}@e2e.com`, name: 'User' },
+      data: { id: userId, email: `test-${userId}@e2e.com`, firstName: 'User', lastName: '' },
     });
     await prisma.workspaceMember.create({
       data: { workspaceId, userId, role: 'OWNER' },
@@ -98,19 +98,21 @@ describe('OutcomeController (e2e)', () => {
         id: campaignId,
         workspaceId,
         companyId,
+        templateId: '',
         name: 'E2E Camp',
         normalizedName: 'e2ecamp',
         status: 'DRAFT',
-        sendingIdentity: 'ME',
+        senderAccountId: 'ME',
       },
     });
     await prisma.person.create({
       data: {
         id: personId,
         workspaceId,
-        companyId,
+        
         personKind: 'PERSON',
-        name: 'John',
+        firstName: 'John',
+        lastName: 'John',
         email: `${personId}@e2e.com`,
       },
     });

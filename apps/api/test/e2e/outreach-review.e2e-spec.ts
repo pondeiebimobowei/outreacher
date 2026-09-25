@@ -76,12 +76,13 @@ describe('Outreach Review and Editing (e2e)', () => {
       },
     });
 
-    const contact = await prisma.contact.create({
+    const contact = await prisma.person.create({
       data: {
         workspaceId,
-        companyId: company.id,
+        
         email,
-        name: 'Test Target',
+        firstName: 'Test',
+        lastName: 'Target',
       },
     });
 
@@ -89,36 +90,38 @@ describe('Outreach Review and Editing (e2e)', () => {
       data: {
         workspaceId,
         companyId: company.id,
+        templateId: '',
+        senderAccountId: '',
         name: 'Test Campaign',
         normalizedName: 'test campaign',
       },
     });
 
-    const campaignContact = await prisma.campaignContact.create({
+    const campaignMember = await prisma.campaignMember.create({
       data: {
         workspaceId,
         campaignId: campaign.id,
-        contactId: contact.id,
+        personId: '',
         status: 'PENDING',
         currentSubject: 'Initial Subject',
         currentBody: 'Initial Body that is long enough.',
       },
     });
 
-    return { company, contact, campaign, campaignContact };
+    return { company, contact, campaign, campaignMember };
   }
 
   describe('PATCH /api/v1/campaign-contacts/:id/draft', () => {
     it('should partially update the draft', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target@example.com',
       );
 
       const res = await request(app.getHttpServer())
-        .patch(`/api/v1/campaign-contacts/${campaignContact.id}/draft`)
+        .patch(`/api/v1/campaign-contacts/${campaignMember.id}/draft`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
@@ -133,19 +136,19 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should revert READY status to PENDING upon edit', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user2@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target2@example.com',
       );
 
       // Make it READY manually
-      await prisma.campaignContact.update({
-        where: { id: campaignContact.id },
+      await prisma.campaignMember.update({
+        where: { id: campaignMember.id },
         data: { status: 'READY' },
       });
 
       const res = await request(app.getHttpServer())
-        .patch(`/api/v1/campaign-contacts/${campaignContact.id}/draft`)
+        .patch(`/api/v1/campaign-contacts/${campaignMember.id}/draft`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({
@@ -162,13 +165,13 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should return 400 for empty payloads', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user3@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target3@example.com',
       );
 
       await request(app.getHttpServer())
-        .patch(`/api/v1/campaign-contacts/${campaignContact.id}/draft`)
+        .patch(`/api/v1/campaign-contacts/${campaignMember.id}/draft`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({}) // empty payload
@@ -179,14 +182,14 @@ describe('Outreach Review and Editing (e2e)', () => {
       const tenantA = await createAuthenticatedUser('a@example.com');
       const tenantB = await createAuthenticatedUser('b@example.com');
 
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         tenantA.workspace.id,
         'targeta@example.com',
       );
 
       // Tenant B tries to edit Tenant A's contact
       await request(app.getHttpServer())
-        .patch(`/api/v1/campaign-contacts/${campaignContact.id}/draft`)
+        .patch(`/api/v1/campaign-contacts/${campaignMember.id}/draft`)
         .set('Cookie', tenantB.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send({ subject: 'Malicious Subject' })
@@ -198,13 +201,13 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should approve a PENDING draft and set it to READY', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user4@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target4@example.com',
       );
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/approve`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/approve`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
@@ -216,7 +219,7 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should return 409 Conflict if recipient is suppressed', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user5@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target5@example.com',
       );
@@ -230,7 +233,7 @@ describe('Outreach Review and Editing (e2e)', () => {
       });
 
       await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/approve`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/approve`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
@@ -240,19 +243,19 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should return 400 Validation Exception if draft is invalid', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user6@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target6@example.com',
       );
 
       // Corrupt the draft in the DB to be too short
-      await prisma.campaignContact.update({
-        where: { id: campaignContact.id },
+      await prisma.campaignMember.update({
+        where: { id: campaignMember.id },
         data: { currentSubject: 'Hi' }, // length < 3
       });
 
       await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/approve`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/approve`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
@@ -262,14 +265,14 @@ describe('Outreach Review and Editing (e2e)', () => {
     it('should handle READY -> READY idempotently without errors', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('user7@example.com');
-      const { campaignContact } = await seedCampaignContact(
+      const { campaignMember } = await seedCampaignContact(
         workspace.id,
         'target7@example.com',
       );
 
       // First approval
       await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/approve`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/approve`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()
@@ -277,7 +280,7 @@ describe('Outreach Review and Editing (e2e)', () => {
 
       // Second approval
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/approve`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/approve`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .send()

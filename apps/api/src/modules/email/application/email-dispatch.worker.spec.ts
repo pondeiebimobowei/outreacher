@@ -5,7 +5,7 @@ import {
   Prisma,
 } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
-import { EmailDispatchErrorCode } from '../domain/email-provider.adapter';
+import { EmailDispatchErrorCode, SendEmailResult } from '../domain/email-provider.adapter';
 import { EmailProviderException } from '../infrastructure/resend-email-provider.adapter';
 import { ClaimedEmailJob, EmailDispatchWorker } from './email-dispatch.worker';
 
@@ -48,7 +48,7 @@ describe('EmailDispatchWorker', () => {
       },
       campaign: {
         id: 'camp-6666',
-        sendingIdentity: 'sales@startup.com',
+        senderAccountId: 'sales@startup.com',
       },
     },
   };
@@ -197,8 +197,6 @@ describe('EmailDispatchWorker', () => {
 
       const sendResult: SendEmailResult = {
         providerMessageId: 'resend-msg-12345',
-        rfcMessageId: '<msg-12345@startup.com>',
-        sentAt: new Date('2026-09-18T12:00:00Z'),
       };
       mockAdapter.sendEmail.mockResolvedValue(sendResult);
 

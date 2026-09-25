@@ -47,6 +47,8 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       data: {
         workspaceId,
         companyId,
+        senderAccountId: '',
+        templateId: '',
         name,
         normalizedName: name.toLowerCase(),
       },
@@ -385,9 +387,10 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
         data: {
           workspaceId: ws.id,
           companyId: company.id,
+          templateId: '',
           name,
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'Legacy Founder <founder@legacy-startup.com>',
+          senderAccountId: 'Legacy Founder <founder@legacy-startup.com>',
         },
       });
 
@@ -396,7 +399,7 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       });
 
       expect(fetched).not.toBeNull();
-      expect(fetched?.sendingIdentity).toBe(
+      expect(fetched?.senderAccountId).toBe(
         'Legacy Founder <founder@legacy-startup.com>',
       );
 
@@ -424,9 +427,10 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
         data: {
           workspaceId: ws.id,
           companyId: company.id,
+          templateId: '',
           name,
           normalizedName: name.toLowerCase(),
-          sendingIdentity: null,
+          senderAccountId: '',
         },
       });
 
@@ -445,9 +449,10 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
         data: {
           workspaceId: ws.id,
           companyId: company.id,
+          templateId: '',
           name,
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'This is not an email address',
+          senderAccountId: 'This is not an email address',
         },
       });
 
@@ -476,8 +481,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
           workspaceId: ws.id,
           companyId: company.id,
           name,
+          templateId: '',
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'Alice <alice@startup.io>',
+          senderAccountId: 'Alice <alice@startup.io>',
         },
       });
 
@@ -506,8 +512,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
           workspaceId: ws.id,
           companyId: company.id,
           name,
+          templateId: '',
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'Alice <alice@startup.io>',
+          senderAccountId: 'Alice <alice@startup.io>',
         },
       });
 
@@ -541,8 +548,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
           workspaceId: ws.id,
           companyId: company.id,
           name,
+          templateId: '',
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'Alice <alice@startup.io>',
+          senderAccountId: 'Alice <alice@startup.io>',
         },
       });
 
@@ -560,11 +568,12 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
     it('should classify campaign as AMBIGUOUS when historical EmailSends contradict the configured SenderAccount provider', async () => {
       const ws = await createTestWorkspace(prisma);
       const company = await createCompany(ws.id);
-      const contact = await prisma.contact.create({
+      const contact = await prisma.person.create({
         data: {
           workspaceId: ws.id,
-          companyId: company.id,
-          name: 'Target Contact',
+
+          firstName: 'Target Contact',
+          lastName: 'Contact',
           email: 'target@example.com',
         },
       });
@@ -583,16 +592,18 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
           workspaceId: ws.id,
           companyId: company.id,
           name,
+          templateId: '',
           normalizedName: name.toLowerCase(),
-          sendingIdentity: 'Alice <alice@startup.io>',
+          senderAccountId: 'Alice <alice@startup.io>',
         },
       });
 
-      const campaignContact = await prisma.campaignContact.create({
+      const campaignMember = await prisma.campaignMember.create({
         data: {
           workspaceId: ws.id,
           campaignId: campaign.id,
-          contactId: contact.id,
+          personId: contact.id,
+          
         },
       });
 
@@ -601,7 +612,6 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
         data: {
           workspaceId: ws.id,
           campaignId: campaign.id,
-          campaignContactId: campaignContact.id,
           subject: 'Historical Subject',
           body: 'Historical Body',
           provider: 'SES',

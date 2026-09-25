@@ -39,14 +39,15 @@ export interface CampaignDto {
   id: string;
   workspaceId: string;
   companyId: string;
+  senderAccountId: string;
+  templateId: string;
   name: string;
-  normalizedName?: string;
+  normalizedName: string;
   status: CampaignStatus;
-  senders?: CampaignSenderSummary[];
-  sendingIdentity: string | null;
   followUpDelayBusinessDays: number;
   createdAt: string;
   updatedAt: string;
+  senders?: CampaignSenderSummary[];
 }
 
 export interface CreateCampaignRequest {
@@ -55,7 +56,6 @@ export interface CreateCampaignRequest {
   senderAccountId: string;
   templateId: string;
   status: CampaignStatus;
-  sendingIdentity?: string;
   followUpDelayBusinessDays?: number;
 }
 

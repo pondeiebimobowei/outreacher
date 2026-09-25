@@ -95,7 +95,7 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
       id: 'cont-new-1',
       workspaceId: 'ws-100',
       companyId: 'comp-100',
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
       firstName: 'Jane',
       lastName: 'Doe',
       email: 'jane.doe@acme.com',
@@ -128,10 +128,10 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/companies/comp-100/contacts', {
         firstName: 'Jane',
-      lastName: 'Doe',
+        lastName: 'Doe',
         email: 'jane.doe@acme.com',
         title: 'Head of Product',
-        contactKind: 'PERSON',
+        personKind: 'PERSON',
         sourceUrl: 'https://acme.com/team',
       });
       expect(mockOnClose).toHaveBeenCalled();

@@ -1,5 +1,5 @@
 import {
-  CampaignContactStatus,
+  CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
   JobStatus,
@@ -19,6 +19,7 @@ import { MockEmailSender } from '../../src/modules/email/infrastructure/mock-ema
 import { EmailProviderRegistry } from '../../src/modules/email/infrastructure/email-provider.registry';
 import { SecretResolverService } from '../../src/modules/email/infrastructure/secret-resolver.service';
 import { AppConflictException } from '../../src/common/errors/application.exception';
+import { CampaignContactStatus } from '@repo/shared';
 
 jest.unmock('@repo/db');
 
@@ -80,18 +81,19 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
   }) {
     const email = params?.contactEmail || 'founder@target.com';
     const status = params?.campaignStatus || CampaignStatus.DRAFT;
-    const contactStatus = params?.contactStatus || CampaignContactStatus.READY;
+    const contactStatus = params?.contactStatus || 'READY';
     const campaignName =
       params?.campaignName ||
       `Q3 Outbound Campaign ${Math.random().toString(36).substring(2, 9)}`;
     const normalizedName = campaignName.toLowerCase();
 
-    const contact = await realPrisma.contact.create({
+    const contact = await realPrisma.campaignMember.create({
       data: {
         workspaceId,
-        companyId,
-        email,
-        name: 'Jane Doe',
+        personId: 'person-1',
+        campaignId: '',
+        
+        
       },
     });
 
@@ -100,17 +102,19 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         workspaceId,
         companyId,
         name: campaignName,
+        templateId: '',
+
         normalizedName,
         status,
-        sendingIdentity: 'sales@startup.com',
+        senderAccountId: 'sales@startup.com',
       },
     });
 
-    const campaignContact = await realPrisma.campaignContact.create({
+    const campaignMember = await realPrisma.campaignMember.create({
       data: {
         workspaceId,
         campaignId: campaign.id,
-        contactId: contact.id,
+        personId: '',
         status: contactStatus,
         currentSubject: 'Accelerate your pipeline with AI',
         currentBody:
@@ -145,12 +149,12 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       },
     });
 
-    return { contact, campaign, campaignContact };
+    return { contact, campaign, campaignMember };
   }
 
   describe('Contract 1: same key + same contact concurrency', () => {
     it('creates exactly one reservation/job and all callers replay 202 with identical jobId', async () => {
-      const { campaignContact } = await seedContactAndCampaign({
+      const { campaignMember } = await seedContactAndCampaign({
         campaignStatus: CampaignStatus.DRAFT,
       });
 
@@ -162,7 +166,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         Array.from({ length: CONCURRENCY_COUNT }).map(() =>
           useCase.execute({
             workspaceId,
-            campaignContactId: campaignContact.id,
+            campaignMemberId: campaignMember.id,
             clientKey,
           }),
         ),
@@ -181,7 +185,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
 
       // Verify PostgreSQL database state: exactly ONE of each record created
       const sends = await realPrisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(1);
       expect(sends[0].status).toBe(EmailSendStatus.RESERVED);
@@ -199,17 +203,17 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         where: { workspaceId, key: clientKey },
       });
       expect(idempRecords).toHaveLength(1);
-      expect(idempRecords[0].targetId).toBe(campaignContact.id);
+      expect(idempRecords[0].targetId).toBe(campaignMember.id);
       expect(idempRecords[0].jobId).toBe(firstJobId);
       expect(idempRecords[0].responseStatus).toBe(202);
 
-      const updatedContact = await realPrisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const updatedContact = await realPrisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(updatedContact?.status).toBe(CampaignContactStatus.SENDING);
+      expect(updatedContact?.status).toBe(CampaignMemberStatus.SENDING);
 
       const updatedCampaign = await realPrisma.campaign.findUnique({
-        where: { id: campaignContact.campaignId },
+        where: { id: campaignMember.campaignId },
       });
       expect(updatedCampaign?.status).toBe(CampaignStatus.ACTIVE);
     });
@@ -225,7 +229,8 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
           name: 'Concurrent Multi-Contact Outreach',
           normalizedName: 'concurrent multi-contact outreach',
           status: CampaignStatus.DRAFT,
-          sendingIdentity: 'founder@startup.com',
+          senderAccountId: 'founder@startup.com',
+          templateId: '',
         },
       });
 
@@ -253,40 +258,40 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         },
       });
 
-      const contactA = await realPrisma.contact.create({
+      const contactA = await realPrisma.person.create({
         data: {
           workspaceId,
-          companyId,
           email: 'contact.a@target.com',
-          name: 'Contact A',
+          firstName: 'Contact',
+          lastName: 'A',
         },
       });
-      const campaignContactA = await realPrisma.campaignContact.create({
+      const campaignContactA = await realPrisma.campaignMember.create({
         data: {
           workspaceId,
           campaignId: campaign.id,
-          contactId: contactA.id,
-          status: CampaignContactStatus.READY,
+          personId: contactA.id,
+          status: 'READY',
           currentSubject: 'Outreach Subject A',
           currentBody:
             'Outreach message body A that exceeds twenty characters.',
         },
       });
 
-      const contactB = await realPrisma.contact.create({
+      const contactB = await realPrisma.person.create({
         data: {
           workspaceId,
-          companyId,
           email: 'contact.b@target.com',
-          name: 'Contact B',
+          firstName: 'Contact',
+          lastName: 'B',
         },
       });
-      const campaignContactB = await realPrisma.campaignContact.create({
+      const campaignContactB = await realPrisma.campaignMember.create({
         data: {
           workspaceId,
           campaignId: campaign.id,
-          contactId: contactB.id,
-          status: CampaignContactStatus.READY,
+          personId: contactB.id,
+          status: "READY",
           currentSubject: 'Outreach Subject B',
           currentBody:
             'Outreach message body B that exceeds twenty characters.',
@@ -300,12 +305,12 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       const [resA, resB] = await Promise.all([
         useCase.execute({
           workspaceId,
-          campaignContactId: campaignContactA.id,
+          campaignMemberId: campaignContactA.id,
           clientKey: keyA,
         }),
         useCase.execute({
           workspaceId,
-          campaignContactId: campaignContactB.id,
+          campaignMemberId: campaignContactB.id,
           clientKey: keyB,
         }),
       ]);
@@ -324,15 +329,15 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
 
       // Both contacts transitioned to SENDING
       const [updatedA, updatedB] = await Promise.all([
-        realPrisma.campaignContact.findUnique({
+        realPrisma.campaignMember.findUnique({
           where: { id: campaignContactA.id },
         }),
-        realPrisma.campaignContact.findUnique({
+        realPrisma.campaignMember.findUnique({
           where: { id: campaignContactB.id },
         }),
       ]);
-      expect(updatedA?.status).toBe(CampaignContactStatus.SENDING);
-      expect(updatedB?.status).toBe(CampaignContactStatus.SENDING);
+      expect(updatedA?.status).toBe("SENDING");
+      expect(updatedB?.status).toBe("SENDING");
 
       // Two distinct EmailSend records created in RESERVED status
       const sends = await realPrisma.emailSend.findMany({
@@ -354,10 +359,10 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
 
   describe('Contract 3: Concurrent Idempotency Key Cross-Contact Collision', () => {
     it('when 2 parallel requests use the same Idempotency-Key for different contacts, exactly one commits and the other throws 409', async () => {
-      const { campaignContact: contactA } = await seedContactAndCampaign({
+      const { campaignMember: contactA } = await seedContactAndCampaign({
         contactEmail: 'userA@target.com',
       });
-      const { campaignContact: contactB } = await seedContactAndCampaign({
+      const { campaignMember: contactB } = await seedContactAndCampaign({
         contactEmail: 'userB@target.com',
       });
 
@@ -367,12 +372,12 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       const results = await Promise.allSettled([
         useCase.execute({
           workspaceId,
-          campaignContactId: contactA.id,
+          campaignMemberId: contactA.id,
           clientKey: collisionKey,
         }),
         useCase.execute({
           workspaceId,
-          campaignContactId: contactB.id,
+          campaignMemberId: contactB.id,
           clientKey: collisionKey,
         }),
       ]);
@@ -414,33 +419,33 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         where: { workspaceId },
       });
       expect(sends).toHaveLength(1);
-      expect(sends[0].campaignContactId).toBe(winningTargetId);
+      expect(sends[0].campaignMemberId).toBe(winningTargetId);
       expect(sends[0].status).toBe(EmailSendStatus.RESERVED);
 
       // Winning contact is SENDING
-      const winningContact = await realPrisma.campaignContact.findUnique({
+      const winningContact = await realPrisma.campaignMember.findUnique({
         where: { id: winningTargetId },
       });
-      expect(winningContact?.status).toBe(CampaignContactStatus.SENDING);
+      expect(winningContact?.status).toBe("SENDING");
 
       // Losing contact remains READY
       const losingTargetId =
         winningTargetId === contactA.id ? contactB.id : contactA.id;
-      const losingContact = await realPrisma.campaignContact.findUnique({
+      const losingContact = await realPrisma.campaignMember.findUnique({
         where: { id: losingTargetId },
       });
-      expect(losingContact?.status).toBe(CampaignContactStatus.READY);
+      expect(losingContact?.status).toBe("READY");
     });
   });
 
   describe('Contract 4: Full Worker Claim and Finalization in Real PostgreSQL', () => {
     it('claims job with FOR UPDATE SKIP LOCKED, executes provider dispatch, and updates all records to SENT', async () => {
-      const { campaignContact } = await seedContactAndCampaign();
+      const { campaignMember } = await seedContactAndCampaign();
 
       // 1. Reserve dispatch via use-case
       const reservation = await useCase.execute({
         workspaceId,
-        campaignContactId: campaignContact.id,
+        campaignMemberId: campaignMember.id,
         clientKey: 'key-worker-e2e-real-db',
       });
       expect(reservation.jobId).toBeDefined();
@@ -460,7 +465,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       expect(runningJob?.attemptCount).toBe(1);
 
       const sendingSend = await realPrisma.emailSend.findFirst({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sendingSend?.status).toBe(EmailSendStatus.SENDING);
 
@@ -476,7 +481,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       expect(completedJob?.completedAt).toBeDefined();
 
       const sentEmail = await realPrisma.emailSend.findFirst({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sentEmail?.status).toBe(EmailSendStatus.SENT);
       expect(sentEmail?.sentAt).toBeDefined();
@@ -486,10 +491,10 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       // Provider Message ID and RFC Message ID must be distinct values
       expect(sentEmail?.providerMessageId).not.toBe(sentEmail?.messageId);
 
-      const sentContact = await realPrisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const sentContact = await realPrisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(sentContact?.status).toBe(CampaignContactStatus.SENT);
+      expect(sentContact?.status).toBe("SENT");
 
       // Subsequent claim finds no more eligible jobs
       const noMoreJobs = await worker.claimNextJob();

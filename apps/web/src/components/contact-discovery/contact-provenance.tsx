@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { EvaluatedContactDto } from '../../api/contacts';
+import { EvaluatedPersonDto } from '../../api/contacts';
 
 interface ContactProvenanceProps {
-  contact: EvaluatedContactDto;
+  contact: EvaluatedPersonDto;
 }
 
 export function ContactProvenance({ contact }: ContactProvenanceProps) {

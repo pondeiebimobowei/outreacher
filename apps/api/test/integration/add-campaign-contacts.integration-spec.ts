@@ -56,27 +56,30 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
         workspace: { connect: { id: workspaceId } },
         company: { connect: { id: companyId } },
         name: 'Integration Campaign',
+        templateId: '',
+        senderAccountId: '',
         normalizedName: 'integration campaign',
       },
     });
     campaignId = campaign.id;
 
-    const contact1 = await realPrisma.contact.create({
+    const contact1 = await realPrisma.person.create({
       data: {
         workspace: { connect: { id: workspaceId } },
-        company: { connect: { id: companyId } },
-        name: 'Contact One',
+        
         email: 'one@example.com',
+        firstName: 'Contact',
+        lastName: 'One',
       },
     });
     contactId1 = contact1.id;
 
-    const contact2 = await realPrisma.contact.create({
+    const contact2 = await realPrisma.person.create({
       data: {
         workspace: { connect: { id: workspaceId } },
-        company: { connect: { id: companyId } },
-        name: 'Contact Two',
         email: 'two@example.com',
+        firstName: 'Contact',
+        lastName: 'Two',
       },
     });
     contactId2 = contact2.id;
@@ -95,7 +98,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
       }),
     ).rejects.toThrow(AppNotFoundException);
 
-    const count = await realPrisma.campaignContact.count({
+    const count = await realPrisma.campaignMember.count({
       where: { campaignId },
     });
     expect(count).toBe(0);
@@ -108,7 +111,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     expect(firstResult.bound).toHaveLength(1);
     expect(firstResult.ignoredDuplicateCount).toBe(0);
 
-    const countAfterFirst = await realPrisma.campaignContact.count({
+    const countAfterFirst = await realPrisma.campaignMember.count({
       where: { campaignId },
     });
     expect(countAfterFirst).toBe(1);
@@ -119,7 +122,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     expect(secondResult.bound).toHaveLength(0);
     expect(secondResult.ignoredDuplicateCount).toBe(1);
 
-    const countAfterSecond = await realPrisma.campaignContact.count({
+    const countAfterSecond = await realPrisma.campaignMember.count({
       where: { campaignId },
     });
     expect(countAfterSecond).toBe(1);
@@ -130,12 +133,12 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
       contactIds: [contactId1],
     });
 
-    const binding = await realPrisma.campaignContact.findFirst({
-      where: { campaignId, contactId: contactId1 },
+    const binding = await realPrisma.campaignMember.findFirst({
+      where: { campaignId, personId: contactId1 },
     });
     expect(binding).not.toBeNull();
 
-    await realPrisma.campaignContact.update({
+    await realPrisma.campaignMember.update({
       where: { id: binding!.id },
       data: {
         status: 'READY',
@@ -150,14 +153,14 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     expect(retryResult.bound).toHaveLength(0);
     expect(retryResult.ignoredDuplicateCount).toBe(1);
 
-    const unchanged = await realPrisma.campaignContact.findFirst({
-      where: { campaignId, contactId: contactId1 },
+    const unchanged = await realPrisma.campaignMember.findFirst({
+      where: { campaignId },
     });
     expect(unchanged!.status).toBe('READY');
     expect(unchanged!.currentSubject).toBe('Subject after review');
     expect(unchanged!.currentBody).toBe('Body after review');
 
-    const totalCount = await realPrisma.campaignContact.count({
+    const totalCount = await realPrisma.campaignMember.count({
       where: { campaignId },
     });
     expect(totalCount).toBe(1);
@@ -170,7 +173,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     expect(result.bound).toHaveLength(2);
     expect(result.ignoredDuplicateCount).toBe(0);
 
-    const bindings = await realPrisma.campaignContact.findMany({
+    const bindings = await realPrisma.campaignMember.findMany({
       where: { campaignId },
     });
 

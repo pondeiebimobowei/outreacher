@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
@@ -80,16 +80,16 @@ describe('Campaign Orchestration (e2e)', () => {
 
   async function seedContact(
     workspaceId: string,
-    companyId: string,
     email: string,
-    name = 'Contact Person',
+    firstName: string,
+    lastName: string,
   ) {
-    return prisma.contact.create({
+    return prisma.person.create({
       data: {
         workspaceId,
-        companyId,
         email,
-        name,
+        firstName,
+        lastName,
       },
     });
   }
@@ -108,7 +108,7 @@ describe('Campaign Orchestration (e2e)', () => {
         .send({
           name: 'Q1 Outreach Campaign',
           companyId: company.id,
-          sendingIdentity: 'sender-identity-ref-01',
+          senderAccountId: 'sender-identity-ref-01',
         })
         .expect(201);
 
@@ -117,7 +117,7 @@ describe('Campaign Orchestration (e2e)', () => {
       expect(res.body.companyId).toBe(company.id);
       expect(res.body.workspaceId).toBe(user.workspace.id);
       expect(res.body.status).toBe('DRAFT');
-      expect(res.body.sendingIdentity).toBe('sender-identity-ref-01');
+      expect(res.body.senderAccountId).toBe('sender-identity-ref-01');
       expect(res.body.followUpDelayBusinessDays).toBe(4);
     });
 
@@ -334,13 +334,15 @@ describe('Campaign Orchestration (e2e)', () => {
       const company = await seedCompany(user.workspace.id);
       const contact1 = await seedContact(
         user.workspace.id,
-        company.id,
         'c1@example.com',
+        'Contact',
+        'One',
       );
       const contact2 = await seedContact(
         user.workspace.id,
-        company.id,
         'c2@example.com',
+        'Contact',
+        'Two',
       );
 
       const created = await request(app.getHttpServer())
@@ -404,8 +406,9 @@ describe('Campaign Orchestration (e2e)', () => {
       const companyB = await seedCompany(userB.workspace.id, 'Company B');
       const contactB = await seedContact(
         userB.workspace.id,
-        companyB.id,
         'contactb@example.com',
+        'Contact',
+        'B',
       );
 
       const createdA = await request(app.getHttpServer())
@@ -434,8 +437,9 @@ describe('Campaign Orchestration (e2e)', () => {
       const companyB = await seedCompany(userB.workspace.id, 'Company B');
       const contactA = await seedContact(
         userA.workspace.id,
-        companyB.id,
         'contacta@example.com',
+        'Contact',
+        'A',
       );
 
       const createdB = await request(app.getHttpServer())

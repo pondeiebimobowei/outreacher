@@ -35,12 +35,13 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
         domain: 'testcompany.com',
       },
     });
-    const contact = await realPrisma.contact.create({
+    const contact = await realPrisma.person.create({
       data: {
         workspace: { connect: { id: workspace.id } },
-        company: { connect: { id: company.id } },
+
         email: 'test@example.com',
-        name: 'Test User',
+        firstName: '',
+        lastName: ''
       },
     });
     const campaign = await realPrisma.campaign.create({
@@ -48,14 +49,17 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
         workspace: { connect: { id: workspace.id } },
         company: { connect: { id: company.id } },
         name: 'Camp',
+        templateId: '',
+        senderAccountId: '',
+
         normalizedName: 'camp',
       },
     });
 
-    const campaignContact = await realPrisma.campaignContact.create({
+    const campaignMember = await realPrisma.campaignMember.create({
       data: {
         workspace: { connect: { id: workspace.id } },
-        contact: { connect: { id: contact.id } },
+        person: { connect: { id: contact.id } },
         campaign: { connect: { id: campaign.id } },
         status: 'PENDING',
         currentSubject: 'Valid subject',
@@ -72,8 +76,8 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
             return target.$transaction(async (tx: any) => {
               const txProxy = new Proxy(tx, {
                 get(tTarget, tProp) {
-                  if (tProp === 'campaignContact') {
-                    return new Proxy(tTarget.campaignContact, {
+                  if (tProp === 'campaignMember') {
+                    return new Proxy(tTarget.campaignMember, {
                       get(ccTarget, ccProp) {
                         if (ccProp === 'findUnique') {
                           return async (args: any) => {
@@ -83,9 +87,9 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
                             // SIMULATE CONCURRENT MUTATION
                             // We use the main realPrisma connection to update the row out-of-band.
                             // This bumps the updatedAt timestamp in Postgres, simulating a race.
-                            if (args.where.id === campaignContact.id) {
-                              await realPrisma.campaignContact.update({
-                                where: { id: campaignContact.id },
+                            if (args.where.id === campaignMember.id) {
+                              await realPrisma.campaignMember.update({
+                                where: { id: campaignMember.id },
                                 data: { currentSubject: 'Concurrent edit' },
                               });
                             }
@@ -119,13 +123,13 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
     await expect(
       useCase.execute({
         workspaceId: workspace.id,
-        campaignContactId: campaignContact.id,
+        campaignMemberId: '',
       }),
     ).rejects.toThrow(AppConflictException);
 
     // 4. Verify persisted final state remains PENDING
-    const finalContact = await realPrisma.campaignContact.findUnique({
-      where: { id: campaignContact.id },
+    const finalContact = await realPrisma.campaignMember.findUnique({
+      where: { id: campaignMember.id },
     });
 
     expect(finalContact).toBeDefined();

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { EvaluatedContactDto } from '../../api/contacts';
+import { EvaluatedPersonDto } from '../../api/contacts';
 
 interface ContactDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contact: EvaluatedContactDto | null;
+  contact: EvaluatedPersonDto | null;
   companyName: string;
   onSelect: (contactId: string) => void;
   isSelectPending: boolean;
@@ -67,7 +67,7 @@ export function ContactDetailModal({
 
   if (!isOpen || !contact) return null;
 
-  const isPerson = contact.contactKind === 'PERSON';
+  const isPerson = contact.personKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
   const avatarBg = pickAvatarColor(contact.firstName || contact.id);
@@ -114,7 +114,7 @@ export function ContactDetailModal({
                       : 'bg-amber-100 text-amber-800 border border-amber-300'
                   }`}
                 >
-                  {contact.contactKind}
+                  {contact.personKind}
                 </span>
                 {contact.source === 'USER_PROVIDED' && (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-300 uppercase tracking-wider">

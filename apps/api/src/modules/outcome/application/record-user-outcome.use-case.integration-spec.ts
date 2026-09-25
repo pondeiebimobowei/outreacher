@@ -39,7 +39,7 @@ describe('RecordUserOutcomeUseCase Integration', () => {
       data: { id: workspaceId, name: 'Outcome WS' },
     });
     await prisma.user.create({
-      data: { id: userId, email: `test-${userId}@test.com`, name: 'User' },
+      data: { id: userId, email: `test-${userId}@test.com`, firstName: 'User', lastName: '' },
     });
     await prisma.workspaceMember.create({
       data: { workspaceId, userId, role: 'OWNER' },
@@ -57,19 +57,20 @@ describe('RecordUserOutcomeUseCase Integration', () => {
         id: campaignId,
         workspaceId,
         companyId,
+        templateId: '',
         name: 'Outcome Camp',
         normalizedName: 'occamp',
         status: 'DRAFT',
-        sendingIdentity: 'ME',
+        senderAccountId: 'ME',
       },
     });
     await prisma.person.create({
       data: {
         id: personId,
         workspaceId,
-        companyId,
         personKind: 'PERSON',
-        name: 'John',
+        firstName: 'John',
+        lastName: '',
         email: `${personId}@test.com`,
       },
     });

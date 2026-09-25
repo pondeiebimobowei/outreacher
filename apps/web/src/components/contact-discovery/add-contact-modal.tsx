@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ContactKind, createCompanyContact, CreateContactRequest } from '../../api/contacts';
+import { createCompanyContact, CreateContactRequest, PersonKind } from '../../api/contacts';
 
 interface AddContactModalProps {
   companyId: string;
@@ -19,7 +19,7 @@ export function AddContactModal({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
-  const [contactKind, setContactKind] = useState<ContactKind>('PERSON');
+  const [personKind, setPersonKind] = useState<PersonKind>('PERSON');
   const [sourceUrl, setSourceUrl] = useState('');
 
   const [errors, setErrors] = useState<{
@@ -87,7 +87,7 @@ export function AddContactModal({
       lastName: lastName.trim(),
       email: email.trim() || null,
       title: title.trim() || null,
-      personKind: contactKind,
+      personKind: personKind,
       sourceUrl: sourceUrl.trim() || null,
     });
   };
@@ -245,8 +245,8 @@ export function AddContactModal({
               <select
                 className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 bg-slate-50"
                 id="contact-kind-select"
-                onChange={(e) => setContactKind(e.target.value as ContactKind)}
-                value={contactKind}
+                onChange={(e) => setPersonKind(e.target.value as PersonKind)}
+                value={personKind}
               >
                 <option value="PERSON">PERSON (Individual)</option>
                 <option value="ROLE_ADDRESS">ROLE_ADDRESS (Functional Inbox)</option>

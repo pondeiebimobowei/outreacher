@@ -6,7 +6,7 @@ import {
 } from '../../../../test/helpers/db-test-harness';
 import {
   MarkContactRepliedUseCase,
-  ContactStateTransitionException,
+
 } from './mark-contact-replied.use-case';
 
 // MarkContactRepliedUseCase is a plain injectable — instantiate directly
@@ -34,18 +34,20 @@ async function buildScenario(
       workspaceId: wsId,
       companyId: company.id,
       name: 'Camp',
+      templateId: '',
       normalizedName: 'camp',
       status: 'DRAFT',
-      sendingIdentity: 'ME',
+      senderAccountId: 'ME',
     },
   });
   const contact = await prisma.person.create({
     data: {
       id: randomUUID(),
       workspaceId: wsId,
-      companyId: company.id,
+
       personKind: 'PERSON',
-      name: 'Jane Doe',
+      firstName: 'Jane',
+      lastName: 'Doe',
     },
   });
   const campaignMemberId = randomUUID();
@@ -55,7 +57,6 @@ async function buildScenario(
       workspaceId: wsId,
       campaignId: campaign.id,
       personId: contact.id,
-      status: contactStatus,
       targetRole: 'Eng',
     },
   });
@@ -343,7 +344,7 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
     // but before $transaction commits, by hijacking the logger message.
     const loggerSpy = jest
       .spyOn((useCase as any).logger, 'log')
-      .mockImplementation((msg: string) => {
+      .mockImplementation((msg) => {
         if (typeof msg === 'string' && msg.includes('Cancelled')) {
           throw new Error('Simulated pre-commit failure');
         }

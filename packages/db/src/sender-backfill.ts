@@ -1,3 +1,5 @@
+import { Campaign } from "../generated/prisma/client.js";
+
 export type BackfillClassification =
   | 'PROVABLY_ASSOCIABLE'
   | 'AMBIGUOUS'
@@ -7,7 +9,7 @@ export type BackfillClassification =
 export interface CampaignBackfillEvaluation {
   campaignId: string;
   workspaceId: string;
-  sendingIdentity: string | null;
+  senderAccountId: string | null;
   classification: BackfillClassification;
   reason: string;
   proposedAction: string;
@@ -51,26 +53,26 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       id: true,
       workspaceId: true,
       name: true,
-      sendingIdentity: true,
+      senderAccountId: true,
       campaignSenderAccounts: {
         where: { status: 'ACTIVE' },
         select: { id: true, senderAccountId: true },
       },
     },
     orderBy: { createdAt: 'asc' },
-  });
+  }) as Campaign[];
 
   const evaluations: CampaignBackfillEvaluation[] = [];
 
   for (const campaign of campaigns) {
-    const rawIdentity = campaign.sendingIdentity;
+    const rawIdentity = campaign.senderAccountId;
 
     // Case 1: NULL or empty legacy identity -> UNMIGRATED_NEEDS_SENDER
     if (!rawIdentity || rawIdentity.trim() === '') {
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity ?? 'NULL',
+        senderAccountId: rawIdentity,
         classification: 'UNMIGRATED_NEEDS_SENDER',
         reason: 'Legacy sending_identity is null or empty. Campaign has no associated sender configured.',
         proposedAction: 'Retain campaign in current state. Prompt workspace owner in UI to configure an Integration and Sender Account before dispatch.',
@@ -84,7 +86,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity,
+        senderAccountId: rawIdentity,
         classification: 'UNMIGRATED_INVALID_LEGACY_IDENTITY',
         reason: `Legacy identity "${rawIdentity}" is malformed and cannot be parsed into a valid email address.`,
         proposedAction: 'Retain campaign in current state. Flag for manual remediation in workspace campaign settings.',
@@ -95,13 +97,13 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
     const normalizedEmail = parsed.email;
 
     // Check if campaign already has an active binding
-    if (campaign.campaignSenderAccounts && campaign.campaignSenderAccounts.length > 0) {
+    if (campaign.senderAccountId) {
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity,
+        senderAccountId: rawIdentity,
         classification: 'PROVABLY_ASSOCIABLE',
-        reason: `Campaign already has an active CampaignSenderAccount binding (${campaign.campaignSenderAccounts[0].senderAccountId}).`,
+        reason: `Campaign already has an active CampaignSenderAccount binding (${campaign.senderAccountId}).`,
         proposedAction: 'No action needed. Campaign already bound to an active sender account.',
       });
       continue;
@@ -127,7 +129,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity,
+        senderAccountId: rawIdentity,
         classification: 'UNMIGRATED_NEEDS_SENDER',
         reason: `Legacy identity parsed as "${normalizedEmail}", but workspace has no authoritative historical SenderAccount or verified sender record for this address. Provider ownership cannot be inferred from workspace integrations alone.`,
         proposedAction: 'Retain campaign in current state. Prompt workspace owner in UI to explicitly configure a Sender Account for this identity.',
@@ -140,7 +142,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity,
+        senderAccountId: rawIdentity,
         classification: 'AMBIGUOUS',
         reason: `Multiple active SenderAccounts found in workspace for email "${normalizedEmail}". Cannot deterministically select provider binding.`,
         proposedAction: 'Retain campaign in current state. Prompt workspace owner in UI to select the intended Sender Account.',
@@ -171,7 +173,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       evaluations.push({
         campaignId: campaign.id,
         workspaceId: campaign.workspaceId,
-        sendingIdentity: rawIdentity,
+        senderAccountId: rawIdentity,
         classification: 'AMBIGUOUS',
         reason: `SenderAccount ${senderAccount.id} uses provider "${senderAccount.integration.provider}", but historical EmailSends for this campaign record provider "${conflictingSend.provider}". Conflicting historical evidence.`,
         proposedAction: 'Retain campaign in current state. Require manual operator review in UI to resolve conflicting provider history.',
@@ -183,7 +185,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
     evaluations.push({
       campaignId: campaign.id,
       workspaceId: campaign.workspaceId,
-      sendingIdentity: rawIdentity,
+      senderAccountId: rawIdentity,
       classification: 'PROVABLY_ASSOCIABLE',
       reason: `Authoritative evidence verified: Active SenderAccount "${senderAccount.id}" exists for "${normalizedEmail}" backed by integration "${senderAccount.integration.name}" (${senderAccount.integration.provider}), and historical sends are consistent.`,
       proposedAction: `Link existing SenderAccount (id="${senderAccount.id}") to Campaign via CampaignSenderAccount.`,
@@ -201,7 +203,7 @@ export function formatEvaluationTable(evaluations: CampaignBackfillEvaluation[])
   const headers = [
     'campaignId',
     'workspaceId',
-    'sendingIdentity',
+    'senderAccountId',
     'classification',
     'reason',
     'proposed action',
@@ -210,7 +212,7 @@ export function formatEvaluationTable(evaluations: CampaignBackfillEvaluation[])
   const rows = evaluations.map((e) => [
     e.campaignId,
     e.workspaceId,
-    e.sendingIdentity ?? 'NULL',
+    e.senderAccountId ?? 'NULL',
     e.classification,
     e.reason,
     e.proposedAction,

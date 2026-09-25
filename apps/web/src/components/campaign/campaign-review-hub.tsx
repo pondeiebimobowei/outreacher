@@ -184,7 +184,7 @@ export function CampaignReviewHub({
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline gap-2">
             <span className="text-[11.5px] font-semibold w-14 shrink-0" style={{ color: 'var(--color-muted-fg, #6B7280)', fontFamily: '"Plus Jakarta Sans", sans-serif' }}>Identity</span>
-            <span className="text-[13px]" style={{ color: 'var(--color-primary, #111827)', fontFamily: 'sans-serif' }}>{campaign.sendingIdentity || 'Not assigned'}</span>
+            <span className="text-[13px]" style={{ color: 'var(--color-primary, #111827)', fontFamily: 'sans-serif' }}>{campaign.senders?.[0]?.fromEmail || 'Not assigned'}</span>
           </div>
         </div>
       </div>

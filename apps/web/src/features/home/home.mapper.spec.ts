@@ -37,7 +37,7 @@ describe('Home Presentation Mapper — Deterministic Routing & Value Transformat
         kind: 'OUTREACH_REVIEW',
         company: { id: 'comp-1', name: 'Acme Corp' },
         campaign: { id: 'camp-1', name: 'Outreach Sprint', status: 'ACTIVE' },
-        campaignContact: { id: 'cc-1', status: 'PENDING' },
+        campaignMember: { id: 'cc-1', status: 'PENDING' },
         source: { domain: 'OUTREACH', state: 'PENDING' },
         destination: { type: 'CONTACT_REVIEW' },
       };
@@ -76,7 +76,7 @@ describe('Home Presentation Mapper — Deterministic Routing & Value Transformat
         kind: 'SEND_FAILURE',
         company: { id: 'comp-2', name: 'Stripe' },
         campaign: { id: 'camp-2', name: 'Tech Lead Outreach', status: 'ACTIVE' },
-        campaignContact: { id: 'cc-2', status: 'FAILED' },
+        campaignMember: { id: 'cc-2', status: 'FAILED' },
         source: { domain: 'EMAIL', state: 'FAILED' },
         destination: { type: 'CAMPAIGN' },
       };

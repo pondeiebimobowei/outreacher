@@ -22,9 +22,10 @@ import {
   EmailSendStatus,
   JobStatus,
   CampaignStatus,
-  CampaignContactStatus,
+
   Job,
   Prisma,
+  CampaignMemberStatus,
 } from '@repo/db';
 import {
   EmailDispatchErrorCode,
@@ -113,6 +114,8 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
       data: {
         workspaceId: workspace.id,
         companyId: company.id,
+        templateId: '',
+        senderAccountId: '',
         name: 'Test Camp',
         normalizedName: 'test camp',
       },
@@ -124,30 +127,31 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
         senderAccountId: senderAccount.id,
       },
     });
-    const contact = await prisma.contact.create({
+    const contact = await prisma.person.create({
       data: {
         workspaceId: workspace.id,
-        companyId: company.id,
+        personKind: 'PERSON',
+        firstName: 'Target',
+        lastName: 'Target',
         email: 'target@target.com',
-        name: 'Target Target',
       },
     });
-    const campaignContact = await prisma.campaignContact.create({
+    const campaignMember = await prisma.campaignMember.create({
       data: {
         workspaceId: workspace.id,
         campaignId: campaign.id,
-        contactId: contact.id,
+        personId: contact.id,
         currentSubject: 'Hello',
         currentBody: 'Test body test body test body test',
-        status: CampaignContactStatus.READY,
+        status: CampaignMemberStatus.READY,
       },
     });
 
-    return { workspace, senderAccount, campaign, campaignContact };
+    return { workspace, senderAccount, campaign, campaignMember };
   }
 
   it('1. Capacity Locking Invariant Regression Test', async () => {
-    const { workspace, senderAccount, campaignContact } = await createFixture();
+    const { workspace, senderAccount, campaignMember } = await createFixture();
 
     // The SendEligibilityService abstraction forces capacity locking on creation.
     // We cannot create a capacity-consuming email send through it without a transaction.
@@ -155,13 +159,12 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
     await expect(
       service.reserveSenderCapacityAndCreateEmailSend(
-        // @ts-expect-error Intentionally passing a non-transaction Prisma client to verify it fails if not a tx
         // Actually Prisma clients often look similar, but we test the application boundary method itself here.
         prisma,
         workspace.id,
-        campaignContact.campaignId,
+        campaignMember.campaignId,
         {
-          campaignContactId: campaignContact.id,
+          campaignMemberId: '',
           type: 'INITIAL',
           subject: 'Test Subject',
           body: 'Test Body',
@@ -172,13 +175,13 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     );
 
     // Verify it succeeds when called within a real transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
       const result = await service.reserveSenderCapacityAndCreateEmailSend(
         tx,
         workspace.id,
-        campaignContact.campaignId,
+        campaignMember.campaignId,
         {
-          campaignContactId: campaignContact.id,
+          campaignMemberId: campaignMember.id,
           type: 'INITIAL',
           subject: 'Test Subject',
           body: 'Test Body',
@@ -190,37 +193,38 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('2. Capacity Race & Serialization Test', async () => {
-    const { workspace, campaignContact, senderAccount, campaign } =
+    const { workspace, campaignMember, senderAccount, campaign } =
       await createFixture(1);
 
-    const contact2 = await prisma.contact.create({
+    const contact2 = await prisma.person.create({
       data: {
         workspaceId: workspace.id,
-        companyId: campaign.companyId,
+        
         email: 'target2@target.com',
-        name: 'Target2 Target2',
+        firstName: '',
+        lastName: '',
       },
     });
-    const campaignContact2 = await prisma.campaignContact.create({
+    const campaignContact2 = await prisma.campaignMember.create({
       data: {
         workspaceId: workspace.id,
         campaignId: campaign.id,
-        contactId: contact2.id,
+        personId: contact2.id,
         currentSubject: 'Hello2',
         currentBody: 'Test body test body test body test',
-        status: CampaignContactStatus.READY,
+        status: CampaignMemberStatus.READY,
       },
     });
 
     const results = await Promise.allSettled([
       useCase.execute({
         workspaceId: workspace.id,
-        campaignContactId: campaignContact.id,
+        campaignMemberId: campaignMember.id,
         clientKey: 'client1',
       }),
       useCase.execute({
         workspaceId: workspace.id,
-        campaignContactId: campaignContact2.id,
+        campaignMemberId: campaignContact2.id,
         clientKey: 'client2',
       }),
     ]);
@@ -240,10 +244,10 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('3. Transactional Queue Boundary Test', async () => {
-    const { workspace, campaignContact } = await createFixture();
+    const { workspace, campaignMember } = await createFixture();
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key3',
     });
 
@@ -256,7 +260,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('4. PROVIDER_TIMEOUT_UNCERTAIN Dead-Letter Test', async () => {
-    const { workspace, campaignContact } = await createFixture();
+    const { workspace, campaignMember } = await createFixture();
 
     // Change integration to a mock that throws timeout
     const integration = await prisma.integration.create({
@@ -289,7 +293,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key4',
     });
 
@@ -310,7 +314,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('6. Explicit Rejection preserves PROVIDER_REJECTED and is not converted to EXHAUSTED', async () => {
-    const { workspace, campaignContact, senderAccount } = await createFixture();
+    const { workspace, campaignMember, senderAccount } = await createFixture();
 
     // Change to mock that returns 400 Permanent Rejection
     const integration = await prisma.integration.create({
@@ -340,7 +344,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key6',
     });
 
@@ -358,7 +362,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     await worker.processJob(claimed!);
 
     const emailSend = await prisma.emailSend.findFirst({
-      where: { campaignContactId: campaignContact.id },
+      where: { campaignMemberId: campaignMember.id },
     });
     expect(emailSend?.status).toBe(EmailSendStatus.FAILED);
     expect(emailSend?.errorCode).toBe(EmailDispatchErrorCode.PROVIDER_REJECTED);
@@ -366,7 +370,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('5. Resend Idempotency 409 Replay Test', async () => {
-    const { workspace, campaignContact, senderAccount } = await createFixture();
+    const { workspace, campaignMember, senderAccount } = await createFixture();
 
     // Change to RESEND mock
     const integration = await prisma.integration.create({
@@ -392,7 +396,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key409',
     });
 
@@ -405,10 +409,10 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('6. Temporal Nullability & Provider Immutability Tests', async () => {
-    const { workspace, campaignContact, senderAccount } = await createFixture();
+    const { workspace, campaignMember, senderAccount } = await createFixture();
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key6',
     });
 
@@ -426,17 +430,17 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
   it('7. Production mock:// Security Test', async () => {
     process.env.NODE_ENV = 'production';
-    await expect(secretResolver.resolve('mock://key', 'SMTP')).rejects.toThrow(
+    await expect(secretResolver.resolve('mock://key', '', 'SMTP')).rejects.toThrow(
       'mock:// secrets are not allowed in production',
     );
     process.env.NODE_ENV = 'test'; // restore
   });
 
   it('8. Stale RUNNING job sweeper test', async () => {
-    const { workspace, campaignContact } = await createFixture();
+    const { workspace, campaignMember } = await createFixture();
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key_sweeper',
     });
 
@@ -464,10 +468,10 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
   });
 
   it('9. Stale job recovery lease-safety race condition', async () => {
-    const { workspace, campaignContact } = await createFixture();
+    const { workspace, campaignMember } = await createFixture();
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key_race',
     });
 
@@ -509,14 +513,14 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     });
     expect(finalEmailSend?.status).toBe('SENDING'); // Remains in SENDING, not FAILED or SENT
 
-    const finalContact = await prisma.campaignContact.findUnique({
-      where: { id: payload.campaignContactId },
+    const finalContact = await prisma.campaignMember.findUnique({
+      where: { id: payload.campaignMemberId },
     });
     expect(finalContact?.status).toBe('SENDING'); // Remains in SENDING, not FAILED or SENT
   });
 
   it('10. Stale worker side-effect duplication prevention via Idempotency Key', async () => {
-    const { workspace, campaignContact } = await createFixture();
+    const { workspace, campaignMember } = await createFixture();
 
     // Setup Resend integration
     const integration = await prisma.integration.create({
@@ -534,7 +538,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
     await useCase.execute({
       workspaceId: workspace.id,
-      campaignContactId: campaignContact.id,
+      campaignMemberId: campaignMember.id,
       clientKey: 'key_side_effect',
     });
 

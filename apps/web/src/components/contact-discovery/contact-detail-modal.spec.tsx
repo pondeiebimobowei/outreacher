@@ -1,17 +1,17 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { EvaluatedContactDto } from '../../api/contacts';
+import { EvaluatedPersonDto } from '../../api/contacts';
 import { ContactDetailModal } from './contact-detail-modal';
 
 describe('ContactDetailModal Component', () => {
   const mockOnClose = jest.fn();
   const mockOnSelect = jest.fn();
 
-  const mockContact: EvaluatedContactDto = {
+  const mockContact: EvaluatedPersonDto = {
     id: 'cont-100',
     workspaceId: 'ws-1',
     companyId: 'comp-1',
-    contactKind: 'PERSON',
+    personKind: 'PERSON',
     firstName: 'Jane',
     lastName: 'Doe',
     email: 'jane.doe@acme.com',

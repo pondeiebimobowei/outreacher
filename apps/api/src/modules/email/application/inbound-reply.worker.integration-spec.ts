@@ -134,7 +134,7 @@ describe('InboundReplyWorker Database Integration', () => {
     adapterRegistryMock
       .getAdapter()
       .getEmailDetails.mockRejectedValueOnce(
-        new InboundRetrievalException('Temp error', 'PROVIDER_ERROR', true),
+        new InboundRetrievalException('Temp error', InboundRetrievalErrorCode.PROVIDER_ERROR, true),
       );
 
     const processed = await (worker as any).claimAndProcessJobs();
@@ -222,19 +222,22 @@ describe('InboundReplyWorker Database Integration', () => {
         id: campaignId,
         workspaceId,
         companyId,
+        templateId: '',
+        
         name: 'Camp',
         normalizedName: 'camp',
         status: 'DRAFT',
-        sendingIdentity: 'ME',
+        senderAccountId: 'ME',
       },
     });
     await prisma.person.create({
       data: {
         id: personId,
         workspaceId,
-        companyId,
+
         personKind: 'PERSON',
-        name: 'John Doe',
+        firstName: '',
+        lastName: '',
       },
     });
     await prisma.campaignMember.create({
@@ -514,18 +517,20 @@ describe('InboundReplyWorker Database Integration', () => {
         workspaceId: workspaceIdRace,
         companyId,
         name: 'Camp',
+        templateId: '',
         normalizedName: 'camp',
         status: 'DRAFT',
-        sendingIdentity: 'ME',
+        senderAccountId: 'ME',
       },
     });
     await prisma.person.create({
       data: {
         id: personId,
         workspaceId: workspaceIdRace,
-        companyId,
+
         personKind: 'PERSON',
-        name: 'John Doe',
+        firstName: 'John',
+        lastName: 'Doe',
         email: 'user@example.com',
       },
     });

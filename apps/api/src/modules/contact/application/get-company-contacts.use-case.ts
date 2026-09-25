@@ -8,7 +8,7 @@ import {
   type IContactRepository,
 } from '../domain/contact.repository.interface';
 
-export interface EvaluatedContactDto {
+export interface EvaluatedPersonDto {
   id: string;
   workspaceId: string;
   personKind: 'PERSON' | 'ROLE_ADDRESS';
@@ -33,7 +33,7 @@ export interface CompanyContactsResponse {
   status:
     'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
   selectedContactId: string | null;
-  contacts: EvaluatedContactDto[];
+  contacts: EvaluatedPersonDto[];
   discoveryJob: {
     id: string;
     status: string;
@@ -145,7 +145,7 @@ export class GetCompanyContactsUseCase {
     }
 
     // 6. Evaluate Relevance & Rationale for Each Candidate
-    const evaluatedContacts: EvaluatedContactDto[] = rawContacts.map((c) => {
+    const evaluatedContacts: EvaluatedPersonDto[] = rawContacts.map((c) => {
       const evalResult = ContactRelevanceEvaluator.evaluate({
         title: c.title,
         personKind: c.personKind,

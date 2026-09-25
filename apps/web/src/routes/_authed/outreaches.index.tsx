@@ -103,8 +103,8 @@ function OutreachesIndexComponent() {
     const matchesSearch =
       search.trim() === '' ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.sendingIdentity &&
-        c.sendingIdentity.toLowerCase().includes(search.toLowerCase()));
+      (c.senders?.[0]?.fromEmail &&
+        c.senders[0].fromEmail.toLowerCase().includes(search.toLowerCase()));
     const matchesFilter = filter === 'ALL' || c.status === filter;
     return matchesSearch && matchesFilter;
   });
@@ -352,11 +352,11 @@ function OutreachesIndexComponent() {
                       </div>
 
                       {/* Sender Info */}
-                      {campaign.sendingIdentity ? (
+                      {campaign.senders?.[0]?.fromEmail ? (
                         <p className="text-[12px] text-slate-500 font-mono truncate flex items-center gap-1.5 mb-2">
                           <HugeiconsIcon icon={MailIcon} size={13} className="shrink-0 text-slate-400" />
                           <span className="truncate">
-                            {campaign.sendingIdentity}
+                            {campaign.senders[0].fromEmail}
                           </span>
                         </p>
                       ) : (

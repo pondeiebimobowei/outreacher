@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import {
-  CampaignContactStatus,
+
+  CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
   JobStatus,
@@ -19,6 +20,7 @@ import {
 import { AppModule } from '../../src/app.module';
 import { EmailDispatchWorker } from '../../src/modules/email/application/email-dispatch.worker';
 import { ResendEmailProviderAdapter } from '../../src/modules/email/infrastructure/resend-email-provider.adapter';
+
 
 const prisma = getTestPrismaClient();
 
@@ -91,7 +93,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       companyName?: string;
       email?: string;
       campaignStatus?: CampaignStatus;
-      contactStatus?: CampaignContactStatus;
+      contactStatus?: CampaignMemberStatus;
     },
   ) {
     const companyName =
@@ -101,7 +103,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       params?.email ||
       `lead-${Math.random().toString(36).slice(2, 9)}@enterprise.com`;
     const campaignStatus = params?.campaignStatus || CampaignStatus.DRAFT;
-    const contactStatus = params?.contactStatus || CampaignContactStatus.READY;
+    const contactStatus = params?.contactStatus || CampaignMemberStatus.PENDING;
 
     const company = await prisma.company.create({
       data: {
@@ -112,12 +114,12 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       },
     });
 
-    const contact = await prisma.contact.create({
+    const person = await prisma.person.create({
       data: {
         workspaceId,
-        companyId: company.id,
+        firstName: '',
+        lastName: '',
         email,
-        name: 'Alex Mercer',
       },
     });
 
@@ -163,7 +165,8 @@ describe('Email Dispatch Pipeline (e2e)', () => {
         name: 'Q3 Enterprise Outbound',
         normalizedName: 'q3 enterprise outbound',
         status: campaignStatus,
-        sendingIdentity: 'founder@startup.com',
+        templateId: '',
+        senderAccountId: 'founder@startup.com',
         campaignSenderAccounts: {
           create: {
             senderAccountId: senderAccount.id,
@@ -172,11 +175,11 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       },
     });
 
-    const campaignContact = await prisma.campaignContact.create({
+    const campaignMember = await prisma.campaignMember.create({
       data: {
         workspaceId,
         campaignId: campaign.id,
-        contactId: contact.id,
+        personId: person.id,
         status: contactStatus,
         currentSubject: 'Partnership opportunity with Acme',
         currentBody:
@@ -184,22 +187,22 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       },
     });
 
-    return { company, contact, campaign, campaignContact };
+    return { company, person, campaign, campaignMember };
   }
 
   describe('POST /api/v1/campaign-contacts/:id/send', () => {
     it('returns 401 Unauthorized when request is unauthenticated and creates no send or job', async () => {
       const { workspace } = await createAuthenticatedUser('owner@test.com');
-      const { campaignContact } = await seedCampaignContact(workspace.id);
+      const { campaignMember } = await seedCampaignContact(workspace.id);
 
       await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-unauth')
         .expect(401);
 
       const sends = await prisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(0);
 
@@ -208,19 +211,19 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
       expect(jobs).toHaveLength(0);
 
-      const contact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const contact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(contact?.status).toBe(CampaignContactStatus.READY);
+      expect(contact?.status).toBe(CampaignMemberStatus.READY);
     });
 
     it('returns 400 Bad Request when Idempotency-Key header is missing', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender1@test.com');
-      const { campaignContact } = await seedCampaignContact(workspace.id);
+      const { campaignMember } = await seedCampaignContact(workspace.id);
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .expect(400);
@@ -245,12 +248,12 @@ describe('Email Dispatch Pipeline (e2e)', () => {
     it('returns 409 Conflict when contact is not in READY status', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender3@test.com');
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.PENDING,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.PENDING,
       });
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-pending')
@@ -263,13 +266,13 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       const { cookies, workspace } = await createAuthenticatedUser(
         'paused.campaign@test.com',
       );
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.READY,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.PAUSED,
       });
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-paused')
@@ -278,7 +281,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(res.body.message).toContain('PAUSED');
 
       const sends = await prisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(0);
 
@@ -287,23 +290,23 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
       expect(jobs).toHaveLength(0);
 
-      const contact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const contact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(contact?.status).toBe(CampaignContactStatus.READY);
+      expect(contact?.status).toBe(CampaignMemberStatus.READY);
     });
 
     it('returns 409 Conflict when campaign is in ARCHIVED status and creates no send or job', async () => {
       const { cookies, workspace } = await createAuthenticatedUser(
         'archived.campaign@test.com',
       );
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.READY,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.ARCHIVED,
       });
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-archived')
@@ -312,7 +315,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(res.body.message).toContain('ARCHIVED');
 
       const sends = await prisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(0);
 
@@ -321,23 +324,23 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
       expect(jobs).toHaveLength(0);
 
-      const contact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const contact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(contact?.status).toBe(CampaignContactStatus.READY);
+      expect(contact?.status).toBe(CampaignMemberStatus.READY);
     });
 
     it('returns 409 Conflict when campaign is in SCHEDULED status and creates no send or job', async () => {
       const { cookies, workspace } = await createAuthenticatedUser(
         'scheduled.campaign@test.com',
       );
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.READY,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.SCHEDULED,
       });
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-scheduled')
@@ -346,7 +349,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(res.body.message).toContain('SCHEDULED');
 
       const sends = await prisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(0);
 
@@ -355,10 +358,10 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
       expect(jobs).toHaveLength(0);
 
-      const contact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const contact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(contact?.status).toBe(CampaignContactStatus.READY);
+      expect(contact?.status).toBe(CampaignMemberStatus.READY);
     });
 
     it('returns 409 Conflict when recipient email is suppressed and creates no send or job', async () => {
@@ -367,9 +370,9 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       );
       const targetEmail = 'unsubscribed.recipient@target.com';
 
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
         email: targetEmail,
-        contactStatus: CampaignContactStatus.READY,
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.DRAFT,
       });
 
@@ -382,7 +385,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
 
       const res = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'key-test-suppressed')
@@ -391,7 +394,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(res.body.message).toContain('suppressed');
 
       const sends = await prisma.emailSend.findMany({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sends).toHaveLength(0);
 
@@ -400,17 +403,17 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       });
       expect(jobs).toHaveLength(0);
 
-      const contact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const contact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(contact?.status).toBe(CampaignContactStatus.READY);
+      expect(contact?.status).toBe(CampaignMemberStatus.READY);
     });
 
     it('returns 202 Accepted on valid reservation and replays 202 on identical idempotency key', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender4@test.com');
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.READY,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.DRAFT,
       });
 
@@ -418,7 +421,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
 
       // First call: reservation succeeds
       const firstRes = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', clientKey)
@@ -430,7 +433,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
 
       // Second call: idempotent replay with identical key returns cached 202
       const replayRes = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', clientKey)
@@ -440,14 +443,14 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(replayRes.body.message).toBe('Dispatch enqueued');
 
       // Verify contact in DB transitioned to SENDING
-      const dbContact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const dbContact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(dbContact?.status).toBe(CampaignContactStatus.SENDING);
+      expect(dbContact?.status).toBe(CampaignMemberStatus.SENDING);
 
       // Verify campaign in DB activated from DRAFT -> ACTIVE
       const dbCampaign = await prisma.campaign.findUnique({
-        where: { id: campaignContact.campaignId },
+        where: { id: campaignMember.campaignId },
       });
       expect(dbCampaign?.status).toBe(CampaignStatus.ACTIVE);
     });
@@ -455,11 +458,11 @@ describe('Email Dispatch Pipeline (e2e)', () => {
     it('returns 409 Conflict when the same Idempotency-Key is reused for a different contact', async () => {
       const { cookies, workspace } =
         await createAuthenticatedUser('sender5@test.com');
-      const { campaignContact: contactA } = await seedCampaignContact(
+      const { campaignMember: contactA } = await seedCampaignContact(
         workspace.id,
         { email: 'alpha@target.com' },
       );
-      const { campaignContact: contactB } = await seedCampaignContact(
+      const { campaignMember: contactB } = await seedCampaignContact(
         workspace.id,
         { email: 'bravo@target.com' },
       );
@@ -491,11 +494,11 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       const userA = await createAuthenticatedUser('usera@tenant-a.com');
       const userB = await createAuthenticatedUser('userb@tenant-b.com');
 
-      const { campaignContact } = await seedCampaignContact(userA.workspace.id);
+      const { campaignMember } = await seedCampaignContact(userA.workspace.id);
 
       // User B tries to send contact belonging to User A's workspace
       await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', userB.cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', 'cross-tenant-key-1')
@@ -508,8 +511,8 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       const { cookies, workspace } = await createAuthenticatedUser(
         'worker.e2e@startup.com',
       );
-      const { campaignContact } = await seedCampaignContact(workspace.id, {
-        contactStatus: CampaignContactStatus.READY,
+      const { campaignMember } = await seedCampaignContact(workspace.id, {
+        contactStatus: CampaignMemberStatus.READY,
         campaignStatus: CampaignStatus.DRAFT,
       });
 
@@ -517,7 +520,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
 
       // Enqueue send via HTTP
       const sendRes = await request(app.getHttpServer())
-        .post(`/api/v1/campaign-contacts/${campaignContact.id}/send`)
+        .post(`/api/v1/campaign-contacts/${campaignMember.id}/send`)
         .set('Cookie', cookies!)
         .set('X-Requested-With', 'XMLHttpRequest')
         .set('Idempotency-Key', clientKey)
@@ -540,7 +543,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(runningJob?.status).toBe(JobStatus.RUNNING);
 
       const sendingSend = await prisma.emailSend.findFirst({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sendingSend?.status).toBe(EmailSendStatus.SENDING);
 
@@ -556,7 +559,7 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       expect(completedJob?.completedAt).toBeDefined();
 
       const sentEmail = await prisma.emailSend.findFirst({
-        where: { campaignContactId: campaignContact.id },
+        where: { campaignMemberId: campaignMember.id },
       });
       expect(sentEmail?.status).toBe(EmailSendStatus.SENT);
       expect(sentEmail?.sentAt).toBeDefined();
@@ -566,10 +569,10 @@ describe('Email Dispatch Pipeline (e2e)', () => {
       // Provider and RFC Message-ID are separate
       expect(sentEmail?.providerMessageId).not.toBe(sentEmail?.messageId);
 
-      const sentContact = await prisma.campaignContact.findUnique({
-        where: { id: campaignContact.id },
+      const sentContact = await prisma.campaignMember.findUnique({
+        where: { id: campaignMember.id },
       });
-      expect(sentContact?.status).toBe(CampaignContactStatus.SENT);
+      expect(sentContact?.status).toBe(CampaignMemberStatus.SENT);
     });
   });
 });

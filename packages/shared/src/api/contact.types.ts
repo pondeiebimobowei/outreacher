@@ -1,5 +1,5 @@
-export const CONTACT_KINDS = ['PERSON', 'ROLE_ADDRESS'] as const;
-export type ContactKind = typeof CONTACT_KINDS[number];
+export const PERSON_KINDS = ['PERSON', 'ROLE_ADDRESS'] as const;
+export type PersonKind = typeof PERSON_KINDS[number];
 
 export const CONTACT_RELEVANCES = ['HIGH', 'MEDIUM', 'LOW'] as const;
 export type ContactRelevance = typeof CONTACT_RELEVANCES[number];
@@ -7,11 +7,11 @@ export type ContactRelevance = typeof CONTACT_RELEVANCES[number];
 export const EMAIL_CONFIDENCE_STATUSES = ['AVAILABLE', 'UNAVAILABLE'] as const;
 export type EmailConfidenceStatus = typeof EMAIL_CONFIDENCE_STATUSES[number];
 
-export interface EvaluatedContactDto {
+export interface EvaluatedPersonDto {
   id: string;
   workspaceId: string;
   companyId: string;
-  contactKind: ContactKind;
+  personKind: PersonKind;
   firstName: string | null;
   lastName: string | null;
   email: string | null;
@@ -32,7 +32,7 @@ export interface CompanyContactsResponse {
   companyId: string;
   status: 'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
   selectedContactId: string | null;
-  contacts: EvaluatedContactDto[];
+  contacts: EvaluatedPersonDto[];
   discoveryJob: {
     id: string;
     status: string;
@@ -41,6 +41,7 @@ export interface CompanyContactsResponse {
   } | null;
   mock?: boolean;
 }
+
 
 export interface DiscoverContactsResponse {
   jobId: string;
@@ -54,6 +55,6 @@ export interface CreateContactRequest {
   lastName: string;
   email?: string | null;
   title?: string | null;
-  personKind?: ContactKind;
+  personKind?: PersonKind;
   sourceUrl?: string | null;
 }

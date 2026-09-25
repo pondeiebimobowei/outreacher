@@ -50,12 +50,12 @@ function CampaignCard({ campaign, navigate }: { campaign: CampaignDto; navigate:
             >
               {campaign.name}
             </p>
-            {campaign.sendingIdentity && (
+            {campaign.senders?.[0]?.fromEmail && (
               <p
                 className="text-[12.5px] mt-0.5 truncate"
                 style={{ color: 'var(--color-muted-fg)', fontFamily: 'sans-serif' }}
               >
-                Sender: {campaign.sendingIdentity}
+                Sender: {campaign.senders[0].fromEmail}
               </p>
             )}
             <p

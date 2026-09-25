@@ -46,7 +46,7 @@ export interface CampaignContactDetailsDto {
     name: string;
     title: string | null;
     email: string | null;
-    contactKind: 'PERSON' | 'ROLE_ADDRESS';
+    personKind: 'PERSON' | 'ROLE_ADDRESS';
     confidence: string | null;
     emailConfidence: 'AVAILABLE' | 'UNAVAILABLE';
   };
@@ -84,7 +84,7 @@ export interface CampaignContactSummaryDto {
     name: string;
     title: string | null;
     email: string | null;
-    contactKind: 'PERSON' | 'ROLE_ADDRESS';
+    personKind: 'PERSON' | 'ROLE_ADDRESS';
     confidence: string | null;
   };
 }
