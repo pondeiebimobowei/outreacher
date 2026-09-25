@@ -1,23 +1,23 @@
 import { apiClient } from './client';
 import { normalizeCampaignName } from '@repo/shared';
-import type { 
-  CampaignDto, 
-  CreateCampaignRequest, 
-  AddCampaignContactsResponse, 
-  CampaignStatus, 
-  CampaignContactStatus, 
-  CampaignSenderSummary, 
-  CampaignContactDto 
+import type {
+  CampaignDto,
+  CreateCampaignRequest,
+  AddCampaignContactsResponse,
+  CampaignStatus,
+  CampaignContactStatus,
+  CampaignSenderSummary,
+  CampaignContactDto
 } from '@repo/shared';
 
-export type { 
-  CampaignDto, 
-  CreateCampaignRequest, 
-  AddCampaignContactsResponse, 
-  CampaignStatus, 
-  CampaignContactStatus, 
-  CampaignSenderSummary, 
-  CampaignContactDto 
+export type {
+  CampaignDto,
+  CreateCampaignRequest,
+  AddCampaignContactsResponse,
+  CampaignStatus,
+  CampaignContactStatus,
+  CampaignSenderSummary,
+  CampaignContactDto
 };
 
 /**

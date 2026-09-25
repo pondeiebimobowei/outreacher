@@ -1,9 +1,9 @@
 import { apiClient } from './client';
-import type { 
-  
-  EvaluatedPersonDto, 
-  CompanyContactsResponse, 
-  DiscoverContactsResponse, 
+import type {
+
+  EvaluatedPersonDto,
+  CompanyContactsResponse,
+  DiscoverContactsResponse,
 
   CreateContactRequest,
   ContactRelevance,
@@ -13,12 +13,12 @@ import type {
 export const PERSON_KINDS = ['PERSON', 'ROLE_ADDRESS'] as const;
 export type PersonKind = typeof PERSON_KINDS[number];
 
-export type { 
-  EvaluatedPersonDto, 
-  CompanyContactsResponse, 
-  DiscoverContactsResponse, 
+export type {
+  EvaluatedPersonDto,
+  CompanyContactsResponse,
+  DiscoverContactsResponse,
   CreateContactRequest,
-  
+
   ContactRelevance,
   EmailConfidenceStatus
 };

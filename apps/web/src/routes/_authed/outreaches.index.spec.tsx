@@ -48,7 +48,7 @@ const mockCampaigns: CampaignDto[] = [
     normalizedName: 'norm-name',
     name: 'Q3 Enterprise Expansion',
     status: 'ACTIVE',
-    
+
     senders: [{ assignmentStatus: 'ACTIVE', senderAccountId: 'acc-1', fromName: 'Sarah', fromEmail: 'sarah@outreach.acme.com', senderStatus: 'ACTIVE', integrationStatus: 'ACTIVE' }],
     followUpDelayBusinessDays: 3,
     createdAt: '2026-09-01T10:00:00Z',

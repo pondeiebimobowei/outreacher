@@ -39,7 +39,8 @@ describe('Campaign Canonical Concurrency & Race Recovery (Integration)', () => {
     const user = await prisma.user.create({
       data: {
         email: 'race-test@example.com',
-        firstName: 'Race', lastName: 'User',
+        firstName: 'Race',
+        lastName: 'User',
       },
     });
 
@@ -82,6 +83,9 @@ describe('Campaign Canonical Concurrency & Race Recovery (Integration)', () => {
       variants.map((name) =>
         useCase.execute(workspace.id, {
           companyId: company.id,
+          senderAccountId: 'snd-1',
+          templateId: 'tpl-1',
+          status: 'DRAFT',
           name,
         }),
       ),
@@ -116,6 +120,9 @@ describe('Campaign Canonical Concurrency & Race Recovery (Integration)', () => {
       where: {
         workspaceId: workspace.id,
         companyId: company.id,
+        senderAccountId: 'snd-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
         normalizedName: 'outreach — acme corporation',
       },
     });
