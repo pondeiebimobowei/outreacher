@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { createFileRoute, Navigate, Outlet } from '@tanstack/react-router';
 import { useAuth } from '../lib/auth-context';
 import { LoadingState } from '../components/states/LoadingState';
 import { ProfileBanner } from '../components/profile-banner';
@@ -18,7 +18,6 @@ function AuthedLayoutComponent() {
       </div>
     );
   }
-
   if (status === 'bootstrap_error') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-4">
@@ -37,6 +36,10 @@ function AuthedLayoutComponent() {
         </div>
       </div>
     );
+  }
+
+  if (status !== 'authenticated') {
+      return <Navigate to="/login" replace />;
   }
 
   return (

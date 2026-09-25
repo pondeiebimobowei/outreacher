@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { apiClient } from '../../api/client';
-import { Route as HomeRoute } from './index';
+import { Route as HomeRoute } from './dashboard';
 import { WorkspaceSummaryDto } from '../../features/home/home.types';
 
 jest.mock('../../api/client', () => ({
@@ -61,7 +61,7 @@ describe('Home / Workspace Surface', () => {
   };
 
   it('renders loading state while workspace summary request is pending', () => {
-    (apiClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
+    (apiClient.get as jest.Mock).mockReturnValue(new Promise(() => { }));
     renderHome();
 
     expect(screen.getByLabelText('Loading workspace summary')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('Home / Workspace Surface', () => {
     await waitFor(() => {
       // Identity
       expect(screen.getByText(/Alex Johnson/)).toBeInTheDocument();
-      
+
 
       // Needs Attention section
       expect(screen.getByRole('heading', { name: 'Needs Attention' })).toBeInTheDocument();

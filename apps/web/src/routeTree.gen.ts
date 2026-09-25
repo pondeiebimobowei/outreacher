@@ -9,13 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as AuthedIndexRouteImport } from './routes/_authed/index'
 import { Route as AuthedCampaignsRouteImport } from './routes/_authed/campaigns'
 import { Route as AuthedContactsRouteImport } from './routes/_authed/contacts'
 import { Route as AuthedConversationsRouteImport } from './routes/_authed/conversations'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedOpportunitiesRouteImport } from './routes/_authed/opportunities'
 import { Route as AuthedOutreachesRouteImport } from './routes/_authed/outreaches'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
@@ -36,6 +37,11 @@ import { Route as AuthedSettingsIntegrationsRouteImport } from './routes/_authed
 import { Route as AuthedSettingsSendersRouteImport } from './routes/_authed/settings/senders'
 import { Route as AuthedCampaignsCampaignIdReviewRouteImport } from './routes/_authed/campaigns.$campaignId.review'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
@@ -48,11 +54,6 @@ const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthedIndexRoute = AuthedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedCampaignsRoute = AuthedCampaignsRouteImport.update({
   id: '/campaigns',
@@ -67,6 +68,11 @@ const AuthedContactsRoute = AuthedContactsRouteImport.update({
 const AuthedConversationsRoute = AuthedConversationsRouteImport.update({
   id: '/conversations',
   path: '/conversations',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedOpportunitiesRoute = AuthedOpportunitiesRouteImport.update({
@@ -171,11 +177,12 @@ const AuthedCampaignsCampaignIdReviewRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthedIndexRoute
+  '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/campaigns': typeof AuthedCampaignsRouteWithChildren
   '/contacts': typeof AuthedContactsRouteWithChildren
   '/conversations': typeof AuthedConversationsRouteWithChildren
+  '/dashboard': typeof AuthedDashboardRoute
   '/opportunities': typeof AuthedOpportunitiesRouteWithChildren
   '/outreaches': typeof AuthedOutreachesRouteWithChildren
   '/settings': typeof AuthedSettingsRouteWithChildren
@@ -197,8 +204,9 @@ export interface FileRoutesByFullPath {
   '/campaigns/$campaignId/review': typeof AuthedCampaignsCampaignIdReviewRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof AuthedIndexRoute
+  '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
+  '/dashboard': typeof AuthedDashboardRoute
   '/templates': typeof AuthedTemplatesRoute
   '/forgot-password': typeof GuestForgotPasswordRoute
   '/login': typeof GuestLoginRoute
@@ -218,12 +226,14 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/_authed/campaigns': typeof AuthedCampaignsRouteWithChildren
   '/_authed/contacts': typeof AuthedContactsRouteWithChildren
   '/_authed/conversations': typeof AuthedConversationsRouteWithChildren
+  '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/opportunities': typeof AuthedOpportunitiesRouteWithChildren
   '/_authed/outreaches': typeof AuthedOutreachesRouteWithChildren
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
@@ -231,7 +241,6 @@ export interface FileRoutesById {
   '/_guest/forgot-password': typeof GuestForgotPasswordRoute
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/signup': typeof GuestSignupRoute
-  '/_authed/': typeof AuthedIndexRoute
   '/_authed/companies/$id': typeof AuthedCompaniesIdRoute
   '/_authed/settings/career-profile': typeof AuthedSettingsCareerProfileRoute
   '/_authed/settings/integrations': typeof AuthedSettingsIntegrationsRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/campaigns'
     | '/contacts'
     | '/conversations'
+    | '/dashboard'
     | '/opportunities'
     | '/outreaches'
     | '/settings'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/onboarding'
+    | '/dashboard'
     | '/templates'
     | '/forgot-password'
     | '/login'
@@ -294,12 +305,14 @@ export interface FileRouteTypes {
     | '/campaigns/$campaignId/review'
   id:
     | '__root__'
+    | '/'
     | '/_authed'
     | '/_guest'
     | '/onboarding'
     | '/_authed/campaigns'
     | '/_authed/contacts'
     | '/_authed/conversations'
+    | '/_authed/dashboard'
     | '/_authed/opportunities'
     | '/_authed/outreaches'
     | '/_authed/settings'
@@ -307,7 +320,6 @@ export interface FileRouteTypes {
     | '/_guest/forgot-password'
     | '/_guest/login'
     | '/_guest/signup'
-    | '/_authed/'
     | '/_authed/companies/$id'
     | '/_authed/settings/career-profile'
     | '/_authed/settings/integrations'
@@ -323,6 +335,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   GuestRoute: typeof GuestRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
@@ -330,6 +343,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed': {
       id: '/_authed'
       path: ''
@@ -351,13 +371,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/': {
-      id: '/_authed/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
     '/_authed/campaigns': {
       id: '/_authed/campaigns'
       path: '/campaigns'
@@ -377,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/conversations'
       fullPath: '/conversations'
       preLoaderRoute: typeof AuthedConversationsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/opportunities': {
@@ -596,11 +616,11 @@ interface AuthedRouteChildren {
   AuthedCampaignsRoute: typeof AuthedCampaignsRouteWithChildren
   AuthedContactsRoute: typeof AuthedContactsRouteWithChildren
   AuthedConversationsRoute: typeof AuthedConversationsRouteWithChildren
+  AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedOpportunitiesRoute: typeof AuthedOpportunitiesRouteWithChildren
   AuthedOutreachesRoute: typeof AuthedOutreachesRouteWithChildren
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedTemplatesRoute: typeof AuthedTemplatesRoute
-  AuthedIndexRoute: typeof AuthedIndexRoute
   AuthedCompaniesIdRoute: typeof AuthedCompaniesIdRoute
   AuthedCompaniesIndexRoute: typeof AuthedCompaniesIndexRoute
 }
@@ -609,11 +629,11 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedCampaignsRoute: AuthedCampaignsRouteWithChildren,
   AuthedContactsRoute: AuthedContactsRouteWithChildren,
   AuthedConversationsRoute: AuthedConversationsRouteWithChildren,
+  AuthedDashboardRoute: AuthedDashboardRoute,
   AuthedOpportunitiesRoute: AuthedOpportunitiesRouteWithChildren,
   AuthedOutreachesRoute: AuthedOutreachesRouteWithChildren,
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedTemplatesRoute: AuthedTemplatesRoute,
-  AuthedIndexRoute: AuthedIndexRoute,
   AuthedCompaniesIdRoute: AuthedCompaniesIdRoute,
   AuthedCompaniesIndexRoute: AuthedCompaniesIndexRoute,
 }
@@ -636,6 +656,7 @@ const GuestRouteChildren: GuestRouteChildren = {
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   GuestRoute: GuestRouteWithChildren,
   OnboardingRoute: OnboardingRoute,

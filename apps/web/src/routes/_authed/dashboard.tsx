@@ -9,7 +9,7 @@ import { RecentActivityFeed } from '../../features/home/components/RecentActivit
 import { WorkspaceHeader } from '../../features/home/components/WorkspaceHeader';
 import { useWorkspaceSummary } from '../../features/home/hooks/use-workspace-summary';
 
-export const Route = createFileRoute('/_authed/')({
+export const Route = createFileRoute('/_authed/dashboard')({
   component: HomeComponent,
 });
 
