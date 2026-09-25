@@ -5,6 +5,7 @@ import { EvaluatedPersonDto } from '../../api/contacts';
 import { CampaignContactSummaryDto, fetchCampaignContacts } from '../../api/outreach';
 import { OutreachReviewDrawer } from '../outreach/outreach-review-drawer';
 
+import { AddContactModal } from './add-contact-modal';
 import { ContactCard } from './contact-card';
 import { ContactDetailModal } from './contact-detail-modal';
 import { useContactDiscovery } from './use-contact-discovery';
@@ -21,6 +22,7 @@ export function ContactDiscoveryWorkspace({
   const navigate = useNavigate();
 
   const [reviewContact, setReviewContact] = useState<EvaluatedPersonDto | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +39,7 @@ export function ContactDiscoveryWorkspace({
     boundCampaignContact,
     activeCampaign,
     ariaAnnouncement,
+    setAriaAnnouncement,
     isPollingActive,
     isStillRunningTimeout,
     setRateLimitError,
@@ -62,11 +65,18 @@ export function ContactDiscoveryWorkspace({
       // 1. Resolve canonical company campaign
       const campaign = await resolveCanonicalCompanyCampaign(companyId, companyName);
 
+      if (!campaign) {
+        setIsOpeningDrawer(false);
+        setRateLimitError('No active campaign found for this company. Please create one first.');
+        setAriaAnnouncement('Cannot review outreach: No active campaign found.');
+        return;
+      }
+
       // 2. Ensure contact is added to campaign
-      const bindRes = await addContactsToCampaign(campaign?.id || '', [contact.id]);
+      const bindRes = await addContactsToCampaign(campaign.id, [contact.id]);
 
       // 3. Fetch all bound campaign contacts for cycling and summary
-      const allBound = await fetchCampaignContacts(campaign?.id || '');
+      const allBound = await fetchCampaignContacts(campaign.id);
       setBoundCampaignContacts(allBound);
 
       // 4. Find the matching CampaignContact record
@@ -167,7 +177,7 @@ export function ContactDiscoveryWorkspace({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-
+            onClick={() => setIsAddModalOpen(true)}
             className="min-h-10 sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
@@ -559,6 +569,15 @@ export function ContactDiscoveryWorkspace({
         </div>
       )}
 
+
+      {isAddModalOpen && (
+        <AddContactModal
+          companyId={companyId}
+          companyName={companyName}
+          onClose={() => setIsAddModalOpen(false)}
+          setAnnouncement={setAriaAnnouncement}
+        />
+      )}
 
       {/* Contact Review Detail Modal */}
       <ContactDetailModal

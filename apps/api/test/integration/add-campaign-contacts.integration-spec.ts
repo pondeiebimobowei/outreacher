@@ -66,7 +66,7 @@ describe('AddCampaignContacts (PostgreSQL Integration)', () => {
     const contact1 = await realPrisma.person.create({
       data: {
         workspace: { connect: { id: workspaceId } },
-        
+
         email: 'one@example.com',
         firstName: 'Contact',
         lastName: 'One',

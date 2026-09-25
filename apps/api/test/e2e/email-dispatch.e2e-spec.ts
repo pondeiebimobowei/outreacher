@@ -1,11 +1,9 @@
-
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import {
-
   CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
@@ -20,7 +18,6 @@ import {
 import { AppModule } from '../../src/app.module';
 import { EmailDispatchWorker } from '../../src/modules/email/application/email-dispatch.worker';
 import { ResendEmailProviderAdapter } from '../../src/modules/email/infrastructure/resend-email-provider.adapter';
-
 
 const prisma = getTestPrismaClient();
 

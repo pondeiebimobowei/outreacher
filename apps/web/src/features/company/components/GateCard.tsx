@@ -1,6 +1,5 @@
 import { IconSvgObject } from "@hugeicons/core-free-icons/types";
 import { HugeiconsIcon } from '@hugeicons/react';
-HugeiconsIcon
 export function GateCard({
   icon,
   heading,

@@ -603,7 +603,6 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
           workspaceId: ws.id,
           campaignId: campaign.id,
           personId: contact.id,
-          
         },
       });
 

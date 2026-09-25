@@ -39,7 +39,12 @@ describe('RecordUserOutcomeUseCase Integration', () => {
       data: { id: workspaceId, name: 'Outcome WS' },
     });
     await prisma.user.create({
-      data: { id: userId, email: `test-${userId}@test.com`, firstName: 'User', lastName: '' },
+      data: {
+        id: userId,
+        email: `test-${userId}@test.com`,
+        firstName: 'User',
+        lastName: '',
+      },
     });
     await prisma.workspaceMember.create({
       data: { workspaceId, userId, role: 'OWNER' },

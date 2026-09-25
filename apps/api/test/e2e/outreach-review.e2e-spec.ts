@@ -79,7 +79,7 @@ describe('Outreach Review and Editing (e2e)', () => {
     const contact = await prisma.person.create({
       data: {
         workspaceId,
-        
+
         email,
         firstName: 'Test',
         lastName: 'Target',

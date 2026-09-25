@@ -14,7 +14,7 @@ jest.mock('../../api/client', () => ({
 
 jest.mock('../../lib/auth-context', () => ({
   useAuth: () => ({
-    user: { id: 'u-1', email: 'test@example.com', name: 'Jordan Lee' },
+    user: { id: 'u-1', email: 'test@example.com', firstName: 'Jordan', lastName: 'Lee' },
     workspace: { id: 'ws-1', name: 'Acme Workspace' },
   }),
 }));
@@ -101,7 +101,7 @@ describe('Home / Workspace Structural Accessibility Home / Workspace Accessibili
 
     // h1: Page / User Greeting
     const h1 = screen.getByRole('heading', { level: 1 });
-    expect(h1).toHaveTextContent(/Jordan Lee/);
+    expect(h1).toHaveTextContent(/Jordan/);
 
     // h2s: Section Headings
     const h2s = screen.getAllByRole('heading', { level: 2 });

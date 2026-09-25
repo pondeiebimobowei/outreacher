@@ -92,8 +92,6 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         workspaceId,
         personId: 'person-1',
         campaignId: '',
-        
-        
       },
     });
 
@@ -291,7 +289,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
           workspaceId,
           campaignId: campaign.id,
           personId: contactB.id,
-          status: "READY",
+          status: 'READY',
           currentSubject: 'Outreach Subject B',
           currentBody:
             'Outreach message body B that exceeds twenty characters.',
@@ -336,8 +334,8 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
           where: { id: campaignContactB.id },
         }),
       ]);
-      expect(updatedA?.status).toBe("SENDING");
-      expect(updatedB?.status).toBe("SENDING");
+      expect(updatedA?.status).toBe('SENDING');
+      expect(updatedB?.status).toBe('SENDING');
 
       // Two distinct EmailSend records created in RESERVED status
       const sends = await realPrisma.emailSend.findMany({
@@ -426,7 +424,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       const winningContact = await realPrisma.campaignMember.findUnique({
         where: { id: winningTargetId },
       });
-      expect(winningContact?.status).toBe("SENDING");
+      expect(winningContact?.status).toBe('SENDING');
 
       // Losing contact remains READY
       const losingTargetId =
@@ -434,7 +432,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       const losingContact = await realPrisma.campaignMember.findUnique({
         where: { id: losingTargetId },
       });
-      expect(losingContact?.status).toBe("READY");
+      expect(losingContact?.status).toBe('READY');
     });
   });
 
@@ -494,7 +492,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       const sentContact = await realPrisma.campaignMember.findUnique({
         where: { id: campaignMember.id },
       });
-      expect(sentContact?.status).toBe("SENT");
+      expect(sentContact?.status).toBe('SENT');
 
       // Subsequent claim finds no more eligible jobs
       const noMoreJobs = await worker.claimNextJob();

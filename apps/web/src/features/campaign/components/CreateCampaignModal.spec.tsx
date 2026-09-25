@@ -13,6 +13,7 @@ const mockCompanies: CompanyDto[] = [
   {
     id: 'co-1',
     name: 'Acme Corp',
+    phoneNumber: '',
     normalizedName: 'acme corp',
     websiteUrl: 'https://acme.com',
     domain: 'acme.com',
@@ -28,6 +29,7 @@ const mockCompanies: CompanyDto[] = [
   {
     id: 'co-2',
     name: 'Globex Inc',
+    phoneNumber: '',
     normalizedName: 'globex inc',
     websiteUrl: 'https://globex.com',
     domain: 'globex.com',

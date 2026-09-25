@@ -48,7 +48,7 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('ignores unrelated ACTIVE campaigns for the same company and creates canonical campaign', async () => {
+    it('returns null when no matching canonical campaign exists', async () => {
       const unrelatedActive: CampaignDto = {
         id: 'camp-unrelated',
         workspaceId: 'ws-1',
@@ -63,22 +63,7 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
         updatedAt: '2026-09-18T00:00:00Z',
       };
 
-      const createdCanonical: CampaignDto = {
-        id: 'camp-new',
-        workspaceId: 'ws-1',
-        companyId: 'comp-10',
-        name: 'Outreach — Acme Technologies',
-        status: 'DRAFT',
-        senderAccountId: '',
-        templateId: '',
-        normalizedName: 'Outreach — Acme Technologies',
-        followUpDelayBusinessDays: 4,
-        createdAt: '2026-09-18T00:00:00Z',
-        updatedAt: '2026-09-18T00:00:00Z',
-      };
-
       mockGet.mockResolvedValue([unrelatedActive]);
-      mockPost.mockResolvedValue(createdCanonical);
 
       const result = await resolveCanonicalCompanyCampaign('comp-10', 'Acme Technologies');
 
@@ -87,7 +72,7 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
     });
 
     it('deduplicates concurrent in-flight resolutions for the same companyId', async () => {
-      const createdCanonical: CampaignDto = {
+      const canonicalDraft: CampaignDto = {
         id: 'camp-dedup',
         workspaceId: 'ws-1',
         companyId: 'comp-race',
@@ -103,10 +88,7 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
 
       // Simulate a small network delay
       mockGet.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve([]), 10)),
-      );
-      mockPost.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(createdCanonical), 10)),
+        () => new Promise((resolve) => setTimeout(() => resolve([canonicalDraft]), 10)),
       );
 
       // Issue 3 simultaneous calls
@@ -116,9 +98,9 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
         resolveCanonicalCompanyCampaign('comp-race', 'Concurrent Inc'),
       ]);
 
-      expect(res1).toBeNull();
-      expect(res2).toBeNull();
-      expect(res3).toBeNull();
+      expect(res1).toEqual(canonicalDraft);
+      expect(res2).toEqual(canonicalDraft);
+      expect(res3).toEqual(canonicalDraft);
 
       // Verify that network calls were deduplicated to exactly ONE fetch
       expect(mockGet).toHaveBeenCalledTimes(1);
@@ -259,6 +241,9 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       expect(mockPost).toHaveBeenCalledWith('/campaigns', {
         companyId: 'comp-1',
         name: 'New Campaign',
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
       });
     });
   });

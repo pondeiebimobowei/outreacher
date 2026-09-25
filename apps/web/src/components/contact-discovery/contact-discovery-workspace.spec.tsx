@@ -84,7 +84,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-1',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Jane', lastName: 'Doe',
           email: 'jane.doe@acme.com',
@@ -104,7 +103,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Alex', lastName: 'Rivera',
           email: null,
@@ -236,7 +234,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-1',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Jane', lastName: 'Doe',
           email: 'jane.doe@acme.com',
@@ -328,6 +325,61 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(screen.getByDisplayValue('Acme distributed systems')).toBeInTheDocument();
   });
 
+  it('does not open OutreachReviewDrawer and shows an error when canonical campaign is missing', async () => {
+    const mockResponse: CompanyContactsResponse = {
+      companyId: 'comp-200',
+      status: 'COMPLETED',
+      selectedContactId: 'cont-1',
+      contacts: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Jane', lastName: 'Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          source: 'COMPANY_WEBSITE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Target decision maker.',
+          isSelected: true,
+        },
+      ],
+      discoveryJob: null,
+    };
+
+    mockGet.mockImplementation((url: string) => {
+      if (url === '/companies/comp-200/contacts') {
+        return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+      }
+      if (url === '/campaigns') {
+        return Promise.resolve([]); // NO campaign found!
+      }
+      return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ContactDiscoveryWorkspace companyId="comp-200" companyName="Acme Corp" />
+      </QueryClientProvider>,
+    );
+
+    const reviewOutreachBtn = await screen.findByRole('button', {
+      name: /Review Outreach Draft/i,
+    });
+    fireEvent.click(reviewOutreachBtn);
+
+    // Verify error is shown and drawer is not open
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/No active campaign found for this company/i);
+    expect(screen.queryByText(/AI Assisted — Review Required/i)).not.toBeInTheDocument();
+  });
+
   it('filters candidates by search input', async () => {
     mockGet.mockResolvedValue({
       companyId: 'comp-200',
@@ -394,7 +446,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
@@ -505,7 +556,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-3',
           workspaceId: 'ws-1',
-          companyId: 'comp-300',
           personKind: 'PERSON',
           firstName: 'Sarah', lastName: 'Connor',
           email: 'sarah@acme.com',
@@ -604,7 +654,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
@@ -655,7 +704,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(alert).toHaveTextContent(/Network error retrieving campaigns/i);
   });
 
-  it('does not select an unrelated ACTIVE campaign when canonical campaign is absent, but creates canonical campaign', async () => {
+  it('shows an error when canonical campaign is absent and does not create one', async () => {
     const mockResponse: CompanyContactsResponse = {
       companyId: 'comp-200',
       status: 'COMPLETED',
@@ -664,7 +713,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
@@ -697,6 +745,9 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
             companyId: 'comp-200',
             name: 'Backend Outreach - September',
             status: 'ACTIVE',
+            senderAccountId: 'acc-1',
+            templateId: 'tpl-1',
+            normalizedName: 'backend-outreach-september',
             followUpDelayBusinessDays: 3,
             createdAt: '2026-09-18T00:00:00Z',
             updatedAt: '2026-09-18T00:00:00Z',
@@ -717,39 +768,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           selectedAt: '2026-09-18T00:00:00Z',
         });
       }
-      if (url === '/campaigns') {
-        return Promise.resolve({
-          id: 'camp-canonical',
-          workspaceId: 'ws-1',
-          companyId: 'comp-200',
-          name: 'Outreach — Acme Corp',
-          status: 'DRAFT',
-          followUpDelayBusinessDays: 4,
-          createdAt: '2026-09-18T00:00:00Z',
-          updatedAt: '2026-09-18T00:00:00Z',
-        });
-      }
-      if (url === '/campaigns/camp-canonical/contacts') {
-        return Promise.resolve({
-          bound: [
-            {
-              id: 'cc-99',
-              workspaceId: 'ws-1',
-              campaignId: 'camp-canonical',
-              contactId: 'cont-2',
-              status: 'PENDING',
-              targetRole: null,
-              outreachReason: null,
-              currentSubject: null,
-              currentBody: null,
-              selectedOpportunityId: null,
-              createdAt: '2026-09-18T00:00:00Z',
-              updatedAt: '2026-09-18T00:00:00Z',
-            },
-          ],
-          ignoredDuplicateCount: 0,
-        });
-      }
       return Promise.reject(new Error(`Unhandled POST url: ${url}`));
     });
 
@@ -762,12 +780,10 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     const selectBtn = await screen.findByRole('button', { name: /Select Target Contact/i });
     fireEvent.click(selectBtn);
 
-    // Verify it created the canonical campaign rather than binding to unrelated active campaign
-    expect((await screen.findAllByText(/No campaign found for this company/i)).length).toBeGreaterThan(0);
+    // Verify it shows an error and does not create a campaign
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/No campaign found for this company/i);
     expect(mockPost).not.toHaveBeenCalledWith('/campaigns', expect.anything());
-    expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-canonical/contacts', {
-      contactIds: ['cont-2'],
-    });
     // Ensure it NEVER bound to the unrelated campaign
     expect(mockPost).not.toHaveBeenCalledWith(expect.stringContaining('camp-unrelated'), expect.anything());
   });
@@ -781,7 +797,6 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
-          companyId: 'comp-200',
           personKind: 'PERSON',
           firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',

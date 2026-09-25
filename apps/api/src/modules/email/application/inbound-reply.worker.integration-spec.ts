@@ -134,7 +134,11 @@ describe('InboundReplyWorker Database Integration', () => {
     adapterRegistryMock
       .getAdapter()
       .getEmailDetails.mockRejectedValueOnce(
-        new InboundRetrievalException('Temp error', InboundRetrievalErrorCode.PROVIDER_ERROR, true),
+        new InboundRetrievalException(
+          'Temp error',
+          InboundRetrievalErrorCode.PROVIDER_ERROR,
+          true,
+        ),
       );
 
     const processed = await (worker as any).claimAndProcessJobs();
@@ -223,7 +227,7 @@ describe('InboundReplyWorker Database Integration', () => {
         workspaceId,
         companyId,
         templateId: '',
-        
+
         name: 'Camp',
         normalizedName: 'camp',
         status: 'DRAFT',

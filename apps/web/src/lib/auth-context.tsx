@@ -14,7 +14,14 @@ export interface Workspace {
   ownerId?: string;
 }
 
-export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'bootstrap_error';
+export const authStatus = {
+  LOADING: "loading",
+  AUTHENTICATED: "authenticated",
+  UNAUTHENTICATED: "unauthenticated",
+  BOOTSTRAP_ERROR: "bootstrap_error",
+} as const;
+
+export type AuthStatus = typeof authStatus[keyof typeof authStatus];
 
 export interface AuthContextType {
   status: AuthStatus;
@@ -32,13 +39,13 @@ export interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>(authStatus.LOADING);
   const [user, setUser] = useState<User | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   const refetchAuth = useCallback(async () => {
-    setStatus('loading');
+    setStatus(authStatus.LOADING);
     setError(null);
     try {
       const res = await apiClient.get<{ user: User; workspace: Workspace }>('/auth/me');
@@ -47,17 +54,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(res.user);
       setWorkspace(res.workspace);
-      setStatus('authenticated');
+      setStatus(authStatus.AUTHENTICATED);
     } catch (err: unknown) {
       setUser(null);
       setWorkspace(null);
 
       // Distinguish 401 (unauthenticated) from network/500 failures (bootstrap_error)
       if (err instanceof ApiError && err.statusCode === 401) {
-        setStatus('unauthenticated');
+        setStatus(authStatus.UNAUTHENTICATED);
         setError(null);
       } else {
-        setStatus('bootstrap_error');
+        setStatus(authStatus.BOOTSTRAP_ERROR);
         setError(err instanceof Error ? err : new Error('Connection to server failed'));
       }
     }
@@ -80,16 +87,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(res.user);
       setWorkspace(res.workspace);
-      setStatus('authenticated');
+      setStatus(authStatus.AUTHENTICATED);
     } catch (err) {
-      setStatus('unauthenticated');
+      setStatus(authStatus.UNAUTHENTICATED);
       setError(err instanceof Error ? err : new Error('Login failed'));
       throw err;
     }
   };
 
   const signup = async (email: string, password: string, firstName: string, lastName: string) => {
-    setStatus('loading');
+    setStatus(authStatus.LOADING);
     setError(null);
     try {
       const res = await apiClient.post<{ user: User; workspace: Workspace }>('/auth/signup', {
@@ -103,16 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(res.user);
       setWorkspace(res.workspace);
-      setStatus('authenticated');
+      setStatus(authStatus.AUTHENTICATED);
     } catch (err) {
-      setStatus('unauthenticated');
+      setStatus(authStatus.UNAUTHENTICATED);
       setError(err instanceof Error ? err : new Error('Signup failed'));
       throw err;
     }
   };
 
   const logout = async () => {
-    setStatus('loading');
+    setStatus(authStatus.LOADING);
     try {
       await apiClient.post('/auth/logout');
     } catch {
@@ -121,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setWorkspace(null);
       setError(null);
-      setStatus('unauthenticated');
+      setStatus(authStatus.UNAUTHENTICATED);
     }
   };
 
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         status,
         user,
         workspace,
-        isLoading: status === 'loading',
+        isLoading: status === authStatus.LOADING,
         error,
         login,
         signup,

@@ -38,15 +38,12 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
       </QueryClientProvider>,
     );
 
-  it('does not render when isOpen is false', () => {
-    renderModal();
-    expect(screen.queryByText(/Add Contact Manually/i)).not.toBeInTheDocument();
-  });
 
-  it('renders modal with default form controls when isOpen is true', () => {
+  it('renders modal with default form controls', () => {
     renderModal();
     expect(screen.getByText(/Add Contact Manually/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Role Title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Contact Type/i)).toBeInTheDocument();
@@ -58,7 +55,7 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
 
     fireEvent.click(screen.getByRole('button', { name: /^Add Contact$/i }));
 
-    expect(await screen.findByText('Contact name is required.')).toBeInTheDocument();
+    expect(await screen.findByText('First Name is required')).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
   });
 
@@ -86,7 +83,7 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
 
     fireEvent.click(screen.getByRole('button', { name: /^Add Contact$/i }));
 
-    expect(await screen.findByText(/Please enter a valid URL/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Please enter a valid absolute URL/i)).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
   });
 

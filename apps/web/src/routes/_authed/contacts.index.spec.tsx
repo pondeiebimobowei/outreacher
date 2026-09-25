@@ -25,6 +25,7 @@ const mockCompanies: CompanyDto[] = [
   {
     id: 'comp-1',
     workspaceId: 'ws-1',
+    phoneNumber: '08033366674',
     name: 'Stripe Inc',
     normalizedName: 'stripe inc',
     websiteUrl: 'https://stripe.com',
@@ -40,6 +41,7 @@ const mockCompanies: CompanyDto[] = [
   {
     id: 'comp-2',
     workspaceId: 'ws-1',
+    phoneNumber: '08044466674',
     name: 'Vercel Inc',
     normalizedName: 'vercel inc',
     websiteUrl: 'https://vercel.com',

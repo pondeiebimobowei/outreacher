@@ -41,7 +41,7 @@ describe('ApproveDraftUseCase (Concurrency Integration)', () => {
 
         email: 'test@example.com',
         firstName: '',
-        lastName: ''
+        lastName: '',
       },
     });
     const campaign = await realPrisma.campaign.create({

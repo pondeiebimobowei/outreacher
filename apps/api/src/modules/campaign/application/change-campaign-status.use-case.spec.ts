@@ -19,7 +19,7 @@ const mockCampaign = (status: CampaignStatus): Campaign => ({
   name: 'Lifecycle Test Campaign',
   status,
   senderAccountId: 'sender-account-id',
-  templateId: "email-template-id",
+  templateId: 'email-template-id',
   followUpDelayBusinessDays: 4,
   createdAt: new Date(),
   updatedAt: new Date(),

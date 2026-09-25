@@ -1,3 +1,5 @@
+import { Person } from '../../../db';
+
 export const CAMPAIGN_STATUSES = [
   'DRAFT',
   'SCHEDULED',
@@ -63,7 +65,7 @@ export interface CampaignContactDto {
   id: string;
   workspaceId: string;
   campaignId: string;
-  contactId: string;
+  personId: string;
   status: CampaignContactStatus;
   targetRole: string | null;
   outreachReason: string | null;
@@ -72,6 +74,13 @@ export interface CampaignContactDto {
   selectedOpportunityId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CampaignContactWithPerson extends CampaignContactDto {
+  person: Exclude<
+    Person,
+    'workspaceId' | 'createdAt' | 'updatedAt'
+  >;
 }
 
 export interface AddCampaignContactsResponse {

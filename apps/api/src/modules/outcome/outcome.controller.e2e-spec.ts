@@ -80,7 +80,12 @@ describe('OutcomeController (e2e)', () => {
       data: { id: workspaceId, name: 'E2E WS' },
     });
     await prisma.user.create({
-      data: { id: userId, email: `test-${userId}@e2e.com`, firstName: 'User', lastName: '' },
+      data: {
+        id: userId,
+        email: `test-${userId}@e2e.com`,
+        firstName: 'User',
+        lastName: '',
+      },
     });
     await prisma.workspaceMember.create({
       data: { workspaceId, userId, role: 'OWNER' },
@@ -109,7 +114,7 @@ describe('OutcomeController (e2e)', () => {
       data: {
         id: personId,
         workspaceId,
-        
+
         personKind: 'PERSON',
         firstName: 'John',
         lastName: 'John',

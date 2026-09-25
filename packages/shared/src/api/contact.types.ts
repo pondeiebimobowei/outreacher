@@ -10,10 +10,9 @@ export type EmailConfidenceStatus = typeof EMAIL_CONFIDENCE_STATUSES[number];
 export interface EvaluatedPersonDto {
   id: string;
   workspaceId: string;
-  companyId: string;
   personKind: PersonKind;
-  firstName: string | null;
-  lastName: string | null;
+  firstName: string;
+  lastName: string;
   email: string | null;
   title: string | null;
   source: string | null;

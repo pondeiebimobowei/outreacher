@@ -4,10 +4,7 @@ import {
   setupTestDatabase,
   teardownTestDatabase,
 } from '../../../../test/helpers/db-test-harness';
-import {
-  MarkContactRepliedUseCase,
-
-} from './mark-contact-replied.use-case';
+import { MarkContactRepliedUseCase } from './mark-contact-replied.use-case';
 
 // MarkContactRepliedUseCase is a plain injectable — instantiate directly
 // with the real Prisma client wired to TEST_DATABASE_URL.

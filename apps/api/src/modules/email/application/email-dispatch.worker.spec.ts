@@ -5,7 +5,10 @@ import {
   Prisma,
 } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
-import { EmailDispatchErrorCode, SendEmailResult } from '../domain/email-provider.adapter';
+import {
+  EmailDispatchErrorCode,
+  SendEmailResult,
+} from '../domain/email-provider.adapter';
 import { EmailProviderException } from '../infrastructure/resend-email-provider.adapter';
 import { ClaimedEmailJob, EmailDispatchWorker } from './email-dispatch.worker';
 

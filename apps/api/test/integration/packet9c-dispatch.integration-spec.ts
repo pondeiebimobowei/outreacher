@@ -22,7 +22,6 @@ import {
   EmailSendStatus,
   JobStatus,
   CampaignStatus,
-
   Job,
   Prisma,
   CampaignMemberStatus,
@@ -175,7 +174,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     );
 
     // Verify it succeeds when called within a real transaction
-    await prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const result = await service.reserveSenderCapacityAndCreateEmailSend(
         tx,
         workspace.id,
@@ -199,7 +198,7 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
     const contact2 = await prisma.person.create({
       data: {
         workspaceId: workspace.id,
-        
+
         email: 'target2@target.com',
         firstName: '',
         lastName: '',
@@ -430,9 +429,9 @@ describe('Packet 9C: Outbound Dispatch & Provider Adapter', () => {
 
   it('7. Production mock:// Security Test', async () => {
     process.env.NODE_ENV = 'production';
-    await expect(secretResolver.resolve('mock://key', '', 'SMTP')).rejects.toThrow(
-      'mock:// secrets are not allowed in production',
-    );
+    await expect(
+      secretResolver.resolve('mock://key', '', 'SMTP'),
+    ).rejects.toThrow('mock:// secrets are not allowed in production');
     process.env.NODE_ENV = 'test'; // restore
   });
 

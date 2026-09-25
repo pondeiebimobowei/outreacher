@@ -8,6 +8,7 @@ export interface CompanyDto {
   normalizedName: string;
   websiteUrl: string | null;
   domain: string | null;
+  phoneNumber: string | null;
   description: string | null;
   industry: string | null;
   location: string | null;

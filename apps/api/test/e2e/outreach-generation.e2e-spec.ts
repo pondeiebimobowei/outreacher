@@ -171,10 +171,7 @@ describe('Outreach Generation Engine (e2e)', () => {
       const { cookies: cookies2 } =
         await createAuthenticatedUser('user2@example.com');
 
-      const { campaignMember } = await setupOutreachEntities(
-        cookies1!,
-        ws1.id,
-      );
+      const { campaignMember } = await setupOutreachEntities(cookies1!, ws1.id);
 
       await request(app.getHttpServer())
         .post(

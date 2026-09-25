@@ -10,7 +10,6 @@ describe('ContactDetailModal Component', () => {
   const mockContact: EvaluatedPersonDto = {
     id: 'cont-100',
     workspaceId: 'ws-1',
-    companyId: 'comp-1',
     personKind: 'PERSON',
     firstName: 'Jane',
     lastName: 'Doe',
