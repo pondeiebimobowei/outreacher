@@ -104,10 +104,10 @@ export function OutreachTab({
       )}
 
       {contacts.map((c: CampaignContactSummaryDto) => {
-        // c.contact is embedded — use it directly for real identity
-        const personName = c.contact.name;
-        const personTitle = c.contact.title ?? c.targetRole ?? null;
-        const personEmail = c.contact.email;
+        // c.person is embedded — use it directly for real identity
+        const personName = `${c.person.firstName} ${c.person.lastName}`;
+        const personTitle = c.person.title ?? c.targetRole ?? null;
+        const personEmail = c.person.email;
         const hasSubject = !!c.currentSubject;
 
         return (

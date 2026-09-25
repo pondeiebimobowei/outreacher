@@ -1,5 +1,12 @@
 import { apiClient } from './client';
-import { CampaignContactDto, CampaignContactStatus } from './campaigns';
+import {
+  CampaignContactDto,
+  CampaignContactStatus,
+  CampaignContactSummaryDto,
+} from '@repo/shared';
+
+export type { CampaignContactSummaryDto };
+
 
 export interface CampaignContactEvidenceDto {
   id: string;
@@ -32,7 +39,7 @@ export interface CampaignContactDetailsDto {
   id: string;
   workspaceId: string;
   campaignId: string;
-  contactId: string;
+  personId: string;
   status: CampaignContactStatus;
   targetRole: string | null;
   outreachReason: string | null;
@@ -41,9 +48,10 @@ export interface CampaignContactDetailsDto {
   selectedOpportunityId: string | null;
   createdAt: string;
   updatedAt: string;
-  contact: {
+  person: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     title: string | null;
     email: string | null;
     personKind: 'PERSON' | 'ROLE_ADDRESS';
@@ -64,29 +72,6 @@ export interface CampaignContactDetailsDto {
   evidence: CampaignContactEvidenceDto[];
   generationJob: GenerationJobDto | null;
   latestEmailSend: EmailSendSummaryDto | null;
-}
-
-export interface CampaignContactSummaryDto {
-  id: string;
-  workspaceId: string;
-  campaignId: string;
-  contactId: string;
-  status: CampaignContactStatus;
-  targetRole: string | null;
-  outreachReason: string | null;
-  currentSubject: string | null;
-  currentBody: string | null;
-  selectedOpportunityId: string | null;
-  createdAt: string;
-  updatedAt: string;
-  contact: {
-    id: string;
-    name: string;
-    title: string | null;
-    email: string | null;
-    personKind: 'PERSON' | 'ROLE_ADDRESS';
-    confidence: string | null;
-  };
 }
 
 export interface UpdateDraftInput {

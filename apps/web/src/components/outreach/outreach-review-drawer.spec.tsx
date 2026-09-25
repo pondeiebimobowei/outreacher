@@ -10,7 +10,7 @@ const mockContactDetails: outreachApi.CampaignContactDetailsDto = {
   id: 'cc-1',
   workspaceId: 'ws-1',
   campaignId: 'camp-1',
-  contactId: 'con-1',
+  personId: 'con-1',
   status: 'PENDING',
   targetRole: 'VP of Engineering',
   outreachReason: 'Leads the engineering team hiring for this role.',
@@ -20,9 +20,9 @@ const mockContactDetails: outreachApi.CampaignContactDetailsDto = {
   selectedOpportunityId: 'opp-1',
   createdAt: '2026-09-19T00:00:00.000Z',
   updatedAt: '2026-09-19T00:00:00.000Z',
-  contact: {
+  person: {
     id: 'con-1',
-    name: 'Sarah Connor',
+    firstName: "Sarah", lastName: "Connor",
     title: 'VP of Engineering',
     email: 'sarah@acme.com',
     personKind: 'PERSON',
@@ -60,7 +60,7 @@ const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
     id: 'cc-1',
     workspaceId: 'ws-1',
     campaignId: 'camp-1',
-    contactId: 'con-1',
+    personId: 'con-1',
     status: 'PENDING',
     targetRole: 'VP of Engineering',
     outreachReason: null,
@@ -69,9 +69,9 @@ const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
     selectedOpportunityId: null,
     createdAt: '2026-09-19T00:00:00.000Z',
     updatedAt: '2026-09-19T00:00:00.000Z',
-    contact: {
+    person: {
       id: 'con-1',
-      name: 'Sarah Connor',
+      firstName: "Sarah", lastName: "Connor",
       title: 'VP of Engineering',
       email: 'sarah@acme.com',
       personKind: 'PERSON',
@@ -82,7 +82,7 @@ const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
     id: 'cc-2',
     workspaceId: 'ws-1',
     campaignId: 'camp-1',
-    contactId: 'con-2',
+    personId: 'con-2',
     status: 'PENDING',
     targetRole: 'Engineering Manager',
     outreachReason: null,
@@ -91,9 +91,9 @@ const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
     selectedOpportunityId: null,
     createdAt: '2026-09-19T00:00:00.000Z',
     updatedAt: '2026-09-19T00:00:00.000Z',
-    contact: {
+    person: {
       id: 'con-2',
-      name: 'John Doe',
+      firstName: "John", lastName: "Doe",
       title: 'Engineering Manager',
       email: 'john@acme.com',
       personKind: 'PERSON',

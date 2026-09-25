@@ -61,7 +61,7 @@ export function MemberCard({
   const cfg = MEMBER_STATUS_CFG[member.status] || MEMBER_STATUS_CFG['PENDING'];
   const nextAction = getNextAction(member.status);
   const isActionable = member.status !== 'SENT' && member.status !== 'SENDING';
-  const name = member.contact.name || 'Unknown';
+  const name = member.person.firstName || 'Unknown';
   const initial = name[0] ? name[0].toUpperCase() : '?';
 
   return (

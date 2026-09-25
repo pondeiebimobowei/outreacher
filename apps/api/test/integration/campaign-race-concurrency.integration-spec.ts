@@ -39,7 +39,7 @@ describe('Campaign Canonical Concurrency & Race Recovery (Integration)', () => {
     const user = await prisma.user.create({
       data: {
         email: 'race-test@example.com',
-        name: 'Race User',
+        firstName: 'Race', lastName: 'User',
       },
     });
 

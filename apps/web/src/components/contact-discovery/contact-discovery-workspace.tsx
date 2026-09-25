@@ -81,7 +81,7 @@ export function ContactDiscoveryWorkspace({
 
       // 4. Find the matching CampaignContact record
       const match = allBound.find(
-        (c) => c.contactId === contact.id || c.contact?.id === contact.id,
+        (c) => c.personId === contact.id || c.person?.id === contact.id,
       );
       const targetId = match ? match.id : (bindRes.bound?.[0]?.id ?? null);
 
@@ -603,7 +603,7 @@ export function ContactDiscoveryWorkspace({
           setActiveCampaignContactId(nextId);
           const nextBound = boundCampaignContacts.find((c) => c.id === nextId);
           if (nextBound) {
-            setDrawerContactId(nextBound.contactId);
+            setDrawerContactId(nextBound.personId);
           }
         }}
         companyName={companyName}

@@ -1,4 +1,3 @@
-import { Person } from '../../../db';
 
 export const CAMPAIGN_STATUSES = [
   'DRAFT',
@@ -76,11 +75,16 @@ export interface CampaignContactDto {
   updatedAt: string;
 }
 
-export interface CampaignContactWithPerson extends CampaignContactDto {
-  person: Exclude<
-    Person,
-    'workspaceId' | 'createdAt' | 'updatedAt'
-  >;
+export interface CampaignContactSummaryDto extends CampaignContactDto {
+  person: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    title: string | null;
+    email: string | null;
+    personKind: 'PERSON' | 'ROLE_ADDRESS';
+    confidence: string | null;
+  };
 }
 
 export interface AddCampaignContactsResponse {

@@ -34,7 +34,7 @@ function makeContact(
     id,
     workspaceId: 'ws-1',
     campaignId: 'camp-1',
-    contactId: `contact-${id}`,
+    personId: `contact-${id}`,
     status,
     targetRole: 'Lead Distributed Systems Architect',
     outreachReason: 'Sarah leads the engineering department actively hiring.',
@@ -43,9 +43,9 @@ function makeContact(
     selectedOpportunityId: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    contact: {
+    person: {
       id: `contact-${id}`,
-      name: `Contact ${id}`,
+      firstName: "Contact " + id, lastName: "",
       title: 'VP of Engineering',
       email: `contact${id}@acme.com`,
       personKind: 'PERSON',

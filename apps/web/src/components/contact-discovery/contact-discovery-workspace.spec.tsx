@@ -378,6 +378,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/No active campaign found for this company/i);
     expect(screen.queryByText(/AI Assisted — Review Required/i)).not.toBeInTheDocument();
+    expect(mockPost).not.toHaveBeenCalled();
   });
 
   it('filters candidates by search input', async () => {

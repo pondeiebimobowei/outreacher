@@ -658,7 +658,7 @@ export function OutreachReviewDrawer({
   const isBodyAmber = bodyLen > 3600 && bodyLen <= 4000;
   const isBodyValid = bodyLen >= 20 && bodyLen <= 4000;
 
-  const hasRecipientEmail = Boolean(contactDetails?.contact?.email);
+  const hasRecipientEmail = Boolean(contactDetails?.person?.email);
   const isEligibleForApproval =
     isSubjectValid &&
     isBodyValid &&
@@ -699,7 +699,7 @@ export function OutreachReviewDrawer({
                 className="text-sm font-bold text-slate-900 truncate"
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
-                {contactDetails?.contact?.name || 'Contact Outreach'}
+                {contactDetails?.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : 'Contact Outreach'}
               </h2>
               {/* Status Badge (CampaignContact.status is primary authority) */}
               {isGenerating ? (
@@ -733,8 +733,8 @@ export function OutreachReviewDrawer({
               )}
             </div>
             <p className="text-xs text-slate-500 truncate">
-              {contactDetails?.contact?.title
-                ? `${contactDetails.contact.title} · ${companyName}`
+              {contactDetails?.person?.title
+                ? `${contactDetails.person.title} · ${companyName}`
                 : companyName}
             </p>
           </div>
@@ -1222,7 +1222,7 @@ export function OutreachReviewDrawer({
           {isPreDispatchHoldActive ? (
             <PreDispatchHold
               durationMs={5000}
-              contactName={contactDetails?.contact?.name}
+              contactName={contactDetails?.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : undefined}
               onCancel={handleCancelSend}
               onComplete={handleExecuteSend}
             />
@@ -1301,10 +1301,10 @@ export function OutreachReviewDrawer({
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={handleConfirmModalSubmit}
-          contactName={contactDetails.contact?.name || 'Contact'}
-          contactTitle={contactDetails.contact?.title}
+          contactName={contactDetails.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : 'Contact'}
+          contactTitle={contactDetails.person?.title}
           companyName={companyName}
-          recipientEmail={contactDetails.contact?.email || ''}
+          recipientEmail={contactDetails.person?.email || ''}
           subject={subject}
           bodyPreview={bodyText}
         />
