@@ -1,4 +1,3 @@
-import { CompanyStatus } from '@repo/db';
 import {
   IsEnum,
   IsOptional,
@@ -6,8 +5,10 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import type { UpdateCompanyRequest, CompanyStatus } from '@repo/shared';
+import { COMPANY_STATUSES } from '@repo/shared';
 
-export class UpdateCompanyDto {
+export class UpdateCompanyDto implements UpdateCompanyRequest {
   @IsOptional()
   @IsString()
   @MinLength(1, { message: 'Company name cannot be empty.' })
@@ -38,6 +39,6 @@ export class UpdateCompanyDto {
   linkedinUrl?: string | null;
 
   @IsOptional()
-  @IsEnum(CompanyStatus)
+  @IsEnum(COMPANY_STATUSES)
   status?: CompanyStatus;
 }

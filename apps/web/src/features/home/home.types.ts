@@ -1,3 +1,5 @@
+import { Workspace } from "../../lib/auth-context";
+
 export interface DegradedSourceDto {
   source: string;
   code: string;
@@ -59,9 +61,7 @@ export interface WorkspaceActivityItemDto {
 }
 
 export interface WorkspaceSummaryDto {
-  workspace: {
-    id: string;
-  };
+  workspace: Pick<Workspace, 'id'>;
   workItems: WorkspaceWorkItemDto[];
   recentActivity: WorkspaceActivityItemDto[];
   degradedSources?: DegradedSourceDto[];

@@ -62,7 +62,9 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
+        personCompanyAssociations: {
+          create: { companyId: 'comp-1', workspaceId: 'ws-1' },
+        },
         personKind: 'PERSON',
         firstName: 'Jane',
         lastName: 'Doe',
@@ -96,7 +98,9 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
+        personCompanyAssociations: {
+          create: { companyId: 'comp-1', workspaceId: 'ws-1' },
+        },
         personKind: 'PERSON',
         firstName: 'Alex',
         lastName: 'Rivera',
@@ -118,7 +122,9 @@ describe('CreateContactUseCase', () => {
     prismaMock.person.findFirst.mockResolvedValue({
       id: 'cont-existing',
       workspaceId: 'ws-1',
-      personCompanyAssociations: { create: { companyId: 'comp-1', workspaceId: 'ws-1' } },
+      personCompanyAssociations: {
+        create: { companyId: 'comp-1', workspaceId: 'ws-1' },
+      },
       email: 'jane@acme.com',
     });
     prismaMock.person.update.mockImplementation(({ data }: any) =>

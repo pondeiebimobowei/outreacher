@@ -26,25 +26,25 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
     });
   });
 
-  const renderModal = (isOpen = true) =>
+  const renderModal = () =>
     render(
       <QueryClientProvider client={queryClient}>
         <AddContactModal
           companyId="comp-100"
           companyName="Acme Corp"
-          isOpen={isOpen}
+          setAnnouncement={jest.fn()}
           onClose={mockOnClose}
         />
       </QueryClientProvider>,
     );
 
   it('does not render when isOpen is false', () => {
-    renderModal(false);
+    renderModal();
     expect(screen.queryByText(/Add Contact Manually/i)).not.toBeInTheDocument();
   });
 
   it('renders modal with default form controls when isOpen is true', () => {
-    renderModal(true);
+    renderModal();
     expect(screen.getByText(/Add Contact Manually/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Full Name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
   });
 
   it('validates required name field on submission', async () => {
-    renderModal(true);
+    renderModal();
 
     fireEvent.click(screen.getByRole('button', { name: /^Add Contact$/i }));
 
@@ -63,9 +63,10 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
   });
 
   it('validates invalid email format', async () => {
-    renderModal(true);
+    renderModal();
 
-    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/First Name/i), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'invalid-email' },
     });
@@ -77,9 +78,10 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
   });
 
   it('validates invalid reference URL format', async () => {
-    renderModal(true);
+    renderModal();
 
-    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/First Name/i), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/Reference URL/i), { target: { value: 'not-a-url' } });
 
     fireEvent.click(screen.getByRole('button', { name: /^Add Contact$/i }));
@@ -94,7 +96,8 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
       workspaceId: 'ws-100',
       companyId: 'comp-100',
       contactKind: 'PERSON',
-      name: 'Jane Doe',
+      firstName: 'Jane',
+      lastName: 'Doe',
       email: 'jane.doe@acme.com',
       title: 'Head of Product',
       source: 'USER_PROVIDED',
@@ -106,9 +109,10 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
       updatedAt: '2026-09-18T00:00:00Z',
     });
 
-    renderModal(true);
+    renderModal();
 
-    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/First Name/i), { target: { value: 'Jane' } });
+    fireEvent.change(screen.getByLabelText(/Last Name/i), { target: { value: 'Doe' } });
     fireEvent.change(screen.getByLabelText(/Email Address/i), {
       target: { value: 'jane.doe@acme.com' },
     });
@@ -123,7 +127,8 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/companies/comp-100/contacts', {
-        name: 'Jane Doe',
+        firstName: 'Jane',
+      lastName: 'Doe',
         email: 'jane.doe@acme.com',
         title: 'Head of Product',
         contactKind: 'PERSON',
@@ -134,7 +139,7 @@ describe('AddContactModal Component - Milestone 07 Manual Contact Creation', () 
   });
 
   it('closes modal on Escape keypress', () => {
-    renderModal(true);
+    renderModal();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 

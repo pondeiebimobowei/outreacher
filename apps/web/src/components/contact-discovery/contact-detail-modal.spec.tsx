@@ -12,7 +12,8 @@ describe('ContactDetailModal Component', () => {
     workspaceId: 'ws-1',
     companyId: 'comp-1',
     contactKind: 'PERSON',
-    name: 'Jane Doe',
+    firstName: 'Jane',
+    lastName: 'Doe',
     email: 'jane.doe@acme.com',
     title: 'VP of Engineering',
     source: 'COMPANY_WEBSITE',
@@ -69,7 +70,7 @@ describe('ContactDetailModal Component', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Jane Doe' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Jane Doe/ })).toBeInTheDocument();
     expect(screen.getAllByText(/VP of Engineering/i)).not.toHaveLength(0);
     expect(
       screen.getByText("Role 'VP of Engineering' directly matches opening."),

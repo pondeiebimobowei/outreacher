@@ -7,7 +7,8 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
-  let frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+  let frontendUrl =
+    configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
   if (frontendUrl.endsWith('/')) {
     frontendUrl = frontendUrl.slice(0, -1);
   }

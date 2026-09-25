@@ -1,49 +1,23 @@
 import { apiClient } from './client';
+import type { 
+  EvaluatedContactDto, 
+  CompanyContactsResponse, 
+  DiscoverContactsResponse, 
+  CreateContactRequest,
+  ContactKind,
+  ContactRelevance,
+  EmailConfidenceStatus
+} from '@repo/shared';
 
-export type ContactKind = 'PERSON' | 'ROLE_ADDRESS';
-export type ContactRelevance = 'HIGH' | 'MEDIUM' | 'LOW';
-export type EmailConfidenceStatus = 'AVAILABLE' | 'UNAVAILABLE';
-
-export interface EvaluatedContactDto {
-  id: string;
-  workspaceId: string;
-  companyId: string;
-  contactKind: ContactKind;
-  name: string;
-  email: string | null;
-  title: string | null;
-  source: string | null;
-  sourceUrl: string | null;
-  confidence: string | null;
-  emailConfidence: EmailConfidenceStatus;
-  discoveredAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  relevance: ContactRelevance;
-  recommendationRationale: string;
-  isSelected: boolean;
-}
-
-export interface CompanyContactsResponse {
-  companyId: string;
-  status: 'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
-  selectedContactId: string | null;
-  contacts: EvaluatedContactDto[];
-  discoveryJob: {
-    id: string;
-    status: string;
-    createdAt: string;
-    completedAt?: string | null;
-  } | null;
-  mock?: boolean;
-}
-
-export interface DiscoverContactsResponse {
-  jobId: string;
-  status: 'QUEUED' | 'RUNNING' | 'COMPLETED';
-  reused: boolean;
-  contactsCount?: number;
-}
+export type { 
+  EvaluatedContactDto, 
+  CompanyContactsResponse, 
+  DiscoverContactsResponse, 
+  CreateContactRequest,
+  ContactKind,
+  ContactRelevance,
+  EmailConfidenceStatus
+};
 
 export async function fetchCompanyContacts(companyId: string): Promise<CompanyContactsResponse> {
   return apiClient.get<CompanyContactsResponse>(`/companies/${companyId}/contacts`);
@@ -72,17 +46,9 @@ export async function selectCompanyContact(
   );
 }
 
-export interface CreateContactInput {
-  name: string;
-  email?: string | null;
-  title?: string | null;
-  contactKind?: ContactKind;
-  sourceUrl?: string | null;
-}
-
 export async function createCompanyContact(
   companyId: string,
-  input: CreateContactInput,
+  input: CreateContactRequest,
 ): Promise<EvaluatedContactDto> {
   return apiClient.post<EvaluatedContactDto>(`/companies/${companyId}/contacts`, input);
 }

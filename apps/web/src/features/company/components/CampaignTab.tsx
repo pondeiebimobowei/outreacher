@@ -3,7 +3,7 @@ import { CompanyDto } from '../../../api/companies';
 import { resolveCanonicalCompanyCampaign, CampaignDto } from '../../../api/campaigns';
 import { GateCard } from './GateCard';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { MegaphoneIcon, SearchIcon, ChevronRightIcon, ArrowRightIcon, Search01Icon, Megaphone } from '@hugeicons/core-free-icons';;
+import { MegaphoneIcon, ChevronRightIcon, ArrowRightIcon, Search01Icon, Megaphone } from '@hugeicons/core-free-icons';;
 import { useNavigate } from '@tanstack/react-router';
 
 function campaignStatusBadge(status: string) {

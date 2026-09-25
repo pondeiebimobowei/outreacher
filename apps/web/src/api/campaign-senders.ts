@@ -1,13 +1,7 @@
 import { apiClient } from './client';
+import type { CampaignSenderSummary } from '@repo/shared';
 
-export interface CampaignSenderSummary {
-  assignmentStatus: 'ACTIVE' | 'REMOVED';
-  senderAccountId: string;
-  fromName: string;
-  fromEmail: string;
-  senderStatus: 'ACTIVE' | 'PAUSED' | 'DISABLED';
-  integrationStatus: 'ACTIVE' | 'INVALID_CREDENTIALS' | 'DISABLED';
-}
+export type { CampaignSenderSummary };
 
 /**
  * Assigns one or more sender accounts to a campaign.

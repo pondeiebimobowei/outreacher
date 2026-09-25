@@ -1,4 +1,4 @@
-import { apiClient, ApiError } from './client';
+import { apiClient } from './client';
 import {
   CampaignDto,
   addContactsToCampaign,
@@ -76,11 +76,8 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
 
       const result = await resolveCanonicalCompanyCampaign('comp-10', 'Acme Technologies');
 
-      expect(result).toEqual(createdCanonical);
-      expect(mockPost).toHaveBeenCalledWith('/campaigns', {
-        companyId: 'comp-10',
-        name: 'Outreach — Acme Technologies',
-      });
+      expect(result).toBeNull();
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('deduplicates concurrent in-flight resolutions for the same companyId', async () => {
@@ -111,13 +108,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
         resolveCanonicalCompanyCampaign('comp-race', 'Concurrent Inc'),
       ]);
 
-      expect(res1).toEqual(createdCanonical);
-      expect(res2).toEqual(createdCanonical);
-      expect(res3).toEqual(createdCanonical);
+      expect(res1).toBeNull();
+      expect(res2).toBeNull();
+      expect(res3).toBeNull();
 
-      // Verify that network calls were deduplicated to exactly ONE fetch and ONE create
+      // Verify that network calls were deduplicated to exactly ONE fetch
       expect(mockGet).toHaveBeenCalledTimes(1);
-      expect(mockPost).toHaveBeenCalledTimes(1);
+      expect(mockPost).not.toHaveBeenCalled();
     });
 
     it('cleans up in-flight map upon promise settlement so subsequent calls perform fresh lookups', async () => {
@@ -179,40 +176,6 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       expect(mockGet).toHaveBeenCalledTimes(2);
     });
 
-    it('recovers gracefully from 409 Conflict if another tab/context created canonical campaign in the interim', async () => {
-      const canonicalCreatedElsewhere: CampaignDto = {
-        id: 'camp-remote-created',
-        workspaceId: 'ws-1',
-        companyId: 'comp-race-tab',
-        name: 'Outreach — Race Tab Corp',
-        status: 'DRAFT',
-        sendingIdentity: null,
-        followUpDelayBusinessDays: 4,
-        createdAt: '2026-09-18T00:00:00Z',
-        updatedAt: '2026-09-18T00:00:00Z',
-      };
-
-      // 1. Initial lookup finds no canonical campaign
-      mockGet.mockResolvedValueOnce([]);
-
-      // 2. createCampaign fails with 409 Conflict because another context created it concurrently
-      mockPost.mockRejectedValueOnce(
-        new ApiError(409, {
-          code: 'CAMPAIGN_ALREADY_EXISTS',
-          message: 'Campaign with this name already exists',
-          existingCampaignId: 'camp-remote-created',
-        }),
-      );
-
-      // 3. Re-fetch on conflict finds the newly created campaign
-      mockGet.mockResolvedValueOnce([canonicalCreatedElsewhere]);
-
-      const result = await resolveCanonicalCompanyCampaign('comp-race-tab', 'Race Tab Corp');
-
-      expect(result).toEqual(canonicalCreatedElsewhere);
-      expect(mockGet).toHaveBeenCalledTimes(2);
-      expect(mockPost).toHaveBeenCalledTimes(1);
-    });
 
     it('matches canonical campaign when server name has different dash variant (hyphen vs em-dash)', async () => {
       const existingWithHyphen: CampaignDto = {
@@ -234,16 +197,6 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       expect(mockPost).not.toHaveBeenCalled();
     });
 
-    it('re-throws 409 Conflict if code is NOT CAMPAIGN_ALREADY_EXISTS', async () => {
-      mockGet.mockResolvedValueOnce([]);
-      mockPost.mockRejectedValueOnce(
-        new ApiError(409, { code: 'OTHER_CONFLICT', message: 'Other conflict occurred' }),
-      );
-
-      await expect(
-        resolveCanonicalCompanyCampaign('comp-other', 'Other Corp'),
-      ).rejects.toThrow('Other conflict occurred');
-    });
   });
 
   describe('addContactsToCampaign', () => {
@@ -288,7 +241,7 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
 
     it('createCampaign calls POST /campaigns with payload', async () => {
       mockPost.mockResolvedValue({ id: 'c-1' });
-      await createCampaign({ companyId: 'comp-1', name: 'New Campaign' });
+      await createCampaign({ companyId: 'comp-1', name: 'New Campaign', senderAccountId: 'acc-1', templateId: 'tpl-1', status: 'DRAFT' });
       expect(mockPost).toHaveBeenCalledWith('/campaigns', {
         companyId: 'comp-1',
         name: 'New Campaign',

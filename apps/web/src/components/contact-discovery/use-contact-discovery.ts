@@ -132,6 +132,9 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
 
       // 2. Resolve canonical company campaign using existing retrieval contract
       const campaign = await resolveCanonicalCompanyCampaign(companyId, companyName);
+      if (!campaign) {
+        throw new Error('No campaign found for this company. Please create a campaign first.');
+      }
 
       // 3. Bind contact to campaign via POST /api/v1/campaigns/:id/contacts
       const bindRes: AddCampaignContactsResponse = await addContactsToCampaign(campaign.id, [
@@ -171,6 +174,7 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
     boundCampaignContact,
     activeCampaign,
     ariaAnnouncement,
+    setAriaAnnouncement,
     isPollingActive,
     isStillRunningTimeout,
     setRateLimitError,

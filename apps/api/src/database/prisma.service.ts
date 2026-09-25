@@ -25,10 +25,14 @@ export class PrismaService
       configService.get<string>('POSTGRES_URL');
 
     if (!connectionString) {
-      throw new Error('Database connection string is missing (DATABASE_URL, POSTGRES_PRISMA_URL, or POSTGRES_URL must be set)');
+      throw new Error(
+        'Database connection string is missing (DATABASE_URL, POSTGRES_PRISMA_URL, or POSTGRES_URL must be set)',
+      );
     }
 
-    const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+    const isLocalhost =
+      connectionString.includes('localhost') ||
+      connectionString.includes('127.0.0.1');
     const pool = new pg.Pool({
       connectionString,
       ssl: isLocalhost ? false : { rejectUnauthorized: false },

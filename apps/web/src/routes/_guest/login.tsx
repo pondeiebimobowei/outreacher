@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useAuth } from '../../lib/auth-context';
 import { normalizeApiBaseUrl } from '../../api/client';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Mail01Icon, LockIcon, EyeIcon, EyeOffIcon, AlertCircleIcon, UserIcon } from '@hugeicons/core-free-icons';;
+import { Mail01Icon, LockIcon, EyeIcon, AlertCircleIcon, UserIcon } from '@hugeicons/core-free-icons';;
 import { webEnv } from '../../config/env.config';
 // import { AlertCircleIcon } from '@hugeicons/core-free-icons';
 

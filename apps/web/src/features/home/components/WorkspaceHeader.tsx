@@ -17,7 +17,7 @@ export const WorkspaceHeader: React.FC = () => {
         className="text-[26px] font-bold tracking-tight text-slate-900"
         style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
       >
-        {getGreeting()}, {user?.name || user?.email?.split('@')[0] || 'there'}
+        {getGreeting()}, {user?.firstName || user?.email?.split('@')[0] || 'there'}
       </h1>
       <p
         className="text-[14px] text-slate-500 mt-1"

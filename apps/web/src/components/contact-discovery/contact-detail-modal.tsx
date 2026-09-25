@@ -70,8 +70,8 @@ export function ContactDetailModal({
   const isPerson = contact.contactKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
-  const avatarBg = pickAvatarColor(contact.name || contact.id);
-  const initials = getInitials(contact.name || '??');
+  const avatarBg = pickAvatarColor(contact.firstName || contact.id);
+  const initials = getInitials(contact.firstName || '??');
 
   return (
     <div
@@ -105,7 +105,7 @@ export function ContactDetailModal({
                   className="text-lg font-bold text-slate-900 tracking-tight"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
-                  {contact.name}
+                  {contact.firstName}
                 </h2>
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${

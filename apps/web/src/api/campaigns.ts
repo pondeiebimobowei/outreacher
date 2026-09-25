@@ -1,62 +1,24 @@
+import { apiClient } from './client';
 import { normalizeCampaignName } from '@repo/shared';
-import { apiClient, ApiError } from './client';
-import type { CampaignSenderSummary } from './campaign-senders';
+import type { 
+  CampaignDto, 
+  CreateCampaignRequest, 
+  AddCampaignContactsResponse, 
+  CampaignStatus, 
+  CampaignContactStatus, 
+  CampaignSenderSummary, 
+  CampaignContactDto 
+} from '@repo/shared';
 
-export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
-
-export type CampaignContactStatus =
-  | 'PENDING'
-  | 'READY'
-  | 'SCHEDULED'
-  | 'SENDING'
-  | 'SENT'
-  | 'FOLLOW_UP_DUE'
-  | 'REPLIED'
-  | 'COMPLETED'
-  | 'SUPPRESSED'
-  | 'FAILED'
-  | 'ARCHIVED';
-
-export interface CampaignDto {
-  id: string;
-  workspaceId: string;
-  companyId: string;
-  name: string;
-  normalizedName?: string;
-  status: CampaignStatus;
-  senders?: CampaignSenderSummary[];
-  sendingIdentity: string | null;
-  followUpDelayBusinessDays: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCampaignInput {
-  name: string;
-  companyId: string;
-  sendingIdentity?: string;
-  followUpDelayBusinessDays?: number;
-}
-
-export interface CampaignContactDto {
-  id: string;
-  workspaceId: string;
-  campaignId: string;
-  contactId: string;
-  status: CampaignContactStatus;
-  targetRole: string | null;
-  outreachReason: string | null;
-  currentSubject: string | null;
-  currentBody: string | null;
-  selectedOpportunityId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AddCampaignContactsResponse {
-  bound: CampaignContactDto[];
-  ignoredDuplicateCount: number;
-}
+export type { 
+  CampaignDto, 
+  CreateCampaignRequest, 
+  AddCampaignContactsResponse, 
+  CampaignStatus, 
+  CampaignContactStatus, 
+  CampaignSenderSummary, 
+  CampaignContactDto 
+};
 
 /**
  * Lists all campaigns for the current authenticated workspace.
@@ -70,7 +32,7 @@ export async function fetchCampaigns(): Promise<CampaignDto[]> {
  * Creates a new campaign within the current authenticated workspace.
  * Endpoint: POST /api/v1/campaigns
  */
-export async function createCampaign(input: CreateCampaignInput): Promise<CampaignDto> {
+export async function createCampaign(input: CreateCampaignRequest): Promise<CampaignDto> {
   return apiClient.post<CampaignDto>('/campaigns', input);
 }
 
@@ -95,19 +57,19 @@ export async function addContactsToCampaign(
   });
 }
 
-const inFlightCanonicalResolutions = new Map<string, Promise<CampaignDto>>();
+const inFlightCanonicalResolutions = new Map<string, Promise<CampaignDto | null>>();
 
 /**
  * Resolves the canonical company campaign using existing frontend/API retrieval contracts.
  * Matches strictly by companyId and canonical normalized name ('Outreach — [Company Name]'),
  * using the authoritative normalizer from @repo/shared, regardless of campaign status (e.g. DRAFT, ACTIVE, PAUSED).
- * Deduplicates in-flight client resolutions for the same companyId to prevent local race conditions,
- * and recovers gracefully via re-fetch if a concurrent context creates the campaign (409 Conflict with CAMPAIGN_ALREADY_EXISTS).
+ * Deduplicates in-flight client resolutions for the same companyId to prevent local race conditions.
+ * DOES NOT attempt to auto-create the campaign because creation requires a sender account and template.
  */
 export async function resolveCanonicalCompanyCampaign(
   companyId: string,
   companyName?: string,
-): Promise<CampaignDto> {
+): Promise<CampaignDto | null> {
   const existingInFlight = inFlightCanonicalResolutions.get(companyId);
   if (existingInFlight) {
     return existingInFlight;
@@ -124,44 +86,7 @@ export async function resolveCanonicalCompanyCampaign(
           normalizeCampaignName(c.name) === normalizedTarget,
       );
 
-      if (canonical) {
-        return canonical;
-      }
-
-      try {
-        return await createCampaign({
-          companyId,
-          name: canonicalName,
-        });
-      } catch (createErr) {
-        // If another context or tab created the canonical campaign concurrently, recover via re-fetch
-        if (
-          createErr instanceof ApiError &&
-          createErr.statusCode === 409 &&
-          createErr.code === 'CAMPAIGN_ALREADY_EXISTS'
-        ) {
-          const refreshed = await fetchCampaigns();
-          // If the backend returned existingCampaignId, select by ID first
-          if (createErr.existingCampaignId) {
-            const directMatch = refreshed.find(
-              (c) => c.id === createErr.existingCampaignId && c.companyId === companyId,
-            );
-            if (directMatch) {
-              return directMatch;
-            }
-          }
-          // Fall back to normalized name match across refreshed list
-          const canonicalOnConflict = refreshed.find(
-            (c) =>
-              c.companyId === companyId &&
-              normalizeCampaignName(c.name) === normalizedTarget,
-          );
-          if (canonicalOnConflict) {
-            return canonicalOnConflict;
-          }
-        }
-        throw createErr;
-      }
+      return canonical || null;
     } finally {
       inFlightCanonicalResolutions.delete(companyId);
     }
@@ -187,4 +112,3 @@ export async function pauseCampaign(id: string): Promise<CampaignDto> {
 export async function resumeCampaign(id: string): Promise<CampaignDto> {
   return apiClient.post<CampaignDto>(`/campaigns/${id}/resume`);
 }
-

@@ -1,6 +1,7 @@
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import type { CreateCompanyRequest } from '@repo/shared';
 
-export class CreateCompanyDto {
+export class CreateCompanyDto implements CreateCompanyRequest {
   @IsString()
   @MinLength(1, { message: 'Company name cannot be empty.' })
   @MaxLength(100, { message: 'Company name is too long.' })

@@ -46,7 +46,10 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
   const rawDbUrl =
     isTest && testDbUrl && testDbUrl.trim() !== ''
       ? testDbUrl
-      : config.DATABASE_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL;
+      : config.DATABASE_URL ||
+        process.env.DATABASE_URL ||
+        process.env.POSTGRES_PRISMA_URL ||
+        process.env.POSTGRES_URL;
 
   const mergedConfig = {
     ...config,

@@ -86,7 +86,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Jane Doe',
+          firstName: 'Jane', lastName: 'Doe',
           email: 'jane.doe@acme.com',
           title: 'VP of Engineering',
           source: 'COMPANY_WEBSITE',
@@ -106,7 +106,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera',
           email: null,
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',
@@ -143,7 +143,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
               campaignId: 'camp-1',
               contactId: 'cont-1',
               status: 'PENDING',
-              contact: { id: 'cont-1', name: 'Jane Doe' },
+              contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
             },
           ]);
         }
@@ -167,7 +167,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           currentSubject: 'Acme distributed systems',
           currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           updatedAt: '2026-09-19T00:00:00.000Z',
-          contact: { id: 'cont-1', name: 'Jane Doe' },
+          contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
           campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
         });
       }
@@ -238,7 +238,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Jane Doe',
+          firstName: 'Jane', lastName: 'Doe',
           email: 'jane.doe@acme.com',
           title: 'VP of Engineering',
           source: 'COMPANY_WEBSITE',
@@ -269,7 +269,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
               campaignId: 'camp-1',
               contactId: 'cont-1',
               status: 'PENDING',
-              contact: { id: 'cont-1', name: 'Jane Doe' },
+              contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
             },
           ]);
         }
@@ -293,7 +293,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           currentSubject: 'Acme distributed systems',
           currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           updatedAt: '2026-09-19T00:00:00.000Z',
-          contact: { id: 'cont-1', name: 'Jane Doe' },
+          contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
           campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
         });
       }
@@ -339,7 +339,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Jane Doe',
+          firstName: 'Jane', lastName: 'Doe', name: 'Jane Doe',
           email: 'jane.doe@acme.com',
           title: 'VP of Engineering',
           relevance: 'HIGH',
@@ -351,7 +351,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera', name: 'Alex Rivera',
           email: null,
           title: 'Recruiting Manager',
           relevance: 'MEDIUM',
@@ -396,7 +396,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',
@@ -508,7 +508,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-300',
           contactKind: 'PERSON',
-          name: 'Sarah Connor',
+          firstName: 'Sarah', lastName: 'Connor',
           email: 'sarah@acme.com',
           title: 'CTO',
           source: 'TEAM_PAGE',
@@ -593,12 +593,8 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     const selectBtn = await screen.findByRole('button', { name: /Select Target Contact/i });
     fireEvent.click(selectBtn);
 
-    expect(await screen.findByText('Outreach — Cyberdyne')).toBeInTheDocument();
-    expect(await screen.findByText('PENDING')).toBeInTheDocument();
-    expect(mockPost).toHaveBeenCalledWith('/campaigns', {
-      companyId: 'comp-300',
-      name: 'Outreach — Cyberdyne',
-    });
+    expect((await screen.findAllByText(/No campaign found for this company/i)).length).toBeGreaterThan(0);
+    expect(mockPost).not.toHaveBeenCalledWith('/campaigns', expect.anything());
   });
 
   it('displays warning alert when campaign binding encounters an error', async () => {
@@ -612,7 +608,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',
@@ -672,7 +668,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',
@@ -771,11 +767,8 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     fireEvent.click(selectBtn);
 
     // Verify it created the canonical campaign rather than binding to unrelated active campaign
-    expect(await screen.findByText('Outreach — Acme Corp')).toBeInTheDocument();
-    expect(mockPost).toHaveBeenCalledWith('/campaigns', {
-      companyId: 'comp-200',
-      name: 'Outreach — Acme Corp',
-    });
+    expect((await screen.findAllByText(/No campaign found for this company/i)).length).toBeGreaterThan(0);
+    expect(mockPost).not.toHaveBeenCalledWith('/campaigns', expect.anything());
     expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-canonical/contacts', {
       contactIds: ['cont-2'],
     });
@@ -794,7 +787,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           workspaceId: 'ws-1',
           companyId: 'comp-200',
           contactKind: 'PERSON',
-          name: 'Alex Rivera',
+          firstName: 'Alex', lastName: 'Rivera',
           email: 'alex@acme.com',
           title: 'Head of Engineering',
           source: 'TEAM_PAGE',

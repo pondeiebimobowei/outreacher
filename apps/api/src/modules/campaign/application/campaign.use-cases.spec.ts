@@ -23,8 +23,9 @@ const mockCompany = (overrides: Partial<Company> = {}): Company => ({
   id: companyId,
   workspaceId,
   name: 'Acme Corp',
-  normalizedName: 'acme',
+  normalizedName: 'test-camp',
   websiteUrl: null,
+  phoneNumber: '',
   domain: null,
   description: null,
   industry: null,
@@ -33,7 +34,6 @@ const mockCompany = (overrides: Partial<Company> = {}): Company => ({
   status: 'ACTIVE',
   createdAt: new Date(),
   updatedAt: new Date(),
-  normalizedName: 'test-camp',
   ...overrides,
 });
 
@@ -42,10 +42,10 @@ const mockCampaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   workspaceId,
   companyId,
   name: 'Test Campaign',
-  normalizedName: 'test campaign',
   status: 'DRAFT' as const,
-  senderAccountId: null,
+  senderAccountId: '',
   followUpDelayBusinessDays: 4,
+  templateId: '',
   createdAt: new Date(),
   updatedAt: new Date(),
   normalizedName: 'test-camp',
@@ -65,7 +65,6 @@ describe('CreateCampaignUseCase', () => {
       findById: jest.fn(),
       findByNormalizedName: jest.fn().mockResolvedValue(null),
       findManyByWorkspace: jest.fn(),
-      findByNormalizedName: jest.fn(),
       updateStatus: jest.fn(),
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),
@@ -75,7 +74,6 @@ describe('CreateCampaignUseCase', () => {
       findById: jest.fn(),
       findByNormalizedName: jest.fn(),
       findManyByWorkspace: jest.fn(),
-      findByNormalizedName: jest.fn(),
       update: jest.fn(),
     };
     useCase = new CreateCampaignUseCase(campaignRepo, companyRepo);
@@ -88,6 +86,9 @@ describe('CreateCampaignUseCase', () => {
     const result = await useCase.execute(workspaceId, {
       name: 'Test Campaign',
       companyId,
+      senderAccountId: 'acc-1',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
     });
 
     expect(companyRepo.findById).toHaveBeenCalledWith(workspaceId, companyId);
@@ -110,6 +111,9 @@ describe('CreateCampaignUseCase', () => {
     await useCase.execute(workspaceId, {
       name: '  Trimmed Name  ',
       companyId,
+      senderAccountId: 'acc-1',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
     });
 
     expect(campaignRepo.create).toHaveBeenCalledWith(
@@ -127,6 +131,8 @@ describe('CreateCampaignUseCase', () => {
       name: 'Campaign',
       companyId,
       senderAccountId: 'identity-ref-abc',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
     });
 
     expect(campaignRepo.create).toHaveBeenCalledWith(
@@ -134,14 +140,23 @@ describe('CreateCampaignUseCase', () => {
     );
   });
 
-  it('stores null when senderAccountId is omitted', async () => {
+  it('passes senderAccountId and templateId correctly', async () => {
     companyRepo.findById.mockResolvedValue(mockCompany());
     campaignRepo.create.mockResolvedValue(mockCampaign());
 
-    await useCase.execute(workspaceId, { name: 'Campaign', companyId });
+    await useCase.execute(workspaceId, {
+      name: 'Campaign',
+      companyId,
+      senderAccountId: 'acc-1',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
+    });
 
     expect(campaignRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ senderAccountId: null }),
+      expect.objectContaining({
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+      }),
     );
   });
 
@@ -149,7 +164,13 @@ describe('CreateCampaignUseCase', () => {
     companyRepo.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute(workspaceId, { name: 'Campaign', companyId }),
+      useCase.execute(workspaceId, {
+        name: 'Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(AppNotFoundException);
 
     expect(campaignRepo.create).not.toHaveBeenCalled();
@@ -160,7 +181,13 @@ describe('CreateCampaignUseCase', () => {
     companyRepo.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute(otherWorkspaceId, { name: 'Campaign', companyId }),
+      useCase.execute(otherWorkspaceId, {
+        name: 'Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(AppNotFoundException);
 
     expect(campaignRepo.create).not.toHaveBeenCalled();
@@ -170,7 +197,13 @@ describe('CreateCampaignUseCase', () => {
     companyRepo.findById.mockResolvedValue(mockCompany());
     campaignRepo.create.mockResolvedValue(mockCampaign());
 
-    await useCase.execute(workspaceId, { name: 'Campaign', companyId });
+    await useCase.execute(workspaceId, {
+      name: 'Campaign',
+      companyId,
+      senderAccountId: 'acc-1',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
+    });
 
     // workspaceId is always the one provided by the server context, never derived from dto
     expect(campaignRepo.create).toHaveBeenCalledWith(
@@ -182,7 +215,13 @@ describe('CreateCampaignUseCase', () => {
     companyRepo.findById.mockResolvedValue(mockCompany());
 
     await expect(
-      useCase.execute(workspaceId, { name: '   \t\r\n  ', companyId }),
+      useCase.execute(workspaceId, {
+        name: '   \t\r\n  ',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(AppValidationException);
 
     expect(campaignRepo.create).not.toHaveBeenCalled();
@@ -195,6 +234,9 @@ describe('CreateCampaignUseCase', () => {
     await useCase.execute(workspaceId, {
       name: '  Alpha — Beta   Campaign  ',
       companyId,
+      senderAccountId: 'acc-1',
+      templateId: 'tpl-1',
+      status: 'DRAFT',
     });
 
     expect(campaignRepo.findByNormalizedName).toHaveBeenCalledWith(
@@ -219,11 +261,23 @@ describe('CreateCampaignUseCase', () => {
     );
 
     await expect(
-      useCase.execute(workspaceId, { name: 'Test Campaign', companyId }),
+      useCase.execute(workspaceId, {
+        name: 'Test Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(CampaignDuplicateNameException);
 
     try {
-      await useCase.execute(workspaceId, { name: 'Test Campaign', companyId });
+      await useCase.execute(workspaceId, {
+        name: 'Test Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      });
     } catch (err) {
       expect(err).toBeInstanceOf(CampaignDuplicateNameException);
       expect((err as CampaignDuplicateNameException).existingCampaignId).toBe(
@@ -247,7 +301,13 @@ describe('CreateCampaignUseCase', () => {
     );
 
     try {
-      await useCase.execute(workspaceId, { name: 'Test Campaign', companyId });
+      await useCase.execute(workspaceId, {
+        name: 'Test Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      });
       fail('Expected CampaignDuplicateNameException to be thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(CampaignDuplicateNameException);
@@ -268,7 +328,13 @@ describe('CreateCampaignUseCase', () => {
     campaignRepo.create.mockRejectedValueOnce(dbErr);
 
     await expect(
-      useCase.execute(workspaceId, { name: 'Test Campaign', companyId }),
+      useCase.execute(workspaceId, {
+        name: 'Test Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(dbErr);
   });
 
@@ -279,7 +345,13 @@ describe('CreateCampaignUseCase', () => {
     campaignRepo.create.mockRejectedValueOnce(genericErr);
 
     await expect(
-      useCase.execute(workspaceId, { name: 'Test Campaign', companyId }),
+      useCase.execute(workspaceId, {
+        name: 'Test Campaign',
+        companyId,
+        senderAccountId: 'acc-1',
+        templateId: 'tpl-1',
+        status: 'DRAFT',
+      }),
     ).rejects.toThrow(genericErr);
   });
 });

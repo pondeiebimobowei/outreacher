@@ -1,5 +1,5 @@
-import { HugeiconsIcon, IconSvgElement } from '@hugeicons/react';
-import { LayoutDashboardIcon, MailIcon, BriefcaseIcon, UsersIcon, MegaphoneIcon, FileTextIcon, MessageSquareIcon, ZapIcon, AtSignIcon, SettingsIcon, DashboardSquare02Icon, BuildingIcon, LayoutTemplateIcon, MailAtSign02Icon, Door01Icon, UserMultipleIcon, PromotionIcon, Chat01Icon, PlugZapIcon, AtIcon, Settings03FreeIcons } from '@hugeicons/core-free-icons';
+
+import {  DashboardSquare02Icon, BuildingIcon, LayoutTemplateIcon, MailAtSign02Icon, Door01Icon, UserMultipleIcon, PromotionIcon, Chat01Icon, PlugZapIcon, AtIcon, Settings03FreeIcons } from '@hugeicons/core-free-icons';
 import { IconSvgObject } from '@hugeicons/core-free-icons/types';
 
 // import { Chat01Icon, Door01Icon, MailAtSign02Icon, PromotionIcon, UserMultipleIcon } from 'hugeicons-react';

@@ -1,124 +1,94 @@
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useRef, useState } from 'react';
-import { ContactKind, createCompanyContact } from '../../api/contacts';
+import { ContactKind, createCompanyContact, CreateContactRequest } from '../../api/contacts';
 
 interface AddContactModalProps {
   companyId: string;
   companyName: string;
-  isOpen: boolean;
   onClose: () => void;
+  setAnnouncement: (msg: string) => void;
 }
 
 export function AddContactModal({
   companyId,
   companyName,
-  isOpen,
   onClose,
+  setAnnouncement,
 }: AddContactModalProps) {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [contactKind, setContactKind] = useState<ContactKind>('PERSON');
   const [sourceUrl, setSourceUrl] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [announcement, setAnnouncement] = useState('');
 
+  const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    sourceUrl?: string;
+    form?: string;
+  }>({});
+  
+  const queryClient = useQueryClient();
   const modalRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      triggerRef.current = document.activeElement as HTMLElement;
-      modalRef.current?.focus();
-    } else if (triggerRef.current) {
-      triggerRef.current.focus();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+    modalRef.current?.focus();
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setName('');
-      setEmail('');
-      setTitle('');
-      setContactKind('PERSON');
-      setSourceUrl('');
-      setErrors({});
-      setAnnouncement('');
-    }
-  }, [isOpen]);
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   const mutation = useMutation({
-    mutationFn: (input: {
-      name: string;
-      email?: string | null;
-      title?: string | null;
-      contactKind?: ContactKind;
-      sourceUrl?: string | null;
-    }) => createCompanyContact(companyId, input),
+    mutationFn: (input: CreateContactRequest) => createCompanyContact(companyId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-contacts', companyId] });
-      setAnnouncement(`Contact ${name} added successfully.`);
+      setAnnouncement(`Contact ${firstName} ${lastName} added successfully.`);
       onClose();
     },
-    onError: (err: Error) => {
-      setErrors({ form: err.message || 'Failed to create contact.' });
+    onError: (error: Error) => {
+      setErrors((prev) => ({
+        ...prev,
+        form: error.message || 'Failed to add contact. Please try again.',
+      }));
     },
   });
 
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      newErrors.name = 'Contact name is required.';
+  const validate = () => {
+    const newErrors: typeof errors = {};
+    if (!firstName.trim()) newErrors.firstName = 'First Name is required';
+    if (!lastName.trim()) newErrors.lastName = 'Last Name is required';
+    
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
-
-    const trimmedEmail = email.trim();
-    if (trimmedEmail) {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailRegex.test(trimmedEmail)) {
-        newErrors.email = 'Please enter a valid email address (e.g. jane@acme.com) or leave blank.';
-      }
-    }
-
-    const trimmedUrl = sourceUrl.trim();
-    if (trimmedUrl) {
+    
+    if (sourceUrl) {
       try {
-        const parsed = new URL(trimmedUrl);
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          newErrors.sourceUrl = 'Reference URL must start with http:// or https://';
-        }
+        new URL(sourceUrl);
       } catch {
-        newErrors.sourceUrl = 'Please enter a valid URL (e.g. https://acme.com/team)';
+        newErrors.sourceUrl = 'Please enter a valid absolute URL (e.g., https://example.com)';
       }
     }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    
     mutation.mutate({
-      name: trimmedName,
-      email: trimmedEmail || null,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim() || null,
       title: title.trim() || null,
-      contactKind,
-      sourceUrl: trimmedUrl || null,
+      personKind: contactKind,
+      sourceUrl: sourceUrl.trim() || null,
     });
   };
 
@@ -129,13 +99,13 @@ export function AddContactModal({
       role="dialog"
     >
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {announcement}
+        {/* Screen reader announcement */}
       </div>
 
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="bg-slate-50 rounded-none-none border border-slate-200  max-w-lg w-full p-6 space-y-5 focus:outline-none animate-in fade-in zoom-in-95  max-h-[90vh] overflow-y-auto"
+        className="bg-slate-50 rounded-none-none border border-slate-200 max-w-lg w-full p-6 space-y-5 focus:outline-none animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
@@ -152,7 +122,7 @@ export function AddContactModal({
           </div>
           <button
             aria-label="Close modal"
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-none-none hover:bg-slate-100  focus:outline-none focus:ring-2 focus:ring-slate-900"
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-none-none hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-900"
             onClick={onClose}
             type="button"
           >
@@ -167,29 +137,55 @@ export function AddContactModal({
         )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label
-              className="block text-xs font-semibold text-slate-700 mb-1"
-              htmlFor="contact-name-input"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
-              Full Name <span className="text-rose-500">*</span>
-            </label>
-            <input
-              aria-describedby={errors.name ? 'contact-name-error' : undefined}
-              aria-invalid={Boolean(errors.name)}
-              className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
-              id="contact-name-input"
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Jane Doe"
-              type="text"
-              value={name}
-            />
-            {errors.name && (
-              <p className="text-xs text-rose-600 mt-1 font-medium" id="contact-name-error">
-                {errors.name}
-              </p>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                className="block text-xs font-semibold text-slate-700 mb-1"
+                htmlFor="contact-firstname-input"
+                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+              >
+                First Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                aria-describedby={errors.firstName ? 'contact-firstname-error' : undefined}
+                aria-invalid={Boolean(errors.firstName)}
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400"
+                id="contact-firstname-input"
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="e.g. Jane"
+                type="text"
+                value={firstName}
+              />
+              {errors.firstName && (
+                <p className="text-xs text-rose-600 mt-1 font-medium" id="contact-firstname-error">
+                  {errors.firstName}
+                </p>
+              )}
+            </div>
+            <div>
+              <label
+                className="block text-xs font-semibold text-slate-700 mb-1"
+                htmlFor="contact-lastname-input"
+                style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+              >
+                Last Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                aria-describedby={errors.lastName ? 'contact-lastname-error' : undefined}
+                aria-invalid={Boolean(errors.lastName)}
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400"
+                id="contact-lastname-input"
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="e.g. Doe"
+                type="text"
+                value={lastName}
+              />
+              {errors.lastName && (
+                <p className="text-xs text-rose-600 mt-1 font-medium" id="contact-lastname-error">
+                  {errors.lastName}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -204,7 +200,7 @@ export function AddContactModal({
               <input
                 aria-describedby={errors.email ? 'contact-email-error' : undefined}
                 aria-invalid={Boolean(errors.email)}
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400"
                 id="contact-email-input"
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jane.doe@acme.com"
@@ -227,7 +223,7 @@ export function AddContactModal({
                 Role Title <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <input
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400"
                 id="contact-title-input"
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="VP of Engineering"
@@ -247,7 +243,7 @@ export function AddContactModal({
                 Contact Type
               </label>
               <select
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 bg-slate-50 "
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 bg-slate-50"
                 id="contact-kind-select"
                 onChange={(e) => setContactKind(e.target.value as ContactKind)}
                 value={contactKind}
@@ -268,7 +264,7 @@ export function AddContactModal({
               <input
                 aria-describedby={errors.sourceUrl ? 'contact-url-error' : undefined}
                 aria-invalid={Boolean(errors.sourceUrl)}
-                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400 "
+                className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-none-none -2xs focus:outline-none focus:ring-2 focus:ring-slate-900 text-slate-900 placeholder-slate-400"
                 id="contact-url-input"
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="https://acme.com/team"
@@ -285,7 +281,7 @@ export function AddContactModal({
 
           <div className="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
             <button
-              className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-slate-900"
+              className="px-4 py-2 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-none-none focus:outline-none focus:ring-2 focus:ring-slate-900"
               onClick={onClose}
               type="button"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
@@ -293,7 +289,7 @@ export function AddContactModal({
               Cancel
             </button>
             <button
-              className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center space-x-1"
+              className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center space-x-1"
               disabled={mutation.isPending}
               type="submit"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}

@@ -46,8 +46,8 @@ export function ContactCard({
   const isPerson = contact.contactKind === 'PERSON';
   const isSelected = contact.isSelected;
   const isEmailAvailable = contact.emailConfidence === 'AVAILABLE' && Boolean(contact.email);
-  const avatarBg = pickAvatarColor(contact.name || contact.id);
-  const initials = getInitials(contact.name || '??');
+  const avatarBg = pickAvatarColor(contact.firstName || contact.id);
+  const initials = getInitials(contact.firstName || '??');
 
   return (
     <div
@@ -79,7 +79,7 @@ export function ContactCard({
                 }`}
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
-                {contact.name}
+                {contact.firstName}
               </h3>
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${

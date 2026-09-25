@@ -281,9 +281,10 @@ export class AuthService {
       const displayName = userInfo.givenName?.trim() || null;
       firstName = displayName ? displayName.split(' ')[0] : 'User';
       if (!lastName) {
-        lastName = displayName && displayName.includes(' ')
-          ? displayName.split(' ').slice(1).join(' ')
-          : '';
+        lastName =
+          displayName && displayName.includes(' ')
+            ? displayName.split(' ').slice(1).join(' ')
+            : '';
       }
     }
 

@@ -1,4 +1,3 @@
-import { CampaignStatus } from '@repo/db';
 import {
   IsInt,
   IsNotEmpty,
@@ -8,9 +7,12 @@ import {
   MaxLength,
   Min,
   MinLength,
+  IsEnum,
 } from 'class-validator';
+import { CAMPAIGN_STATUSES } from '@repo/shared';
+import type { CreateCampaignRequest, CampaignStatus } from '@repo/shared';
 
-export class CreateCampaignDto {
+export class CreateCampaignDto implements CreateCampaignRequest {
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
@@ -29,7 +31,7 @@ export class CreateCampaignDto {
   @IsNotEmpty()
   templateId!: string;
 
-  @IsString()
+  @IsEnum(CAMPAIGN_STATUSES)
   @IsNotEmpty()
   status!: CampaignStatus;
 

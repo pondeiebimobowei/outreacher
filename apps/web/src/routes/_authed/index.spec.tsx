@@ -13,7 +13,7 @@ jest.mock('../../api/client', () => ({
 
 jest.mock('../../lib/auth-context', () => ({
   useAuth: () => ({
-    user: { id: 'u-1', email: 'alex@example.com', name: 'Alex Johnson' },
+    user: { id: 'u-1', email: 'alex@example.com', firstName: 'Alex', lastName: 'Johnson' },
     workspace: { id: 'ws-1', name: 'Acme Ventures' },
   }),
 }));
@@ -77,7 +77,7 @@ describe('Home / Workspace Surface', () => {
     });
 
     // Identity is still preserved
-    expect(screen.getByText(/Alex Johnson/)).toBeInTheDocument();
+    expect(screen.getByText(/Alex/)).toBeInTheDocument();
 
     // Clicking retry refetches
     (apiClient.get as jest.Mock).mockResolvedValueOnce({
@@ -177,7 +177,7 @@ describe('Home / Workspace Surface', () => {
 
     await waitFor(() => {
       // Identity
-      expect(screen.getByText(/Alex Johnson/)).toBeInTheDocument();
+      expect(screen.getByText(/Alex/)).toBeInTheDocument();
 
 
       // Needs Attention section

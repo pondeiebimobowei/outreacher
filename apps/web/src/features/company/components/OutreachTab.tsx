@@ -4,7 +4,7 @@ import { resolveCanonicalCompanyCampaign } from '../../../api/campaigns';
 import { fetchCampaignContacts, CampaignContactSummaryDto } from '../../../api/outreach';
 import { GateCard } from './GateCard';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { SendIcon, SearchIcon, ChevronRightIcon, Search, Search01Icon } from '@hugeicons/core-free-icons';;
+import { SendIcon, ChevronRightIcon, Search01Icon } from '@hugeicons/core-free-icons';;
 import { useNavigate } from '@tanstack/react-router';
 
 function statusBadge(status: string) {
