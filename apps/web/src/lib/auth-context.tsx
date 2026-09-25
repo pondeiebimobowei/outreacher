@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await apiClient.get<{ user: User; workspace: Workspace }>('/auth/me');
       if (!res || !res.user || !res.workspace) {
-        throw new Error('Invalid session data received');
+        throw new ApiError(401, null, 'Invalid session data received');
       }
       setUser(res.user);
       setWorkspace(res.workspace);
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
       if (!res || !res.user || !res.workspace) {
-        throw new Error('Invalid session data received on login');
+        throw new ApiError(401, null, 'Invalid session data received on login');
       }
       setUser(res.user);
       setWorkspace(res.workspace);
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name,
       });
       if (!res || !res.user || !res.workspace) {
-        throw new Error('Invalid session data received on signup');
+        throw new ApiError(401, null, 'Invalid session data received on signup');
       }
       setUser(res.user);
       setWorkspace(res.workspace);

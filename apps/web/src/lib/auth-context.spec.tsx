@@ -164,9 +164,9 @@ describe('AuthProvider & useAuth', () => {
     expect(screen.getByTestId('user').textContent).toBe('none');
   });
 
-  it('sets status to bootstrap_error when API returns missing user/workspace (malformed session)', async () => {
+  it('sets status to unauthenticated when API returns missing user/workspace (malformed session)', async () => {
     // Return empty object that lacks user and workspace
-    mockGet.mockResolvedValueOnce({} as any);
+    mockGet.mockResolvedValueOnce({} as unknown as { user: unknown; workspace: unknown });
 
     render(
       <AuthProvider>
@@ -177,11 +177,11 @@ describe('AuthProvider & useAuth', () => {
     // Initial state is loading
     expect(screen.getByTestId('status').textContent).toBe('loading');
 
-    // It should error out, not become authenticated
+    // It should route to unauthenticated, not become authenticated
     await waitFor(() => {
-      expect(screen.getByTestId('status').textContent).toBe('bootstrap_error');
+      expect(screen.getByTestId('status').textContent).toBe('unauthenticated');
     });
 
-    expect(screen.getByTestId('error').textContent).toBe('Invalid session data received');
+    expect(screen.getByTestId('error').textContent).toBe('none');
   });
 });
