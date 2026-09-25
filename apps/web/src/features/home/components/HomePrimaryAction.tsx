@@ -33,7 +33,7 @@ export const HomePrimaryAction: React.FC = () => {
         </div>
         <Link
           to="/companies"
-          className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-none-none bg-slate-900 px-5 py-2.5 text-[13px] font-semibold text-white -xs hover:bg-slate-800  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-none-none bg-slate-900 px-5 py-2.5 text-[13px] font-semibold text-white -xs hover:bg-slate-800  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           <HugeiconsIcon icon={PlusIcon} size={15} /> Add Company

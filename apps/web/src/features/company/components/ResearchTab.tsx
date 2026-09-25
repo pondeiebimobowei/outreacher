@@ -34,8 +34,8 @@ export function ResearchTab({
             {isRunning
               ? 'Gathering intelligence about ' + company.name + '...'
               : research?.status === 'COMPLETED'
-              ? 'Research is complete and up to date.'
-              : 'No research findings yet. Start research to begin.'}
+                ? 'Research is complete and up to date.'
+                : 'No research findings yet. Start research to begin.'}
           </p>
         </div>
         <div className="flex items-center gap-3">

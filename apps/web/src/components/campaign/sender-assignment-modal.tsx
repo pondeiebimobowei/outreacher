@@ -74,7 +74,7 @@ export function SenderAssignmentModal({
                         : 'border-slate-200 hover:bg-slate-50'
                     } ${!isEligible ? 'opacity-75 bg-slate-50' : ''}`}
                   >
-                    <div className="flex-shrink-0 h-5 items-center flex mt-0.5">
+                    <div className="shrink-0 h-5 items-center flex mt-0.5">
                       <input
                         type="checkbox"
                         checked={isSelected}

@@ -113,7 +113,7 @@ function LoginComponent() {
     <div className="w-full max-w-100 mx-auto">
       {/* Mobile logo */}
       <div className="flex items-center gap-2.5 mb-8 lg:hidden select-none">
-        <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
+        <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-accent -xs">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
           </svg>
@@ -264,7 +264,7 @@ function LoginComponent() {
             {mode === 'login' && (
               <Link
                 to="/forgot-password"
-                className="text-[12.5px] font-medium  text-[var(--color-accent)] hover:underline font-body"
+                className="text-[12.5px] font-medium  text-accent hover:underline font-body"
               >
                 Forgot password?
               </Link>
@@ -366,7 +366,7 @@ function LoginComponent() {
             // Update URL to match state without reloading
             navigate({ to: '/login', search: { mode: mode === 'login' ? 'signup' : undefined }, replace: true });
           }}
-          className="font-semibold  font-heading text-[var(--color-accent)] hover:underline ml-0.5"
+          className="font-semibold  font-heading text-accent hover:underline ml-0.5"
         >
           {mode === 'login' ? 'Sign up' : 'Sign in'}
         </button>

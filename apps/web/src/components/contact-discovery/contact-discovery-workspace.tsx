@@ -146,7 +146,7 @@ export function ContactDiscoveryWorkspace({
           <div className="flex items-center space-x-3">
             <h2
               id="contact-discovery-heading"
-              className="text-base font-bold tracking-tight text-slate-900 uppercase tracking-wider text-xs"
+              className="text-base font-bold tracking-tight text-slate-900 uppercase"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               6. Contact Discovery & Selection
@@ -168,7 +168,7 @@ export function ContactDiscoveryWorkspace({
           <button
             type="button"
 
-            className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+            className="min-h-10 sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
             + Add Contact
@@ -179,7 +179,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: false })}
               disabled={isDiscoverPending}
-              className="min-h-[40px] sm:min-h-0 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              className="min-h-10 sm:min-h-0 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {isDiscoverPending ? 'Starting...' : 'Find Relevant Contacts'}
@@ -193,7 +193,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: false })}
                   disabled={isDiscoverPending}
-                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-10 sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-50 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
                   Refresh Contacts
@@ -202,7 +202,7 @@ export function ContactDiscoveryWorkspace({
                   type="button"
                   onClick={() => discoverContacts({ forceRefresh: true })}
                   disabled={isDiscoverPending}
-                  className="min-h-[40px] sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+                  className="min-h-10 sm:min-h-0 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-none-none -2xs  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
                   title="Bypass 24h freshness cache (max 3 per company/24h)"
                   style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
                 >
@@ -216,7 +216,7 @@ export function ContactDiscoveryWorkspace({
               type="button"
               onClick={() => discoverContacts({ forceRefresh: true })}
               disabled={isDiscoverPending}
-              className="min-h-[44px] sm:min-h-0 px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
+              className="min-h-11 sm:min-h-0 px-4 py-2 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center justify-center"
             >
               {isDiscoverPending ? 'Retrying...' : 'Retry Contact Discovery'}
             </button>
@@ -360,7 +360,7 @@ export function ContactDiscoveryWorkspace({
                   }
                 }}
                 disabled={isOpeningDrawer}
-                className="min-h-[44px] sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-slate-50 hover:bg-emerald-100 border border-emerald-300 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
+                className="min-h-11 sm:min-h-0 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-slate-50 hover:bg-emerald-100 border border-emerald-300 rounded-none-none   focus:outline-none focus:ring-2 focus:ring-slate-900 shrink-0 inline-flex items-center justify-center disabled:opacity-50"
               >
                 {isOpeningDrawer ? 'Opening Draft...' : 'Prepare Outreach & Campaign Context \u2192'}
               </button>
@@ -404,11 +404,10 @@ export function ContactDiscoveryWorkspace({
               <button
                 type="button"
                 onClick={() => setFilterRelevance((prev) => (prev === 'HIGH' ? 'ALL' : 'HIGH'))}
-                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${
-                  filterRelevance === 'HIGH'
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${filterRelevance === 'HIGH'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-bold'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 High Relevance Only
               </button>
@@ -416,11 +415,10 @@ export function ContactDiscoveryWorkspace({
               <button
                 type="button"
                 onClick={() => setFilterEmailAvailable((prev) => !prev)}
-                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${
-                  filterEmailAvailable
-                    ? 'bg-sky-100 text-sky-800 border-sky-300 font-bold'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
+                className={`px-2.5 py-1 rounded-none-none border text-xs font-medium  focus:outline-none focus:ring-2 focus:ring-slate-900 ${filterEmailAvailable
+                  ? 'bg-sky-100 text-sky-800 border-sky-300 font-bold'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
               >
                 Email Available
               </button>

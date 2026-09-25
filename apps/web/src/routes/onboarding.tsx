@@ -304,7 +304,7 @@ function OnboardingComponent() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 sm:px-8 h-15 shrink-0 border-b border-border bg-(--color-card) select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
+          <div className="w-7 h-7 rounded-none-none flex items-center justify-center bg-accent -xs">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -345,7 +345,7 @@ function OnboardingComponent() {
                   <div className="flex flex-col items-center gap-1.5">
                     <div
                       className={`w-7 h-7 rounded-none-full flex items-center justify-center text-[12px] font-bold  font-heading ${doneStep
-                        ? 'bg-[var(--color-accent)] text-white'
+                        ? 'bg-accent text-white'
                         : activeStep
                           ? 'bg-(--color-primary) text-white -xs ring-2 ring-[var(--color-accent)]/30'
                           : 'bg-slate-100 text-slate-400 border border-slate-200'
@@ -358,7 +358,7 @@ function OnboardingComponent() {
                       className={`text-[11px] font-medium hidden sm:block font-heading ${activeStep
                         ? 'text-(--color-primary) font-semibold'
                         : doneStep
-                          ? 'text-[var(--color-accent)]'
+                          ? 'text-accent'
                           : 'text-slate-400'
                         }`}
                     >
@@ -367,7 +367,7 @@ function OnboardingComponent() {
                   </div>
                   {i < STEPS.length - 1 && (
                     <div
-                      className={`flex-1 h-px mx-2 mb-4  ${doneStep ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
+                      className={`flex-1 h-px mx-2 mb-4  ${doneStep ? 'bg-accent' : 'bg-[var(--color-border)]'
                         }`}
                     />
                   )}
@@ -594,7 +594,7 @@ function OnboardingComponent() {
                             update('skills', [...form.skills, s]);
                           }
                         }}
-                        className="text-[11.5px] px-2.5 py-1 rounded-none-none  bg-(--color-muted) text-muted-fg border border-border hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] font-body cursor-pointer"
+                        className="text-[11.5px] px-2.5 py-1 rounded-none-none  bg-(--color-muted) text-muted-fg border border-border hover:border-accent hover:text-accent font-body cursor-pointer"
                       >
                         + {s}
                       </button>
@@ -606,45 +606,45 @@ function OnboardingComponent() {
 
             {/* Step 3: Professional Summary */}
             {step === 2 && (
-                <>
+              <>
                 <div>
-                <label htmlFor="summary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
-                  Professional Summary
-                </label>
-                <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
-                  Write as you'd introduce yourself. This informs outreach generation — never invented.
-                </p>
-                <div className="relative">
-                  <textarea
-                    id="summary"
-                    rows={6}
-                    maxLength={2000}
-                    value={form.summary}
-                    onChange={(e) => update('summary', e.target.value)}
-                    placeholder="e.g. I'm a software engineer with 6 years of experience building payment infrastructure at scale. I've led backend systems handling millions of transactions and I'm looking for my next challenge..."
-                    className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
-                    style={{
-                      borderColor: errors.summary ? '#FCA5A5' : 'var(--color-border)',
-                      backgroundColor: errors.summary ? '#FEF2F2' : 'var(--color-card)',
-                    }}
-                    onFocus={(e) => {
-                      if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                    } }
-                    onBlur={(e) => {
-                      if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-border)';
-                    } } />
-                  <span
-                    className={`absolute bottom-3 right-3 text-[11.5px] font-body ${form.summary.length > 1800 ? 'text-amber-500' : 'text-muted-fg'}`}
-                  >
-                    {form.summary.length}/2000
-                  </span>
-                </div>
-                {errors.summary && (
-                  <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
-                    <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.summary}
+                  <label htmlFor="summary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
+                    Professional Summary
+                  </label>
+                  <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
+                    Write as you'd introduce yourself. This informs outreach generation — never invented.
                   </p>
-                )}
-              </div><div className="mt-5">
+                  <div className="relative">
+                    <textarea
+                      id="summary"
+                      rows={6}
+                      maxLength={2000}
+                      value={form.summary}
+                      onChange={(e) => update('summary', e.target.value)}
+                      placeholder="e.g. I'm a software engineer with 6 years of experience building payment infrastructure at scale. I've led backend systems handling millions of transactions and I'm looking for my next challenge..."
+                      className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
+                      style={{
+                        borderColor: errors.summary ? '#FCA5A5' : 'var(--color-border)',
+                        backgroundColor: errors.summary ? '#FEF2F2' : 'var(--color-card)',
+                      }}
+                      onFocus={(e) => {
+                        if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-accent)';
+                      }}
+                      onBlur={(e) => {
+                        if (!errors.summary) e.currentTarget.style.borderColor = 'var(--color-border)';
+                      }} />
+                    <span
+                      className={`absolute bottom-3 right-3 text-[11.5px] font-body ${form.summary.length > 1800 ? 'text-amber-500' : 'text-muted-fg'}`}
+                    >
+                      {form.summary.length}/2000
+                    </span>
+                  </div>
+                  {errors.summary && (
+                    <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
+                      <HugeiconsIcon icon={AlertCircleIcon} size={12} /> {errors.summary}
+                    </p>
+                  )}
+                </div><div className="mt-5">
                   <label htmlFor="experienceSummary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
                     Experience Summary
                   </label>
@@ -666,10 +666,10 @@ function OnboardingComponent() {
                       }}
                       onFocus={(e) => {
                         if (!errors.experienceSummary) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                      } }
+                      }}
                       onBlur={(e) => {
                         if (!errors.experienceSummary) e.currentTarget.style.borderColor = 'var(--color-border)';
-                      } } />
+                      }} />
                   </div>
                   {errors.experienceSummary && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
@@ -698,10 +698,10 @@ function OnboardingComponent() {
                       }}
                       onFocus={(e) => {
                         if (!errors.careerGoals) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                      } }
+                      }}
                       onBlur={(e) => {
                         if (!errors.careerGoals) e.currentTarget.style.borderColor = 'var(--color-border)';
-                      } } />
+                      }} />
                   </div>
                   {errors.careerGoals && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">
@@ -730,10 +730,10 @@ function OnboardingComponent() {
                       }}
                       onFocus={(e) => {
                         if (!errors.backgroundAndPositioning) e.currentTarget.style.borderColor = 'var(--color-accent)';
-                      } }
+                      }}
                       onBlur={(e) => {
                         if (!errors.backgroundAndPositioning) e.currentTarget.style.borderColor = 'var(--color-border)';
-                      } } />
+                      }} />
                   </div>
                   {errors.backgroundAndPositioning && (
                     <p className="mt-1.5 text-[12px] flex items-center gap-1 text-[#EF4444] font-body">

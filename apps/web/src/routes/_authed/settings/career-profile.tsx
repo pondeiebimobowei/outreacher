@@ -207,7 +207,7 @@ export function SettingsComponent() {
 
   const completedItems = checklist.filter(item => item.isComplete);
   const missingItems = checklist.filter(item => !item.isComplete);
-  
+
   const progressPercent = Math.round((completedItems.length / checklist.length) * 100);
 
   if (initialLoading) {
@@ -240,7 +240,7 @@ export function SettingsComponent() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         {/* Left Side: Forms / Cards */}
         <div className="space-y-6">
-          
+
           {/* Section 1: Targeting Preferences */}
           <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
             <div className="px-6 py-4 flex justify-between items-start">
@@ -510,7 +510,7 @@ export function SettingsComponent() {
                 A complete profile produces better results.
               </p>
             </div>
-            
+
             <div className="px-6 py-5">
               <div className="flex items-baseline gap-2 mb-3">
                 <span className="text-[40px] font-semibold tracking-tight text-slate-900 leading-none">
@@ -520,7 +520,7 @@ export function SettingsComponent() {
               </div>
 
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-8">
-                <div 
+                <div
                   className="h-full bg-emerald-500 transition-all duration-1000 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />

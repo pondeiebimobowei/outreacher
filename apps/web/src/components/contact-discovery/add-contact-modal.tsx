@@ -29,7 +29,7 @@ export function AddContactModal({
     sourceUrl?: string;
     form?: string;
   }>({});
-  
+
   const queryClient = useQueryClient();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -61,11 +61,11 @@ export function AddContactModal({
     const newErrors: typeof errors = {};
     if (!firstName.trim()) newErrors.firstName = 'First Name is required';
     if (!lastName.trim()) newErrors.lastName = 'Last Name is required';
-    
+
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (sourceUrl) {
       try {
         new URL(sourceUrl);
@@ -73,7 +73,7 @@ export function AddContactModal({
         newErrors.sourceUrl = 'Please enter a valid absolute URL (e.g., https://example.com)';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -81,7 +81,7 @@ export function AddContactModal({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    
+
     mutation.mutate({
       firstName: firstName.trim(),
       lastName: lastName.trim(),

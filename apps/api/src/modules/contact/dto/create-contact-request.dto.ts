@@ -7,7 +7,7 @@ import {
   IsUrl,
   Length,
 } from 'class-validator';
-import type { CreateContactRequest, ContactKind } from '@repo/shared';
+import type { CreateContactRequest, PersonKind } from '@repo/shared';
 
 export class CreateContactRequestDto implements CreateContactRequest {
   @IsString()
@@ -30,7 +30,7 @@ export class CreateContactRequestDto implements CreateContactRequest {
 
   @IsOptional()
   @IsEnum(['PERSON', 'ROLE_ADDRESS'])
-  personKind?: ContactKind;
+  personKind?: PersonKind;
 
   @IsOptional()
   @IsUrl({ protocols: ['http', 'https'], require_protocol: true })

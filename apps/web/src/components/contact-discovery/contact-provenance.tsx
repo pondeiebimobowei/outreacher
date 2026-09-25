@@ -16,7 +16,7 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
         aria-expanded={isOpen}
         aria-controls={`provenance-details-${contact.id}`}
         onClick={() => setIsOpen(!isOpen)}
-        className="min-h-[44px] text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-none px-3 py-2  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center"
+        className="min-h-11 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-none px-3 py-2  focus:outline-none focus:ring-2 focus:ring-slate-900 inline-flex items-center"
       >
         {isOpen ? 'Hide Provenance ▲' : 'Inspect Provenance ▼'}
       </button>
@@ -69,7 +69,7 @@ export function ContactProvenance({ contact }: ContactProvenanceProps) {
                 href={contact.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-slate-900 hover:underline font-mono inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded-none px-1 min-h-[44px] sm:min-h-0"
+                className="text-slate-900 hover:underline font-mono inline-flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-slate-900 rounded-none px-1 min-h-11 sm:min-h-0"
               >
                 <span>View Source Page</span>
                 <span>↗</span>

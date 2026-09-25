@@ -57,7 +57,7 @@ export function PreDispatchHold({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-[48px] sm:min-h-[44px] px-3.5 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
+          className="min-h-12 sm:min-h-11 px-3.5 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-none-none  focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
         >
           Cancel Send
         </button>

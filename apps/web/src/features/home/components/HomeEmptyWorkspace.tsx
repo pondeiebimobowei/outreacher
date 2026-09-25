@@ -24,7 +24,7 @@ export const HomeEmptyWorkspace: React.FC = () => {
       <div className="mt-6">
         <Link
           to="/companies"
-          className="inline-flex min-h-[44px] items-center justify-center rounded-none-none bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white -xs hover:bg-slate-800  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-11 items-center justify-center rounded-none-none bg-slate-900 px-6 py-2.5 text-[14px] font-semibold text-white -xs hover:bg-slate-800  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           Add Company

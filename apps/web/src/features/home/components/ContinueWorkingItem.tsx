@@ -49,7 +49,7 @@ export const ContinueWorkingItem: React.FC<ContinueWorkingItemProps> = ({ item }
         <Link
           to={item.destination.to}
           params={item.destination.params}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-none-none border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-700 -2xs hover:bg-slate-50  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-11 items-center justify-center rounded-none-none border border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-700 -2xs hover:bg-slate-50  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           {item.actionLabel}

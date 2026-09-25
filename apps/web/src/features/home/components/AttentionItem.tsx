@@ -60,7 +60,7 @@ export const AttentionItem: React.FC<AttentionItemProps> = ({ item }) => {
         <Link
           to={item.destination.to}
           params={item.destination.params}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs -opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+          className="inline-flex min-h-11 items-center justify-center rounded-none-none px-4 py-2 text-[13px] font-semibold text-white -xs -opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           style={{
             background: 'var(--color-primary)',
             fontFamily: 'Plus Jakarta Sans, sans-serif',

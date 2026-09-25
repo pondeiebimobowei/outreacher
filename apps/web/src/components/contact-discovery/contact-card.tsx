@@ -51,11 +51,10 @@ export function ContactCard({
 
   return (
     <div
-      className={`p-5 rounded-none-none border  space-y-4 ${
-        isSelected
-          ? 'bg-slate-900 text-white border-slate-900  ring-2 ring-slate-900'
-          : 'bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300 -xs'
-      }`}
+      className={`p-5 rounded-none-none border  space-y-4 ${isSelected
+        ? 'bg-slate-900 text-white border-slate-900  ring-2 ring-slate-900'
+        : 'bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300 -xs'
+        }`}
     >
       {/* 1. Header: Avatar, Name, Title, Badges & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -74,33 +73,30 @@ export function ContactCard({
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3
-                className={`text-base font-bold tracking-tight truncate ${
-                  isSelected ? 'text-white' : 'text-slate-900'
-                }`}
+                className={`text-base font-bold tracking-tight truncate ${isSelected ? 'text-white' : 'text-slate-900'
+                  }`}
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
                 {contact.firstName} {contact.lastName}
               </h3>
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${
-                  isPerson
-                    ? isSelected
-                      ? 'bg-sky-900 text-sky-200 border border-sky-700'
-                      : 'bg-sky-100 text-sky-800 border border-sky-300'
-                    : isSelected
-                      ? 'bg-amber-900 text-amber-200 border border-amber-700'
-                      : 'bg-amber-100 text-amber-800 border border-amber-300'
-                }`}
+                className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${isPerson
+                  ? isSelected
+                    ? 'bg-sky-900 text-sky-200 border border-sky-700'
+                    : 'bg-sky-100 text-sky-800 border border-sky-300'
+                  : isSelected
+                    ? 'bg-amber-900 text-amber-200 border border-amber-700'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  }`}
               >
                 {contact.personKind}
               </span>
               {contact.source === 'USER_PROVIDED' && (
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${
-                    isSelected
-                      ? 'bg-indigo-900 text-indigo-200 border border-indigo-700'
-                      : 'bg-indigo-100 text-indigo-800 border border-indigo-300'
-                  }`}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${isSelected
+                    ? 'bg-indigo-900 text-indigo-200 border border-indigo-700'
+                    : 'bg-indigo-100 text-indigo-800 border border-indigo-300'
+                    }`}
                 >
                   User Provided
                 </span>
@@ -129,11 +125,10 @@ export function ContactCard({
             <button
               type="button"
               onClick={() => onReview(contact)}
-              className={`min-h-[40px] px-3.5 py-1.5 text-xs font-semibold rounded-none-none border  focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center ${
-                isSelected
-                  ? 'text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700'
-                  : 'text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100'
-              }`}
+              className={`min-h-10 px-3.5 py-1.5 text-xs font-semibold rounded-none-none border  focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center ${isSelected
+                ? 'text-slate-200 bg-slate-800 border-slate-700 hover:bg-slate-700'
+                : 'text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                }`}
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               Review Details
@@ -142,7 +137,7 @@ export function ContactCard({
 
           {isSelected ? (
             <div className="flex items-center space-x-2">
-              <span className="min-h-[40px] px-3 py-1.5 text-xs font-bold text-emerald-400 bg-slate-800 border border-emerald-500/40 rounded-none-none inline-flex items-center space-x-1">
+              <span className="min-h-10 px-3 py-1.5 text-xs font-bold text-emerald-400 bg-slate-800 border border-emerald-500/40 rounded-none-none inline-flex items-center space-x-1">
                 <span>&check; Target Active</span>
               </span>
               <button
@@ -150,7 +145,7 @@ export function ContactCard({
                 onClick={() =>
                   onReviewOutreach ? onReviewOutreach(contact) : onReview ? onReview(contact) : undefined
                 }
-                className="min-h-[40px] px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-1.5"
+                className="min-h-10 px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-emerald-400 flex items-center justify-center gap-1.5"
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
                 <span>Review Outreach Draft</span>
@@ -162,7 +157,7 @@ export function ContactCard({
               type="button"
               onClick={() => onSelect(contact.id)}
               disabled={isSelectPending}
-              className="min-h-[40px] px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center"
+              className="min-h-10 px-4 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-none-none -xs  focus:outline-none focus:ring-2 focus:ring-slate-900 flex items-center justify-center"
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               {isSelectPending ? 'Selecting...' : 'Select Target Contact'}
@@ -175,19 +170,18 @@ export function ContactCard({
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {/* Relevance Badge */}
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-none-full text-xs font-bold ${
-            contact.relevance === 'HIGH'
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-none-full text-xs font-bold ${contact.relevance === 'HIGH'
+            ? isSelected
+              ? 'bg-emerald-900 text-emerald-200 border border-emerald-700'
+              : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+            : contact.relevance === 'MEDIUM'
               ? isSelected
-                ? 'bg-emerald-900 text-emerald-200 border border-emerald-700'
-                : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
-              : contact.relevance === 'MEDIUM'
-                ? isSelected
-                  ? 'bg-sky-900 text-sky-200 border border-sky-700'
-                  : 'bg-sky-50 text-sky-800 border border-sky-300'
-                : isSelected
-                  ? 'bg-slate-800 text-slate-300 border border-slate-700'
-                  : 'bg-slate-100 text-slate-700 border border-slate-300'
-          }`}
+                ? 'bg-sky-900 text-sky-200 border border-sky-700'
+                : 'bg-sky-50 text-sky-800 border border-sky-300'
+              : isSelected
+                ? 'bg-slate-800 text-slate-300 border border-slate-700'
+                : 'bg-slate-100 text-slate-700 border border-slate-300'
+            }`}
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           Relevance: {contact.relevance}
@@ -195,26 +189,24 @@ export function ContactCard({
 
         {/* Identity Confidence Badge */}
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-none-full text-[11px] font-semibold ${
-            isSelected
-              ? 'bg-slate-800 text-slate-300 border border-slate-700'
-              : 'bg-slate-50 text-slate-700 border border-slate-200'
-          }`}
+          className={`inline-flex items-center px-2 py-0.5 rounded-none-full text-[11px] font-semibold ${isSelected
+            ? 'bg-slate-800 text-slate-300 border border-slate-700'
+            : 'bg-slate-50 text-slate-700 border border-slate-200'
+            }`}
         >
           Identity: {contact.confidence || 'MEDIUM'}
         </span>
 
         {/* Email Confidence Badge */}
         <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-none-full text-[11px] font-semibold ${
-            isEmailAvailable
-              ? isSelected
-                ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : isSelected
-                ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                : 'bg-slate-100 text-slate-500 border border-slate-200'
-          }`}
+          className={`inline-flex items-center px-2 py-0.5 rounded-none-full text-[11px] font-semibold ${isEmailAvailable
+            ? isSelected
+              ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : isSelected
+              ? 'bg-slate-800 text-slate-400 border border-slate-700'
+              : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}
         >
           Email: {contact.emailConfidence}
         </span>
@@ -222,16 +214,14 @@ export function ContactCard({
 
       {/* 3. Why This Contact - Explainable Rationale */}
       <div
-        className={`p-3.5 rounded-none-none text-xs leading-relaxed border ${
-          isSelected
-            ? 'bg-slate-800/90 border-slate-700 text-slate-200'
-            : 'bg-slate-50/80 border-slate-200 text-slate-700'
-        }`}
+        className={`p-3.5 rounded-none-none text-xs leading-relaxed border ${isSelected
+          ? 'bg-slate-800/90 border-slate-700 text-slate-200'
+          : 'bg-slate-50/80 border-slate-200 text-slate-700'
+          }`}
       >
         <span
-          className={`font-bold block uppercase tracking-wider text-[10px] mb-1 ${
-            isSelected ? 'text-slate-400' : 'text-slate-900'
-          }`}
+          className={`font-bold block uppercase tracking-wider text-[10px] mb-1 ${isSelected ? 'text-slate-400' : 'text-slate-900'
+            }`}
           style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
         >
           Why This Contact:

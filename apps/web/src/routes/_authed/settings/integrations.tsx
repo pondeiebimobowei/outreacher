@@ -148,8 +148,8 @@ export function IntegrationsPage() {
               : loadingSenders
                 ? undefined
                 : (senderAccounts || []).filter(
-                    (s) => s.integrationId === integration.id,
-                  );
+                  (s) => s.integrationId === integration.id,
+                );
             return (
               <IntegrationCard
                 key={integration.id}
@@ -276,11 +276,10 @@ function IntegrationCard({
 
           {transientFeedback && (
             <div
-              className={`mt-3 text-xs p-2.5 rounded-none-none flex items-start ${
-                transientFeedback.type === 'error'
+              className={`mt-3 text-xs p-2.5 rounded-none-none flex items-start ${transientFeedback.type === 'error'
                   ? 'bg-red-50 text-red-700 border border-red-200'
                   : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              }`}
+                }`}
               role="status"
               aria-live="polite"
             >
@@ -710,11 +709,10 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                   placeholder="e.g., Resend Production"
                   aria-invalid={!!nameError}
                   aria-describedby={nameError ? 'name-error' : undefined}
-                  className={`block w-full px-3.5 py-2 text-sm rounded-none-none border -xs outline-none ${
-                    nameError
+                  className={`block w-full px-3.5 py-2 text-sm rounded-none-none border -xs outline-none ${nameError
                       ? 'border-red-300 focus:ring-1 focus:ring-red-500'
                       : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                  }`}
+                    }`}
                 />
                 {nameError && (
                   <p className="mt-1 text-xs text-red-600" id="name-error">
@@ -753,11 +751,10 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
                     aria-describedby={
                       credError ? 'cred-error' : 'cred-description'
                     }
-                    className={`block w-full pl-14 pr-3.5 py-2 text-sm rounded-none-none border -xs outline-none font-mono ${
-                      credError
+                    className={`block w-full pl-14 pr-3.5 py-2 text-sm rounded-none-none border -xs outline-none font-mono ${credError
                         ? 'border-red-300 focus:ring-1 focus:ring-red-500'
                         : 'border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
-                    }`}
+                      }`}
                   />
                 </div>
                 {credError ? (

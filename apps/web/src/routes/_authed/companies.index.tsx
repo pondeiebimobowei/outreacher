@@ -359,8 +359,8 @@ function CompaniesRouteComponent() {
 
   const workingEntries = companies.filter(c => c.status === archiveFilter);
   const filtered = workingEntries.filter(c => {
-    return c.name.toLowerCase().includes(search.toLowerCase()) || 
-           (c.domain && c.domain.toLowerCase().includes(search.toLowerCase()));
+    return c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.domain && c.domain.toLowerCase().includes(search.toLowerCase()));
   });
 
   const isEmpty = companies.length === 0;

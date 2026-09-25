@@ -129,7 +129,7 @@ describe('Home / Workspace Structural Accessibility Home / Workspace Accessibili
     expect(interactiveLinks.length).toBeGreaterThanOrEqual(3);
 
     for (const link of interactiveLinks) {
-      expect(link.className).toContain('min-h-[44px]');
+      expect(link.className).toContain('min-h-11');
     }
   });
 

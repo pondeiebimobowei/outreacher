@@ -123,7 +123,7 @@ export function CampaignReviewHub({
             </span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {campaign.status === 'ACTIVE' && (
             <button

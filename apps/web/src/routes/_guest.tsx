@@ -24,9 +24,9 @@ function GuestLayoutComponent() {
   return (
     <div className="min-h-screen flex bg-(--color-background)">
       {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-(--color-sidebar) select-none">
+      <div className="hidden lg:flex flex-col justify-between w-100 shrink-0 p-10 bg-(--color-sidebar) select-none">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
+          <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-accent -xs">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>

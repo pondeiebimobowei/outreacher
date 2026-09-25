@@ -108,11 +108,10 @@ export function ContactDetailModal({
                   {contact.firstName}
                 </h2>
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${
-                    isPerson
+                  className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-extrabold uppercase tracking-wider ${isPerson
                       ? 'bg-sky-100 text-sky-800 border border-sky-300'
                       : 'bg-amber-100 text-amber-800 border border-amber-300'
-                  }`}
+                    }`}
                 >
                   {contact.personKind}
                 </span>
@@ -148,13 +147,12 @@ export function ContactDetailModal({
               Relevance Evaluation
             </span>
             <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-none-full text-xs font-bold ${
-                contact.relevance === 'HIGH'
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-none-full text-xs font-bold ${contact.relevance === 'HIGH'
                   ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
                   : contact.relevance === 'MEDIUM'
                     ? 'bg-sky-50 text-sky-800 border border-sky-300'
                     : 'bg-slate-100 text-slate-700 border border-slate-300'
-              }`}
+                }`}
               style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               Relevance: {contact.relevance}

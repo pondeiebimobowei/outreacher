@@ -57,7 +57,7 @@ function LandingPage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Everything you need to close more deals</h2>
               <p className="text-gray-600 max-w-2xl mx-auto">Powerful features designed to help you reach the right people at the right time.</p>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-10">
               <div className="bg-slate-50 p-8 rounded-none-none-none  border border-gray-100 hover: -">
                 <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-none-none-none flex items-center justify-center mb-6">
@@ -66,7 +66,7 @@ function LandingPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Automated Sequences</h3>
                 <p className="text-gray-600 leading-relaxed">Create complex, multi-step email sequences that automatically follow up until you get a response.</p>
               </div>
-              
+
               <div className="bg-slate-50 p-8 rounded-none-none-none  border border-gray-100 hover: -">
                 <div className="h-12 w-12 bg-purple-100 text-purple-600 rounded-none-none-none flex items-center justify-center mb-6">
                   <HugeiconsIcon icon={UsersIcon} className="h-6 w-6" />
@@ -74,7 +74,7 @@ function LandingPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Smart Personalization</h3>
                 <p className="text-gray-600 leading-relaxed">Use dynamic variables and AI to tailor every single email to the recipient for higher conversion rates.</p>
               </div>
-              
+
               <div className="bg-slate-50 p-8 rounded-none-none-none  border border-gray-100 hover: -">
                 <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-none-none-none flex items-center justify-center mb-6">
                   <HugeiconsIcon icon={MailIcon} className="h-6 w-6" />

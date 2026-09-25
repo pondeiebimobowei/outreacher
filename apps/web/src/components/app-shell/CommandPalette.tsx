@@ -232,14 +232,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           type="button"
                           onClick={() => handleSelect(cmd)}
                           onMouseEnter={() => setActiveIdx(idx)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-[44px] ${active
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-11 ${active
                             ? 'bg-(--color-muted) text-(--color-primary)'
                             : 'text-slate-700 hover:bg-(--color-muted)'
                             }`}
                         >
                           <div
                             className={`w-7 h-7 rounded-none-none flex items-center justify-center shrink-0  ${active
-                              ? 'bg-slate-50 -xs border border-border text-[var(--color-accent)]'
+                              ? 'bg-slate-50 -xs border border-border text-accent'
                               : 'bg-(--color-muted) text-muted-fg'
                               }`}
                           >
@@ -277,14 +277,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           type="button"
                           onClick={() => handleSelect(cmd)}
                           onMouseEnter={() => setActiveIdx(idx)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-[44px] ${active
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-none-none text-left  cursor-pointer min-h-11 ${active
                             ? 'bg-(--color-muted) text-(--color-primary)'
                             : 'text-slate-700 hover:bg-(--color-muted)'
                             }`}
                         >
                           <div
                             className={`w-7 h-7 rounded-none-none flex items-center justify-center shrink-0  ${active
-                              ? 'bg-slate-50 -xs border border-border text-[var(--color-accent)]'
+                              ? 'bg-slate-50 -xs border border-border text-accent'
                               : 'bg-(--color-muted) text-muted-fg'
                               }`}
                           >

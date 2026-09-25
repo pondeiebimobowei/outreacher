@@ -342,11 +342,11 @@ function SenderAccountCard({
 
   const initials = sender.fromName
     ? sender.fromName
-        .split(' ')
-        .map((p) => p[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
+      .split(' ')
+      .map((p) => p[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
     : sender.fromEmail.slice(0, 2).toUpperCase();
 
   return (
@@ -775,7 +775,7 @@ function DisableConfirmModal({
     >
       <div className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-none-none bg-red-100 text-red-600">
+          <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-none-none bg-red-100 text-red-600">
             <HugeiconsIcon icon={AlertTriangle} size={20} />
           </div>
           <h3
