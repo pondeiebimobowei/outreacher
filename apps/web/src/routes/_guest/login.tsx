@@ -91,10 +91,11 @@ function LoginComponent() {
     try {
       if (mode === 'login') {
         await login(email, password);
+        await navigate({ to: '/dashboard' });
       } else {
         await signup(email, password, name || undefined);
+        await navigate({ to: '/onboarding' });
       }
-      await navigate({ to: '/' });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'An error occurred during authentication.');
     } finally {

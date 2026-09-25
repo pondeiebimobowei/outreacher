@@ -228,7 +228,7 @@ function OnboardingComponent() {
           </p>
           <button
             type="button"
-            onClick={() => navigate({ to: '/' })}
+            onClick={() => navigate({ to: '/dashboard' })}
             className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-xl font-semibold text-[15px] transition-all bg-[var(--color-primary)] text-white shadow-xs hover:bg-opacity-95 active:scale-[0.99] font-heading cursor-pointer"
           >
             <span>Enter Outreacher</span>

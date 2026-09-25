@@ -18,7 +18,7 @@ function GuestLayoutComponent() {
   }
 
   if (status === 'authenticated') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

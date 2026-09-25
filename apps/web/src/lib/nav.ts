@@ -23,7 +23,7 @@ export interface NavItem {
 }
 
 export const primaryNav: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/', exact: true },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard', exact: true },
   { id: 'companies', label: 'Companies', icon: Building2, to: '/companies' },
   { id: 'outreaches', label: 'Outreaches', icon: Mail, to: '/outreaches' },
   { id: 'opportunities', label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
