@@ -3,7 +3,10 @@ import { PrismaService } from '../../../database/prisma.service';
 import { SendEligibilityService } from '../../email/domain/send-eligibility.service';
 import { JobQueueService } from '../../../infrastructure/queue/job-queue.service';
 import { SendDirectOutreachUseCase } from './send-direct-outreach.use-case';
-import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 
 describe('SendDirectOutreachUseCase', () => {
   let useCase: SendDirectOutreachUseCase;
@@ -36,7 +39,9 @@ describe('SendDirectOutreachUseCase', () => {
 
   it('throws AppNotFoundException if outreach is not found', async () => {
     prisma.outreach.findUnique.mockResolvedValue(null);
-    await expect(useCase.execute('ws', 'o1')).rejects.toThrow(AppNotFoundException);
+    await expect(useCase.execute('ws', 'o1')).rejects.toThrow(
+      AppNotFoundException,
+    );
   });
 
   it('is idempotent if already sending/sent', async () => {
@@ -48,14 +53,29 @@ describe('SendDirectOutreachUseCase', () => {
   });
 
   it('queues a send job if eligible', async () => {
-    prisma.outreach.findUnique.mockResolvedValue({ id: 'o1', status: 'DRAFT', currentSubject: 'Sub', currentBody: 'Bod' });
-    sendEligibilityService.checkOutreachEligibility.mockResolvedValue({ isEligible: true });
-    sendEligibilityService.reserveSenderCapacityAndCreateEmailSendForOutreach.mockResolvedValue({ emailSendId: 'es1' });
+    prisma.outreach.findUnique.mockResolvedValue({
+      id: 'o1',
+      status: 'DRAFT',
+      currentSubject: 'Sub',
+      currentBody: 'Bod',
+    });
+    sendEligibilityService.checkOutreachEligibility.mockResolvedValue({
+      isEligible: true,
+    });
+    sendEligibilityService.reserveSenderCapacityAndCreateEmailSendForOutreach.mockResolvedValue(
+      { emailSendId: 'es1' },
+    );
     prisma.outreach.update.mockResolvedValue({ id: 'o1', status: 'SENDING' });
-    
+
     await useCase.execute('ws', 'o1');
-    
-    expect(queue.enqueue).toHaveBeenCalledWith('ws', 'EMAIL_DISPATCH', { emailSendId: 'es1', outreachId: 'o1' });
-    expect(prisma.outreach.update).toHaveBeenCalledWith({ where: { id: 'o1' }, data: { status: 'SENDING' } });
+
+    expect(queue.enqueue).toHaveBeenCalledWith('ws', 'EMAIL_DISPATCH', {
+      emailSendId: 'es1',
+      outreachId: 'o1',
+    });
+    expect(prisma.outreach.update).toHaveBeenCalledWith({
+      where: { id: 'o1' },
+      data: { status: 'SENDING' },
+    });
   });
 });

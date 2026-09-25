@@ -53,7 +53,10 @@ export class IntegrationController {
     @CurrentWorkspace() workspace: { id: string },
     @Param('id') integrationId: string,
   ) {
-    const integration = await this.getIntegration.execute(workspace.id, integrationId);
+    const integration = await this.getIntegration.execute(
+      workspace.id,
+      integrationId,
+    );
     return toIntegrationResponse(integration);
   }
 
@@ -80,7 +83,10 @@ export class IntegrationController {
     @CurrentWorkspace() workspace: { id: string },
     @Param('id') integrationId: string,
   ) {
-    const integration = await this.disableIntegration.execute(workspace.id, integrationId);
+    const integration = await this.disableIntegration.execute(
+      workspace.id,
+      integrationId,
+    );
     return toIntegrationResponse(integration);
   }
 }

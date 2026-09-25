@@ -21,10 +21,10 @@ export class ListCampaignSendersUseCase {
                 provider: true,
                 status: true,
                 name: true,
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });

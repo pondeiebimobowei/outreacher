@@ -1,4 +1,11 @@
-import { Controller, HttpCode, HttpStatus, Param, Post, Req } from '@nestjs/common';
+import {
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { Request } from 'express';
 import { InboundWebhookService } from './inbound-webhook.service';

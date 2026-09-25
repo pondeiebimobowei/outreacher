@@ -8,9 +8,6 @@ import { CampaignSenderController } from './campaign-sender.controller';
 @Module({
   imports: [PrismaModule, WorkspaceModule],
   controllers: [CampaignSenderController],
-  providers: [
-    AssignCampaignSendersUseCase,
-    ListCampaignSendersUseCase,
-  ],
+  providers: [AssignCampaignSendersUseCase, ListCampaignSendersUseCase],
 })
 export class CampaignSenderModule {}

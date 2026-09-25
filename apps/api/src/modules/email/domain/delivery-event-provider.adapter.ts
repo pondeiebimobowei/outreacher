@@ -32,5 +32,8 @@ export abstract class DeliveryEventProviderAdapter {
   /**
    * Parses the webhook payload into a CanonicalDeliveryEvent, an UNSUPPORTED status, or an INVALID status.
    */
-  abstract parsePayload(rawBody: Buffer, headers: Record<string, string | string[] | undefined>): ParseDeliveryEventResult;
+  abstract parsePayload(
+    rawBody: Buffer,
+    headers: Record<string, string | string[] | undefined>,
+  ): ParseDeliveryEventResult;
 }

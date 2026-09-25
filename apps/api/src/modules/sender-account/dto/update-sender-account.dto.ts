@@ -1,4 +1,13 @@
-import { IsEmail, IsEnum, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 import { SenderStatus } from '@repo/db';
 
 export class UpdateSenderAccountDto {

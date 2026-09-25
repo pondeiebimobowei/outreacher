@@ -1,4 +1,7 @@
-import { ResendEmailProviderAdapter, EmailProviderException } from './resend-email-provider.adapter';
+import {
+  ResendEmailProviderAdapter,
+  EmailProviderException,
+} from './resend-email-provider.adapter';
 import { EmailDispatchErrorCode } from '../domain/email-provider.adapter';
 
 describe('ResendEmailProviderAdapter Classification', () => {
@@ -40,7 +43,7 @@ describe('ResendEmailProviderAdapter Classification', () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 400,
-      text: async () => JSON.stringify({ message: 'Bad request' })
+      text: async () => JSON.stringify({ message: 'Bad request' }),
     });
 
     await expect(adapter.sendEmail(baseInput)).rejects.toMatchObject({

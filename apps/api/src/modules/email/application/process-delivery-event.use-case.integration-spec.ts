@@ -56,7 +56,7 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
   const createEvent = (
     providerEventId: string,
     providerMessageId: string,
-    eventType: EmailEventType = EmailEventType.DELIVERED
+    eventType: EmailEventType = EmailEventType.DELIVERED,
   ): CanonicalDeliveryEvent => ({
     providerEventId,
     providerMessageId,
@@ -78,20 +78,28 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
       event,
     });
 
-    console.log('Keys of Prisma:', Object.keys(prisma).filter(k => !k.startsWith('_')));
+    console.log(
+      'Keys of Prisma:',
+      Object.keys(prisma).filter((k) => !k.startsWith('_')),
+    );
     const emailEvent = await prisma.emailEvent.findUnique({
-      where: { provider_providerEventId: { provider: 'RESEND', providerEventId: evtId } }
+      where: {
+        provider_providerEventId: {
+          provider: 'RESEND',
+          providerEventId: evtId,
+        },
+      },
     });
     expect(emailEvent).toBeDefined();
     expect(emailEvent?.emailSendId).toBe(emailSendId);
 
     const idempotency = await prisma.idempotencyRecord.findUnique({
-      where: { workspaceId_key: { workspaceId, key: idempotencyKey } }
+      where: { workspaceId_key: { workspaceId, key: idempotencyKey } },
     });
     expect(idempotency).toBeDefined();
 
     const suppression = await prisma.suppression.findFirst({
-      where: { workspaceId, email: 'test@example.com' }
+      where: { workspaceId, email: 'test@example.com' },
     });
     expect(suppression).toBeNull(); // DELIVERED does not create suppression
   });
@@ -109,7 +117,7 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     });
 
     const suppression = await prisma.suppression.findUnique({
-      where: { workspaceId_email: { workspaceId, email: 'test@example.com' } }
+      where: { workspaceId_email: { workspaceId, email: 'test@example.com' } },
     });
     expect(suppression).toBeDefined();
     expect(suppression?.reason).toBe(SuppressionReason.BOUNCED);
@@ -123,7 +131,7 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
         email: 'test@example.com',
         reason: SuppressionReason.USER_REQUEST,
         source: 'manual',
-      }
+      },
     });
 
     // Process a BOUNCED event
@@ -139,7 +147,7 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     });
 
     const suppression = await prisma.suppression.findUnique({
-      where: { workspaceId_email: { workspaceId, email: 'test@example.com' } }
+      where: { workspaceId_email: { workspaceId, email: 'test@example.com' } },
     });
 
     // Existing suppression must not be mutated
@@ -160,7 +168,12 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     });
 
     const emailEvent = await prisma.emailEvent.findUnique({
-      where: { provider_providerEventId: { provider: 'RESEND', providerEventId: evtId } }
+      where: {
+        provider_providerEventId: {
+          provider: 'RESEND',
+          providerEventId: evtId,
+        },
+      },
     });
     expect(emailEvent).toBeNull();
   });
@@ -172,26 +185,41 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
 
     // Fire concurrently
     const results = await Promise.allSettled([
-      useCase.execute({ workspaceId, provider: 'RESEND', idempotencyKey, event }),
-      useCase.execute({ workspaceId, provider: 'RESEND', idempotencyKey, event }),
-      useCase.execute({ workspaceId, provider: 'RESEND', idempotencyKey, event }),
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event,
+      }),
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event,
+      }),
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event,
+      }),
     ]);
 
     // All should succeed (one processes, others catch P2002 and return silently)
-    expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+    expect(results.every((r) => r.status === 'fulfilled')).toBe(true);
 
     const emailEvents = await prisma.emailEvent.findMany({
-      where: { providerEventId: evtId }
+      where: { providerEventId: evtId },
     });
     expect(emailEvents.length).toBe(1);
 
     const idempotencyRecords = await prisma.idempotencyRecord.findMany({
-      where: { key: idempotencyKey }
+      where: { key: idempotencyKey },
     });
     expect(idempotencyRecords.length).toBe(1);
 
     const suppressions = await prisma.suppression.findMany({
-      where: { workspaceId, email: 'test@example.com' }
+      where: { workspaceId, email: 'test@example.com' },
     });
     expect(suppressions.length).toBe(1);
   });
@@ -212,23 +240,32 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     });
 
     // Second request (adversarial identity conflict)
-    await expect(useCase.execute({
-      workspaceId,
-      provider: 'RESEND',
-      idempotencyKey,
-      event: createEvent(evtId, 'msg-456', EmailEventType.DELIVERED),
-    })).rejects.toThrow(AppConflictException);
+    await expect(
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event: createEvent(evtId, 'msg-456', EmailEventType.DELIVERED),
+      }),
+    ).rejects.toThrow(AppConflictException);
 
-    await expect(useCase.execute({
-      workspaceId,
-      provider: 'RESEND',
-      idempotencyKey,
-      event: createEvent(evtId, 'msg-456', EmailEventType.DELIVERED),
-    })).rejects.toMatchObject({ status: 409 });
+    await expect(
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event: createEvent(evtId, 'msg-456', EmailEventType.DELIVERED),
+      }),
+    ).rejects.toMatchObject({ status: 409 });
 
     // Assert only the first was persisted
     const emailEvent = await prisma.emailEvent.findUnique({
-      where: { provider_providerEventId: { provider: 'RESEND', providerEventId: evtId } }
+      where: {
+        provider_providerEventId: {
+          provider: 'RESEND',
+          providerEventId: evtId,
+        },
+      },
     });
     expect(emailEvent?.emailSendId).toBe(emailSendId); // It matched msg-123
   });
@@ -249,7 +286,12 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     });
 
     const emailEvent = await prisma.emailEvent.findUnique({
-      where: { provider_providerEventId: { provider: 'RESEND', providerEventId: evtId } }
+      where: {
+        provider_providerEventId: {
+          provider: 'RESEND',
+          providerEventId: evtId,
+        },
+      },
     });
     expect(emailEvent).toBeNull();
   });
@@ -267,24 +309,30 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
       });
     });
 
-    await expect(useCase.execute({
-      workspaceId,
-      provider: 'RESEND',
-      idempotencyKey,
-      event,
-    })).rejects.toThrow('Simulated internal transaction failure');
+    await expect(
+      useCase.execute({
+        workspaceId,
+        provider: 'RESEND',
+        idempotencyKey,
+        event,
+      }),
+    ).rejects.toThrow('Simulated internal transaction failure');
 
     prisma.$transaction = originalTransaction;
 
     const idempotency = await prisma.idempotencyRecord.findUnique({
-      where: { workspaceId_key: { workspaceId, key: idempotencyKey } }
+      where: { workspaceId_key: { workspaceId, key: idempotencyKey } },
     });
     expect(idempotency).toBeNull();
 
     const emailEvent = await prisma.emailEvent.findUnique({
-      where: { provider_providerEventId: { provider: 'RESEND', providerEventId: evtId } }
+      where: {
+        provider_providerEventId: {
+          provider: 'RESEND',
+          providerEventId: evtId,
+        },
+      },
     });
     expect(emailEvent).toBeNull();
   });
-
 });

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { OutcomeType, Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 
@@ -13,7 +17,7 @@ export class RecordUserOutcomeUseCase {
     outcomeType: OutcomeType,
     notes?: string,
   ): Promise<string> {
-    return this.prisma.$transaction(async (tx : Prisma.TransactionClient) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Lock CampaignMember FOR UPDATE
       const contacts = await tx.$queryRaw<any[]>`
         SELECT id, workspace_id, status 
@@ -24,7 +28,9 @@ export class RecordUserOutcomeUseCase {
       `;
 
       if (!contacts || contacts.length === 0) {
-        throw new NotFoundException('Campaign contact not found in caller workspace');
+        throw new NotFoundException(
+          'Campaign contact not found in caller workspace',
+        );
       }
 
       const contact = contacts[0];
@@ -32,7 +38,7 @@ export class RecordUserOutcomeUseCase {
       // 2. Inspect status
       if (contact.status !== 'REPLIED') {
         throw new ConflictException(
-          `Cannot record outcome for contact in state ${contact.status}. Expected REPLIED.`
+          `Cannot record outcome for contact in state ${contact.status}. Expected REPLIED.`,
         );
       }
 

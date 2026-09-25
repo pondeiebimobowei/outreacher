@@ -78,7 +78,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaign.status = CampaignStatus.SCHEDULED;
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppConflictException(
           'Cannot dispatch immediate send: Campaign is SCHEDULED for automated start',
         ),
@@ -89,7 +91,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaign.status = CampaignStatus.PAUSED;
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppConflictException('Cannot dispatch send: Campaign is PAUSED'),
       );
     });
@@ -98,7 +102,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaign.status = CampaignStatus.ARCHIVED;
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppConflictException('Cannot dispatch send: Campaign is ARCHIVED'),
       );
     });
@@ -107,7 +113,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaign.status = CampaignStatus.COMPLETED;
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppConflictException('Cannot dispatch send: Campaign is COMPLETED'),
       );
     });
@@ -118,18 +126,18 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaign.workspaceId = 'different-workspace-uuid';
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
-        AppNotFoundException,
-      );
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(AppNotFoundException);
     });
 
     it('rejects when campaignMember workspaceId does not match authenticated workspace', async () => {
       const input = createValidInput();
       input.campaignMember.workspaceId = 'different-workspace-uuid';
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
-        AppNotFoundException,
-      );
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(AppNotFoundException);
     });
   });
 
@@ -153,7 +161,9 @@ describe('SendEligibilityService', () => {
         const input = createValidInput();
         input.campaignMember.status = status;
 
-        await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+        await expect(
+          service.checkCampaignMemberEligibility(input),
+        ).rejects.toThrow(
           new AppConflictException(
             `Cannot dispatch send for contact in ${status} status`,
           ),
@@ -167,7 +177,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.person = { id: 'contact-uuid', email: null };
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: contact has no recipient email',
         ),
@@ -178,7 +190,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.person = { id: 'contact-uuid', email: '   ' };
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: contact has no recipient email',
         ),
@@ -209,7 +223,9 @@ describe('SendEligibilityService', () => {
       );
       const input = createValidInput();
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppConflictException('Recipient email is suppressed'),
       );
     });
@@ -220,7 +236,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.currentSubject = 'Hi';
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: subject must be between 3 and 150 characters',
         ),
@@ -231,7 +249,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.currentSubject = 'A'.repeat(151);
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: subject must be between 3 and 150 characters',
         ),
@@ -242,7 +262,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.currentBody = 'Short body';
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: body must be between 20 and 4000 characters',
         ),
@@ -253,7 +275,9 @@ describe('SendEligibilityService', () => {
       const input = createValidInput();
       input.campaignMember.currentBody = 'B'.repeat(4001);
 
-      await expect(service.checkCampaignMemberEligibility(input)).rejects.toThrow(
+      await expect(
+        service.checkCampaignMemberEligibility(input),
+      ).rejects.toThrow(
         new AppValidationException(
           'Cannot dispatch send: body must be between 20 and 4000 characters',
         ),

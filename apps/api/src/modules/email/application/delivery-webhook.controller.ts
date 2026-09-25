@@ -18,5 +18,3 @@ export class DeliveryWebhookController {
     res.status(202).send({ accepted: true });
   }
 }
-
-

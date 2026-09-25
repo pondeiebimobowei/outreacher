@@ -34,32 +34,73 @@ describe('Direct Outreach Tenant Isolation (e2e)', () => {
     await app.init();
 
     // Set up users and workspaces
-    const user1 = await prisma.user.create({ data: { email: 'user1@example.com', defaultWorkspaceId: 'none' } });
-    const user2 = await prisma.user.create({ data: { email: 'user2@example.com', defaultWorkspaceId: 'none' } });
+    const user1 = await prisma.user.create({
+      data: { email: 'user1@example.com', defaultWorkspaceId: 'none' },
+    });
+    const user2 = await prisma.user.create({
+      data: { email: 'user2@example.com', defaultWorkspaceId: 'none' },
+    });
 
-    const w1 = await prisma.workspace.create({ data: { name: 'W1', users: { connect: { id: user1.id } } } });
-    const w2 = await prisma.workspace.create({ data: { name: 'W2', users: { connect: { id: user2.id } } } });
+    const w1 = await prisma.workspace.create({
+      data: { name: 'W1', users: { connect: { id: user1.id } } },
+    });
+    const w2 = await prisma.workspace.create({
+      data: { name: 'W2', users: { connect: { id: user2.id } } },
+    });
 
-    await prisma.user.update({ where: { id: user1.id }, data: { defaultWorkspaceId: w1.id } });
-    await prisma.user.update({ where: { id: user2.id }, data: { defaultWorkspaceId: w2.id } });
+    await prisma.user.update({
+      where: { id: user1.id },
+      data: { defaultWorkspaceId: w1.id },
+    });
+    await prisma.user.update({
+      where: { id: user2.id },
+      data: { defaultWorkspaceId: w2.id },
+    });
 
     workspace1Id = w1.id;
     workspace2Id = w2.id;
 
     // Login
-    const login1 = await request(app.getHttpServer()).post('/auth/magic-link/test-login').send({ email: user1.email }).expect(201);
+    const login1 = await request(app.getHttpServer())
+      .post('/auth/magic-link/test-login')
+      .send({ email: user1.email })
+      .expect(201);
     user1Token = login1.headers['set-cookie'][0].split(';')[0].split('=')[1];
 
-    const login2 = await request(app.getHttpServer()).post('/auth/magic-link/test-login').send({ email: user2.email }).expect(201);
+    const login2 = await request(app.getHttpServer())
+      .post('/auth/magic-link/test-login')
+      .send({ email: user2.email })
+      .expect(201);
     user2Token = login2.headers['set-cookie'][0].split(';')[0].split('=')[1];
 
     // Create Outreach in Workspace 1
-    const company = await prisma.company.create({ data: { workspaceId: w1.id, name: 'C1', domain: 'c1.com' } });
-    const person = await prisma.person.create({ data: { workspaceId: w1.id, email: 'p1@c1.com', firstName: 'P1' } });
-    const pca = await prisma.personCompanyAssociation.create({ data: { workspaceId: w1.id, personId: person.id, companyId: company.id } });
+    const company = await prisma.company.create({
+      data: { workspaceId: w1.id, name: 'C1', domain: 'c1.com' },
+    });
+    const person = await prisma.person.create({
+      data: { workspaceId: w1.id, email: 'p1@c1.com', firstName: 'P1' },
+    });
+    const pca = await prisma.personCompanyAssociation.create({
+      data: { workspaceId: w1.id, personId: person.id, companyId: company.id },
+    });
 
-    const integration = await prisma.integration.create({ data: { workspaceId: w1.id, provider: 'TEST', secretReference: 'abc', status: 'ACTIVE' } });
-    const sender = await prisma.senderAccount.create({ data: { workspaceId: w1.id, integrationId: integration.id, fromEmail: 'me@W1.com', fromName: 'Me', status: 'ACTIVE' } });
+    const integration = await prisma.integration.create({
+      data: {
+        workspaceId: w1.id,
+        provider: 'TEST',
+        secretReference: 'abc',
+        status: 'ACTIVE',
+      },
+    });
+    const sender = await prisma.senderAccount.create({
+      data: {
+        workspaceId: w1.id,
+        integrationId: integration.id,
+        fromEmail: 'me@W1.com',
+        fromName: 'Me',
+        status: 'ACTIVE',
+      },
+    });
 
     const outreach = await prisma.outreach.create({
       data: {
@@ -69,7 +110,7 @@ describe('Direct Outreach Tenant Isolation (e2e)', () => {
         status: 'DRAFT',
         subject: 'W1 Subj',
         message: 'W1 Msg',
-      }
+      },
     });
     outreachW1Id = outreach.id;
   });
@@ -103,7 +144,7 @@ describe('Direct Outreach Tenant Isolation (e2e)', () => {
       .set('x-workspace-id', workspace2Id)
       .expect(404);
   });
-  
+
   it('Workspace 1 user CAN update their own outreach', async () => {
     await request(app.getHttpServer())
       .patch(`/outreaches/${outreachW1Id}`)
@@ -111,8 +152,10 @@ describe('Direct Outreach Tenant Isolation (e2e)', () => {
       .set('x-workspace-id', workspace1Id)
       .send({ subject: 'New Subject W1' })
       .expect(200);
-      
-    const dbOutreach = await prisma.outreach.findUnique({ where: { id: outreachW1Id } });
+
+    const dbOutreach = await prisma.outreach.findUnique({
+      where: { id: outreachW1Id },
+    });
     expect(dbOutreach?.subject).toBe('New Subject W1');
   });
 });

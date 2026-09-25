@@ -1,4 +1,7 @@
-import { ResendInboundContentAdapter, InboundRetrievalException } from './resend-inbound-content.adapter';
+import {
+  ResendInboundContentAdapter,
+  InboundRetrievalException,
+} from './resend-inbound-content.adapter';
 import { Resend } from 'resend';
 
 jest.mock('resend');
@@ -11,16 +14,18 @@ describe('ResendInboundContentAdapter', () => {
     adapter = new ResendInboundContentAdapter();
     getMock = jest.fn();
     (Resend as jest.Mock).mockImplementation(() => ({
-      get: getMock
+      get: getMock,
     }));
   });
-  
+
   it('handles AbortError/Timeout as TIMEOUT', async () => {
     getMock.mockRejectedValue(new Error('The user aborted a request.')); // Resend fetch wrapper behavior
 
-    await expect(adapter.getEmailDetails('email-1', { apiKey: 'key' })).rejects.toMatchObject({
+    await expect(
+      adapter.getEmailDetails('email-1', { apiKey: 'key' }),
+    ).rejects.toMatchObject({
       retrievalCode: 'TIMEOUT',
-      isRetryable: true
+      isRetryable: true,
     });
   });
 
@@ -33,10 +38,10 @@ describe('ResendInboundContentAdapter', () => {
         html: '<p>Hello</p>',
         headers: {
           'In-Reply-To': 'in-reply',
-          'References': ['ref1', 'ref2']
-        }
+          References: ['ref1', 'ref2'],
+        },
       },
-      error: null
+      error: null,
     });
 
     const result = await adapter.getEmailDetails('email-1', { apiKey: 'key' });
@@ -46,43 +51,49 @@ describe('ResendInboundContentAdapter', () => {
       text: 'Hello',
       html: '<p>Hello</p>',
       inReplyTo: 'in-reply',
-      references: ['ref1', 'ref2']
+      references: ['ref1', 'ref2'],
     });
   });
 
   it('handles 404 as terminal error', async () => {
     getMock.mockResolvedValue({
       data: null,
-      error: { statusCode: 404, message: 'Not found' }
+      error: { statusCode: 404, message: 'Not found' },
     });
 
-    await expect(adapter.getEmailDetails('email-1', { apiKey: 'key' })).rejects.toMatchObject({
+    await expect(
+      adapter.getEmailDetails('email-1', { apiKey: 'key' }),
+    ).rejects.toMatchObject({
       retrievalCode: 'NOT_FOUND',
-      isRetryable: false
+      isRetryable: false,
     });
   });
 
   it('handles 500 as retryable error', async () => {
     getMock.mockResolvedValue({
       data: null,
-      error: { statusCode: 500, message: 'Server error' }
+      error: { statusCode: 500, message: 'Server error' },
     });
 
-    await expect(adapter.getEmailDetails('email-1', { apiKey: 'key' })).rejects.toMatchObject({
+    await expect(
+      adapter.getEmailDetails('email-1', { apiKey: 'key' }),
+    ).rejects.toMatchObject({
       retrievalCode: 'PROVIDER_ERROR',
-      isRetryable: true
+      isRetryable: true,
     });
   });
 
   it('handles null statusCode as connectivity error', async () => {
     getMock.mockResolvedValue({
       data: null,
-      error: { statusCode: null, message: 'Network failed' }
+      error: { statusCode: null, message: 'Network failed' },
     });
 
-    await expect(adapter.getEmailDetails('email-1', { apiKey: 'key' })).rejects.toMatchObject({
+    await expect(
+      adapter.getEmailDetails('email-1', { apiKey: 'key' }),
+    ).rejects.toMatchObject({
       retrievalCode: 'CONNECTIVITY_ERROR',
-      isRetryable: true
+      isRetryable: true,
     });
   });
 });

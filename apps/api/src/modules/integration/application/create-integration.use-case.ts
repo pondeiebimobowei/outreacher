@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CreateIntegrationDto } from '../dto/create-integration.dto';
 import { IntegrationProvider, IntegrationStatus } from '@repo/db';
-import { AppValidationException, AppConflictException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppConflictException,
+} from '../../../common/errors/application.exception';
 
 @Injectable()
 export class CreateIntegrationUseCase {
@@ -18,7 +21,9 @@ export class CreateIntegrationUseCase {
     });
 
     if (existing) {
-      throw new AppConflictException('An integration with this name already exists in the workspace.');
+      throw new AppConflictException(
+        'An integration with this name already exists in the workspace.',
+      );
     }
 
     return this.prisma.integration.create({

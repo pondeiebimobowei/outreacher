@@ -48,7 +48,8 @@ describe('CreateContactUseCase', () => {
     );
 
     const result = await useCase.execute('ws-1', 'comp-1', {
-      firstName: 'Jane', lastName: 'Doe',
+      firstName: 'Jane',
+      lastName: 'Doe',
       email: 'JANE.DOE@ACME.COM',
       title: 'Head of Engineering',
       personKind: 'PERSON',
@@ -63,7 +64,8 @@ describe('CreateContactUseCase', () => {
         workspaceId: 'ws-1',
         personCompanyAssociations: { create: { companyId: 'comp-1' } },
         personKind: 'PERSON',
-        firstName: 'Jane', lastName: 'Doe',
+        firstName: 'Jane',
+        lastName: 'Doe',
         email: 'jane.doe@acme.com',
         title: 'Head of Engineering',
         source: 'USER_PROVIDED',
@@ -163,7 +165,10 @@ describe('CreateContactUseCase', () => {
     prismaMock.company.findFirst.mockResolvedValue(null);
 
     await expect(
-      useCase.execute('ws-1', 'comp-999', { firstName: 'John', lastName: 'Doe' }),
+      useCase.execute('ws-1', 'comp-999', {
+        firstName: 'John',
+        lastName: 'Doe',
+      }),
     ).rejects.toThrow(AppNotFoundException);
   });
 

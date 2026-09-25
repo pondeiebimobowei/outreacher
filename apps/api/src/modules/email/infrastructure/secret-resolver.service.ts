@@ -1,7 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ISecretResolver } from '../domain/secret-resolver.interface';
-import { ProviderCredentials, ResendCredentials, SesCredentials, SmtpCredentials } from '../domain/provider-credentials';
-import { AppValidationException, SystemConfigurationException, SecretResolutionException } from '../../../common/errors/application.exception';
+import {
+  ProviderCredentials,
+  ResendCredentials,
+  SesCredentials,
+  SmtpCredentials,
+} from '../domain/provider-credentials';
+import {
+  AppValidationException,
+  SystemConfigurationException,
+  SecretResolutionException,
+} from '../../../common/errors/application.exception';
 
 @Injectable()
 export class SecretResolverService implements ISecretResolver {
@@ -12,9 +21,18 @@ export class SecretResolverService implements ISecretResolver {
 
   private isAuthenticationFailure(error: any): boolean {
     if (!error) return false;
-    const status = error.status ?? error.statusCode ?? error.response?.status ?? error.response?.statusCode;
+    const status =
+      error.status ??
+      error.statusCode ??
+      error.response?.status ??
+      error.response?.statusCode;
     if (status === 401) return true;
-    if (error.message && typeof error.message === 'string' && error.message.includes('401')) return true;
+    if (
+      error.message &&
+      typeof error.message === 'string' &&
+      error.message.includes('401')
+    )
+      return true;
     return false;
   }
 
@@ -48,7 +66,9 @@ export class SecretResolverService implements ISecretResolver {
         const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
 
         if (!clientId || !clientSecret) {
-          throw new SystemConfigurationException('Infisical bootstrap credentials missing');
+          throw new SystemConfigurationException(
+            'Infisical bootstrap credentials missing',
+          );
         }
 
         this.client = new InfisicalSDK();
@@ -69,7 +89,9 @@ export class SecretResolverService implements ISecretResolver {
       this.isAuthenticating = false;
       let finalErr = err;
       if (!(err instanceof SystemConfigurationException)) {
-        finalErr = new SecretResolutionException('Failed to authenticate to vault');
+        finalErr = new SecretResolutionException(
+          'Failed to authenticate to vault',
+        );
       }
       this.authErrors.forEach((reject) => reject(finalErr));
       this.authWaiters = [];
@@ -78,7 +100,13 @@ export class SecretResolverService implements ISecretResolver {
     }
   }
 
-  private async executeGetSecret(client: any, environment: string, projectId: string, secretPath: string, secretName: string): Promise<string> {
+  private async executeGetSecret(
+    client: any,
+    environment: string,
+    projectId: string,
+    secretPath: string,
+    secretName: string,
+  ): Promise<string> {
     try {
       const secret = await client.secrets().getSecret({
         environment,
@@ -101,25 +129,34 @@ export class SecretResolverService implements ISecretResolver {
     }
   }
 
-  async resolve(workspaceId: string, secretReference: string, provider: string): Promise<ProviderCredentials> {
+  async resolve(
+    workspaceId: string,
+    secretReference: string,
+    provider: string,
+  ): Promise<ProviderCredentials> {
     if (secretReference.startsWith('mock://')) {
       if (process.env.NODE_ENV === 'production') {
-        throw new AppValidationException('mock:// secrets are not allowed in production');
+        throw new AppValidationException(
+          'mock:// secrets are not allowed in production',
+        );
       }
-      return { provider: provider as any, apiKey: 'mock-key' } as any;
+      return { provider: provider as any, apiKey: 'mock-key' };
     }
 
     if (secretReference.startsWith('env://')) {
       const envVar = secretReference.replace('env://', '');
       const val = process.env[envVar];
       if (!val) {
-        throw new AppValidationException(`Secret environment variable ${envVar} not found`);
+        throw new AppValidationException(
+          `Secret environment variable ${envVar} not found`,
+        );
       }
-      
+
       switch (provider) {
-        case 'WEBHOOK': return { provider: 'WEBHOOK', secret: val } as any;
+        case 'WEBHOOK':
+          return { provider: 'WEBHOOK', secret: val } as any;
         case 'RESEND':
-          return { provider: 'RESEND', apiKey: val } as ResendCredentials;
+          return { provider: 'RESEND', apiKey: val };
         case 'SES':
           const sesData = JSON.parse(val);
           return {
@@ -127,7 +164,7 @@ export class SecretResolverService implements ISecretResolver {
             accessKeyId: sesData.accessKeyId,
             secretAccessKey: sesData.secretAccessKey,
             region: sesData.region,
-          } as SesCredentials;
+          };
         case 'SMTP':
           const smtpData = JSON.parse(val);
           return {
@@ -137,7 +174,7 @@ export class SecretResolverService implements ISecretResolver {
             user: smtpData.user,
             pass: smtpData.pass,
             secure: smtpData.secure,
-          } as SmtpCredentials;
+          };
         default:
           throw new AppValidationException(`Unsupported provider: ${provider}`);
       }
@@ -148,7 +185,9 @@ export class SecretResolverService implements ISecretResolver {
       const environment = process.env.INFISICAL_ENVIRONMENT;
 
       if (!projectId || !environment) {
-        throw new SystemConfigurationException('Infisical environment config missing');
+        throw new SystemConfigurationException(
+          'Infisical environment config missing',
+        );
       }
 
       const withoutScheme = secretReference.replace('vault://', '');
@@ -159,7 +198,12 @@ export class SecretResolverService implements ISecretResolver {
 
       const [secretPath, secretName] = parts;
 
-      if (!secretPath || secretPath.includes('\\') || secretPath.includes('..') || secretPath.includes('//')) {
+      if (
+        !secretPath ||
+        secretPath.includes('\\') ||
+        secretPath.includes('..') ||
+        secretPath.includes('//')
+      ) {
         throw new AppValidationException(`Invalid secret path format`);
       }
 
@@ -177,24 +221,40 @@ export class SecretResolverService implements ISecretResolver {
         let val: string;
 
         try {
-          val = await this.executeGetSecret(client, environment, projectId, secretPath, secretName);
+          val = await this.executeGetSecret(
+            client,
+            environment,
+            projectId,
+            secretPath,
+            secretName,
+          );
         } catch (e: any) {
-          if (e instanceof SecretResolutionException && e.message === 'SecretMissingException') {
+          if (
+            e instanceof SecretResolutionException &&
+            e.message === 'SecretMissingException'
+          ) {
             throw e; // Let outer block handle this as a resolution failure
           }
-          
+
           if (this.isAuthenticationFailure(e)) {
             client = await this.getClientAuth(true);
-            val = await this.executeGetSecret(client, environment, projectId, secretPath, secretName);
+            val = await this.executeGetSecret(
+              client,
+              environment,
+              projectId,
+              secretPath,
+              secretName,
+            );
           } else {
             throw e;
           }
         }
 
         switch (provider) {
-          case 'WEBHOOK': return { provider: 'WEBHOOK', secret: val } as any;
-        case 'RESEND':
-            return { provider: 'RESEND', apiKey: val } as ResendCredentials;
+          case 'WEBHOOK':
+            return { provider: 'WEBHOOK', secret: val } as any;
+          case 'RESEND':
+            return { provider: 'RESEND', apiKey: val };
           case 'SES':
             const sesData = JSON.parse(val);
             return {
@@ -202,7 +262,7 @@ export class SecretResolverService implements ISecretResolver {
               accessKeyId: sesData.accessKeyId,
               secretAccessKey: sesData.secretAccessKey,
               region: sesData.region,
-            } as SesCredentials;
+            };
           case 'SMTP':
             const smtpData = JSON.parse(val);
             return {
@@ -212,12 +272,18 @@ export class SecretResolverService implements ISecretResolver {
               user: smtpData.user,
               pass: smtpData.pass,
               secure: smtpData.secure,
-            } as SmtpCredentials;
+            };
           default:
-            throw new AppValidationException(`Unsupported provider: ${provider}`);
+            throw new AppValidationException(
+              `Unsupported provider: ${provider}`,
+            );
         }
       } catch (e: any) {
-        if (e instanceof AppValidationException || e instanceof SystemConfigurationException || e instanceof SecretResolutionException) {
+        if (
+          e instanceof AppValidationException ||
+          e instanceof SystemConfigurationException ||
+          e instanceof SecretResolutionException
+        ) {
           throw e;
         }
         throw new SecretResolutionException('Failed to resolve vault secret');

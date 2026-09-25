@@ -2,14 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import { AssignSendersDto } from '../dto/assign-senders.dto';
-import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 import { AssignmentStatus } from '@repo/db';
 
 @Injectable()
 export class AssignCampaignSendersUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async execute(workspaceId: string, campaignId: string, dto: AssignSendersDto) {
+  public async execute(
+    workspaceId: string,
+    campaignId: string,
+    dto: AssignSendersDto,
+  ) {
     const campaign = await this.prisma.campaign.findUnique({
       where: { workspaceId_id: { workspaceId, id: campaignId } },
     });
@@ -19,7 +26,9 @@ export class AssignCampaignSendersUseCase {
     }
 
     if (campaign.status === 'ARCHIVED' || campaign.status === 'COMPLETED') {
-      throw new AppValidationException(`Cannot assign senders to a campaign in ${campaign.status} status`);
+      throw new AppValidationException(
+        `Cannot assign senders to a campaign in ${campaign.status} status`,
+      );
     }
 
     const uniqueSenderIds = [...new Set(dto.senderAccountIds)];
@@ -34,7 +43,9 @@ export class AssignCampaignSendersUseCase {
       });
 
       if (senders.length !== uniqueSenderIds.length) {
-        throw new AppValidationException('One or more sender accounts do not exist in this workspace');
+        throw new AppValidationException(
+          'One or more sender accounts do not exist in this workspace',
+        );
       }
     }
 

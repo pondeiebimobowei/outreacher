@@ -4,7 +4,10 @@ import { PrismaService } from '../../../database/prisma.service';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
 import type { ISecretResolver } from '../domain/secret-resolver.interface';
 import { ResendInboundEmailAdapter } from '../infrastructure/resend-inbound-email.adapter';
-import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 import { WebhookCredentials } from '../domain/provider-credentials';
 
 @Injectable()
@@ -13,7 +16,8 @@ export class InboundWebhookService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
+    @Inject(SECRET_RESOLVER_TOKEN)
+    private readonly secretResolver: ISecretResolver,
     private readonly resendAdapter: ResendInboundEmailAdapter,
   ) {}
 
@@ -31,18 +35,22 @@ export class InboundWebhookService {
     }
 
     if (integration.provider !== 'RESEND') {
-      throw new AppValidationException(`Provider ${integration.provider} is not supported for inbound webhooks in this adapter`);
+      throw new AppValidationException(
+        `Provider ${integration.provider} is not supported for inbound webhooks in this adapter`,
+      );
     }
 
     const webhookSecretRef = integration.webhookSecretReference;
     if (!webhookSecretRef) {
-      throw new AppValidationException('Integration is not configured for inbound webhooks');
+      throw new AppValidationException(
+        'Integration is not configured for inbound webhooks',
+      );
     }
 
     const credentials = (await this.secretResolver.resolve(
       integration.workspaceId,
       webhookSecretRef,
-      'WEBHOOK'
+      'WEBHOOK',
     )) as WebhookCredentials;
 
     const adapter = this.resendAdapter;
@@ -50,12 +58,12 @@ export class InboundWebhookService {
     // 1. Verify signature
     adapter.verifySignature({
       rawBody: req.rawBody,
-      headers: req.headers as Record<string, string>,
+      headers: req.headers,
       secret: credentials.secret,
     });
 
     // 2. Parse payload
-    const canonicalPayload = adapter.parsePayload(req.rawBody, req.headers as Record<string, string>);
+    const canonicalPayload = adapter.parsePayload(req.rawBody, req.headers);
 
     const idempotencyKey = `webhook:${integration.provider}:${canonicalPayload.providerEventId}`;
 
@@ -90,7 +98,10 @@ export class InboundWebhookService {
             workspaceId: integration.workspaceId,
             type: 'WEBHOOK_PROCESSING',
             idempotencyKey: idempotencyKey,
-            payload: { inboundReplyId: reply.id, integrationId: integration.id },
+            payload: {
+              inboundReplyId: reply.id,
+              integrationId: integration.id,
+            },
           },
         });
 
@@ -103,24 +114,29 @@ export class InboundWebhookService {
             targetId: reply.id,
             responseStatus: 202,
             responseBody: { accepted: true },
-          }
+          },
         });
       });
     } catch (err: any) {
       if (err.code === 'P2002') {
-        
         const target = err.meta?.target;
         // Check if the unique constraint violation is on the idempotency record key or inbound reply unique constraint
-        const targetStr = Array.isArray(target) ? target.join(',') : String(target || '');
+        const targetStr = Array.isArray(target)
+          ? target.join(',')
+          : String(target || '');
         const errMessage = err.message || '';
         if (
-          targetStr.includes('key') || 
-          targetStr.includes('providerEventId') || 
+          targetStr.includes('key') ||
+          targetStr.includes('providerEventId') ||
           targetStr.includes('provider_event_id') ||
-          errMessage.includes('inbound_replies_workspace_id_provider_provider_event_id_key') ||
+          errMessage.includes(
+            'inbound_replies_workspace_id_provider_provider_event_id_key',
+          ) ||
           errMessage.includes('idempotency_records')
         ) {
-          this.logger.log(`Idempotent webhook deduplication for providerEventId: ${canonicalPayload.providerEventId}`);
+          this.logger.log(
+            `Idempotent webhook deduplication for providerEventId: ${canonicalPayload.providerEventId}`,
+          );
           return;
         }
       }

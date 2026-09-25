@@ -12,7 +12,7 @@ describe('OutcomeModule', () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({ isGlobal: true }), // Required for PrismaModule/ConfigService within this isolated graph
-        OutcomeModule
+        OutcomeModule,
       ],
     }).compile();
 

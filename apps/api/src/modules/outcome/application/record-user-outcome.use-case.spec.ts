@@ -32,9 +32,18 @@ describe('RecordUserOutcomeUseCase', () => {
       { id: campaignMemberId, workspace_id: workspaceId, status: 'REPLIED' },
     ]);
     prismaMock.outcome.create.mockResolvedValue({ id: 'out-123' });
-    prismaMock.campaignMember.update.mockResolvedValue({ id: campaignMemberId, status: 'COMPLETED' });
+    prismaMock.campaignMember.update.mockResolvedValue({
+      id: campaignMemberId,
+      status: 'COMPLETED',
+    });
 
-    const result = await useCase.execute(campaignMemberId, workspaceId, userId, OutcomeType.QUALIFIED_CONVERSATION, 'Great chat');
+    const result = await useCase.execute(
+      campaignMemberId,
+      workspaceId,
+      userId,
+      OutcomeType.QUALIFIED_CONVERSATION,
+      'Great chat',
+    );
 
     expect(result).toBe('out-123');
     expect(prismaMock.$queryRaw).toHaveBeenCalled();
@@ -57,7 +66,12 @@ describe('RecordUserOutcomeUseCase', () => {
     prismaMock.$queryRaw.mockResolvedValue([]); // No matching contact
 
     await expect(
-      useCase.execute(campaignMemberId, workspaceId, userId, OutcomeType.QUALIFIED_CONVERSATION)
+      useCase.execute(
+        campaignMemberId,
+        workspaceId,
+        userId,
+        OutcomeType.QUALIFIED_CONVERSATION,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     expect(prismaMock.outcome.create).not.toHaveBeenCalled();
@@ -70,7 +84,12 @@ describe('RecordUserOutcomeUseCase', () => {
     ]);
 
     await expect(
-      useCase.execute(campaignMemberId, workspaceId, userId, OutcomeType.QUALIFIED_CONVERSATION)
+      useCase.execute(
+        campaignMemberId,
+        workspaceId,
+        userId,
+        OutcomeType.QUALIFIED_CONVERSATION,
+      ),
     ).rejects.toThrow(ConflictException);
 
     expect(prismaMock.outcome.create).not.toHaveBeenCalled();
@@ -83,7 +102,12 @@ describe('RecordUserOutcomeUseCase', () => {
     ]);
 
     await expect(
-      useCase.execute(campaignMemberId, workspaceId, userId, OutcomeType.QUALIFIED_CONVERSATION)
+      useCase.execute(
+        campaignMemberId,
+        workspaceId,
+        userId,
+        OutcomeType.QUALIFIED_CONVERSATION,
+      ),
     ).rejects.toThrow(ConflictException);
 
     expect(prismaMock.outcome.create).not.toHaveBeenCalled();
@@ -95,9 +119,17 @@ describe('RecordUserOutcomeUseCase', () => {
       { id: campaignMemberId, workspace_id: workspaceId, status: 'REPLIED' },
     ]);
     prismaMock.outcome.create.mockResolvedValue({ id: 'out-123' });
-    prismaMock.campaignMember.update.mockResolvedValue({ id: campaignMemberId, status: 'COMPLETED' });
+    prismaMock.campaignMember.update.mockResolvedValue({
+      id: campaignMemberId,
+      status: 'COMPLETED',
+    });
 
-    await useCase.execute(campaignMemberId, workspaceId, userId, OutcomeType.NOT_INTERESTED);
+    await useCase.execute(
+      campaignMemberId,
+      workspaceId,
+      userId,
+      OutcomeType.NOT_INTERESTED,
+    );
 
     expect(prismaMock.outcome.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ notes: null }),

@@ -1,7 +1,10 @@
 import { ResendConnectionTester } from './resend-connection-tester';
 import type { ResendCredentials } from '../../email/domain/provider-credentials';
 
-const RESEND_CREDS: ResendCredentials = { provider: 'RESEND', apiKey: 'test-key' };
+const RESEND_CREDS: ResendCredentials = {
+  provider: 'RESEND',
+  apiKey: 'test-key',
+};
 
 describe('ResendConnectionTester', () => {
   let tester: ResendConnectionTester;
@@ -106,7 +109,12 @@ describe('ResendConnectionTester', () => {
 
   // ── safety: no raw infrastructure error text leaked ──────────────────
 
-  const SAFE_REASONS = new Set(['INVALID_CREDENTIALS', 'PROVIDER_UNAVAILABLE', 'CONNECTION_FAILED', undefined]);
+  const SAFE_REASONS = new Set([
+    'INVALID_CREDENTIALS',
+    'PROVIDER_UNAVAILABLE',
+    'CONNECTION_FAILED',
+    undefined,
+  ]);
 
   it.each([200, 400, 401, 403, 422, 429, 500, 503])(
     'HTTP %i: reason is never a raw error string',
@@ -118,7 +126,9 @@ describe('ResendConnectionTester', () => {
   );
 
   it('network error: reason is never the raw error message', async () => {
-    mockFetch.mockRejectedValue(new Error('ECONNREFUSED 127.0.0.1:443 - raw infrastructure detail'));
+    mockFetch.mockRejectedValue(
+      new Error('ECONNREFUSED 127.0.0.1:443 - raw infrastructure detail'),
+    );
     const result = await tester.testConnection(RESEND_CREDS);
     expect(SAFE_REASONS.has(result.reason)).toBe(true);
     expect(result.reason).not.toMatch(/ECONNREFUSED/);

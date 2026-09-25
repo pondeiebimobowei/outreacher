@@ -3,7 +3,6 @@ import { AppValidationException } from '../../../common/errors/application.excep
 import { EmailEventType } from '@repo/db';
 import { Webhook } from 'svix';
 
-
 jest.mock('svix', () => {
   const verifyMock = jest.fn();
   return {
@@ -13,7 +12,6 @@ jest.mock('svix', () => {
     __verifyMock: verifyMock,
   };
 });
-
 
 describe('ResendDeliveryEventAdapter', () => {
   let adapter: ResendDeliveryEventAdapter;
@@ -54,11 +52,18 @@ describe('ResendDeliveryEventAdapter', () => {
   });
 
   describe('parsePayload', () => {
-    const createPayload = (type: string, data: any) => Buffer.from(JSON.stringify({ type, data }));
+    const createPayload = (type: string, data: any) =>
+      Buffer.from(JSON.stringify({ type, data }));
     const validHeaders = { 'svix-id': 'evt_123' };
 
     it('should parse valid SENT', () => {
-      const result = adapter.parsePayload(createPayload('email.sent', { email_id: 'msg_123', to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.sent', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        validHeaders,
+      );
       expect(result.status).toBe('VALID');
       if (result.status === 'VALID') {
         expect(result.event.eventType).toBe(EmailEventType.SENT);
@@ -66,7 +71,13 @@ describe('ResendDeliveryEventAdapter', () => {
     });
 
     it('should parse valid DELIVERED', () => {
-      const result = adapter.parsePayload(createPayload('email.delivered', { email_id: 'msg_123', to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.delivered', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        validHeaders,
+      );
       expect(result.status).toBe('VALID');
       if (result.status === 'VALID') {
         expect(result.event.eventType).toBe(EmailEventType.DELIVERED);
@@ -74,7 +85,13 @@ describe('ResendDeliveryEventAdapter', () => {
     });
 
     it('should parse valid BOUNCED', () => {
-      const result = adapter.parsePayload(createPayload('email.bounced', { email_id: 'msg_123', to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.bounced', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        validHeaders,
+      );
       expect(result.status).toBe('VALID');
       if (result.status === 'VALID') {
         expect(result.event.eventType).toBe(EmailEventType.BOUNCED);
@@ -82,7 +99,13 @@ describe('ResendDeliveryEventAdapter', () => {
     });
 
     it('should parse valid COMPLAINED', () => {
-      const result = adapter.parsePayload(createPayload('email.complained', { email_id: 'msg_123', to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.complained', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        validHeaders,
+      );
       expect(result.status).toBe('VALID');
       if (result.status === 'VALID') {
         expect(result.event.eventType).toBe(EmailEventType.COMPLAINED);
@@ -90,12 +113,24 @@ describe('ResendDeliveryEventAdapter', () => {
     });
 
     it('should return UNSUPPORTED for delivery_delayed', () => {
-      const result = adapter.parsePayload(createPayload('email.delivery_delayed', { email_id: 'msg_123', to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.delivery_delayed', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        validHeaders,
+      );
       expect(result.status).toBe('UNSUPPORTED');
     });
 
     it('should return INVALID for missing providerEventId (svix-id)', () => {
-      const result = adapter.parsePayload(createPayload('email.delivered', { email_id: 'msg_123', to: 'test@test.com' }), {});
+      const result = adapter.parsePayload(
+        createPayload('email.delivered', {
+          email_id: 'msg_123',
+          to: 'test@test.com',
+        }),
+        {},
+      );
       expect(result.status).toBe('INVALID');
       if (result.status === 'INVALID') {
         expect(result.reason).toContain('svix-id');
@@ -103,7 +138,10 @@ describe('ResendDeliveryEventAdapter', () => {
     });
 
     it('should return INVALID for missing providerMessageId (email_id)', () => {
-      const result = adapter.parsePayload(createPayload('email.delivered', { to: 'test@test.com' }), validHeaders);
+      const result = adapter.parsePayload(
+        createPayload('email.delivered', { to: 'test@test.com' }),
+        validHeaders,
+      );
       expect(result.status).toBe('INVALID');
       if (result.status === 'INVALID') {
         expect(result.reason).toContain('email_id');

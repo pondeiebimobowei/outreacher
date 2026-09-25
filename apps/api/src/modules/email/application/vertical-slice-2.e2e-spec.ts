@@ -48,20 +48,22 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         providerMessageId: mockProviderMessageId,
         messageId: mockRfcMessageId,
       };
-    })
+    }),
   };
 
   const mockInboundContentAdapter = {
-    getEmailDetails: jest.fn().mockImplementation(async (providerEmailId, credentials) => {
-      return {
-        providerEmailId,
-        messageId: '<inbound-rfc-1234@domain.com>',
-        inReplyTo: mockRfcMessageId, // Correctly tie back to the outbound RFC message ID
-        references: [mockRfcMessageId],
-        text: 'Hello, this is a reply.',
-        html: '<p>Hello, this is a reply.</p>'
-      };
-    })
+    getEmailDetails: jest
+      .fn()
+      .mockImplementation(async (providerEmailId, credentials) => {
+        return {
+          providerEmailId,
+          messageId: '<inbound-rfc-1234@domain.com>',
+          inReplyTo: mockRfcMessageId, // Correctly tie back to the outbound RFC message ID
+          references: [mockRfcMessageId],
+          text: 'Hello, this is a reply.',
+          html: '<p>Hello, this is a reply.</p>',
+        };
+      }),
   };
 
   beforeAll(async () => {
@@ -105,11 +107,16 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         email: `usera-${randomUUID()}@example.com`,
         password: 'Password123!',
       })
-      .expect((res) => { if (res.status !== 201) console.log(res.body); }).expect(201);
-    
+      .expect((res) => {
+        if (res.status !== 201) console.log(res.body);
+      })
+      .expect(201);
+
     workspaceAId = signupA.body.workspace.id;
     userAId = signupA.body.user.id;
-    cookieA = (signupA.get('Set-Cookie') || []).find((c: string) => c.startsWith('career_os_session='))!;
+    cookieA = (signupA.get('Set-Cookie') || []).find((c: string) =>
+      c.startsWith('career_os_session='),
+    )!;
 
     // Authenticated Setup (Tenant B - for isolation test)
     const signupB = await request(app.getHttpServer())
@@ -119,7 +126,10 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         email: `userb-${randomUUID()}@example.com`,
         password: 'Password123!',
       })
-      .expect((res) => { if (res.status !== 201) console.log(res.body); }).expect(201);
+      .expect((res) => {
+        if (res.status !== 201) console.log(res.body);
+      })
+      .expect(201);
     workspaceBId = signupB.body.workspace.id;
 
     // 2. Integration Setup
@@ -131,10 +141,10 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         status: 'ACTIVE',
         secretReference: 'mock://resend',
         webhookSecretReference: 'env://WEBHOOK_SECRET_A',
-      }
+      },
     });
     integrationAId = integrationA.id;
-    
+
     const integrationB = await prisma.integration.create({
       data: {
         workspaceId: workspaceBId,
@@ -143,7 +153,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         status: 'ACTIVE',
         secretReference: 'mock://resend',
         webhookSecretReference: 'env://WEBHOOK_SECRET_B',
-      }
+      },
     });
     integrationBId = integrationB.id;
 
@@ -155,12 +165,19 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         integrationId: integrationAId,
         fromEmail: 'sender-a@example.com',
         fromName: 'Sender A',
-        status: 'ACTIVE'
-      }
+        status: 'ACTIVE',
+      },
     });
 
     // 3. Campaign & Person Setup
-    const companyA = await prisma.company.create({ data: { workspaceId: workspaceAId, name: 'Test Company', normalizedName: 'test-company', domain: 'test.com' } });
+    const companyA = await prisma.company.create({
+      data: {
+        workspaceId: workspaceAId,
+        name: 'Test Company',
+        normalizedName: 'test-company',
+        domain: 'test.com',
+      },
+    });
     const companyAId = companyA.id;
     const campaignA = await prisma.campaign.create({
       data: {
@@ -169,7 +186,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         name: 'Test Campaign',
         normalizedName: 'test-campaign',
         status: 'ACTIVE',
-      }
+      },
     });
     campaignAId = campaignA.id;
 
@@ -177,8 +194,8 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       data: {
         workspaceId: workspaceAId,
         campaignId: campaignAId,
-        senderAccountId: senderA.id
-      }
+        senderAccountId: senderA.id,
+      },
     });
 
     const contactA = await prisma.person.create({
@@ -187,7 +204,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         companyId: companyAId,
         email: 'recipient-a@example.com',
         name: 'Recipient A',
-      }
+      },
     });
     contactAId = contactA.id;
 
@@ -199,7 +216,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         status: 'READY',
         currentSubject: 'Hello',
         currentBody: '<p>Hello {{firstName}}</p>',
-      }
+      },
     });
     campaignContactAId = campaignContactA.id;
 
@@ -215,36 +232,39 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         status: 'RESERVED',
         senderAccountId: senderA.id,
         provider: 'RESEND',
-        replyToToken: 'test-reply-token'
-      }
+        replyToToken: 'test-reply-token',
+      },
     });
     await prisma.job.create({
       data: {
         workspaceId: workspaceAId,
         type: 'EMAIL_DISPATCH',
-        payload: { emailSendId: createdEmailSend.id, campaignMemberId: campaignContactAId },
-        status: 'PENDING'
-      }
+        payload: {
+          emailSendId: createdEmailSend.id,
+          campaignMemberId: campaignContactAId,
+        },
+        status: 'PENDING',
+      },
     });
 
     // Fetch the real dispatch worker and run it
     const dispatchWorker = app.get(EmailDispatchWorker);
     const claimedJob = await dispatchWorker.claimNextJob();
     expect(claimedJob).toBeDefined();
-    
+
     const dispatchResult = await dispatchWorker.processJob(claimedJob!);
     expect(dispatchResult).toBe(true);
 
     // 5 & 6. Verify EmailSend Persistence with ProviderMessageId
     const emailSend = await prisma.emailSend.findFirst({
-      where: { campaignMemberId: campaignContactAId }
+      where: { campaignMemberId: campaignContactAId },
     });
     expect(emailSend).toBeDefined();
     expect(emailSend!.providerMessageId).toBe(mockProviderMessageId);
     expect(emailSend!.messageId).toBe(mockRfcMessageId);
 
     const ccAfterDispatch = await prisma.campaignMember.findUnique({
-      where: { id: campaignContactAId }
+      where: { id: campaignContactAId },
     });
     expect(ccAfterDispatch!.status).toBe(CampaignMemberStatus.SENT);
 
@@ -254,8 +274,8 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         workspaceId: workspaceAId,
         type: 'SCHEDULED_FOLLOW_UP_CHECK',
         payload: { campaignMemberId: campaignContactAId },
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
     });
 
     const unrelatedFollowupJob = await prisma.job.create({
@@ -263,8 +283,8 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         workspaceId: workspaceAId,
         type: 'SCHEDULED_FOLLOW_UP_CHECK',
         payload: { campaignMemberId: 'other-cc-id' },
-        status: 'PENDING'
-      }
+        status: 'PENDING',
+      },
     });
 
     // 7 & 8. Deterministic Inbound Webhook (with Signature Validation)
@@ -277,11 +297,11 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
         from: 'recipient-a@example.com',
         to: 'sender-a@example.com',
         subject: 'Re: Hello',
-      }
+      },
     };
     const svixEventId = `msg_${randomUUID()}`;
     const payloadString = JSON.stringify(inboundPayload);
-    
+
     // We will send to Integration B first for isolation check.
 
     // 14. Tenant Isolation Check: Send same payload to Integration B first
@@ -291,7 +311,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     const signatureHeadersB = {
       'svix-id': svixEventId,
       'svix-timestamp': Math.floor(nowB.getTime() / 1000).toString(),
-      'svix-signature': signatureB
+      'svix-signature': signatureB,
     };
 
     await request(app.getHttpServer())
@@ -300,20 +320,23 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       .set('svix-timestamp', signatureHeadersB['svix-timestamp'])
       .set('svix-signature', signatureHeadersB['svix-signature'])
       .send(inboundPayload)
-      .expect((res) => { if (res.status !== 202) console.log(res.body); }).expect(202); 
+      .expect((res) => {
+        if (res.status !== 202) console.log(res.body);
+      })
+      .expect(202);
 
     const inboundReplyWorker = app.get(InboundReplyWorker);
     await (inboundReplyWorker as any).claimAndProcessJobs();
 
     // Verify Workspace B failed to correlate and Workspace A is unaffected
     const inboundRepliesB = await prisma.inboundReply.findMany({
-      where: { providerEventId: svixEventId, workspaceId: workspaceBId }
+      where: { providerEventId: svixEventId, workspaceId: workspaceBId },
     });
     expect(inboundRepliesB).toHaveLength(1);
     expect(inboundRepliesB[0].status).toBe('UNCORRELATED');
 
     const ccUnchanged = await prisma.campaignMember.findUnique({
-      where: { id: campaignContactAId }
+      where: { id: campaignContactAId },
     });
     expect(ccUnchanged!.status).toBe(CampaignMemberStatus.SENT); // Still SENT
 
@@ -324,7 +347,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     const signatureHeadersA = {
       'svix-id': svixEventId,
       'svix-timestamp': Math.floor(nowA.getTime() / 1000).toString(),
-      'svix-signature': signatureA
+      'svix-signature': signatureA,
     };
 
     await request(app.getHttpServer())
@@ -333,29 +356,36 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       .set('svix-timestamp', signatureHeadersA['svix-timestamp'])
       .set('svix-signature', signatureHeadersA['svix-signature'])
       .send(inboundPayload)
-      .expect((res) => { if (res.status !== 202) console.log(res.body); }).expect(202);
+      .expect((res) => {
+        if (res.status !== 202) console.log(res.body);
+      })
+      .expect(202);
 
     await (inboundReplyWorker as any).claimAndProcessJobs();
 
     const inboundReplies = await prisma.inboundReply.findMany({
-      where: { providerEventId: svixEventId, workspaceId: workspaceAId }
+      where: { providerEventId: svixEventId, workspaceId: workspaceAId },
     });
     expect(inboundReplies).toHaveLength(1);
     expect(inboundReplies[0].status).toBe('CORRELATED');
 
     // 11. State Machine (Reply)
     const ccAfterReply = await prisma.campaignMember.findUnique({
-      where: { id: campaignContactAId }
+      where: { id: campaignContactAId },
     });
     expect(ccAfterReply!.status).toBe(CampaignMemberStatus.REPLIED);
 
     // 12. Matching Follow-up Cancellation
-    const cancelledJob = await prisma.job.findUnique({ where: { id: followupJob.id }});
+    const cancelledJob = await prisma.job.findUnique({
+      where: { id: followupJob.id },
+    });
     expect(cancelledJob!.status).toBe('COMPLETED'); // Cancelled jobs are marked COMPLETED (or CANCELLED depending on implementation, usually completed to stop retry)
     // Wait, let's verify what status it uses for cancellation. The actual code sets it to COMPLETED.
 
     // 13. Unrelated follow-up preservation
-    const preservedJob = await prisma.job.findUnique({ where: { id: unrelatedFollowupJob.id }});
+    const preservedJob = await prisma.job.findUnique({
+      where: { id: unrelatedFollowupJob.id },
+    });
     expect(preservedJob!.status).toBe('PENDING');
 
     // 15. Authenticated POST /outcome
@@ -366,20 +396,25 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       .set('X-Requested-With', 'XMLHttpRequest')
       .send({
         outcomeType: 'QUALIFIED_CONVERSATION',
-        notes: 'Great chat'
+        notes: 'Great chat',
       })
-      .expect((res) => { if (res.status !== 201) console.log(res.body); }).expect(201);
-    
+      .expect((res) => {
+        if (res.status !== 201) console.log(res.body);
+      })
+      .expect(201);
+
     // 16. User Context Constraint
     const outcomeId = outcomeRes.body.id;
-    const outcome = await prisma.outcome.findUnique({ where: { id: outcomeId } });
+    const outcome = await prisma.outcome.findUnique({
+      where: { id: outcomeId },
+    });
     expect(outcome).toBeDefined();
     expect(outcome!.recordedByUserId).toBe(userAId);
     expect(outcome!.type).toBe('QUALIFIED_CONVERSATION');
 
     // 17. State Machine (Complete)
     const ccAfterOutcome = await prisma.campaignMember.findUnique({
-      where: { id: campaignContactAId }
+      where: { id: campaignContactAId },
     });
     expect(ccAfterOutcome!.status).toBe(CampaignMemberStatus.COMPLETED);
   });

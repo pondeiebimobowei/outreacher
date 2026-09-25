@@ -16,9 +16,9 @@ export class GetSenderAccountUseCase {
             provider: true,
             status: true,
             name: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!sender || sender.workspaceId !== workspaceId) {

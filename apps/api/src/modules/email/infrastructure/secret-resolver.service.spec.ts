@@ -1,5 +1,9 @@
 import { SecretResolverService } from './secret-resolver.service';
-import { AppValidationException, SystemConfigurationException, SecretResolutionException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  SystemConfigurationException,
+  SecretResolutionException,
+} from '../../../common/errors/application.exception';
 
 const mockLogin = jest.fn();
 const mockRenew = jest.fn();
@@ -13,13 +17,13 @@ jest.mock('@infisical/sdk', () => {
           universalAuth: {
             login: mockLogin,
             renew: mockRenew,
-          }
+          },
         }),
         secrets: () => ({
           getSecret: mockGetSecret,
-        })
+        }),
       };
-    })
+    }),
   };
 });
 
@@ -47,9 +51,21 @@ describe('SecretResolverService', () => {
       mockLogin.mockResolvedValue({});
       mockGetSecret.mockResolvedValue({ secretValue: 'resend-api-key' });
 
-      await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
+      await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+      await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+      await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
 
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(0);
@@ -59,13 +75,17 @@ describe('SecretResolverService', () => {
     it('should recover using renew() when getSecret throws 401', async () => {
       mockLogin.mockResolvedValue({});
       mockRenew.mockResolvedValue({});
-      
+
       mockGetSecret
         .mockRejectedValueOnce({ status: 401 }) // simulate auth failure
         .mockResolvedValueOnce({ secretValue: 'resend-api-key' }); // success on retry
 
-      const creds = await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      
+      const creds = await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+
       expect(creds.apiKey).toBe('resend-api-key');
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(1); // Triggered renew
@@ -74,7 +94,7 @@ describe('SecretResolverService', () => {
 
     it('should gracefully fallback to full login() when renew() fails for 401', async () => {
       mockLogin.mockResolvedValue({});
-      
+
       mockGetSecret
         .mockRejectedValueOnce({ status: 401 }) // simulate auth failure
         .mockResolvedValueOnce({ secretValue: 'resend-api-key' }); // success on retry
@@ -82,8 +102,12 @@ describe('SecretResolverService', () => {
       // Make renew fail to trigger fallback
       mockRenew.mockRejectedValue(new Error('Renew failure'));
 
-      const creds = await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      
+      const creds = await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+
       expect(creds.apiKey).toBe('resend-api-key');
       expect(mockRenew).toHaveBeenCalledTimes(1); // Attempted renew
       expect(mockLogin).toHaveBeenCalledTimes(2); // Fell back to login
@@ -94,9 +118,14 @@ describe('SecretResolverService', () => {
       mockLogin.mockResolvedValue({});
       mockGetSecret.mockRejectedValueOnce({ status: 404 });
 
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'))
-        .rejects.toThrow(SecretResolutionException);
-      
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+      ).rejects.toThrow(SecretResolutionException);
+
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(0); // NO renew
       expect(mockGetSecret).toHaveBeenCalledTimes(1);
@@ -106,9 +135,14 @@ describe('SecretResolverService', () => {
       mockLogin.mockResolvedValue({});
       mockGetSecret.mockRejectedValueOnce({ status: 403 });
 
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'))
-        .rejects.toThrow(SecretResolutionException);
-      
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+      ).rejects.toThrow(SecretResolutionException);
+
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(0); // NO renew
       expect(mockGetSecret).toHaveBeenCalledTimes(1);
@@ -118,9 +152,14 @@ describe('SecretResolverService', () => {
       mockLogin.mockResolvedValue({});
       mockGetSecret.mockRejectedValueOnce({ status: 500 });
 
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'))
-        .rejects.toThrow(SecretResolutionException);
-      
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+      ).rejects.toThrow(SecretResolutionException);
+
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(0); // NO renew
       expect(mockGetSecret).toHaveBeenCalledTimes(1);
@@ -130,19 +169,26 @@ describe('SecretResolverService', () => {
       mockLogin.mockResolvedValue({});
       mockGetSecret.mockRejectedValueOnce(new Error('Network timeout'));
 
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'))
-        .rejects.toThrow(SecretResolutionException);
-      
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+      ).rejects.toThrow(SecretResolutionException);
+
       expect(mockLogin).toHaveBeenCalledTimes(1);
       expect(mockRenew).toHaveBeenCalledTimes(0); // NO renew
       expect(mockGetSecret).toHaveBeenCalledTimes(1);
     });
-    
+
     it('should manage concurrent 401 auth recovery correctly (only one renew call)', async () => {
       mockLogin.mockResolvedValue({});
-      
+
       // We'll delay renew slightly to simulate concurrency pileup
-      mockRenew.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 50)));
+      mockRenew.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 50)),
+      );
 
       // Warmup should succeed directly
       mockGetSecret.mockResolvedValueOnce({ secretValue: 'resend-api-key' });
@@ -151,18 +197,34 @@ describe('SecretResolverService', () => {
       mockGetSecret.mockRejectedValueOnce({ status: 401 });
       mockGetSecret.mockRejectedValueOnce({ status: 401 });
       mockGetSecret.mockRejectedValueOnce({ status: 401 });
-      
+
       // Then all succeed on retry
-      mockGetSecret.mockResolvedValue({ secretValue: 'resend-api-key' }); 
+      mockGetSecret.mockResolvedValue({ secretValue: 'resend-api-key' });
 
       // First warm it up so client is initialized
-      await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      
+      await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+
       // Now trigger 3 concurrent resolves that will all fail getSecret
       const promises = [
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'),
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'),
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND')
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
       ];
 
       await Promise.all(promises);
@@ -171,7 +233,7 @@ describe('SecretResolverService', () => {
       expect(mockRenew).toHaveBeenCalledTimes(1); // Exactly one renew despite 3 concurrent failures
       expect(mockGetSecret).toHaveBeenCalledTimes(1 + 3 + 3); // 1 warmup + 3 failures + 3 retries
     });
-    
+
     it('should NOT manage concurrent non-auth failures with recovery (no renew call)', async () => {
       mockLogin.mockResolvedValue({});
 
@@ -182,15 +244,37 @@ describe('SecretResolverService', () => {
       mockGetSecret.mockRejectedValueOnce({ status: 500 });
       mockGetSecret.mockRejectedValueOnce({ status: 503 });
       mockGetSecret.mockRejectedValueOnce(new Error('Network Exploded'));
-      
+
       // First warm it up so client is initialized
-      await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      
+      await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+
       // Now trigger 3 concurrent resolves that will all fail getSecret
       const promises = [
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND').catch(e => e),
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND').catch(e => e),
-        service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND').catch(e => e)
+        service
+          .resolve(
+            'ws-123',
+            'vault:///workspaces/ws-123/resend#API_KEY',
+            'RESEND',
+          )
+          .catch((e) => e),
+        service
+          .resolve(
+            'ws-123',
+            'vault:///workspaces/ws-123/resend#API_KEY',
+            'RESEND',
+          )
+          .catch((e) => e),
+        service
+          .resolve(
+            'ws-123',
+            'vault:///workspaces/ws-123/resend#API_KEY',
+            'RESEND',
+          )
+          .catch((e) => e),
       ];
 
       await Promise.all(promises);
@@ -199,11 +283,16 @@ describe('SecretResolverService', () => {
       expect(mockRenew).toHaveBeenCalledTimes(0); // NO renew
       expect(mockGetSecret).toHaveBeenCalledTimes(1 + 3); // 1 warmup + 3 failures, no retries
     });
-    
+
     it('should throw SystemConfigurationException if bootstrap credentials are missing', async () => {
       delete process.env.INFISICAL_CLIENT_ID;
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND'))
-        .rejects.toThrow(SystemConfigurationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/resend#API_KEY',
+          'RESEND',
+        ),
+      ).rejects.toThrow(SystemConfigurationException);
     });
   });
 
@@ -214,42 +303,64 @@ describe('SecretResolverService', () => {
 
     it('should map RESEND correctly', async () => {
       mockGetSecret.mockResolvedValue({ secretValue: 'resend-key-123' });
-      const creds = await service.resolve('ws-123', 'vault:///workspaces/ws-123/resend#API_KEY', 'RESEND');
-      
+      const creds = await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/resend#API_KEY',
+        'RESEND',
+      );
+
       expect(mockGetSecret).toHaveBeenCalledWith({
         environment: 'test-environment',
         projectId: 'test-project-id',
         path: '/workspaces/ws-123/resend',
-        secretName: 'API_KEY'
+        secretName: 'API_KEY',
       });
       expect(creds).toEqual({ provider: 'RESEND', apiKey: 'resend-key-123' });
     });
 
     it('should map SES correctly', async () => {
-      const payload = JSON.stringify({ accessKeyId: 'AKIA', secretAccessKey: 'SECRET', region: 'us-east-1' });
+      const payload = JSON.stringify({
+        accessKeyId: 'AKIA',
+        secretAccessKey: 'SECRET',
+        region: 'us-east-1',
+      });
       mockGetSecret.mockResolvedValue({ secretValue: payload });
-      const creds = await service.resolve('ws-123', 'vault:///workspaces/ws-123/ses#API_KEY', 'SES');
-      
+      const creds = await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/ses#API_KEY',
+        'SES',
+      );
+
       expect(creds).toEqual({
         provider: 'SES',
         accessKeyId: 'AKIA',
         secretAccessKey: 'SECRET',
-        region: 'us-east-1'
+        region: 'us-east-1',
       });
     });
 
     it('should map SMTP correctly', async () => {
-      const payload = JSON.stringify({ host: 'smtp.mail.com', port: 587, user: 'user1', pass: 'pass1', secure: false });
+      const payload = JSON.stringify({
+        host: 'smtp.mail.com',
+        port: 587,
+        user: 'user1',
+        pass: 'pass1',
+        secure: false,
+      });
       mockGetSecret.mockResolvedValue({ secretValue: payload });
-      const creds = await service.resolve('ws-123', 'vault:///workspaces/ws-123/smtp#API_KEY', 'SMTP');
-      
+      const creds = await service.resolve(
+        'ws-123',
+        'vault:///workspaces/ws-123/smtp#API_KEY',
+        'SMTP',
+      );
+
       expect(creds).toEqual({
         provider: 'SMTP',
         host: 'smtp.mail.com',
         port: 587,
         user: 'user1',
         pass: 'pass1',
-        secure: false
+        secure: false,
       });
     });
   });
@@ -261,58 +372,103 @@ describe('SecretResolverService', () => {
     });
 
     it('should REJECT unsupported formats generically without leaking reference', async () => {
-      await expect(service.resolve('ws-123', 'invalid://format', 'SMTP'))
-        .rejects.toThrow(new AppValidationException('Unsupported secret reference format'));
+      await expect(
+        service.resolve('ws-123', 'invalid://format', 'SMTP'),
+      ).rejects.toThrow(
+        new AppValidationException('Unsupported secret reference format'),
+      );
     });
 
     it('should REJECT /workspaces/ws-1234/... for ws-123', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-1234/integrations/i-456#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-1234/integrations/i-456#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT arbitrary other paths', async () => {
-      await expect(service.resolve('ws-123', 'vault:///other/integrations/i-456#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///other/integrations/i-456#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT paths with prefix spoofing', async () => {
-      await expect(service.resolve('ws-123', 'vault:///other-prefix/workspaces/ws-123/integrations/i-456#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///other-prefix/workspaces/ws-123/integrations/i-456#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT exact workspace match but missing trailing slash', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve('ws-123', 'vault:///workspaces/ws-123#API_KEY', 'SMTP'),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT empty path', async () => {
-      await expect(service.resolve('ws-123', 'vault://#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve('ws-123', 'vault://#API_KEY', 'SMTP'),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT empty secretName', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/integrations/i-456#', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/integrations/i-456#',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT whitespace secretName', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/integrations/i-456#   ', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/integrations/i-456#   ',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT paths with traversal (..)', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123/../other#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123/../other#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT paths with backslashes', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123\\other#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123\\other#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
 
     it('should REJECT paths with consecutive forward slashes', async () => {
-      await expect(service.resolve('ws-123', 'vault:///workspaces/ws-123//other#API_KEY', 'SMTP'))
-        .rejects.toThrow(AppValidationException);
+      await expect(
+        service.resolve(
+          'ws-123',
+          'vault:///workspaces/ws-123//other#API_KEY',
+          'SMTP',
+        ),
+      ).rejects.toThrow(AppValidationException);
     });
   });
 });

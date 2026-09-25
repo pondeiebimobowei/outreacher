@@ -8,8 +8,14 @@ import {
 } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import { EmailProviderRegistry } from '../infrastructure/email-provider.registry';
-import { SECRET_RESOLVER_TOKEN, type ISecretResolver } from '../domain/secret-resolver.interface';
-import { SendEmailResult, EmailDispatchErrorCode } from '../domain/email-provider.adapter';
+import {
+  SECRET_RESOLVER_TOKEN,
+  type ISecretResolver,
+} from '../domain/secret-resolver.interface';
+import {
+  SendEmailResult,
+  EmailDispatchErrorCode,
+} from '../domain/email-provider.adapter';
 import { EmailProviderException } from '../infrastructure/resend-email-provider.adapter';
 
 export interface ClaimedEmailJob {
@@ -35,7 +41,9 @@ export class EmailDispatchWorker {
   async claimNextJob(): Promise<ClaimedEmailJob | null> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const now = new Date();
-      const eligibleJobs = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
+      const eligibleJobs = await tx.$queryRaw<
+        Array<{ id: string; attempt_count: number }>
+      >`
         SELECT id, attempt_count 
         FROM jobs 
         WHERE type = 'EMAIL_DISPATCH' 
@@ -92,13 +100,13 @@ export class EmailDispatchWorker {
       where: {
         type: 'EMAIL_DISPATCH',
         status: 'RUNNING',
-        updatedAt: { lt: fiveMinutesAgo }
+        updatedAt: { lt: fiveMinutesAgo },
       },
       data: {
         status: 'PENDING',
         availableAt: new Date(),
-        leaseVersion: { increment: 1 }
-      }
+        leaseVersion: { increment: 1 },
+      },
     });
     return result.count;
   }
@@ -121,21 +129,25 @@ export class EmailDispatchWorker {
         where: { id: emailSendId },
         include: {
           senderAccount: {
-            include: { integration: true }
+            include: { integration: true },
           },
           campaignMember: {
             include: { person: true, campaign: true },
           },
           outreach: {
-            include: { personCompanyAssociation: { include: { person: true } } },
+            include: {
+              personCompanyAssociation: { include: { person: true } },
+            },
           },
         },
       });
 
       if (!emailSend || emailSend.workspaceId !== workspaceId) {
-        throw new Error(`EmailSend ${emailSendId} not found or tenant mismatch`);
+        throw new Error(
+          `EmailSend ${emailSendId} not found or tenant mismatch`,
+        );
       }
-      
+
       const senderAccount = emailSend.senderAccount;
       if (!senderAccount) {
         throw new Error('EmailSend is missing senderAccount');
@@ -148,14 +160,24 @@ export class EmailDispatchWorker {
 
       const adapter = this.providerRegistry.getAdapter(providerStr);
       if (!adapter) {
-        throw new EmailProviderException(`Provider adapter not found for ${providerStr}`, EmailDispatchErrorCode.PROVIDER_UNSUPPORTED);
+        throw new EmailProviderException(
+          `Provider adapter not found for ${providerStr}`,
+          EmailDispatchErrorCode.PROVIDER_UNSUPPORTED,
+        );
       }
 
-      const credentials = await this.secretResolver.resolve(workspaceId, senderAccount.integration.secretReference, providerStr);
+      const credentials = await this.secretResolver.resolve(
+        workspaceId,
+        senderAccount.integration.secretReference,
+        providerStr,
+      );
 
-      const recipientEmail = emailSend.campaignMember?.person?.email || emailSend.outreach?.personCompanyAssociation?.person?.email;
+      const recipientEmail =
+        emailSend.campaignMember?.person?.email ||
+        emailSend.outreach?.personCompanyAssociation?.person?.email;
       if (!recipientEmail) throw new Error('Person recipient email is missing');
-      if (!emailSend.replyToToken) throw new Error('Opaque replyToToken is missing for EmailSend');
+      if (!emailSend.replyToToken)
+        throw new Error('Opaque replyToToken is missing for EmailSend');
 
       const canonicalIdempotencyKey = `send:${emailSendId}`;
 
@@ -174,20 +196,33 @@ export class EmailDispatchWorker {
         credentials,
       });
     } catch (err: any) {
-      this.logger.error(`Email dispatch failed for job ${job.id}: ${err?.message}`);
+      this.logger.error(
+        `Email dispatch failed for job ${job.id}: ${err?.message}`,
+      );
       dispatchError = err instanceof Error ? err : new Error(String(err));
-      
+
       if (err instanceof EmailProviderException) {
-        if (err.dispatchErrorCode === EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN) {
+        if (
+          err.dispatchErrorCode ===
+          EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN
+        ) {
           isUncertainTimeout = true;
-        } else if (err.dispatchErrorCode === EmailDispatchErrorCode.PROVIDER_RATE_LIMIT || err.dispatchErrorCode === EmailDispatchErrorCode.PROVIDER_CONNECT_FAILURE) {
+        } else if (
+          err.dispatchErrorCode ===
+            EmailDispatchErrorCode.PROVIDER_RATE_LIMIT ||
+          err.dispatchErrorCode ===
+            EmailDispatchErrorCode.PROVIDER_CONNECT_FAILURE
+        ) {
           isTransient = true;
         }
       } else {
         const errorMessage = dispatchError.message.toLowerCase();
         if (errorMessage.includes('timeout')) {
           isUncertainTimeout = true;
-        } else if (errorMessage.includes('network') || errorMessage.includes('econnrefused')) {
+        } else if (
+          errorMessage.includes('network') ||
+          errorMessage.includes('econnrefused')
+        ) {
           isTransient = true;
         }
       }
@@ -198,30 +233,48 @@ export class EmailDispatchWorker {
       const errorMessage = dispatchError?.message || 'Unknown dispatch error';
 
       let jobUpdateData: any = {};
-      
+
       if (sendResult) {
         jobUpdateData = { status: 'COMPLETED', completedAt: now };
       } else if (isUncertainTimeout) {
-        jobUpdateData = { status: 'DEAD_LETTER', failedAt: now, lastError: errorMessage };
+        jobUpdateData = {
+          status: 'DEAD_LETTER',
+          failedAt: now,
+          lastError: errorMessage,
+        };
       } else if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
         const backoffMs = Math.pow(2, claimedAttempt) * 10000;
-        jobUpdateData = { status: 'PENDING', availableAt: new Date(now.getTime() + backoffMs), lastError: errorMessage };
+        jobUpdateData = {
+          status: 'PENDING',
+          availableAt: new Date(now.getTime() + backoffMs),
+          lastError: errorMessage,
+        };
       } else {
-        jobUpdateData = { status: 'DEAD_LETTER', failedAt: now, lastError: errorMessage };
+        jobUpdateData = {
+          status: 'DEAD_LETTER',
+          failedAt: now,
+          lastError: errorMessage,
+        };
       }
 
       // Perform atomic fencing update on Job
       const leaseCheck = await tx.job.updateMany({
-        where: { id: job.id, leaseVersion: job.leaseVersion, status: 'RUNNING' },
+        where: {
+          id: job.id,
+          leaseVersion: job.leaseVersion,
+          status: 'RUNNING',
+        },
         data: jobUpdateData,
       });
 
       if (leaseCheck.count === 0) {
-        this.logger.warn(`Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed. Aborting state transition.`);
+        this.logger.warn(
+          `Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed. Aborting state transition.`,
+        );
         return false;
       }
 
-      // If we got here, the Job was successfully mutated and we own the lease lock. 
+      // If we got here, the Job was successfully mutated and we own the lease lock.
       // Now safe to mutate related entities.
       if (sendResult) {
         const sendRecord = await tx.emailSend.update({
@@ -240,13 +293,13 @@ export class EmailDispatchWorker {
             data: { status: 'SENT' },
           });
         }
-        
+
         if (outreachId) {
           await tx.outreach.update({
             where: { id: outreachId },
             data: { status: 'SENT' },
           });
-          
+
           await tx.conversationMessage.create({
             data: {
               workspaceId,
@@ -257,10 +310,10 @@ export class EmailDispatchWorker {
             },
           });
         }
-        
+
         return true;
       }
-      
+
       if (isUncertainTimeout) {
         await tx.emailSend.update({
           where: { id: emailSendId },
@@ -286,14 +339,17 @@ export class EmailDispatchWorker {
         }
         return false;
       }
-      
+
       if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
         return false;
       }
 
       let finalErrorCode = 'DISPATCH_ATTEMPTS_EXHAUSTED';
       if (dispatchError && 'dispatchErrorCode' in dispatchError) {
-        if (dispatchError.dispatchErrorCode !== 'PROVIDER_RATE_LIMIT' && dispatchError.dispatchErrorCode !== 'PROVIDER_CONNECT_FAILURE') {
+        if (
+          dispatchError.dispatchErrorCode !== 'PROVIDER_RATE_LIMIT' &&
+          dispatchError.dispatchErrorCode !== 'PROVIDER_CONNECT_FAILURE'
+        ) {
           finalErrorCode = dispatchError.dispatchErrorCode as string;
         }
       }

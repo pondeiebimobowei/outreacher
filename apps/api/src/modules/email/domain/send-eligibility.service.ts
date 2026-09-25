@@ -1,6 +1,11 @@
 import * as crypto from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { CampaignStatus, CampaignMemberStatus, Prisma, EmailSendStatus } from '@repo/db';
+import {
+  CampaignStatus,
+  CampaignMemberStatus,
+  Prisma,
+  EmailSendStatus,
+} from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -51,47 +56,81 @@ export class SendEligibilityService {
   ): Promise<SendEligibilityResult> {
     const { workspaceId, campaign, campaignMember } = input;
 
-    if (campaign.workspaceId !== workspaceId || campaignMember.workspaceId !== workspaceId) {
+    if (
+      campaign.workspaceId !== workspaceId ||
+      campaignMember.workspaceId !== workspaceId
+    ) {
       throw new AppNotFoundException('Campaign or campaign contact not found');
     }
 
     if (campaign.status === CampaignStatus.SCHEDULED) {
-      throw new AppConflictException('Cannot dispatch immediate send: Campaign is SCHEDULED for automated start');
+      throw new AppConflictException(
+        'Cannot dispatch immediate send: Campaign is SCHEDULED for automated start',
+      );
     }
 
     if (campaign.status === CampaignStatus.PAUSED) {
-      throw new AppConflictException('Cannot dispatch send: Campaign is PAUSED');
+      throw new AppConflictException(
+        'Cannot dispatch send: Campaign is PAUSED',
+      );
     }
 
     if (campaign.status === CampaignStatus.ARCHIVED) {
-      throw new AppConflictException('Cannot dispatch send: Campaign is ARCHIVED');
+      throw new AppConflictException(
+        'Cannot dispatch send: Campaign is ARCHIVED',
+      );
     }
 
     if (campaign.status === CampaignStatus.COMPLETED) {
-      throw new AppConflictException('Cannot dispatch send: Campaign is COMPLETED');
+      throw new AppConflictException(
+        'Cannot dispatch send: Campaign is COMPLETED',
+      );
     }
 
-    if (campaign.status !== CampaignStatus.DRAFT && campaign.status !== CampaignStatus.ACTIVE) {
-      throw new AppConflictException(`Cannot dispatch send for campaign in ${String(campaign.status)} status`);
+    if (
+      campaign.status !== CampaignStatus.DRAFT &&
+      campaign.status !== CampaignStatus.ACTIVE
+    ) {
+      throw new AppConflictException(
+        `Cannot dispatch send for campaign in ${String(campaign.status)} status`,
+      );
     }
 
     if (campaignMember.status !== CampaignMemberStatus.READY) {
-      throw new AppConflictException(`Cannot dispatch send for contact in ${campaignMember.status} status`);
+      throw new AppConflictException(
+        `Cannot dispatch send for contact in ${campaignMember.status} status`,
+      );
     }
 
-    return this.validateEmailContentAndSuppression(workspaceId, campaignMember.person?.email, campaignMember.currentSubject, campaignMember.currentBody);
+    return this.validateEmailContentAndSuppression(
+      workspaceId,
+      campaignMember.person?.email,
+      campaignMember.currentSubject,
+      campaignMember.currentBody,
+    );
   }
 
   public async checkOutreachEligibility(
     workspaceId: string,
-    outreach: { status: import('@repo/db').OutreachStatus; subject: string; message: string },
-    personEmail: string | null | undefined
+    outreach: {
+      status: import('@repo/db').OutreachStatus;
+      subject: string;
+      message: string;
+    },
+    personEmail: string | null | undefined,
   ): Promise<SendEligibilityResult> {
     if (outreach.status !== 'DRAFT') {
-      throw new AppConflictException(`Cannot dispatch send for outreach in ${outreach.status} status`);
+      throw new AppConflictException(
+        `Cannot dispatch send for outreach in ${outreach.status} status`,
+      );
     }
 
-    return this.validateEmailContentAndSuppression(workspaceId, personEmail, outreach.subject, outreach.message);
+    return this.validateEmailContentAndSuppression(
+      workspaceId,
+      personEmail,
+      outreach.subject,
+      outreach.message,
+    );
   }
 
   private async validateEmailContentAndSuppression(
@@ -101,26 +140,35 @@ export class SendEligibilityService {
     body: string | null | undefined,
   ): Promise<SendEligibilityResult> {
     if (!rawEmail || !rawEmail.trim()) {
-      throw new AppValidationException('Cannot dispatch send: contact has no recipient email');
+      throw new AppValidationException(
+        'Cannot dispatch send: contact has no recipient email',
+      );
     }
     const canonicalEmail = rawEmail.trim().toLowerCase();
 
-    const isSuppressed = await this.suppressionChecker.isSuppressed(workspaceId, canonicalEmail);
+    const isSuppressed = await this.suppressionChecker.isSuppressed(
+      workspaceId,
+      canonicalEmail,
+    );
     if (isSuppressed) {
       throw new AppConflictException('Recipient email is suppressed');
     }
 
     if (!subject || subject.length < 3 || subject.length > 150) {
-      throw new AppValidationException('Cannot dispatch send: subject must be between 3 and 150 characters');
+      throw new AppValidationException(
+        'Cannot dispatch send: subject must be between 3 and 150 characters',
+      );
     }
 
     if (!body || body.length < 20 || body.length > 4000) {
-      throw new AppValidationException('Cannot dispatch send: body must be between 20 and 4000 characters');
+      throw new AppValidationException(
+        'Cannot dispatch send: body must be between 20 and 4000 characters',
+      );
     }
 
     return { canonicalEmail, subject, body };
   }
-  
+
   public async reserveSenderCapacityAndCreateEmailSend(
     tx: Prisma.TransactionClient,
     workspaceId: string,
@@ -130,13 +178,19 @@ export class SendEligibilityService {
       type: import('@repo/db').EmailSendType;
       subject: string;
       body: string;
-    }
-  ) { 
+    },
+  ) {
     if ('$connect' in tx) {
-      throw new Error('Capacity invariant violation: reserveSenderCapacityAndCreateEmailSend must be called within an active transaction');
+      throw new Error(
+        'Capacity invariant violation: reserveSenderCapacityAndCreateEmailSend must be called within an active transaction',
+      );
     }
-    const selectedSender = await this.selectEligibleSenderAccountForCampaign(tx, workspaceId, campaignId);
-    
+    const selectedSender = await this.selectEligibleSenderAccountForCampaign(
+      tx,
+      workspaceId,
+      campaignId,
+    );
+
     return tx.emailSend.create({
       data: {
         workspaceId,
@@ -149,7 +203,7 @@ export class SendEligibilityService {
         reservedAt: new Date(),
         senderAccountId: selectedSender.id,
         provider: selectedSender.provider,
-        replyToToken: crypto.randomBytes(20).toString("hex"),
+        replyToToken: crypto.randomBytes(20).toString('hex'),
       },
     });
   }
@@ -162,14 +216,18 @@ export class SendEligibilityService {
     emailSendData: {
       subject: string;
       body: string;
-    }
+    },
   ) {
     if ('$connect' in tx) {
-      throw new Error('Capacity invariant violation: reserveSenderCapacityAndCreateEmailSendForOutreach must be called within an active transaction');
+      throw new Error(
+        'Capacity invariant violation: reserveSenderCapacityAndCreateEmailSendForOutreach must be called within an active transaction',
+      );
     }
-    
+
     // Validate the specific sender account
-    const candidates = await tx.$queryRaw<Array<{ id: string, daily_limit: number, provider: string }>>`
+    const candidates = await tx.$queryRaw<
+      Array<{ id: string; daily_limit: number; provider: string }>
+    >`
       SELECT sa.id, sa.daily_limit, i.provider
       FROM sender_accounts sa
       JOIN integrations i ON sa.integration_id = i.id
@@ -179,13 +237,17 @@ export class SendEligibilityService {
         AND i.status = 'ACTIVE'
       FOR UPDATE OF sa
     `;
-    
+
     if (!candidates || candidates.length === 0) {
       throw new AppConflictException('NEEDS_SENDER');
     }
-    
-    const selectedSender = await this.checkSenderCapacity(tx, workspaceId, candidates);
-    
+
+    const selectedSender = await this.checkSenderCapacity(
+      tx,
+      workspaceId,
+      candidates,
+    );
+
     return tx.emailSend.create({
       data: {
         workspaceId,
@@ -197,7 +259,7 @@ export class SendEligibilityService {
         reservedAt: new Date(),
         senderAccountId: selectedSender.id,
         provider: selectedSender.provider,
-        replyToToken: crypto.randomBytes(20).toString("hex"),
+        replyToToken: crypto.randomBytes(20).toString('hex'),
       },
     });
   }
@@ -205,10 +267,12 @@ export class SendEligibilityService {
   private async selectEligibleSenderAccountForCampaign(
     tx: Prisma.TransactionClient,
     workspaceId: string,
-    campaignId: string
+    campaignId: string,
   ): Promise<{ id: string; provider: string }> {
     // Lock candidate sender accounts assigned to this campaign
-    const candidates = await tx.$queryRaw<Array<{ id: string, daily_limit: number, provider: string }>>`
+    const candidates = await tx.$queryRaw<
+      Array<{ id: string; daily_limit: number; provider: string }>
+    >`
       SELECT sa.id, sa.daily_limit, i.provider
       FROM sender_accounts sa
       JOIN campaign_sender_accounts csa ON csa.sender_account_id = sa.id
@@ -231,17 +295,25 @@ export class SendEligibilityService {
   private async checkSenderCapacity(
     tx: Prisma.TransactionClient,
     workspaceId: string,
-    candidates: Array<{ id: string, daily_limit: number, provider: string }>
+    candidates: Array<{ id: string; daily_limit: number; provider: string }>,
   ): Promise<{ id: string; provider: string }> {
-    const validCandidates = candidates.filter(c => this.providerRegistry.hasAdapter(c.provider));
-    
+    const validCandidates = candidates.filter((c) =>
+      this.providerRegistry.hasAdapter(c.provider),
+    );
+
     if (validCandidates.length === 0) {
       throw new AppConflictException('PROVIDER_UNSUPPORTED');
     }
 
     // Determine UTC boundaries for today
     const nowUtc = new Date();
-    const startOfDayUtc = new Date(Date.UTC(nowUtc.getUTCFullYear(), nowUtc.getUTCMonth(), nowUtc.getUTCDate()));
+    const startOfDayUtc = new Date(
+      Date.UTC(
+        nowUtc.getUTCFullYear(),
+        nowUtc.getUTCMonth(),
+        nowUtc.getUTCDate(),
+      ),
+    );
 
     const candidateScores = [];
 
@@ -275,7 +347,7 @@ export class SendEligibilityService {
 
     return {
       id: candidateScores[0].id,
-      provider: candidateScores[0].provider
+      provider: candidateScores[0].provider,
     };
   }
 }

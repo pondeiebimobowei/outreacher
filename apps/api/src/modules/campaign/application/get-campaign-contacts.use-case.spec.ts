@@ -54,7 +54,8 @@ describe('GetCampaignContactsUseCase', () => {
         updatedAt: now,
         person: {
           id: 'con-1',
-          firstName: 'Sarah', lastName: 'Connor',
+          firstName: 'Sarah',
+          lastName: 'Connor',
           title: 'VP of Engineering',
           email: 'sarah@acme.com',
           personKind: 'PERSON',

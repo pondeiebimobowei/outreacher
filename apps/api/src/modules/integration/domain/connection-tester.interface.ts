@@ -6,10 +6,14 @@ export interface ConnectionTestResult {
   reason?: string;
 }
 
-export const CONNECTION_TESTER_REGISTRY_TOKEN = Symbol('CONNECTION_TESTER_REGISTRY_TOKEN');
+export const CONNECTION_TESTER_REGISTRY_TOKEN = Symbol(
+  'CONNECTION_TESTER_REGISTRY_TOKEN',
+);
 
 export interface IConnectionTester {
-  testConnection(credentials: ProviderCredentials): Promise<ConnectionTestResult>;
+  testConnection(
+    credentials: ProviderCredentials,
+  ): Promise<ConnectionTestResult>;
 }
 
 export interface IConnectionTesterRegistry {

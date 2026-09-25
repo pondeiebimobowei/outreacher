@@ -4,7 +4,12 @@ import { PrismaClient, OutcomeType } from '@repo/db';
 import { randomUUID } from 'crypto';
 import * as supertest from 'supertest';
 const request = supertest.default || supertest;
-import { cleanTestDatabase, getTestPrismaClient, setupTestDatabase, teardownTestDatabase } from '../../../test/helpers/db-test-harness';
+import {
+  cleanTestDatabase,
+  getTestPrismaClient,
+  setupTestDatabase,
+  teardownTestDatabase,
+} from '../../../test/helpers/db-test-harness';
 import { OutcomeModule } from './outcome.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from '../../database/prisma.module';
@@ -37,7 +42,7 @@ describe('OutcomeController (e2e)', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         PrismaModule,
-        OutcomeModule
+        OutcomeModule,
       ],
     })
       .overrideGuard(JwtAuthGuard)
@@ -48,7 +53,9 @@ describe('OutcomeController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ transform: true, whitelist: true }),
+    );
     await app.init();
   });
 
@@ -69,13 +76,45 @@ describe('OutcomeController (e2e)', () => {
     const personId = randomUUID();
     const campaignMemberId = randomUUID();
 
-    await prisma.workspace.create({ data: { id: workspaceId, name: 'E2E WS' } });
-    await prisma.user.create({ data: { id: userId, email: `test-${userId}@e2e.com`, name: 'User' } });
-    await prisma.workspaceMember.create({ data: { workspaceId, userId, role: 'OWNER' } });
-    await prisma.company.create({ data: { id: companyId, workspaceId, name: 'E2E Co', normalizedName: 'e2ec' } });
-    await prisma.campaign.create({ data: { id: campaignId, workspaceId, companyId, name: 'E2E Camp', normalizedName: 'e2ecamp', status: 'DRAFT', sendingIdentity: 'ME' } });
-    await prisma.person.create({ data: { id: personId, workspaceId, companyId, personKind: 'PERSON', name: 'John', email: `${personId}@e2e.com` } });
-    
+    await prisma.workspace.create({
+      data: { id: workspaceId, name: 'E2E WS' },
+    });
+    await prisma.user.create({
+      data: { id: userId, email: `test-${userId}@e2e.com`, name: 'User' },
+    });
+    await prisma.workspaceMember.create({
+      data: { workspaceId, userId, role: 'OWNER' },
+    });
+    await prisma.company.create({
+      data: {
+        id: companyId,
+        workspaceId,
+        name: 'E2E Co',
+        normalizedName: 'e2ec',
+      },
+    });
+    await prisma.campaign.create({
+      data: {
+        id: campaignId,
+        workspaceId,
+        companyId,
+        name: 'E2E Camp',
+        normalizedName: 'e2ecamp',
+        status: 'DRAFT',
+        sendingIdentity: 'ME',
+      },
+    });
+    await prisma.person.create({
+      data: {
+        id: personId,
+        workspaceId,
+        companyId,
+        personKind: 'PERSON',
+        name: 'John',
+        email: `${personId}@e2e.com`,
+      },
+    });
+
     await prisma.campaignMember.create({
       data: {
         id: campaignMemberId,
@@ -91,7 +130,8 @@ describe('OutcomeController (e2e)', () => {
   }
 
   it('/api/v1/campaign-contacts/:id/outcome (POST) - Success', async () => {
-    const { workspaceId, userId, campaignMemberId } = await seedContact('REPLIED');
+    const { workspaceId, userId, campaignMemberId } =
+      await seedContact('REPLIED');
 
     const response = await request(app.getHttpServer())
       .post(`/api/v1/campaign-contacts/${campaignMemberId}/outcome`)
@@ -107,17 +147,22 @@ describe('OutcomeController (e2e)', () => {
     const outcomeId = response.body.id;
 
     // Verify DB state
-    const contact = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
+    const contact = await prisma.campaignMember.findUniqueOrThrow({
+      where: { id: campaignMemberId },
+    });
     expect(contact.status).toBe('COMPLETED');
 
-    const outcome = await prisma.outcome.findUniqueOrThrow({ where: { id: outcomeId } });
+    const outcome = await prisma.outcome.findUniqueOrThrow({
+      where: { id: outcomeId },
+    });
     expect(outcome.type).toBe('QUALIFIED_CONVERSATION');
     expect(outcome.recordedByUserId).toBe(userId);
     expect(outcome.notes).toBe('Vertical API test');
   });
 
   it('/api/v1/campaign-contacts/:id/outcome (POST) - 409 Conflict if not REPLIED', async () => {
-    const { workspaceId, userId, campaignMemberId } = await seedContact('COMPLETED');
+    const { workspaceId, userId, campaignMemberId } =
+      await seedContact('COMPLETED');
 
     await request(app.getHttpServer())
       .post(`/api/v1/campaign-contacts/${campaignMemberId}/outcome`)

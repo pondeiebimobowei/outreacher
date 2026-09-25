@@ -197,17 +197,14 @@ describe('SendEmailUseCase', () => {
       });
 
       // Verifies EmailSend created as RESERVED
-      expect(mockEligibilityService.reserveSenderCapacityAndCreateEmailSend).toHaveBeenCalledWith(
-        mockPrisma,
-        workspaceId,
-        campaignId,
-        {
-          campaignMemberId,
-          type: 'INITIAL',
-          subject: 'Outreach Subject',
-          body: 'Outreach message body that is long enough.',
-        }
-      );
+      expect(
+        mockEligibilityService.reserveSenderCapacityAndCreateEmailSend,
+      ).toHaveBeenCalledWith(mockPrisma, workspaceId, campaignId, {
+        campaignMemberId,
+        type: 'INITIAL',
+        subject: 'Outreach Subject',
+        body: 'Outreach message body that is long enough.',
+      });
 
       // Verifies Job created with canonical internal idempotency key
       expect(mockPrisma.job.create).toHaveBeenCalledWith({
@@ -276,7 +273,9 @@ describe('SendEmailUseCase', () => {
         message: 'Dispatch enqueued',
       });
       // Ensure eligibility check was bypassed because replay succeeded
-      expect(mockEligibilityService.checkCampaignMemberEligibility).not.toHaveBeenCalled();
+      expect(
+        mockEligibilityService.checkCampaignMemberEligibility,
+      ).not.toHaveBeenCalled();
     });
   });
 

@@ -40,7 +40,10 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
     (registry as any).adapters = new Map();
     mockSender = new MockEmailSender();
     (registry as any).adapters.set('RESEND', mockSender);
-    const eligibilityService = new SendEligibilityService(suppressionChecker, registry);
+    const eligibilityService = new SendEligibilityService(
+      suppressionChecker,
+      registry,
+    );
     useCase = new SendEmailUseCase(prismaService, eligibilityService);
     const secretResolver = new SecretResolverService();
     worker = new EmailDispatchWorker(prismaService, registry, secretResolver);
@@ -121,7 +124,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         provider: 'RESEND',
         name: 'Resend Integ ' + Math.random(),
         secretReference: 'mock://resend',
-      }
+      },
     });
 
     const senderAccount = await realPrisma.senderAccount.create({
@@ -131,7 +134,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         fromName: 'Jane',
         fromEmail: 'sales' + Math.random() + '@startup.com',
         dailyLimit: 50,
-      }
+      },
     });
 
     await realPrisma.campaignSenderAccount.create({
@@ -139,7 +142,7 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
         workspaceId,
         campaignId: campaign.id,
         senderAccountId: senderAccount.id,
-      }
+      },
     });
 
     return { contact, campaign, campaignContact };
@@ -227,15 +230,28 @@ describe('Email Dispatch & Idempotency Concurrency (PostgreSQL Integration)', ()
       });
 
       const integration = await realPrisma.integration.create({
-        data: { workspaceId, provider: 'RESEND', name: 'Resend C2', secretReference: 'mock://c2' }
+        data: {
+          workspaceId,
+          provider: 'RESEND',
+          name: 'Resend C2',
+          secretReference: 'mock://c2',
+        },
       });
       const senderAccount = await realPrisma.senderAccount.create({
-        data: { workspaceId, integrationId: integration.id, fromName: 'C2', fromEmail: 'c2@startup.com' }
+        data: {
+          workspaceId,
+          integrationId: integration.id,
+          fromName: 'C2',
+          fromEmail: 'c2@startup.com',
+        },
       });
       await realPrisma.campaignSenderAccount.create({
-        data: { workspaceId, campaignId: campaign.id, senderAccountId: senderAccount.id }
+        data: {
+          workspaceId,
+          campaignId: campaign.id,
+          senderAccountId: senderAccount.id,
+        },
       });
-
 
       const contactA = await realPrisma.contact.create({
         data: {

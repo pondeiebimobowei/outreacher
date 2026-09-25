@@ -1,6 +1,8 @@
 import type { ProviderCredentials } from './provider-credentials';
 
-export interface SendEmailInput<T extends ProviderCredentials = ProviderCredentials> {
+export interface SendEmailInput<
+  T extends ProviderCredentials = ProviderCredentials,
+> {
   workspaceId: string;
   senderAccountId: string;
   emailSendId: string;
@@ -21,7 +23,9 @@ export interface SendEmailResult {
   messageId?: string;
 }
 
-export interface EmailProviderAdapter<T extends ProviderCredentials = ProviderCredentials> {
+export interface EmailProviderAdapter<
+  T extends ProviderCredentials = ProviderCredentials,
+> {
   readonly provider: string;
   sendEmail(input: SendEmailInput<T>): Promise<SendEmailResult>;
 }

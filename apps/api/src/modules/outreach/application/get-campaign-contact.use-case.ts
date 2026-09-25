@@ -166,8 +166,7 @@ export class GetCampaignContactUseCase {
         ? {
             id: campaignMember.selectedOpportunity.id,
             roleTitle: campaignMember.selectedOpportunity.roleTitle,
-            opportunityType:
-              campaignMember.selectedOpportunity.opportunityType,
+            opportunityType: campaignMember.selectedOpportunity.opportunityType,
           }
         : null,
       evidence: evidenceList.map((e) => ({

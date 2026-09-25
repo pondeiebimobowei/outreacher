@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Webhook } from 'svix';
-import { DeliveryEventProviderAdapter, ParseDeliveryEventResult, WebhookVerificationContext } from '../domain/delivery-event-provider.adapter';
+import {
+  DeliveryEventProviderAdapter,
+  ParseDeliveryEventResult,
+  WebhookVerificationContext,
+} from '../domain/delivery-event-provider.adapter';
 import { AppValidationException } from '../../../common/errors/application.exception';
 import { EmailEventType } from '@repo/db';
 
@@ -11,13 +15,18 @@ export class ResendDeliveryEventAdapter extends DeliveryEventProviderAdapter {
   verifySignature(context: WebhookVerificationContext): void {
     const wh = new Webhook(context.secret);
     try {
-      wh.verify(context.rawBody.toString('utf8'), context.headers as Record<string, string>);
+      wh.verify(context.rawBody.toString('utf8'), context.headers);
     } catch (err: any) {
-      throw new AppValidationException(`Invalid webhook signature: ${err.message}`);
+      throw new AppValidationException(
+        `Invalid webhook signature: ${err.message}`,
+      );
     }
   }
 
-  parsePayload(rawBody: Buffer, headers: Record<string, string | string[] | undefined>): ParseDeliveryEventResult {
+  parsePayload(
+    rawBody: Buffer,
+    headers: Record<string, string | string[] | undefined>,
+  ): ParseDeliveryEventResult {
     let payload;
     try {
       payload = JSON.parse(rawBody.toString('utf8'));
@@ -26,7 +35,10 @@ export class ResendDeliveryEventAdapter extends DeliveryEventProviderAdapter {
     }
 
     if (!payload || typeof payload !== 'object') {
-      return { status: 'INVALID', reason: 'Payload is not a valid JSON object' };
+      return {
+        status: 'INVALID',
+        reason: 'Payload is not a valid JSON object',
+      };
     }
 
     // Determine event type
@@ -53,18 +65,30 @@ export class ResendDeliveryEventAdapter extends DeliveryEventProviderAdapter {
         return { status: 'UNSUPPORTED', reason: 'Transient delivery delay' };
       case 'email.opened':
       case 'email.clicked':
-        return { status: 'UNSUPPORTED', reason: 'Engagement tracking not supported in delivery flow' };
+        return {
+          status: 'UNSUPPORTED',
+          reason: 'Engagement tracking not supported in delivery flow',
+        };
       default:
         // By default, other non-delivery events are unsupported rather than invalid
         if (type.startsWith('email.')) {
-           return { status: 'UNSUPPORTED', reason: `Event type ${type} is not a terminal delivery event` };
+          return {
+            status: 'UNSUPPORTED',
+            reason: `Event type ${type} is not a terminal delivery event`,
+          };
         }
-        return { status: 'INVALID', reason: `Unknown webhook event type: ${type}` };
+        return {
+          status: 'INVALID',
+          reason: `Unknown webhook event type: ${type}`,
+        };
     }
 
     const data = payload.data || payload;
     if (!data || typeof data !== 'object') {
-      return { status: 'INVALID', reason: 'Payload data is not a valid object' };
+      return {
+        status: 'INVALID',
+        reason: 'Payload data is not a valid object',
+      };
     }
 
     let svixId = headers['svix-id'] as string | undefined;
@@ -75,7 +99,11 @@ export class ResendDeliveryEventAdapter extends DeliveryEventProviderAdapter {
     }
     const providerEventId = svixId;
 
-    if (!data.email_id) return { status: 'INVALID', reason: 'Missing email_id (providerMessageId) in payload' };
+    if (!data.email_id)
+      return {
+        status: 'INVALID',
+        reason: 'Missing email_id (providerMessageId) in payload',
+      };
 
     const toField = data.to;
     let toEmail = '';
@@ -106,7 +134,7 @@ export class ResendDeliveryEventAdapter extends DeliveryEventProviderAdapter {
         eventType,
         occurredAt,
         rawPayload: payload as Record<string, unknown>,
-      }
+      },
     };
   }
 }

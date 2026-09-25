@@ -36,9 +36,9 @@ describe('SelectContactUseCase', () => {
   it('rejects if target company does not exist in workspace', async () => {
     prisma.company.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1')).rejects.toThrow(
-      AppNotFoundException,
-    );
+    await expect(
+      useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1'),
+    ).rejects.toThrow(AppNotFoundException);
   });
 
   it('rejects if contact does not exist in workspace', async () => {
@@ -48,9 +48,9 @@ describe('SelectContactUseCase', () => {
     });
     prisma.person.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-99', 'assoc-1')).rejects.toThrow(
-      AppNotFoundException,
-    );
+    await expect(
+      useCase.execute('ws-1', 'comp-1', 'cont-99', 'assoc-1'),
+    ).rejects.toThrow(AppNotFoundException);
   });
 
   it('rejects cross-entity selection when contact belongs to a different company', async () => {
@@ -64,9 +64,9 @@ describe('SelectContactUseCase', () => {
     });
     prisma.personCompanyAssociation.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1')).rejects.toThrow(
-      AppForbiddenException,
-    );
+    await expect(
+      useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1'),
+    ).rejects.toThrow(AppForbiddenException);
   });
 
   it('successfully upserts selection when contact belongs to target company and workspace', async () => {

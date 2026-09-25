@@ -9,7 +9,11 @@ export class PrismaWorkspaceSummaryRepository {
     return this.prisma.campaignMember.findMany({
       where: { workspaceId, status: 'PENDING' },
       include: {
-        person: { include: { personCompanyAssociations: { include: { company: true } } } },
+        person: {
+          include: {
+            personCompanyAssociations: { include: { company: true } },
+          },
+        },
         campaign: true,
       },
       orderBy: { updatedAt: 'desc' },
@@ -21,7 +25,11 @@ export class PrismaWorkspaceSummaryRepository {
     return this.prisma.campaignMember.findMany({
       where: { workspaceId, status: 'FAILED' },
       include: {
-        person: { include: { personCompanyAssociations: { include: { company: true } } } },
+        person: {
+          include: {
+            personCompanyAssociations: { include: { company: true } },
+          },
+        },
         campaign: true,
       },
       orderBy: { updatedAt: 'desc' },
@@ -84,7 +92,11 @@ export class PrismaWorkspaceSummaryRepository {
       include: {
         campaignMember: {
           include: {
-            person: { include: { personCompanyAssociations: { include: { company: true } } } },
+            person: {
+              include: {
+                personCompanyAssociations: { include: { company: true } },
+              },
+            },
             campaign: true,
           },
         },
@@ -100,7 +112,11 @@ export class PrismaWorkspaceSummaryRepository {
       include: {
         campaignMember: {
           include: {
-            person: { include: { personCompanyAssociations: { include: { company: true } } } },
+            person: {
+              include: {
+                personCompanyAssociations: { include: { company: true } },
+              },
+            },
             campaign: true,
           },
         },

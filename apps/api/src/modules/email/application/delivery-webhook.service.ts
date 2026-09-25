@@ -4,7 +4,10 @@ import { PrismaService } from '../../../database/prisma.service';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
 import type { ISecretResolver } from '../domain/secret-resolver.interface';
 import { ResendDeliveryEventAdapter } from '../infrastructure/resend-delivery-event.adapter';
-import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 import { WebhookCredentials } from '../domain/provider-credentials';
 import { ProcessDeliveryEventUseCase } from './process-delivery-event.use-case';
 
@@ -14,7 +17,8 @@ export class DeliveryWebhookService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
+    @Inject(SECRET_RESOLVER_TOKEN)
+    private readonly secretResolver: ISecretResolver,
     private readonly resendAdapter: ResendDeliveryEventAdapter,
     private readonly processDeliveryEvent: ProcessDeliveryEventUseCase,
   ) {}
@@ -33,18 +37,22 @@ export class DeliveryWebhookService {
     }
 
     if (integration.provider !== 'RESEND') {
-      throw new AppValidationException(`Provider ${integration.provider} is not supported for delivery webhooks in this adapter`);
+      throw new AppValidationException(
+        `Provider ${integration.provider} is not supported for delivery webhooks in this adapter`,
+      );
     }
 
     const webhookSecretRef = integration.webhookSecretReference;
     if (!webhookSecretRef) {
-      throw new AppValidationException('Integration is not configured for webhooks');
+      throw new AppValidationException(
+        'Integration is not configured for webhooks',
+      );
     }
 
     const credentials = (await this.secretResolver.resolve(
       integration.workspaceId,
       webhookSecretRef,
-      'WEBHOOK'
+      'WEBHOOK',
     )) as WebhookCredentials;
 
     const adapter = this.resendAdapter;
@@ -57,14 +65,16 @@ export class DeliveryWebhookService {
     });
 
     // 2. Parse payload
-    const result = adapter.parsePayload(req.rawBody, req.headers as Record<string, string>);
+    const result = adapter.parsePayload(req.rawBody, req.headers);
 
     if (result.status === 'INVALID') {
       throw new AppValidationException(result.reason);
     }
 
     if (result.status === 'UNSUPPORTED') {
-      this.logger.log(`Safely dropping unsupported webhook payload: ${result.reason}`);
+      this.logger.log(
+        `Safely dropping unsupported webhook payload: ${result.reason}`,
+      );
       return; // 202 Accepted
     }
 

@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { AppNotFoundException, AppValidationException } from '../../../common/errors/application.exception';
+import {
+  AppNotFoundException,
+  AppValidationException,
+} from '../../../common/errors/application.exception';
 import { IntegrationStatus } from '@repo/db';
 import { SECRET_RESOLVER_TOKEN } from '../../email/domain/secret-resolver.interface';
 import type { ISecretResolver } from '../../email/domain/secret-resolver.interface';
@@ -12,8 +15,10 @@ import { toIntegrationResponse } from '../dto/integration-response.dto';
 export class EnableIntegrationUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
-    @Inject(CONNECTION_TESTER_REGISTRY_TOKEN) private readonly testerRegistry: IConnectionTesterRegistry,
+    @Inject(SECRET_RESOLVER_TOKEN)
+    private readonly secretResolver: ISecretResolver,
+    @Inject(CONNECTION_TESTER_REGISTRY_TOKEN)
+    private readonly testerRegistry: IConnectionTesterRegistry,
   ) {}
 
   public async execute(workspaceId: string, integrationId: string) {
@@ -38,7 +43,11 @@ export class EnableIntegrationUseCase {
       );
     }
 
-    const resolvedSecret = await this.secretResolver.resolve(integration.workspaceId, integration.secretReference, integration.provider);
+    const resolvedSecret = await this.secretResolver.resolve(
+      integration.workspaceId,
+      integration.secretReference,
+      integration.provider,
+    );
     const tester = this.testerRegistry.getTester(integration.provider);
     const result = await tester.testConnection(resolvedSecret);
 

@@ -19,7 +19,10 @@ export class ChangeCampaignStatusUseCase {
     private readonly campaignRepository: ICampaignRepository,
   ) {}
 
-  async pause(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
+  async pause(
+    workspaceId: string,
+    campaignId: string,
+  ): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status !== 'ACTIVE') {
@@ -41,7 +44,10 @@ export class ChangeCampaignStatusUseCase {
     return updated;
   }
 
-  async resume(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
+  async resume(
+    workspaceId: string,
+    campaignId: string,
+  ): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status !== 'PAUSED') {
@@ -63,7 +69,10 @@ export class ChangeCampaignStatusUseCase {
     return updated;
   }
 
-  async archive(workspaceId: string, campaignId: string): Promise<CampaignWithSenders> {
+  async archive(
+    workspaceId: string,
+    campaignId: string,
+  ): Promise<CampaignWithSenders> {
     const campaign = await this.findCampaignOrThrow(workspaceId, campaignId);
 
     if (campaign.status === 'ARCHIVED') {

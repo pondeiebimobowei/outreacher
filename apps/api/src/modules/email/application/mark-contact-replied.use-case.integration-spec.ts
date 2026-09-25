@@ -21,7 +21,12 @@ async function buildScenario(
 
   await prisma.workspace.create({ data: { id: wsId, name: 'Test WS' } });
   const company = await prisma.company.create({
-    data: { id: randomUUID(), workspaceId: wsId, name: 'Acme', normalizedName: 'acme' },
+    data: {
+      id: randomUUID(),
+      workspaceId: wsId,
+      name: 'Acme',
+      normalizedName: 'acme',
+    },
   });
   const campaign = await prisma.campaign.create({
     data: {
@@ -103,12 +108,22 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   // ─── State transition paths ─────────────────────────────────────────────
 
   it('SENT → REPLIED: matching PENDING follow-up becomes COMPLETED', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
-    const contact = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
+    const contact = await prisma.campaignMember.findUniqueOrThrow({
+      where: { id: campaignMemberId },
+    });
     expect(contact.status).toBe('REPLIED');
 
     const job = await prisma.job.findUniqueOrThrow({ where: { id: jobId } });
@@ -117,12 +132,22 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   });
 
   it('FOLLOW_UP_DUE → REPLIED: matching PENDING follow-up becomes COMPLETED', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'FOLLOW_UP_DUE');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'FOLLOW_UP_DUE',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
-    const contact = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
+    const contact = await prisma.campaignMember.findUniqueOrThrow({
+      where: { id: campaignMemberId },
+    });
     expect(contact.status).toBe('REPLIED');
 
     const job = await prisma.job.findUniqueOrThrow({ where: { id: jobId } });
@@ -132,8 +157,16 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   // ─── Idempotent path ────────────────────────────────────────────────────
 
   it('already REPLIED + PENDING follow-up: follow-up still becomes COMPLETED (idempotent cleanup)', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'REPLIED');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'REPLIED',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
@@ -144,10 +177,28 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   // ─── Multiple pending jobs ───────────────────────────────────────────────
 
   it('multiple PENDING follow-ups: all are cancelled', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const jobId1 = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
-    const jobId2 = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
-    const jobId3 = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const jobId1 = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
+    const jobId2 = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
+    const jobId3 = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
@@ -160,8 +211,16 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   // ─── Historical jobs are preserved ──────────────────────────────────────
 
   it('RUNNING follow-up remains RUNNING', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'RUNNING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'RUNNING',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
@@ -170,8 +229,16 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   });
 
   it('COMPLETED follow-up remains COMPLETED', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'COMPLETED');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'COMPLETED',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
@@ -181,8 +248,16 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   });
 
   it('DEAD_LETTER follow-up remains DEAD_LETTER', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const jobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'DEAD_LETTER');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const jobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'DEAD_LETTER',
+    );
 
     await useCase.execute(campaignMemberId, workspaceId);
 
@@ -193,13 +268,18 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
   // ─── Tenant isolation ───────────────────────────────────────────────────
 
   it('other-workspace PENDING follow-up is untouched', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
 
     // Build a second workspace with its own contact that happens to share
     // the same campaignMemberId string in the payload — the workspace_id
     // predicate must prevent cancellation.
     const otherWsId = randomUUID();
-    await prisma.workspace.create({ data: { id: otherWsId, name: 'Other WS' } });
+    await prisma.workspace.create({
+      data: { id: otherWsId, name: 'Other WS' },
+    });
     const otherJobId = randomUUID();
     await prisma.job.create({
       data: {
@@ -213,14 +293,19 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
 
     await useCase.execute(campaignMemberId, workspaceId);
 
-    const otherJob = await prisma.job.findUniqueOrThrow({ where: { id: otherJobId } });
+    const otherJob = await prisma.job.findUniqueOrThrow({
+      where: { id: otherJobId },
+    });
     expect(otherJob.status).toBe('PENDING');
   });
 
   // ─── Unrelated job types ────────────────────────────────────────────────
 
   it('PENDING EMAIL_DISPATCH job for the same contact is untouched', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
     const emailJobId = randomUUID();
     await prisma.job.create({
       data: {
@@ -234,35 +319,51 @@ describe('MarkContactRepliedUseCase – PostgreSQL cancellation matrix', () => {
 
     await useCase.execute(campaignMemberId, workspaceId);
 
-    const emailJob = await prisma.job.findUniqueOrThrow({ where: { id: emailJobId } });
+    const emailJob = await prisma.job.findUniqueOrThrow({
+      where: { id: emailJobId },
+    });
     expect(emailJob.status).toBe('PENDING');
   });
 
   // ─── Atomic rollback ────────────────────────────────────────────────────
 
   it('transaction failure rolls back both CampaignMember and Job changes', async () => {
-    const { workspaceId, campaignMemberId } = await buildScenario(prisma, 'SENT');
-    const followUpJobId = await createFollowUpJob(prisma, workspaceId, campaignMemberId, 'PENDING');
+    const { workspaceId, campaignMemberId } = await buildScenario(
+      prisma,
+      'SENT',
+    );
+    const followUpJobId = await createFollowUpJob(
+      prisma,
+      workspaceId,
+      campaignMemberId,
+      'PENDING',
+    );
 
     // Throw inside the transaction after the cancellation query executes
     // but before $transaction commits, by hijacking the logger message.
-    const loggerSpy = jest.spyOn((useCase as any).logger, 'log')
+    const loggerSpy = jest
+      .spyOn((useCase as any).logger, 'log')
       .mockImplementation((msg: string) => {
         if (typeof msg === 'string' && msg.includes('Cancelled')) {
           throw new Error('Simulated pre-commit failure');
         }
       });
 
-    await expect(useCase.execute(campaignMemberId, workspaceId))
-      .rejects.toThrow('Simulated pre-commit failure');
+    await expect(
+      useCase.execute(campaignMemberId, workspaceId),
+    ).rejects.toThrow('Simulated pre-commit failure');
 
     loggerSpy.mockRestore();
 
     // Both rows must have reverted
-    const contact = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
+    const contact = await prisma.campaignMember.findUniqueOrThrow({
+      where: { id: campaignMemberId },
+    });
     expect(contact.status).toBe('SENT');
 
-    const job = await prisma.job.findUniqueOrThrow({ where: { id: followUpJobId } });
+    const job = await prisma.job.findUniqueOrThrow({
+      where: { id: followUpJobId },
+    });
     expect(job.status).toBe('PENDING');
   });
 });

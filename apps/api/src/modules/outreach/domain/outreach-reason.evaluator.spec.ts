@@ -13,7 +13,8 @@ describe('OutreachReasonEvaluator', () => {
     campaignMemberId: 'cc-123',
     person: {
       id: 'cnt-1',
-      firstName: 'Jane', lastName: 'Doe',
+      firstName: 'Jane',
+      lastName: 'Doe',
       title: 'VP of Engineering',
       kind: 'PERSON',
     },

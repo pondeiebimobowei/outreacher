@@ -183,8 +183,14 @@ export class GetWorkspaceSummaryUseCase {
           sourceId: item.id,
           type: 'EMAIL_SENT' as const,
           company: {
-            id: item.campaignMember?.person.personCompanyAssociations?.[0]?.company.id || (item as any).outreach?.personCompanyAssociation?.company.id,
-            name: item.campaignMember?.person.personCompanyAssociations?.[0]?.company.name || (item as any).outreach?.personCompanyAssociation?.company.name,
+            id:
+              item.campaignMember?.person.personCompanyAssociations?.[0]
+                ?.company.id ||
+              (item as any).outreach?.personCompanyAssociation?.company.id,
+            name:
+              item.campaignMember?.person.personCompanyAssociations?.[0]
+                ?.company.name ||
+              (item as any).outreach?.personCompanyAssociation?.company.name,
           },
           campaign: item.campaignMember?.campaign
             ? {
@@ -211,8 +217,14 @@ export class GetWorkspaceSummaryUseCase {
           sourceId: item.id,
           type: 'OUTCOME_RECORDED' as const,
           company: {
-            id: item.campaignMember?.person.personCompanyAssociations?.[0]?.company.id || (item as any).outreach?.personCompanyAssociation?.company.id,
-            name: item.campaignMember?.person.personCompanyAssociations?.[0]?.company.name || (item as any).outreach?.personCompanyAssociation?.company.name,
+            id:
+              item.campaignMember?.person.personCompanyAssociations?.[0]
+                ?.company.id ||
+              (item as any).outreach?.personCompanyAssociation?.company.id,
+            name:
+              item.campaignMember?.person.personCompanyAssociations?.[0]
+                ?.company.name ||
+              (item as any).outreach?.personCompanyAssociation?.company.name,
           },
           campaign: item.campaignMember?.campaign
             ? {

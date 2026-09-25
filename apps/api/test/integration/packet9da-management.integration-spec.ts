@@ -15,7 +15,12 @@ import {
   AppValidationException,
   AppConflictException,
 } from '../../src/common/errors/application.exception';
-import { IntegrationProvider, IntegrationStatus, SenderStatus, AssignmentStatus } from '@repo/db';
+import {
+  IntegrationProvider,
+  IntegrationStatus,
+  SenderStatus,
+  AssignmentStatus,
+} from '@repo/db';
 
 import {
   cleanTestDatabase,
@@ -28,18 +33,36 @@ import { randomUUID } from 'crypto';
 // ─── helpers ───────────────────────────────────────────────────────────────
 
 async function seed(prisma: PrismaClient) {
-  const ws = await prisma.workspace.create({ data: { name: `WS-${randomUUID().slice(0, 8)}` } });
-  const ws2 = await prisma.workspace.create({ data: { name: `WS2-${randomUUID().slice(0, 8)}` } });
+  const ws = await prisma.workspace.create({
+    data: { name: `WS-${randomUUID().slice(0, 8)}` },
+  });
+  const ws2 = await prisma.workspace.create({
+    data: { name: `WS2-${randomUUID().slice(0, 8)}` },
+  });
   const company = await prisma.company.create({
-    data: { workspaceId: ws.id, name: 'Acme', domain: 'acme.com', normalizedName: 'acme' },
+    data: {
+      workspaceId: ws.id,
+      name: 'Acme',
+      domain: 'acme.com',
+      normalizedName: 'acme',
+    },
   });
   const campaign = await prisma.campaign.create({
-    data: { workspaceId: ws.id, companyId: company.id, name: 'Camp A', normalizedName: 'camp a' },
+    data: {
+      workspaceId: ws.id,
+      companyId: company.id,
+      name: 'Camp A',
+      normalizedName: 'camp a',
+    },
   });
   return { ws, ws2, company, campaign };
 }
 
-async function createIntegration(prisma: PrismaClient, workspaceId: string, overrides: any = {}) {
+async function createIntegration(
+  prisma: PrismaClient,
+  workspaceId: string,
+  overrides: any = {},
+) {
   return prisma.integration.create({
     data: {
       workspaceId,
@@ -52,13 +75,19 @@ async function createIntegration(prisma: PrismaClient, workspaceId: string, over
   });
 }
 
-async function createSender(prisma: PrismaClient, workspaceId: string, integrationId: string, overrides: any = {}) {
+async function createSender(
+  prisma: PrismaClient,
+  workspaceId: string,
+  integrationId: string,
+  overrides: any = {},
+) {
   return prisma.senderAccount.create({
     data: {
       workspaceId,
       integrationId,
       fromName: overrides.fromName ?? 'Sender',
-      fromEmail: overrides.fromEmail ?? `sender-${randomUUID().slice(0, 6)}@example.com`,
+      fromEmail:
+        overrides.fromEmail ?? `sender-${randomUUID().slice(0, 6)}@example.com`,
       dailyLimit: overrides.dailyLimit ?? 50,
       status: overrides.status ?? SenderStatus.ACTIVE,
     },
@@ -158,8 +187,16 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
 
     it('allows same name in different workspaces', async () => {
       const { ws, ws2 } = await seed(prisma);
-      await createIntegrationUC.execute(ws.id, { name: 'Shared', provider: IntegrationProvider.RESEND, secretReference: 'env://K1' });
-      const result = await createIntegrationUC.execute(ws2.id, { name: 'Shared', provider: IntegrationProvider.RESEND, secretReference: 'env://K2' });
+      await createIntegrationUC.execute(ws.id, {
+        name: 'Shared',
+        provider: IntegrationProvider.RESEND,
+        secretReference: 'env://K1',
+      });
+      const result = await createIntegrationUC.execute(ws2.id, {
+        name: 'Shared',
+        provider: IntegrationProvider.RESEND,
+        secretReference: 'env://K2',
+      });
       expect(result.workspaceId).toBe(ws2.id);
     });
   });
@@ -168,13 +205,17 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it("get: cannot fetch another workspace's integration", async () => {
       const { ws, ws2 } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      await expect(getIntegrationUC.execute(ws2.id, integ.id)).rejects.toThrow(AppNotFoundException);
+      await expect(getIntegrationUC.execute(ws2.id, integ.id)).rejects.toThrow(
+        AppNotFoundException,
+      );
     });
 
     it("disable: cannot disable another workspace's integration", async () => {
       const { ws, ws2 } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      await expect(disableIntegrationUC.execute(ws2.id, integ.id)).rejects.toThrow(AppNotFoundException);
+      await expect(
+        disableIntegrationUC.execute(ws2.id, integ.id),
+      ).rejects.toThrow(AppNotFoundException);
     });
 
     it('list: only returns integrations for the requesting workspace', async () => {
@@ -182,7 +223,7 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       await createIntegration(prisma, ws.id, { name: 'WS1-Integ' });
       await createIntegration(prisma, ws2.id, { name: 'WS2-Integ' });
       const results = await listIntegrationsUC.execute(ws.id);
-      expect(results.every(i => i.workspaceId === ws.id)).toBe(true);
+      expect(results.every((i) => i.workspaceId === ws.id)).toBe(true);
       expect(results).toHaveLength(1);
     });
   });
@@ -190,12 +231,16 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
   describe('Integration — disable preserves record', () => {
     it('disable sets status to DISABLED without deleting the record', async () => {
       const { ws } = await seed(prisma);
-      const integ = await createIntegration(prisma, ws.id, { status: IntegrationStatus.ACTIVE });
+      const integ = await createIntegration(prisma, ws.id, {
+        status: IntegrationStatus.ACTIVE,
+      });
       const disabled = await disableIntegrationUC.execute(ws.id, integ.id);
       expect(disabled.status).toBe(IntegrationStatus.DISABLED);
       expect(disabled.id).toBe(integ.id);
       // record still exists
-      const found = await prisma.integration.findUnique({ where: { id: integ.id } });
+      const found = await prisma.integration.findUnique({
+        where: { id: integ.id },
+      });
       expect(found).not.toBeNull();
     });
   });
@@ -229,18 +274,34 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('rejects canonical duplicate fromEmail (different case)', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      await createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'A', fromEmail: 'alex@company.com' });
+      await createSenderUC.execute(ws.id, {
+        integrationId: integ.id,
+        fromName: 'A',
+        fromEmail: 'alex@company.com',
+      });
       await expect(
-        createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'B', fromEmail: 'Alex@Company.COM' }),
+        createSenderUC.execute(ws.id, {
+          integrationId: integ.id,
+          fromName: 'B',
+          fromEmail: 'Alex@Company.COM',
+        }),
       ).rejects.toThrow(AppConflictException);
     });
 
     it('rejects canonical duplicate fromEmail (whitespace)', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      await createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'A', fromEmail: 'alex@company.com' });
+      await createSenderUC.execute(ws.id, {
+        integrationId: integ.id,
+        fromName: 'A',
+        fromEmail: 'alex@company.com',
+      });
       await expect(
-        createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'B', fromEmail: '  alex@company.com  ' }),
+        createSenderUC.execute(ws.id, {
+          integrationId: integ.id,
+          fromName: 'B',
+          fromEmail: '  alex@company.com  ',
+        }),
       ).rejects.toThrow(AppConflictException);
     });
   });
@@ -249,14 +310,24 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('accepts dailyLimit = 1', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      const s = await createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'T', fromEmail: 'a@a.com', dailyLimit: 1 });
+      const s = await createSenderUC.execute(ws.id, {
+        integrationId: integ.id,
+        fromName: 'T',
+        fromEmail: 'a@a.com',
+        dailyLimit: 1,
+      });
       expect(s.dailyLimit).toBe(1);
     });
 
     it('accepts dailyLimit = 200', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      const s = await createSenderUC.execute(ws.id, { integrationId: integ.id, fromName: 'T', fromEmail: 'b@b.com', dailyLimit: 200 });
+      const s = await createSenderUC.execute(ws.id, {
+        integrationId: integ.id,
+        fromName: 'T',
+        fromEmail: 'b@b.com',
+        dailyLimit: 200,
+      });
       expect(s.dailyLimit).toBe(200);
     });
   });
@@ -266,7 +337,11 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const { ws, ws2 } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
       await expect(
-        createSenderUC.execute(ws2.id, { integrationId: integ.id, fromName: 'T', fromEmail: 'x@x.com' }),
+        createSenderUC.execute(ws2.id, {
+          integrationId: integ.id,
+          fromName: 'T',
+          fromEmail: 'x@x.com',
+        }),
       ).rejects.toThrow(AppValidationException);
     });
 
@@ -286,7 +361,7 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       await createSender(prisma, ws.id, i1.id, { fromEmail: 'a@ws1.com' });
       await createSender(prisma, ws2.id, i2.id, { fromEmail: 'b@ws2.com' });
       const results = await listSendersUC.execute(ws.id);
-      expect(results.every(s => s.workspaceId === ws.id)).toBe(true);
+      expect(results.every((s) => s.workspaceId === ws.id)).toBe(true);
       expect(results).toHaveLength(1);
     });
   });
@@ -295,29 +370,48 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('canonicalizes fromEmail on update', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      const sender = await createSender(prisma, ws.id, integ.id, { fromEmail: 'old@test.com' });
-      const updated = await updateSenderUC.execute(ws.id, sender.id, { fromEmail: '  NEW@Company.COM  ' });
+      const sender = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'old@test.com',
+      });
+      const updated = await updateSenderUC.execute(ws.id, sender.id, {
+        fromEmail: '  NEW@Company.COM  ',
+      });
       expect(updated.fromEmail).toBe('new@company.com');
     });
 
     it('update duplicate canonical fromEmail rejected', async () => {
       const { ws } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      await createSender(prisma, ws.id, integ.id, { fromEmail: 'taken@test.com' });
-      const sender2 = await createSender(prisma, ws.id, integ.id, { fromEmail: 'other@test.com' });
+      await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'taken@test.com',
+      });
+      const sender2 = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'other@test.com',
+      });
       await expect(
-        updateSenderUC.execute(ws.id, sender2.id, { fromEmail: 'Taken@Test.COM' }),
+        updateSenderUC.execute(ws.id, sender2.id, {
+          fromEmail: 'Taken@Test.COM',
+        }),
       ).rejects.toThrow(AppConflictException);
     });
 
     it('integration health change does NOT mutate sender status', async () => {
       const { ws } = await seed(prisma);
-      const integ = await createIntegration(prisma, ws.id, { status: IntegrationStatus.ACTIVE });
-      const sender = await createSender(prisma, ws.id, integ.id, { status: SenderStatus.ACTIVE });
+      const integ = await createIntegration(prisma, ws.id, {
+        status: IntegrationStatus.ACTIVE,
+      });
+      const sender = await createSender(prisma, ws.id, integ.id, {
+        status: SenderStatus.ACTIVE,
+      });
       // Simulate integration going INVALID_CREDENTIALS
-      await prisma.integration.update({ where: { id: integ.id }, data: { status: IntegrationStatus.INVALID_CREDENTIALS } });
+      await prisma.integration.update({
+        where: { id: integ.id },
+        data: { status: IntegrationStatus.INVALID_CREDENTIALS },
+      });
       // Sender status must remain ACTIVE
-      const reloaded = await prisma.senderAccount.findUnique({ where: { id: sender.id } });
+      const reloaded = await prisma.senderAccount.findUnique({
+        where: { id: sender.id },
+      });
       expect(reloaded?.status).toBe(SenderStatus.ACTIVE);
     });
   });
@@ -353,7 +447,9 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const integ2 = await createIntegration(prisma, ws2.id);
       const sender2 = await createSender(prisma, ws2.id, integ2.id);
       await expect(
-        assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [sender2.id] }),
+        assignSendersUC.execute(ws.id, campaign.id, {
+          senderAccountIds: [sender2.id],
+        }),
       ).rejects.toThrow(AppValidationException);
     });
 
@@ -364,11 +460,15 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const fakeId = randomUUID();
 
       await expect(
-        assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [validSender.id, fakeId] }),
+        assignSendersUC.execute(ws.id, campaign.id, {
+          senderAccountIds: [validSender.id, fakeId],
+        }),
       ).rejects.toThrow(AppValidationException);
 
       // No assignments should have been created
-      const assignments = await prisma.campaignSenderAccount.findMany({ where: { campaignId: campaign.id } });
+      const assignments = await prisma.campaignSenderAccount.findMany({
+        where: { campaignId: campaign.id },
+      });
       expect(assignments).toHaveLength(0);
     });
 
@@ -377,9 +477,13 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const integ = await createIntegration(prisma, ws.id);
       const s1 = await createSender(prisma, ws.id, integ.id);
       // Pre-assign
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id],
+      });
       // Now assign empty
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [],
+      });
       const active = await listCampaignSendersUC.execute(ws.id, campaign.id);
       expect(active).toHaveLength(0);
     });
@@ -387,12 +491,20 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('transactional replacement: new set replaces old set atomically', async () => {
       const { ws, campaign } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      const s1 = await createSender(prisma, ws.id, integ.id, { fromEmail: 'a@a.com' });
-      const s2 = await createSender(prisma, ws.id, integ.id, { fromEmail: 'b@b.com' });
+      const s1 = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'a@a.com',
+      });
+      const s2 = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'b@b.com',
+      });
       // Assign s1
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id],
+      });
       // Replace with s2
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s2.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s2.id],
+      });
       const active = await listCampaignSendersUC.execute(ws.id, campaign.id);
       expect(active).toHaveLength(1);
       expect(active[0].senderAccountId).toBe(s2.id);
@@ -401,15 +513,25 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('removed assignment can be reactivated', async () => {
       const { ws, campaign } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
-      const s1 = await createSender(prisma, ws.id, integ.id, { fromEmail: 'a@a.com' });
-      const s2 = await createSender(prisma, ws.id, integ.id, { fromEmail: 'b@b.com' });
+      const s1 = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'a@a.com',
+      });
+      const s2 = await createSender(prisma, ws.id, integ.id, {
+        fromEmail: 'b@b.com',
+      });
       // Assign s1, then replace with s2 (s1 becomes REMOVED)
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id] });
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s2.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id],
+      });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s2.id],
+      });
       // Reactivate s1
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id, s2.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id, s2.id],
+      });
       const active = await listCampaignSendersUC.execute(ws.id, campaign.id);
-      const activeIds = active.map(a => a.senderAccountId).sort();
+      const activeIds = active.map((a) => a.senderAccountId).sort();
       expect(activeIds).toEqual([s1.id, s2.id].sort());
     });
 
@@ -417,7 +539,9 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const { ws, campaign } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
       const s1 = await createSender(prisma, ws.id, integ.id);
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id, s1.id, s1.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id, s1.id, s1.id],
+      });
       const active = await listCampaignSendersUC.execute(ws.id, campaign.id);
       expect(active).toHaveLength(1);
     });
@@ -426,8 +550,12 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const { ws, campaign } = await seed(prisma);
       const integ = await createIntegration(prisma, ws.id);
       const s1 = await createSender(prisma, ws.id, integ.id);
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id] });
-      await assignSendersUC.execute(ws.id, campaign.id, { senderAccountIds: [s1.id] });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id],
+      });
+      await assignSendersUC.execute(ws.id, campaign.id, {
+        senderAccountIds: [s1.id],
+      });
       const active = await listCampaignSendersUC.execute(ws.id, campaign.id);
       expect(active).toHaveLength(1);
     });
@@ -435,16 +563,28 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
     it('cross-workspace campaign assignment is rejected', async () => {
       const { ws, ws2 } = await seed(prisma);
       const company2 = await prisma.company.create({
-        data: { workspaceId: ws2.id, name: 'Acme2', domain: 'acme2.com', normalizedName: 'acme2' },
+        data: {
+          workspaceId: ws2.id,
+          name: 'Acme2',
+          domain: 'acme2.com',
+          normalizedName: 'acme2',
+        },
       });
       const campaign2 = await prisma.campaign.create({
-        data: { workspaceId: ws2.id, companyId: company2.id, name: 'Camp B', normalizedName: 'camp b' },
+        data: {
+          workspaceId: ws2.id,
+          companyId: company2.id,
+          name: 'Camp B',
+          normalizedName: 'camp b',
+        },
       });
       const integ = await createIntegration(prisma, ws.id);
       const sender = await createSender(prisma, ws.id, integ.id);
       // Attempt to assign ws sender to ws2 campaign using ws2 workspace context
       await expect(
-        assignSendersUC.execute(ws2.id, campaign2.id, { senderAccountIds: [sender.id] }),
+        assignSendersUC.execute(ws2.id, campaign2.id, {
+          senderAccountIds: [sender.id],
+        }),
       ).rejects.toThrow(AppValidationException);
     });
   });

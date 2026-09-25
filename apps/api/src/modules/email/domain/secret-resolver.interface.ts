@@ -3,5 +3,9 @@ import type { ProviderCredentials } from './provider-credentials';
 export const SECRET_RESOLVER_TOKEN = 'ISecretResolver';
 
 export interface ISecretResolver {
-  resolve(workspaceId: string, secretReference: string, provider: string): Promise<ProviderCredentials>;
+  resolve(
+    workspaceId: string,
+    secretReference: string,
+    provider: string,
+  ): Promise<ProviderCredentials>;
 }

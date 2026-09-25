@@ -58,7 +58,7 @@ const mockBinding = (personId: string): CampaignMember => ({
   selectedOpportunityId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
-} as CampaignMember);
+});
 
 describe('AddCampaignContactsUseCase', () => {
   let useCase: AddCampaignContactsUseCase;
@@ -111,7 +111,7 @@ describe('AddCampaignContactsUseCase', () => {
   it('throws AppNotFoundException and creates zero bindings when one contact is not found', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
     contactRepo.findContactById
-      .mockResolvedValueOnce(mockContact('c-1') as any)
+      .mockResolvedValueOnce(mockContact('c-1'))
       .mockResolvedValueOnce(null); // c-2 is invalid
 
     await expect(
@@ -137,7 +137,7 @@ describe('AddCampaignContactsUseCase', () => {
 
   it('does not create a new binding when the contact is already bound', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
-    contactRepo.findContactById.mockResolvedValue(mockContact('c-1') as any);
+    contactRepo.findContactById.mockResolvedValue(mockContact('c-1'));
     campaignRepo.findExistingContactBindings.mockResolvedValue(
       new Set(['c-1']),
     );
@@ -153,7 +153,7 @@ describe('AddCampaignContactsUseCase', () => {
 
   it('deduplicates repeated contactIds within the same payload', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
-    contactRepo.findContactById.mockResolvedValue(mockContact('c-1') as any);
+    contactRepo.findContactById.mockResolvedValue(mockContact('c-1'));
     campaignRepo.findExistingContactBindings.mockResolvedValue(new Set());
     campaignRepo.createContactBindings.mockResolvedValue([mockBinding('c-1')]);
 
@@ -173,8 +173,8 @@ describe('AddCampaignContactsUseCase', () => {
   it('only persists new contacts when some are already bound', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
     contactRepo.findContactById
-      .mockResolvedValueOnce(mockContact('c-1') as any)
-      .mockResolvedValueOnce(mockContact('c-2') as any);
+      .mockResolvedValueOnce(mockContact('c-1'))
+      .mockResolvedValueOnce(mockContact('c-2'));
     campaignRepo.findExistingContactBindings.mockResolvedValue(
       new Set(['c-1']),
     );
@@ -197,7 +197,7 @@ describe('AddCampaignContactsUseCase', () => {
 
   it('creates bindings with status PENDING for new contacts', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
-    contactRepo.findContactById.mockResolvedValue(mockContact('c-1') as any);
+    contactRepo.findContactById.mockResolvedValue(mockContact('c-1'));
     campaignRepo.findExistingContactBindings.mockResolvedValue(new Set());
     const binding = mockBinding('c-1');
     campaignRepo.createContactBindings.mockResolvedValue([binding]);
@@ -213,7 +213,7 @@ describe('AddCampaignContactsUseCase', () => {
 
   it('uses server-authoritative workspaceId for all persistence calls', async () => {
     campaignRepo.findById.mockResolvedValue(mockCampaign());
-    contactRepo.findContactById.mockResolvedValue(mockContact('c-1') as any);
+    contactRepo.findContactById.mockResolvedValue(mockContact('c-1'));
     campaignRepo.findExistingContactBindings.mockResolvedValue(new Set());
     campaignRepo.createContactBindings.mockResolvedValue([mockBinding('c-1')]);
 

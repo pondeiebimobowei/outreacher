@@ -22,5 +22,8 @@ export interface WebhookVerificationContext {
 
 export abstract class InboundEmailProviderAdapter {
   abstract verifySignature(context: WebhookVerificationContext): void;
-  abstract parsePayload(rawBody: Buffer, headers: Record<string, string | string[] | undefined>): CanonicalInboundReply;
+  abstract parsePayload(
+    rawBody: Buffer,
+    headers: Record<string, string | string[] | undefined>,
+  ): CanonicalInboundReply;
 }

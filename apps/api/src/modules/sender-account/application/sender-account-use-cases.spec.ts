@@ -21,7 +21,7 @@ const makeTxClient = (overrides: any = {}) => ({
 });
 
 const makePrisma = (overrides: any = {}) => {
-  let txClient = makeTxClient(overrides);
+  const txClient = makeTxClient(overrides);
   return {
     integration: { findUnique: jest.fn(), ...overrides.integration },
     senderAccount: {
@@ -43,7 +43,7 @@ const makePrisma = (overrides: any = {}) => {
     $transaction: jest.fn().mockImplementation(async (fn: any) => fn(txClient)),
     _txClient: txClient,
     ...overrides.extra,
-  } as any;
+  };
 };
 
 const fakeSender = (overrides: any = {}) => ({
@@ -80,7 +80,9 @@ describe('CreateSenderAccountUseCase', () => {
       integration: { findUnique: jest.fn().mockResolvedValue(fakeInteg()) },
       senderAccount: {
         findFirst: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue(fakeSender({ fromEmail: 'alex@company.com' })),
+        create: jest
+          .fn()
+          .mockResolvedValue(fakeSender({ fromEmail: 'alex@company.com' })),
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
@@ -90,7 +92,9 @@ describe('CreateSenderAccountUseCase', () => {
       fromEmail: '  Alex@Company.COM  ',
     });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ fromEmail: 'alex@company.com' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ fromEmail: 'alex@company.com' }),
+      }),
     );
   });
 
@@ -99,7 +103,9 @@ describe('CreateSenderAccountUseCase', () => {
       integration: { findUnique: jest.fn().mockResolvedValue(fakeInteg()) },
       senderAccount: {
         findFirst: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue(fakeSender({ replyTo: 'reply@company.com' })),
+        create: jest
+          .fn()
+          .mockResolvedValue(fakeSender({ replyTo: 'reply@company.com' })),
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
@@ -110,7 +116,9 @@ describe('CreateSenderAccountUseCase', () => {
       replyTo: '  Reply@Company.COM  ',
     });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ replyTo: 'reply@company.com' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ replyTo: 'reply@company.com' }),
+      }),
     );
   });
 
@@ -119,13 +127,19 @@ describe('CreateSenderAccountUseCase', () => {
       integration: { findUnique: jest.fn().mockResolvedValue(fakeInteg()) },
       senderAccount: {
         // canonical duplicate already exists
-        findFirst: jest.fn().mockResolvedValue(fakeSender({ fromEmail: 'alex@company.com' })),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue(fakeSender({ fromEmail: 'alex@company.com' })),
         create: jest.fn(),
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
     await expect(
-      uc.execute('ws-1', { integrationId: 'integ-1', fromName: 'B', fromEmail: 'Alex@Company.COM' }),
+      uc.execute('ws-1', {
+        integrationId: 'integ-1',
+        fromName: 'B',
+        fromEmail: 'Alex@Company.COM',
+      }),
     ).rejects.toThrow(AppConflictException);
     expect(prisma.senderAccount.create).not.toHaveBeenCalled();
   });
@@ -139,9 +153,16 @@ describe('CreateSenderAccountUseCase', () => {
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
-    await uc.execute('ws-1', { integrationId: 'integ-1', fromName: 'T', fromEmail: 'a@a.com', dailyLimit: 1 });
+    await uc.execute('ws-1', {
+      integrationId: 'integ-1',
+      fromName: 'T',
+      fromEmail: 'a@a.com',
+      dailyLimit: 1,
+    });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ dailyLimit: 1 }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ dailyLimit: 1 }),
+      }),
     );
   });
 
@@ -154,9 +175,16 @@ describe('CreateSenderAccountUseCase', () => {
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
-    await uc.execute('ws-1', { integrationId: 'integ-1', fromName: 'T', fromEmail: 'b@b.com', dailyLimit: 200 });
+    await uc.execute('ws-1', {
+      integrationId: 'integ-1',
+      fromName: 'T',
+      fromEmail: 'b@b.com',
+      dailyLimit: 200,
+    });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ dailyLimit: 200 }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ dailyLimit: 200 }),
+      }),
     );
   });
 
@@ -168,7 +196,11 @@ describe('CreateSenderAccountUseCase', () => {
     });
     const uc = new CreateSenderAccountUseCase(prisma);
     await expect(
-      uc.execute('ws-2', { integrationId: 'integ-belongs-to-ws1', fromName: 'T', fromEmail: 'x@x.com' }),
+      uc.execute('ws-2', {
+        integrationId: 'integ-belongs-to-ws1',
+        fromName: 'T',
+        fromEmail: 'x@x.com',
+      }),
     ).rejects.toThrow(AppValidationException);
     expect(prisma.senderAccount.create).not.toHaveBeenCalled();
   });
@@ -178,28 +210,44 @@ describe('CreateSenderAccountUseCase', () => {
       integration: { findUnique: jest.fn().mockResolvedValue(fakeInteg()) },
       senderAccount: {
         findFirst: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue(fakeSender({ status: SenderStatus.ACTIVE })),
+        create: jest
+          .fn()
+          .mockResolvedValue(fakeSender({ status: SenderStatus.ACTIVE })),
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
-    await uc.execute('ws-1', { integrationId: 'integ-1', fromName: 'T', fromEmail: 'new@test.com' });
+    await uc.execute('ws-1', {
+      integrationId: 'integ-1',
+      fromName: 'T',
+      fromEmail: 'new@test.com',
+    });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: SenderStatus.ACTIVE }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: SenderStatus.ACTIVE }),
+      }),
     );
   });
 
   it('integrationId is passed through to create', async () => {
     const prisma = makePrisma({
-      integration: { findUnique: jest.fn().mockResolvedValue(fakeInteg({ id: 'integ-xyz' })) },
+      integration: {
+        findUnique: jest.fn().mockResolvedValue(fakeInteg({ id: 'integ-xyz' })),
+      },
       senderAccount: {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue(fakeSender()),
       },
     });
     const uc = new CreateSenderAccountUseCase(prisma);
-    await uc.execute('ws-1', { integrationId: 'integ-xyz', fromName: 'T', fromEmail: 'z@test.com' });
+    await uc.execute('ws-1', {
+      integrationId: 'integ-xyz',
+      fromName: 'T',
+      fromEmail: 'z@test.com',
+    });
     expect(prisma.senderAccount.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ integrationId: 'integ-xyz' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ integrationId: 'integ-xyz' }),
+      }),
     );
   });
 });
@@ -213,13 +261,17 @@ describe('UpdateSenderAccountUseCase', () => {
       senderAccount: {
         findUnique: jest.fn().mockResolvedValue(existing),
         findFirst: jest.fn().mockResolvedValue(null), // no duplicate
-        update: jest.fn().mockResolvedValue({ ...existing, fromEmail: 'new@company.com' }),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...existing, fromEmail: 'new@company.com' }),
       },
     });
     const uc = new UpdateSenderAccountUseCase(prisma);
     await uc.execute('ws-1', 'sender-1', { fromEmail: '  NEW@Company.COM  ' });
     expect(prisma.senderAccount.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ fromEmail: 'new@company.com' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ fromEmail: 'new@company.com' }),
+      }),
     );
   });
 
@@ -229,13 +281,17 @@ describe('UpdateSenderAccountUseCase', () => {
       senderAccount: {
         findUnique: jest.fn().mockResolvedValue(existing),
         findFirst: jest.fn().mockResolvedValue(null),
-        update: jest.fn().mockResolvedValue({ ...existing, replyTo: 'reply@company.com' }),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...existing, replyTo: 'reply@company.com' }),
       },
     });
     const uc = new UpdateSenderAccountUseCase(prisma);
     await uc.execute('ws-1', 'sender-1', { replyTo: '  REPLY@Company.COM  ' });
     expect(prisma.senderAccount.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ replyTo: 'reply@company.com' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ replyTo: 'reply@company.com' }),
+      }),
     );
   });
 
@@ -245,7 +301,11 @@ describe('UpdateSenderAccountUseCase', () => {
       senderAccount: {
         findUnique: jest.fn().mockResolvedValue(existing),
         // another sender already has the canonical email
-        findFirst: jest.fn().mockResolvedValue(fakeSender({ id: 'sender-2', fromEmail: 'taken@test.com' })),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue(
+            fakeSender({ id: 'sender-2', fromEmail: 'taken@test.com' }),
+          ),
         update: jest.fn(),
       },
     });
@@ -260,7 +320,9 @@ describe('UpdateSenderAccountUseCase', () => {
     // findUnique returns a sender that belongs to a different workspace
     const prisma = makePrisma({
       senderAccount: {
-        findUnique: jest.fn().mockResolvedValue(fakeSender({ workspaceId: 'ws-other' })),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(fakeSender({ workspaceId: 'ws-other' })),
         update: jest.fn(),
       },
     });
@@ -327,7 +389,9 @@ describe('AssignCampaignSendersUseCase', () => {
     });
     const uc = new AssignCampaignSendersUseCase(prisma);
     await expect(
-      uc.execute('ws-1', 'camp-1', { senderAccountIds: ['sender-1', 'sender-missing'] }),
+      uc.execute('ws-1', 'camp-1', {
+        senderAccountIds: ['sender-1', 'sender-missing'],
+      }),
     ).rejects.toThrow(AppValidationException);
   });
 
@@ -358,14 +422,18 @@ describe('AssignCampaignSendersUseCase', () => {
     const prisma = makePrisma({
       campaign: { findUnique: jest.fn().mockResolvedValue(fakeCampaign()) },
       senderAccount: {
-        findMany: jest.fn().mockResolvedValue([
-          fakeSender({ id: 'sender-a' }),
-          fakeSender({ id: 'sender-b' }),
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            fakeSender({ id: 'sender-a' }),
+            fakeSender({ id: 'sender-b' }),
+          ]),
       },
     });
     const uc = new AssignCampaignSendersUseCase(prisma);
-    await uc.execute('ws-1', 'camp-1', { senderAccountIds: ['sender-a', 'sender-a', 'sender-b'] });
+    await uc.execute('ws-1', 'camp-1', {
+      senderAccountIds: ['sender-a', 'sender-a', 'sender-b'],
+    });
     // findMany should be called with deduplicated IDs
     const calledWith = prisma.senderAccount.findMany.mock.calls[0][0];
     const requestedIds: string[] = calledWith.where.id.in;
@@ -387,7 +455,10 @@ describe('AssignCampaignSendersUseCase', () => {
   });
 
   it('reactivation: if existing record found in tx, update to ACTIVE is called', async () => {
-    const existingRemoved = { id: 'assignment-1', status: AssignmentStatus.REMOVED };
+    const existingRemoved = {
+      id: 'assignment-1',
+      status: AssignmentStatus.REMOVED,
+    };
     const txUpdateMany = jest.fn().mockResolvedValue({ count: 0 });
     const txFindFirst = jest.fn().mockResolvedValue(existingRemoved);
     const txUpdate = jest.fn().mockResolvedValue({});
@@ -423,7 +494,10 @@ describe('AssignCampaignSendersUseCase', () => {
   });
 
   it('idempotent: if existing record is already ACTIVE, update is NOT called again', async () => {
-    const existingActive = { id: 'assignment-1', status: AssignmentStatus.ACTIVE };
+    const existingActive = {
+      id: 'assignment-1',
+      status: AssignmentStatus.ACTIVE,
+    };
     const txUpdate = jest.fn();
     const txCreate = jest.fn();
 

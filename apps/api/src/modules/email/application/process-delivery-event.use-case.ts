@@ -33,12 +33,16 @@ export class ProcessDeliveryEventUseCase {
     });
 
     if (!emailSend) {
-      this.logger.warn(`Dropping safely uncorrelated delivery event: no EmailSend found for providerMessageId ${event.providerMessageId}`);
+      this.logger.warn(
+        `Dropping safely uncorrelated delivery event: no EmailSend found for providerMessageId ${event.providerMessageId}`,
+      );
       return; // Drop, log, 202
     }
 
     if (emailSend.workspaceId !== workspaceId) {
-      this.logger.error(`Cross-tenant correlation attempted. EmailSend ${emailSend.id} belongs to ${emailSend.workspaceId}, webhook is for ${workspaceId}`);
+      this.logger.error(
+        `Cross-tenant correlation attempted. EmailSend ${emailSend.id} belongs to ${emailSend.workspaceId}, webhook is for ${workspaceId}`,
+      );
       return; // Drop, log, 202
     }
 
@@ -70,8 +74,14 @@ export class ProcessDeliveryEventUseCase {
         });
 
         // 3. Suppression (if bounced or complained)
-        if (event.eventType === EmailEventType.BOUNCED || event.eventType === EmailEventType.COMPLAINED) {
-          const reason = event.eventType === EmailEventType.BOUNCED ? SuppressionReason.BOUNCED : SuppressionReason.COMPLAINT;
+        if (
+          event.eventType === EmailEventType.BOUNCED ||
+          event.eventType === EmailEventType.COMPLAINED
+        ) {
+          const reason =
+            event.eventType === EmailEventType.BOUNCED
+              ? SuppressionReason.BOUNCED
+              : SuppressionReason.COMPLAINT;
 
           await tx.suppression.upsert({
             where: {
@@ -93,7 +103,9 @@ export class ProcessDeliveryEventUseCase {
     } catch (err: any) {
       if (err.code === 'P2002') {
         // Unique constraint violation - handle collision
-        const targetStr = Array.isArray(err.meta?.target) ? err.meta?.target.join(',') : String(err.meta?.target || '');
+        const targetStr = Array.isArray(err.meta?.target)
+          ? err.meta?.target.join(',')
+          : String(err.meta?.target || '');
         const errMessage = err.message || '';
 
         if (
@@ -117,20 +129,31 @@ export class ProcessDeliveryEventUseCase {
           });
 
           if (existingEvent) {
-            if (existingEvent.emailSend?.providerMessageId === event.providerMessageId) {
-              this.logger.log(`Idempotent delivery webhook deduplication for providerEventId: ${event.providerEventId}`);
+            if (
+              existingEvent.emailSend?.providerMessageId ===
+              event.providerMessageId
+            ) {
+              this.logger.log(
+                `Idempotent delivery webhook deduplication for providerEventId: ${event.providerEventId}`,
+              );
               return; // Legitimate duplicate
             } else {
-              this.logger.error(`Identity conflict for providerEventId ${event.providerEventId}: expected msgId ${existingEvent.emailSend?.providerMessageId}, got ${event.providerMessageId}`);
-              throw new AppConflictException(`Identity conflict: providerEventId ${event.providerEventId} already associated with a different providerMessageId`);
+              this.logger.error(
+                `Identity conflict for providerEventId ${event.providerEventId}: expected msgId ${existingEvent.emailSend?.providerMessageId}, got ${event.providerMessageId}`,
+              );
+              throw new AppConflictException(
+                `Identity conflict: providerEventId ${event.providerEventId} already associated with a different providerMessageId`,
+              );
             }
           } else {
             // It hit idempotencyRecord unique constraint but no EmailEvent found (unlikely unless data corrupted, or another process is just committing)
-            this.logger.log(`Idempotent delivery webhook deduplication for idempotencyKey: ${idempotencyKey}`);
+            this.logger.log(
+              `Idempotent delivery webhook deduplication for idempotencyKey: ${idempotencyKey}`,
+            );
             return;
           }
         } else {
-           console.log('P2002 but did not match target:', targetStr, errMessage);
+          console.log('P2002 but did not match target:', targetStr, errMessage);
         }
       }
       throw err;

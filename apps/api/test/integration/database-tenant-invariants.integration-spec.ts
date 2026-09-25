@@ -13,9 +13,7 @@ import {
   setupTestDatabase,
   teardownTestDatabase,
 } from '../helpers/db-test-harness';
-import {
-  createTestWorkspace,
-} from '../helpers/factories';
+import { createTestWorkspace } from '../helpers/factories';
 
 describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integration)', () => {
   let prisma: PrismaClient;
@@ -55,7 +53,10 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
     });
   }
 
-  async function createIntegration(workspaceId: string, name = `Integration ${randomUUID().substring(0, 8)}`) {
+  async function createIntegration(
+    workspaceId: string,
+    name = `Integration ${randomUUID().substring(0, 8)}`,
+  ) {
     return prisma.integration.create({
       data: {
         workspaceId,
@@ -67,7 +68,12 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
     });
   }
 
-  async function createSenderAccount(workspaceId: string, integrationId: string, fromEmail = `sender-${randomUUID().substring(0, 8)}@example.com`, dailyLimit = 50) {
+  async function createSenderAccount(
+    workspaceId: string,
+    integrationId: string,
+    fromEmail = `sender-${randomUUID().substring(0, 8)}@example.com`,
+    dailyLimit = 50,
+  ) {
     return prisma.senderAccount.create({
       data: {
         workspaceId,
@@ -118,7 +124,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const campaignB = await createCampaign(wsB.id, companyB.id);
 
       const integrationA = await createIntegration(wsA.id, 'Provider A');
-      const senderA = await createSenderAccount(wsA.id, integrationA.id, 'sender-a@example.com');
+      const senderA = await createSenderAccount(
+        wsA.id,
+        integrationA.id,
+        'sender-a@example.com',
+      );
 
       // Attempting to bind senderA (wsA) to campaignB (wsB) with workspaceId wsA
       await expect(
@@ -148,7 +158,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const campaignA = await createCampaign(wsA.id, companyA.id);
 
       const integrationB = await createIntegration(wsB.id, 'Provider B');
-      const senderB = await createSenderAccount(wsB.id, integrationB.id, 'sender-b@example.com');
+      const senderB = await createSenderAccount(
+        wsB.id,
+        integrationB.id,
+        'sender-b@example.com',
+      );
 
       // Attempting to bind senderB (wsB) to campaignA (wsA) with workspaceId wsA
       await expect(
@@ -217,13 +231,28 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const ws = await createTestWorkspace(prisma);
       const integration = await createIntegration(ws.id);
 
-      const sender1 = await createSenderAccount(ws.id, integration.id, 'limit1@example.com', 1);
+      const sender1 = await createSenderAccount(
+        ws.id,
+        integration.id,
+        'limit1@example.com',
+        1,
+      );
       expect(sender1.dailyLimit).toBe(1);
 
-      const sender50 = await createSenderAccount(ws.id, integration.id, 'limit50@example.com', 50);
+      const sender50 = await createSenderAccount(
+        ws.id,
+        integration.id,
+        'limit50@example.com',
+        50,
+      );
       expect(sender50.dailyLimit).toBe(50);
 
-      const sender200 = await createSenderAccount(ws.id, integration.id, 'limit200@example.com', 200);
+      const sender200 = await createSenderAccount(
+        ws.id,
+        integration.id,
+        'limit200@example.com',
+        200,
+      );
       expect(sender200.dailyLimit).toBe(200);
     });
   });
@@ -246,7 +275,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const company = await createCompany(ws.id);
       const campaign = await createCampaign(ws.id, company.id);
       const integration = await createIntegration(ws.id);
-      const sender = await createSenderAccount(ws.id, integration.id, 's2@example.com');
+      const sender = await createSenderAccount(
+        ws.id,
+        integration.id,
+        's2@example.com',
+      );
 
       await prisma.campaignSenderAccount.create({
         data: {
@@ -268,7 +301,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const company = await createCompany(ws.id);
       const campaign = await createCampaign(ws.id, company.id);
       const integration = await createIntegration(ws.id);
-      const sender = await createSenderAccount(ws.id, integration.id, 's3@example.com');
+      const sender = await createSenderAccount(
+        ws.id,
+        integration.id,
+        's3@example.com',
+      );
 
       const binding = await prisma.campaignSenderAccount.create({
         data: {
@@ -301,7 +338,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const company = await createCompany(ws.id);
       const campaign = await createCampaign(ws.id, company.id);
       const integration = await createIntegration(ws.id);
-      const sender = await createSenderAccount(ws.id, integration.id, 's4@example.com');
+      const sender = await createSenderAccount(
+        ws.id,
+        integration.id,
+        's4@example.com',
+      );
 
       const binding = await prisma.campaignSenderAccount.create({
         data: {
@@ -316,10 +357,20 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
         where: { id: ws.id },
       });
 
-      expect(await prisma.integration.findUnique({ where: { id: integration.id } })).toBeNull();
-      expect(await prisma.senderAccount.findUnique({ where: { id: sender.id } })).toBeNull();
-      expect(await prisma.campaignSenderAccount.findUnique({ where: { id: binding.id } })).toBeNull();
-      expect(await prisma.campaign.findUnique({ where: { id: campaign.id } })).toBeNull();
+      expect(
+        await prisma.integration.findUnique({ where: { id: integration.id } }),
+      ).toBeNull();
+      expect(
+        await prisma.senderAccount.findUnique({ where: { id: sender.id } }),
+      ).toBeNull();
+      expect(
+        await prisma.campaignSenderAccount.findUnique({
+          where: { id: binding.id },
+        }),
+      ).toBeNull();
+      expect(
+        await prisma.campaign.findUnique({ where: { id: campaign.id } }),
+      ).toBeNull();
     });
   });
 
@@ -345,10 +396,14 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       });
 
       expect(fetched).not.toBeNull();
-      expect(fetched?.sendingIdentity).toBe('Legacy Founder <founder@legacy-startup.com>');
+      expect(fetched?.sendingIdentity).toBe(
+        'Legacy Founder <founder@legacy-startup.com>',
+      );
 
       // Verify database column exists directly via information_schema
-      const columns = await prisma.$queryRaw<Array<{ column_name: string; data_type: string; is_nullable: string }>>`
+      const columns = await prisma.$queryRaw<
+        Array<{ column_name: string; data_type: string; is_nullable: string }>
+      >`
         SELECT column_name, data_type, is_nullable
         FROM information_schema.columns
         WHERE table_name = 'campaigns' AND column_name = 'sending_identity';
@@ -400,7 +455,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const evalItem = evaluations.find((e) => e.workspaceId === ws.id);
 
       expect(evalItem).toBeDefined();
-      expect(evalItem?.classification).toBe('UNMIGRATED_INVALID_LEGACY_IDENTITY');
+      expect(evalItem?.classification).toBe(
+        'UNMIGRATED_INVALID_LEGACY_IDENTITY',
+      );
       expect(evalItem?.reason).toContain('is malformed and cannot be parsed');
     });
 
@@ -408,7 +465,10 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       const ws = await createTestWorkspace(prisma);
       const company = await createCompany(ws.id);
       // Workspace has exactly ONE active integration
-      const soleIntegration = await createIntegration(ws.id, 'Sole Resend Provider');
+      const soleIntegration = await createIntegration(
+        ws.id,
+        'Sole Resend Provider',
+      );
 
       const name = 'Sole Integration No Provenance Campaign';
       await prisma.campaign.create({
@@ -428,7 +488,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       // CRITICAL GATE: Must NOT be PROVABLY_ASSOCIABLE. Having 1 integration is not proof of ownership!
       expect(evalItem?.classification).not.toBe('PROVABLY_ASSOCIABLE');
       expect(evalItem?.classification).toBe('UNMIGRATED_NEEDS_SENDER');
-      expect(evalItem?.reason).toContain('Provider ownership cannot be inferred from workspace integrations alone');
+      expect(evalItem?.reason).toContain(
+        'Provider ownership cannot be inferred from workspace integrations alone',
+      );
       expect(evalItem?.proposedAction).not.toContain('Upsert SenderAccount');
     });
 
@@ -454,15 +516,24 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
 
       expect(evalItem).toBeDefined();
       expect(evalItem?.classification).toBe('UNMIGRATED_NEEDS_SENDER');
-      expect(evalItem?.reason).toContain('Provider ownership cannot be inferred from workspace integrations alone');
+      expect(evalItem?.reason).toContain(
+        'Provider ownership cannot be inferred from workspace integrations alone',
+      );
     });
 
     it('should classify campaign as PROVABLY_ASSOCIABLE when authoritative SenderAccount exists and historical sends match', async () => {
       const ws = await createTestWorkspace(prisma);
       const company = await createCompany(ws.id);
-      const integration = await createIntegration(ws.id, 'Verified Resend Provider');
+      const integration = await createIntegration(
+        ws.id,
+        'Verified Resend Provider',
+      );
       // Authoritative tenant evidence: SenderAccount already provisioned for alice@startup.io
-      const senderAccount = await createSenderAccount(ws.id, integration.id, 'alice@startup.io');
+      const senderAccount = await createSenderAccount(
+        ws.id,
+        integration.id,
+        'alice@startup.io',
+      );
 
       const name = 'Provably Associable Campaign';
       const campaign = await prisma.campaign.create({
@@ -481,7 +552,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       expect(evalItem).toBeDefined();
       expect(evalItem?.classification).toBe('PROVABLY_ASSOCIABLE');
       expect(evalItem?.reason).toContain('Authoritative evidence verified');
-      expect(evalItem?.proposedAction).toBe(`Link existing SenderAccount (id="${senderAccount.id}") to Campaign via CampaignSenderAccount.`);
+      expect(evalItem?.proposedAction).toBe(
+        `Link existing SenderAccount (id="${senderAccount.id}") to Campaign via CampaignSenderAccount.`,
+      );
     });
 
     it('should classify campaign as AMBIGUOUS when historical EmailSends contradict the configured SenderAccount provider', async () => {
@@ -498,7 +571,11 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
 
       // Integration is RESEND
       const integration = await createIntegration(ws.id, 'Resend Provider');
-      const senderAccount = await createSenderAccount(ws.id, integration.id, 'alice@startup.io');
+      const senderAccount = await createSenderAccount(
+        ws.id,
+        integration.id,
+        'alice@startup.io',
+      );
 
       const name = 'Conflicting History Campaign';
       const campaign = await prisma.campaign.create({
@@ -538,7 +615,9 @@ describe('Database Tenant Invariants & BYO Provider Rules (PostgreSQL Integratio
       expect(evalItem).toBeDefined();
       expect(evalItem?.classification).toBe('AMBIGUOUS');
       expect(evalItem?.reason).toContain('Conflicting historical evidence');
-      expect(evalItem?.proposedAction).toContain('Require manual operator review in UI');
+      expect(evalItem?.proposedAction).toContain(
+        'Require manual operator review in UI',
+      );
     });
   });
 });

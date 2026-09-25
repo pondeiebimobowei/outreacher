@@ -42,5 +42,4 @@ export class CreateCampaignDto {
   @Min(1)
   @Max(30)
   followUpDelayBusinessDays?: number;
-
 }

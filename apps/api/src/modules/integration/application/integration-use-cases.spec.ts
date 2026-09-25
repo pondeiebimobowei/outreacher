@@ -20,9 +20,11 @@ const makePrisma = (integrationOverrides: any = {}) =>
       update: jest.fn(),
       ...integrationOverrides,
     },
-  } as any);
+  }) as any;
 
-const makeResolver = (resolved: any = { provider: 'RESEND', apiKey: 'live-key' }) => ({
+const makeResolver = (
+  resolved: any = { provider: 'RESEND', apiKey: 'live-key' },
+) => ({
   resolve: jest.fn().mockResolvedValue(resolved),
 });
 
@@ -52,7 +54,11 @@ describe('CreateIntegrationUseCase', () => {
     const prisma = makePrisma();
     const uc = new CreateIntegrationUseCase(prisma);
     await expect(
-      uc.execute('ws-1', { name: 'SES', provider: IntegrationProvider.SES, secretReference: 'env://KEY' }),
+      uc.execute('ws-1', {
+        name: 'SES',
+        provider: IntegrationProvider.SES,
+        secretReference: 'env://KEY',
+      }),
     ).rejects.toThrow(AppValidationException);
   });
 
@@ -60,7 +66,11 @@ describe('CreateIntegrationUseCase', () => {
     const prisma = makePrisma();
     const uc = new CreateIntegrationUseCase(prisma);
     await expect(
-      uc.execute('ws-1', { name: 'SMTP', provider: IntegrationProvider.SMTP, secretReference: 'env://KEY' }),
+      uc.execute('ws-1', {
+        name: 'SMTP',
+        provider: IntegrationProvider.SMTP,
+        secretReference: 'env://KEY',
+      }),
     ).rejects.toThrow(AppValidationException);
   });
 
@@ -70,13 +80,19 @@ describe('CreateIntegrationUseCase', () => {
     });
     const uc = new CreateIntegrationUseCase(prisma);
     await expect(
-      uc.execute('ws-1', { name: 'My Resend', provider: IntegrationProvider.RESEND, secretReference: 'env://KEY' }),
+      uc.execute('ws-1', {
+        name: 'My Resend',
+        provider: IntegrationProvider.RESEND,
+        secretReference: 'env://KEY',
+      }),
     ).rejects.toThrow(AppConflictException);
     expect(prisma.integration.create).not.toHaveBeenCalled();
   });
 
   it('creates integration with status INVALID_CREDENTIALS (never ACTIVE)', async () => {
-    const created = fakeInteg({ status: IntegrationStatus.INVALID_CREDENTIALS });
+    const created = fakeInteg({
+      status: IntegrationStatus.INVALID_CREDENTIALS,
+    });
     const prisma = makePrisma({
       findUnique: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue(created),
@@ -88,20 +104,31 @@ describe('CreateIntegrationUseCase', () => {
       secretReference: 'env://KEY',
     });
     expect(prisma.integration.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: IntegrationStatus.INVALID_CREDENTIALS }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: IntegrationStatus.INVALID_CREDENTIALS,
+        }),
+      }),
     );
     expect(result.status).toBe(IntegrationStatus.INVALID_CREDENTIALS);
   });
 
   it('allows same name across different workspaces (no conflict check across workspaces)', async () => {
-    const created = fakeInteg({ workspaceId: 'ws-2', status: IntegrationStatus.INVALID_CREDENTIALS });
+    const created = fakeInteg({
+      workspaceId: 'ws-2',
+      status: IntegrationStatus.INVALID_CREDENTIALS,
+    });
     const prisma = makePrisma({
       findUnique: jest.fn().mockResolvedValue(null), // no conflict in ws-2
       create: jest.fn().mockResolvedValue(created),
     });
     const uc = new CreateIntegrationUseCase(prisma);
     await expect(
-      uc.execute('ws-2', { name: 'My Resend', provider: IntegrationProvider.RESEND, secretReference: 'env://KEY' }),
+      uc.execute('ws-2', {
+        name: 'My Resend',
+        provider: IntegrationProvider.RESEND,
+        secretReference: 'env://KEY',
+      }),
     ).resolves.toBeDefined();
   });
 });
@@ -110,15 +137,29 @@ describe('CreateIntegrationUseCase', () => {
 
 describe('TestIntegrationUseCase', () => {
   it('throws AppNotFoundException when integration not found', async () => {
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(null) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
-    await expect(uc.execute('ws-1', 'missing-id')).rejects.toThrow(AppNotFoundException);
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(null),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
+    await expect(uc.execute('ws-1', 'missing-id')).rejects.toThrow(
+      AppNotFoundException,
+    );
   });
 
   it('INVALID_CREDENTIALS + successful test → updates to ACTIVE', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.INVALID_CREDENTIALS });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: IntegrationStatus.ACTIVE } }),
@@ -127,66 +168,116 @@ describe('TestIntegrationUseCase', () => {
 
   it('INVALID_CREDENTIALS + failed test → no status update (remains INVALID_CREDENTIALS)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.INVALID_CREDENTIALS });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('ACTIVE + failed test → updates to INVALID_CREDENTIALS', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: IntegrationStatus.INVALID_CREDENTIALS } }),
+      expect.objectContaining({
+        data: { status: IntegrationStatus.INVALID_CREDENTIALS },
+      }),
     );
   });
 
   it('ACTIVE + successful test → no status update (remains ACTIVE)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('DISABLED + successful test → no status update (remains DISABLED)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('DISABLED + failed test → no status update (remains DISABLED)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'PROVIDER_UNAVAILABLE' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'PROVIDER_UNAVAILABLE' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('ACTIVE + PROVIDER_UNAVAILABLE → no status update (remains ACTIVE)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'PROVIDER_UNAVAILABLE' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'PROVIDER_UNAVAILABLE' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('ACTIVE + CONNECTION_FAILED → no status update (remains ACTIVE)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('DISABLED + CONNECTION_FAILED → no status update (remains DISABLED)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new TestIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new TestIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'CONNECTION_FAILED' }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
@@ -196,15 +287,29 @@ describe('TestIntegrationUseCase', () => {
 
 describe('EnableIntegrationUseCase', () => {
   it('throws AppNotFoundException when integration not found', async () => {
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(null) });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
-    await expect(uc.execute('ws-1', 'missing')).rejects.toThrow(AppNotFoundException);
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(null),
+    });
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
+    await expect(uc.execute('ws-1', 'missing')).rejects.toThrow(
+      AppNotFoundException,
+    );
   });
 
   it('ACTIVE → idempotent, does NOT call prisma.update', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
@@ -216,7 +321,11 @@ describe('EnableIntegrationUseCase', () => {
       findUnique: jest.fn().mockResolvedValue(integ),
       update: jest.fn().mockResolvedValue(updated),
     });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
     await uc.execute('ws-1', integ.id);
     expect(prisma.integration.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: IntegrationStatus.ACTIVE } }),
@@ -225,25 +334,49 @@ describe('EnableIntegrationUseCase', () => {
 
   it('DISABLED + failed test → throws AppValidationException, does NOT call update', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }));
-    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(AppValidationException);
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }),
+    );
+    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(
+      AppValidationException,
+    );
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('INVALID_CREDENTIALS → throws AppValidationException (must use /test instead)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.INVALID_CREDENTIALS });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: true }));
-    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(AppValidationException);
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: true }),
+    );
+    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(
+      AppValidationException,
+    );
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
 
   it('DISABLED + failed test → integration remains DISABLED (not mutated to INVALID_CREDENTIALS)', async () => {
     const integ = fakeInteg({ status: IntegrationStatus.DISABLED });
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(integ) });
-    const uc = new EnableIntegrationUseCase(prisma, makeResolver(), makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }));
-    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(AppValidationException);
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(integ),
+    });
+    const uc = new EnableIntegrationUseCase(
+      prisma,
+      makeResolver(),
+      makeRegistry({ success: false, reason: 'INVALID_CREDENTIALS' }),
+    );
+    await expect(uc.execute('ws-1', integ.id)).rejects.toThrow(
+      AppValidationException,
+    );
     // update must NOT have been called with INVALID_CREDENTIALS or any other status
     expect(prisma.integration.update).not.toHaveBeenCalled();
   });
@@ -253,22 +386,34 @@ describe('EnableIntegrationUseCase', () => {
 
 describe('DisableIntegrationUseCase', () => {
   it('throws AppNotFoundException when not found', async () => {
-    const prisma = makePrisma({ findUnique: jest.fn().mockResolvedValue(null) });
+    const prisma = makePrisma({
+      findUnique: jest.fn().mockResolvedValue(null),
+    });
     const uc = new DisableIntegrationUseCase(prisma);
-    await expect(uc.execute('ws-1', 'missing')).rejects.toThrow(AppNotFoundException);
+    await expect(uc.execute('ws-1', 'missing')).rejects.toThrow(
+      AppNotFoundException,
+    );
   });
 
   it('calls update with status DISABLED from any state', async () => {
-    for (const status of [IntegrationStatus.ACTIVE, IntegrationStatus.INVALID_CREDENTIALS, IntegrationStatus.DISABLED]) {
+    for (const status of [
+      IntegrationStatus.ACTIVE,
+      IntegrationStatus.INVALID_CREDENTIALS,
+      IntegrationStatus.DISABLED,
+    ]) {
       const integ = fakeInteg({ status });
       const prisma = makePrisma({
         findUnique: jest.fn().mockResolvedValue(integ),
-        update: jest.fn().mockResolvedValue({ ...integ, status: IntegrationStatus.DISABLED }),
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...integ, status: IntegrationStatus.DISABLED }),
       });
       const uc = new DisableIntegrationUseCase(prisma);
       await uc.execute('ws-1', integ.id);
       expect(prisma.integration.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { status: IntegrationStatus.DISABLED } }),
+        expect.objectContaining({
+          data: { status: IntegrationStatus.DISABLED },
+        }),
       );
     }
   });
@@ -277,7 +422,9 @@ describe('DisableIntegrationUseCase', () => {
     const integ = fakeInteg({ status: IntegrationStatus.ACTIVE });
     const prisma = makePrisma({
       findUnique: jest.fn().mockResolvedValue(integ),
-      update: jest.fn().mockResolvedValue({ ...integ, status: IntegrationStatus.DISABLED }),
+      update: jest
+        .fn()
+        .mockResolvedValue({ ...integ, status: IntegrationStatus.DISABLED }),
     });
     const uc = new DisableIntegrationUseCase(prisma);
     await uc.execute('ws-1', integ.id);

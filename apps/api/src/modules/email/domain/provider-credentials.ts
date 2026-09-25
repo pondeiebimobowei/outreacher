@@ -24,4 +24,5 @@ export interface WebhookCredentials {
   secret: string;
 }
 
-export type ProviderCredentials = ResendCredentials | SesCredentials | SmtpCredentials | WebhookCredentials;
+export type ProviderCredentials =
+  ResendCredentials | SesCredentials | SmtpCredentials | WebhookCredentials;

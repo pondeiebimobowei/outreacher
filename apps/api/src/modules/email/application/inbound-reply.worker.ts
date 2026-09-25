@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
 import type { ISecretResolver } from '../domain/secret-resolver.interface';
@@ -7,8 +12,10 @@ import type { IInboundEmailContentAdapterRegistry } from '../domain/inbound-emai
 import { ReplyCorrelationService } from '../domain/reply-correlation.service';
 import { InboundRetrievalException } from '../infrastructure/resend-inbound-content.adapter';
 import { Prisma } from '@repo/db';
-import { MarkContactRepliedUseCase, ContactStateTransitionException } from './mark-contact-replied.use-case';
-
+import {
+  MarkContactRepliedUseCase,
+  ContactStateTransitionException,
+} from './mark-contact-replied.use-case';
 
 @Injectable()
 export class InboundReplyWorker implements OnApplicationBootstrap {
@@ -18,10 +25,12 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
-    @Inject(INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN) private readonly adapterRegistry: IInboundEmailContentAdapterRegistry,
+    @Inject(SECRET_RESOLVER_TOKEN)
+    private readonly secretResolver: ISecretResolver,
+    @Inject(INBOUND_EMAIL_CONTENT_ADAPTER_REGISTRY_TOKEN)
+    private readonly adapterRegistry: IInboundEmailContentAdapterRegistry,
     private readonly correlationService: ReplyCorrelationService,
-    private readonly markContactRepliedUseCase: MarkContactRepliedUseCase
+    private readonly markContactRepliedUseCase: MarkContactRepliedUseCase,
   ) {}
 
   onApplicationBootstrap() {
@@ -55,15 +64,17 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         where: {
           type: 'WEBHOOK_PROCESSING',
           status: 'RUNNING',
-          updatedAt: { lt: fiveMinutesAgo }
+          updatedAt: { lt: fiveMinutesAgo },
         },
         data: {
           status: 'PENDING',
-          leaseVersion: { increment: 1 }
-        }
+          leaseVersion: { increment: 1 },
+        },
       });
       if (result.count > 0) {
-        this.logger.log(`Recovered ${result.count} stale WEBHOOK_PROCESSING jobs`);
+        this.logger.log(
+          `Recovered ${result.count} stale WEBHOOK_PROCESSING jobs`,
+        );
       }
     } catch (err) {
       this.logger.error('Error recovering stale jobs', err);
@@ -73,8 +84,11 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
   }
 
   private async claimAndProcessJobs(): Promise<number> {
-    const jobs: [] = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const eligible = await tx.$queryRaw<Array<{ id: string; attempt_count: number }>>`
+    const jobs: [] = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const eligible = await tx.$queryRaw<
+          Array<{ id: string; attempt_count: number }>
+        >`
         SELECT id, attempt_count
         FROM jobs
         WHERE type = 'WEBHOOK_PROCESSING'::"JobType"
@@ -85,89 +99,114 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         LIMIT ${this.BATCH_SIZE}
       `;
 
-      if (!eligible || eligible.length === 0) return [];
+        if (!eligible || eligible.length === 0) return [];
 
-      const updatedJobs = [];
-      const now = new Date();
-      for (const row of eligible) {
-        const updated = await tx.job.update({
-          where: { id: row.id },
-          data: {
-            status: 'RUNNING',
-            attemptCount: row.attempt_count + 1,
-            startedAt: now,
-            leaseVersion: { increment: 1 }
-          }
-        });
-        updatedJobs.push(updated);
-      }
-      return updatedJobs as [];
-    });
+        const updatedJobs = [];
+        const now = new Date();
+        for (const row of eligible) {
+          const updated = await tx.job.update({
+            where: { id: row.id },
+            data: {
+              status: 'RUNNING',
+              attemptCount: row.attempt_count + 1,
+              startedAt: now,
+              leaseVersion: { increment: 1 },
+            },
+          });
+          updatedJobs.push(updated);
+        }
+        return updatedJobs as [];
+      },
+    );
 
     if (jobs.length === 0) return 0;
 
-    await Promise.allSettled(jobs.map(job => this.processJob(job)));
+    await Promise.allSettled(jobs.map((job) => this.processJob(job)));
     return jobs.length;
   }
 
   private async processJob(job: any) {
     try {
-      const payload = job.payload as { inboundReplyId: string; integrationId: string };
+      const payload = job.payload as {
+        inboundReplyId: string;
+        integrationId: string;
+      };
       if (!payload || !payload.inboundReplyId || !payload.integrationId) {
-        throw new Error('Invalid job payload: missing inboundReplyId or integrationId');
+        throw new Error(
+          'Invalid job payload: missing inboundReplyId or integrationId',
+        );
       }
 
       const inboundReply = await this.prisma.inboundReply.findUnique({
-        where: { id: payload.inboundReplyId }
+        where: { id: payload.inboundReplyId },
       });
 
       if (!inboundReply) {
         throw new Error(`InboundReply ${payload.inboundReplyId} not found`);
       }
       if (inboundReply.workspaceId !== job.workspaceId) {
-        throw new Error(`Tenant mismatch: Job workspace ${job.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`);
+        throw new Error(
+          `Tenant mismatch: Job workspace ${job.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`,
+        );
       }
       if (!inboundReply.providerEmailId) {
-        throw new Error(`InboundReply ${payload.inboundReplyId} has no providerEmailId`);
+        throw new Error(
+          `InboundReply ${payload.inboundReplyId} has no providerEmailId`,
+        );
       }
 
       // Load integration directly by ID (no fallback)
       const integration = await this.prisma.integration.findUnique({
-        where: { id: payload.integrationId }
+        where: { id: payload.integrationId },
       });
 
       if (!integration) {
         throw new Error(`Integration ${payload.integrationId} not found`);
       }
       if (integration.workspaceId !== inboundReply.workspaceId) {
-        throw new Error(`Tenant mismatch: Integration workspace ${integration.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`);
+        throw new Error(
+          `Tenant mismatch: Integration workspace ${integration.workspaceId} != InboundReply workspace ${inboundReply.workspaceId}`,
+        );
       }
       if (integration.provider !== inboundReply.provider) {
-        throw new Error(`Provider mismatch: Integration provider ${integration.provider} != InboundReply provider ${inboundReply.provider}`);
+        throw new Error(
+          `Provider mismatch: Integration provider ${integration.provider} != InboundReply provider ${inboundReply.provider}`,
+        );
       }
       if (!integration.secretReference) {
         throw new Error(`Integration missing provider secret`);
       }
 
-            const apiCredentials = await this.secretResolver.resolve(
+      const apiCredentials = await this.secretResolver.resolve(
         integration.workspaceId,
         integration.secretReference,
-        'PROVIDER'
+        'PROVIDER',
       );
 
       // Get adapter
       const adapter = this.adapterRegistry.getAdapter(integration.provider);
 
       // Retrieve content
-      const retrieved = await adapter.getEmailDetails(inboundReply.providerEmailId, apiCredentials as any);
+      const retrieved = await adapter.getEmailDetails(
+        inboundReply.providerEmailId,
+        apiCredentials,
+      );
 
       // Consistency checks
       if (retrieved.providerEmailId !== inboundReply.providerEmailId) {
-         throw new Error(`Data integrity error: retrieved providerEmailId ${retrieved.providerEmailId} != original ${inboundReply.providerEmailId}`);
+        throw new Error(
+          `Data integrity error: retrieved providerEmailId ${retrieved.providerEmailId} != original ${inboundReply.providerEmailId}`,
+        );
       }
 
-      if (inboundReply.messageId && retrieved.messageId && retrieved.messageId !== inboundReply.messageId) {
-         throw new Error(`Data integrity error: retrieved messageId ${retrieved.messageId} != original ${inboundReply.messageId}`);
+      if (
+        inboundReply.messageId &&
+        retrieved.messageId &&
+        retrieved.messageId !== inboundReply.messageId
+      ) {
+        throw new Error(
+          `Data integrity error: retrieved messageId ${retrieved.messageId} != original ${inboundReply.messageId}`,
+        );
       }
 
       // Correlate
@@ -175,29 +214,36 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         inboundReply,
         inboundReply.toEmail,
         retrieved.inReplyTo,
-        retrieved.references
+        retrieved.references,
       );
 
       // 10C Transaction
       await this.prisma.$transaction(async (tx: any) => {
         // Tenant safety check - although correlation already scopes by workspaceId, we double check
         if (correlation.status === 'CORRELATED') {
-           if (correlation.campaignMemberId) {
-             const contact = await tx.campaignMember.findUnique({
-               where: { id: correlation.campaignMemberId }
-             });
-             if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
-               throw new Error('Tenant safety violation: Correlated CampaignMember belongs to different workspace');
-             }
-           }
-           if (correlation.outreachId) {
-             const outreach = await tx.outreach.findUnique({
-               where: { id: correlation.outreachId }
-             });
-             if (!outreach || outreach.workspaceId !== inboundReply.workspaceId) {
-               throw new Error('Tenant safety violation: Correlated Outreach belongs to different workspace');
-             }
-           }
+          if (correlation.campaignMemberId) {
+            const contact = await tx.campaignMember.findUnique({
+              where: { id: correlation.campaignMemberId },
+            });
+            if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
+              throw new Error(
+                'Tenant safety violation: Correlated CampaignMember belongs to different workspace',
+              );
+            }
+          }
+          if (correlation.outreachId) {
+            const outreach = await tx.outreach.findUnique({
+              where: { id: correlation.outreachId },
+            });
+            if (
+              !outreach ||
+              outreach.workspaceId !== inboundReply.workspaceId
+            ) {
+              throw new Error(
+                'Tenant safety violation: Correlated Outreach belongs to different workspace',
+              );
+            }
+          }
         }
 
         await tx.inboundReply.update({
@@ -210,10 +256,19 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
             inReplyTo: retrieved.inReplyTo,
             references: retrieved.references,
             status: correlation.status,
-            campaignMemberId: correlation.status === 'CORRELATED' ? correlation.campaignMemberId : null,
-            outreachId: correlation.status === 'CORRELATED' ? correlation.outreachId : null,
-            campaignId: correlation.status === 'CORRELATED' ? correlation.campaignId : null,
-          }
+            campaignMemberId:
+              correlation.status === 'CORRELATED'
+                ? correlation.campaignMemberId
+                : null,
+            outreachId:
+              correlation.status === 'CORRELATED'
+                ? correlation.outreachId
+                : null,
+            campaignId:
+              correlation.status === 'CORRELATED'
+                ? correlation.campaignId
+                : null,
+          },
         });
 
         if (correlation.status === 'CORRELATED' && correlation.outreachId) {
@@ -224,24 +279,33 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
               kind: 'INBOUND',
               subject: inboundReply.subject || '',
               body: retrieved.text || retrieved.html || '',
-            }
+            },
           });
         }
       });
 
       // 10D Transaction
       if (correlation.status === 'CORRELATED' && correlation.campaignMemberId) {
-        await this.markContactRepliedUseCase.execute(correlation.campaignMemberId, inboundReply.workspaceId);
+        await this.markContactRepliedUseCase.execute(
+          correlation.campaignMemberId,
+          inboundReply.workspaceId,
+        );
       }
 
       // Completion Transaction
       await this.prisma.job.update({
         where: { id: job.id, leaseVersion: job.leaseVersion },
-        data: { status: 'COMPLETED', updatedAt: new Date(), completedAt: new Date() }
+        data: {
+          status: 'COMPLETED',
+          updatedAt: new Date(),
+          completedAt: new Date(),
+        },
       });
-
     } catch (err: any) {
-      this.logger.error(`Failed to process WEBHOOK_PROCESSING job ${job.id}`, err);
+      this.logger.error(
+        `Failed to process WEBHOOK_PROCESSING job ${job.id}`,
+        err,
+      );
 
       let isRetryable = false;
       if (err instanceof InboundRetrievalException) {
@@ -254,17 +318,23 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       }
 
       // If missing payload or tenant violation, not retryable
-      if (err.message?.includes('Invalid job payload') || err.message?.includes('Tenant safety violation') || err.message?.includes('Data integrity error')) {
+      if (
+        err.message?.includes('Invalid job payload') ||
+        err.message?.includes('Tenant safety violation') ||
+        err.message?.includes('Data integrity error')
+      ) {
         isRetryable = false;
       }
 
       const attempts = job.attemptCount;
       const maxAttempts = job.maxAttempts;
-      
-      const newStatus = (!isRetryable || attempts >= maxAttempts) ? 'DEAD_LETTER' : 'PENDING';
-      const availableAt = newStatus === 'PENDING' 
-        ? new Date(Date.now() + Math.pow(2, attempts) * 1000)
-        : job.availableAt;
+
+      const newStatus =
+        !isRetryable || attempts >= maxAttempts ? 'DEAD_LETTER' : 'PENDING';
+      const availableAt =
+        newStatus === 'PENDING'
+          ? new Date(Date.now() + Math.pow(2, attempts) * 1000)
+          : job.availableAt;
 
       try {
         await this.prisma.job.update({
@@ -274,11 +344,14 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
             failedAt: newStatus === 'DEAD_LETTER' ? new Date() : null,
             updatedAt: new Date(),
             availableAt,
-            lastError: err.message
-          }
+            lastError: err.message,
+          },
         });
       } catch (updateErr) {
-        this.logger.error(`Failed to mark job ${job.id} as ${newStatus}`, updateErr);
+        this.logger.error(
+          `Failed to mark job ${job.id} as ${newStatus}`,
+          updateErr,
+        );
       }
     }
   }

@@ -2,7 +2,10 @@ jest.mock('svix', () => ({ Webhook: jest.fn() }));
 import { InboundWebhookService } from './inbound-webhook.service';
 import { PrismaService } from '../../../database/prisma.service';
 import { ResendInboundEmailAdapter } from '../infrastructure/resend-inbound-email.adapter';
-import { AppValidationException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppValidationException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 import { ISecretResolver } from '../domain/secret-resolver.interface';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SECRET_RESOLVER_TOKEN } from '../domain/secret-resolver.interface';
@@ -50,14 +53,18 @@ describe('InboundWebhookService', () => {
   });
 
   it('should throw AppValidationException if rawBody is missing', async () => {
-    await expect(service.handleInbound('integration-1', { rawBody: undefined } as any))
-      .rejects.toThrow(new AppValidationException('Raw body is missing'));
+    await expect(
+      service.handleInbound('integration-1', { rawBody: undefined } as any),
+    ).rejects.toThrow(new AppValidationException('Raw body is missing'));
   });
 
   it('should throw AppNotFoundException if integration not found', async () => {
     mockPrisma.integration.findUnique.mockResolvedValue(null);
-    await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('') } as any))
-      .rejects.toThrow(new AppNotFoundException('Integration not found'));
+    await expect(
+      service.handleInbound('integration-1', {
+        rawBody: Buffer.from(''),
+      } as any),
+    ).rejects.toThrow(new AppNotFoundException('Integration not found'));
   });
 
   it('should throw AppValidationException if integration is not RESEND', async () => {
@@ -65,8 +72,15 @@ describe('InboundWebhookService', () => {
       id: 'integration-1',
       provider: 'SMTP',
     });
-    await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('') } as any))
-      .rejects.toThrow(new AppValidationException('Provider SMTP is not supported for inbound webhooks in this adapter'));
+    await expect(
+      service.handleInbound('integration-1', {
+        rawBody: Buffer.from(''),
+      } as any),
+    ).rejects.toThrow(
+      new AppValidationException(
+        'Provider SMTP is not supported for inbound webhooks in this adapter',
+      ),
+    );
   });
 
   it('should throw AppValidationException if integration missing webhookSecretReference', async () => {
@@ -75,8 +89,15 @@ describe('InboundWebhookService', () => {
       provider: 'RESEND',
       webhookSecretReference: null,
     });
-    await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('') } as any))
-      .rejects.toThrow(new AppValidationException('Integration is not configured for inbound webhooks'));
+    await expect(
+      service.handleInbound('integration-1', {
+        rawBody: Buffer.from(''),
+      } as any),
+    ).rejects.toThrow(
+      new AppValidationException(
+        'Integration is not configured for inbound webhooks',
+      ),
+    );
   });
 
   it('should execute transaction and save properly', async () => {
@@ -87,7 +108,7 @@ describe('InboundWebhookService', () => {
       webhookSecretReference: 'vault://test#secret',
     };
     mockPrisma.integration.findUnique.mockResolvedValue(integration);
-    
+
     mockSecretResolver.resolve.mockResolvedValue({
       provider: 'WEBHOOK',
       secret: 'whsec_test',
@@ -120,7 +141,10 @@ describe('InboundWebhookService', () => {
       await cb(mockTx);
     });
 
-    await service.handleInbound('integration-1', { rawBody: Buffer.from('raw'), headers: {} } as any);
+    await service.handleInbound('integration-1', {
+      rawBody: Buffer.from('raw'),
+      headers: {},
+    } as any);
 
     expect(mockAdapter.verifySignature).toHaveBeenCalledWith({
       rawBody: Buffer.from('raw'),
@@ -128,30 +152,39 @@ describe('InboundWebhookService', () => {
       secret: 'whsec_test',
     });
 
-    expect(mockTx.inboundReply.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        workspaceId: 'workspace-1',
-        providerEventId: 'evt-123',
-        providerEmailId: 'email-123',
-        provider: 'RESEND',
+    expect(mockTx.inboundReply.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          providerEventId: 'evt-123',
+          providerEmailId: 'email-123',
+          provider: 'RESEND',
+        }),
       }),
-    }));
+    );
 
-    expect(mockTx.job.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: {
-        workspaceId: 'workspace-1',
-        type: 'WEBHOOK_PROCESSING',
-        idempotencyKey: 'webhook:RESEND:evt-123',
-        payload: { inboundReplyId: 'reply-1', integrationId: 'integration-1' },
-      },
-    }));
-
-    expect(mockTx.idempotencyRecord.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        workspaceId: 'workspace-1',
-        key: 'webhook:RESEND:evt-123',
+    expect(mockTx.job.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          workspaceId: 'workspace-1',
+          type: 'WEBHOOK_PROCESSING',
+          idempotencyKey: 'webhook:RESEND:evt-123',
+          payload: {
+            inboundReplyId: 'reply-1',
+            integrationId: 'integration-1',
+          },
+        },
       }),
-    }));
+    );
+
+    expect(mockTx.idempotencyRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          key: 'webhook:RESEND:evt-123',
+        }),
+      }),
+    );
   });
 
   it('should swallow P2002 duplicate errors for idempotency', async () => {
@@ -161,13 +194,23 @@ describe('InboundWebhookService', () => {
       provider: 'RESEND',
       webhookSecretReference: 'vault://test#secret',
     });
-    mockSecretResolver.resolve.mockResolvedValue({ provider: 'WEBHOOK', secret: 'whsec_test' });
+    mockSecretResolver.resolve.mockResolvedValue({
+      provider: 'WEBHOOK',
+      secret: 'whsec_test',
+    });
     mockAdapter.parsePayload.mockReturnValue({ providerEventId: 'evt-123' });
-    
-    const err = Object.assign(new Error('duplicate'), { code: 'P2002', meta: { target: ['key'] } });
+
+    const err = Object.assign(new Error('duplicate'), {
+      code: 'P2002',
+      meta: { target: ['key'] },
+    });
     mockPrisma.$transaction.mockRejectedValue(err);
 
     // Should resolve successfully
-    await expect(service.handleInbound('integration-1', { rawBody: Buffer.from('raw') } as any)).resolves.not.toThrow();
+    await expect(
+      service.handleInbound('integration-1', {
+        rawBody: Buffer.from('raw'),
+      } as any),
+    ).resolves.not.toThrow();
   });
 });

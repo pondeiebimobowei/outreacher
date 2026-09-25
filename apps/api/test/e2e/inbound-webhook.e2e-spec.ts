@@ -2,7 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
-import { setupTestDatabase, teardownTestDatabase, cleanTestDatabase } from '../helpers/db-test-harness';
+import {
+  setupTestDatabase,
+  teardownTestDatabase,
+  cleanTestDatabase,
+} from '../helpers/db-test-harness';
 import { PrismaService } from '../../src/database/prisma.service';
 import { SECRET_RESOLVER_TOKEN } from '../../src/modules/email/domain/secret-resolver.interface';
 import { Integration } from '@prisma/client';
@@ -10,7 +14,11 @@ import { Integration } from '@prisma/client';
 jest.mock('svix', () => ({
   Webhook: jest.fn().mockImplementation((secret) => ({
     verify: (payload: string, headers: Record<string, string>) => {
-      if (!headers['svix-id'] || !headers['svix-timestamp'] || !headers['svix-signature']) {
+      if (
+        !headers['svix-id'] ||
+        !headers['svix-timestamp'] ||
+        !headers['svix-signature']
+      ) {
         throw new Error('Missing svix headers');
       }
       if (secret === 'bad') throw new Error('Bad signature');
@@ -36,7 +44,9 @@ describe('InboundWebhookController (e2e)', () => {
 
   beforeEach(async () => {
     const mockSecretResolver = {
-      resolve: jest.fn().mockResolvedValue({ provider: 'WEBHOOK', secret: 'good' }),
+      resolve: jest
+        .fn()
+        .mockResolvedValue({ provider: 'WEBHOOK', secret: 'good' }),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -49,12 +59,13 @@ describe('InboundWebhookController (e2e)', () => {
     app = moduleFixture.createNestApplication({ rawBody: true });
     app.setGlobalPrefix('api/v1');
     await app.init();
-    
+
     prisma = app.get(PrismaService);
     await cleanTestDatabase();
 
-    
-    const workspace = await prisma.workspace.create({ data: { name: 'Test WS' } });
+    const workspace = await prisma.workspace.create({
+      data: { name: 'Test WS' },
+    });
     integration = await prisma.integration.create({
       data: {
         workspaceId: workspace.id,
@@ -62,7 +73,7 @@ describe('InboundWebhookController (e2e)', () => {
         name: 'My Resend',
         secretReference: 'vault://resend-api',
         webhookSecretReference: 'vault://webhook',
-      }
+      },
     });
   });
 
@@ -78,8 +89,8 @@ describe('InboundWebhookController (e2e)', () => {
       message_id: 'm123',
       from: 'test@example.com',
       to: ['recipient@example.com'],
-      subject: 'Hello'
-    }
+      subject: 'Hello',
+    },
   };
 
   it('should accept valid webhook and persist durable state, then suppress duplicates', async () => {
@@ -89,11 +100,13 @@ describe('InboundWebhookController (e2e)', () => {
       .set('svix-timestamp', '123')
       .set('svix-signature', 'sig')
       .send(validPayload);
-    
+
     expect(res.status).toBe(202);
 
     const replies = await prisma.inboundReply.count();
-    const jobs = await prisma.job.count({ where: { type: 'WEBHOOK_PROCESSING' } });
+    const jobs = await prisma.job.count({
+      where: { type: 'WEBHOOK_PROCESSING' },
+    });
     const idempotency = await prisma.idempotencyRecord.count();
 
     expect(replies).toBe(1);
@@ -107,11 +120,13 @@ describe('InboundWebhookController (e2e)', () => {
       .set('svix-timestamp', '123')
       .set('svix-signature', 'sig')
       .send(validPayload);
-    
+
     expect(res2.status).toBe(202);
 
     const repliesAfter = await prisma.inboundReply.count();
-    const jobsAfter = await prisma.job.count({ where: { type: 'WEBHOOK_PROCESSING' } });
+    const jobsAfter = await prisma.job.count({
+      where: { type: 'WEBHOOK_PROCESSING' },
+    });
     const idempotencyAfter = await prisma.idempotencyRecord.count();
 
     expect(repliesAfter).toBe(1);
@@ -126,7 +141,9 @@ describe('InboundWebhookController (e2e)', () => {
     })
       .overrideProvider(SECRET_RESOLVER_TOKEN)
       .useValue({
-        resolve: jest.fn().mockResolvedValue({ provider: 'WEBHOOK', secret: 'bad' })
+        resolve: jest
+          .fn()
+          .mockResolvedValue({ provider: 'WEBHOOK', secret: 'bad' }),
       })
       .compile();
 
@@ -140,7 +157,7 @@ describe('InboundWebhookController (e2e)', () => {
       .set('svix-timestamp', '123')
       .set('svix-signature', 'sig')
       .send(validPayload);
-    
+
     expect(res.status).toBe(400);
 
     const replies = await prisma.inboundReply.count();
@@ -153,7 +170,7 @@ describe('InboundWebhookController (e2e)', () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/webhooks/email/inbound/${integration.id}`)
       .send(validPayload);
-    
+
     expect(res.status).toBe(400);
 
     const replies = await prisma.inboundReply.count();

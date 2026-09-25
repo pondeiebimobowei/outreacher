@@ -9,10 +9,10 @@ export class CsrfGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const isPublicCsrf = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_CSRF_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const isPublicCsrf = this.reflector.getAllAndOverride<boolean>(
+      IS_PUBLIC_CSRF_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (isPublicCsrf) {
       return true;

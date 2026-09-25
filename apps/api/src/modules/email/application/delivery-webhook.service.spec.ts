@@ -39,10 +39,10 @@ describe('DeliveryWebhookService', () => {
     };
 
     service = new DeliveryWebhookService(
-      prisma as any,
-      secretResolver as any,
-      resendAdapter as any,
-      processDeliveryEvent as any,
+      prisma,
+      secretResolver,
+      resendAdapter,
+      processDeliveryEvent,
     );
   });
 
@@ -56,7 +56,9 @@ describe('DeliveryWebhookService', () => {
       throw new AppValidationException('Invalid webhook signature');
     });
 
-    await expect(service.handleDelivery('int_123', req as any)).rejects.toThrow('Invalid webhook signature');
+    await expect(service.handleDelivery('int_123', req as any)).rejects.toThrow(
+      'Invalid webhook signature',
+    );
     expect(resendAdapter.verifySignature).toHaveBeenCalled();
     expect(resendAdapter.parsePayload).not.toHaveBeenCalled();
     expect(processDeliveryEvent.execute).not.toHaveBeenCalled();
@@ -71,7 +73,7 @@ describe('DeliveryWebhookService', () => {
     resendAdapter.verifySignature.mockReturnValue(undefined);
     resendAdapter.parsePayload.mockReturnValue({
       status: 'VALID',
-      event: { providerEventId: 'evt_1', type: 'email.sent' }
+      event: { providerEventId: 'evt_1', type: 'email.sent' },
     });
 
     await service.handleDelivery('int_123', req as any);

@@ -1,10 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { IConnectionTester, ConnectionTestResult } from '../domain/connection-tester.interface';
+import {
+  IConnectionTester,
+  ConnectionTestResult,
+} from '../domain/connection-tester.interface';
 import type { ProviderCredentials } from '../../email/domain/provider-credentials';
 
 @Injectable()
 export class ResendConnectionTester implements IConnectionTester {
-  public async testConnection(credentials: ProviderCredentials): Promise<ConnectionTestResult> {
+  public async testConnection(
+    credentials: ProviderCredentials,
+  ): Promise<ConnectionTestResult> {
     if (credentials.provider !== 'RESEND') {
       return { success: false, reason: 'INVALID_CREDENTIALS' };
     }

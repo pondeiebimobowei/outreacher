@@ -10,7 +10,7 @@ export class EmailProviderRegistry {
 
   constructor(
     private readonly resendAdapter: ResendEmailProviderAdapter,
-    private readonly mockAdapter: MockEmailProviderAdapter
+    private readonly mockAdapter: MockEmailProviderAdapter,
   ) {
     this.adapters.set('RESEND', this.resendAdapter);
     if (process.env.NODE_ENV !== 'production') {
@@ -18,7 +18,9 @@ export class EmailProviderRegistry {
     }
   }
 
-  getAdapter(provider: string): EmailProviderAdapter<ProviderCredentials> | undefined {
+  getAdapter(
+    provider: string,
+  ): EmailProviderAdapter<ProviderCredentials> | undefined {
     return this.adapters.get(provider);
   }
 

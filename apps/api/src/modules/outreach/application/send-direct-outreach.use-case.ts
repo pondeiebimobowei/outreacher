@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { SendEligibilityService } from '../../email/domain/send-eligibility.service';
 import { Prisma } from '@repo/db';
-import { AppConflictException, AppNotFoundException } from '../../../common/errors/application.exception';
+import {
+  AppConflictException,
+  AppNotFoundException,
+} from '../../../common/errors/application.exception';
 
 export interface SendDirectOutreachCommand {
   workspaceId: string;
@@ -24,7 +27,7 @@ export class SendDirectOutreachUseCase {
 
     if (idempotencyKey) {
       const existing = await this.prisma.idempotencyRecord.findUnique({
-        where: { workspaceId_key: { workspaceId, key: idempotencyKey } }
+        where: { workspaceId_key: { workspaceId, key: idempotencyKey } },
       });
       if (existing) {
         if (existing.jobId) return { jobId: existing.jobId, status: 'QUEUED' };
@@ -32,65 +35,68 @@ export class SendDirectOutreachUseCase {
       }
     }
 
-    return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const outreach = await tx.outreach.findUnique({
-        where: { id: outreachId },
-        include: { personCompanyAssociation: { include: { person: true } } }
-      });
+    return await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const outreach = await tx.outreach.findUnique({
+          where: { id: outreachId },
+          include: { personCompanyAssociation: { include: { person: true } } },
+        });
 
-      if (!outreach || outreach.workspaceId !== workspaceId) {
-        throw new AppNotFoundException(`Outreach ${outreachId} not found`);
-      }
-
-      await this.eligibilityService.checkOutreachEligibility(
-        workspaceId,
-        outreach,
-        outreach.personCompanyAssociation.person.email
-      );
-
-      const emailSend = await this.eligibilityService.reserveSenderCapacityAndCreateEmailSendForOutreach(
-        tx,
-        workspaceId,
-        outreachId,
-        outreach.senderAccountId,
-        {
-          subject: outreach.subject,
-          body: outreach.message
+        if (!outreach || outreach.workspaceId !== workspaceId) {
+          throw new AppNotFoundException(`Outreach ${outreachId} not found`);
         }
-      );
 
-      await tx.outreach.update({
-        where: { id: outreachId },
-        data: { status: 'SENDING' }
-      });
-
-      const job = await tx.job.create({
-        data: {
+        await this.eligibilityService.checkOutreachEligibility(
           workspaceId,
-          type: 'EMAIL_DISPATCH',
-          status: 'PENDING',
-          payload: {
-            emailSendId: emailSend.id,
-            outreachId: outreach.id,
-          }
-        }
-      });
+          outreach,
+          outreach.personCompanyAssociation.person.email,
+        );
 
-      if (idempotencyKey) {
-        await tx.idempotencyRecord.create({
+        const emailSend =
+          await this.eligibilityService.reserveSenderCapacityAndCreateEmailSendForOutreach(
+            tx,
+            workspaceId,
+            outreachId,
+            outreach.senderAccountId,
+            {
+              subject: outreach.subject,
+              body: outreach.message,
+            },
+          );
+
+        await tx.outreach.update({
+          where: { id: outreachId },
+          data: { status: 'SENDING' },
+        });
+
+        const job = await tx.job.create({
           data: {
             workspaceId,
-            key: idempotencyKey,
-            route: 'POST /outreaches/:id/send',
-            targetId: outreachId,
-            jobId: job.id,
-            responseStatus: 202,
-            responseBody: { jobId: job.id, status: 'QUEUED' }
-          }
+            type: 'EMAIL_DISPATCH',
+            status: 'PENDING',
+            payload: {
+              emailSendId: emailSend.id,
+              outreachId: outreach.id,
+            },
+          },
         });
-      }
 
-      return { jobId: job.id, status: 'QUEUED' };
-    });
+        if (idempotencyKey) {
+          await tx.idempotencyRecord.create({
+            data: {
+              workspaceId,
+              key: idempotencyKey,
+              route: 'POST /outreaches/:id/send',
+              targetId: outreachId,
+              jobId: job.id,
+              responseStatus: 202,
+              responseBody: { jobId: job.id, status: 'QUEUED' },
+            },
+          });
+        }
+
+        return { jobId: job.id, status: 'QUEUED' };
+      },
+    );
   }
 }

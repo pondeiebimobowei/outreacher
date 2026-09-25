@@ -32,7 +32,11 @@ import { ResendDeliveryEventAdapter } from './infrastructure/resend-delivery-eve
 
 @Module({
   imports: [PrismaModule, WorkspaceModule],
-  controllers: [EmailController, InboundWebhookController, DeliveryWebhookController],
+  controllers: [
+    EmailController,
+    InboundWebhookController,
+    DeliveryWebhookController,
+  ],
   providers: [
     MarkContactRepliedUseCase,
     {

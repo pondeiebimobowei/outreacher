@@ -37,7 +37,7 @@ export interface IContactRepository {
   setCompanyContactSelection(
     workspaceId: string,
     companyId: string,
-            personId: string,
-            companyAssociationId: string,
+    personId: string,
+    companyAssociationId: string,
   ): Promise<CompanyContactSelection>;
 }

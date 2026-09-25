@@ -1,13 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { UpdateSenderAccountDto } from '../dto/update-sender-account.dto';
-import { AppNotFoundException, AppConflictException } from '../../../common/errors/application.exception';
+import {
+  AppNotFoundException,
+  AppConflictException,
+} from '../../../common/errors/application.exception';
 
 @Injectable()
 export class UpdateSenderAccountUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async execute(workspaceId: string, senderAccountId: string, dto: UpdateSenderAccountDto) {
+  public async execute(
+    workspaceId: string,
+    senderAccountId: string,
+    dto: UpdateSenderAccountDto,
+  ) {
     const sender = await this.prisma.senderAccount.findUnique({
       where: { id: senderAccountId },
     });
@@ -19,7 +26,7 @@ export class UpdateSenderAccountUseCase {
     let canonicalFromEmail = undefined;
     if (dto.fromEmail) {
       canonicalFromEmail = dto.fromEmail.trim().toLowerCase();
-      
+
       if (canonicalFromEmail !== sender.fromEmail) {
         const existingSender = await this.prisma.senderAccount.findFirst({
           where: {
@@ -30,7 +37,9 @@ export class UpdateSenderAccountUseCase {
         });
 
         if (existingSender) {
-          throw new AppConflictException('A sender account with this canonical fromEmail already exists in the workspace');
+          throw new AppConflictException(
+            'A sender account with this canonical fromEmail already exists in the workspace',
+          );
         }
       }
     }

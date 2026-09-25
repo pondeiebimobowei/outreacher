@@ -23,8 +23,8 @@ export class SelectContactUseCase {
   async execute(
     workspaceId: string,
     companyId: string,
-            personId: string,
-            companyAssociationId: string,
+    personId: string,
+    companyAssociationId: string,
   ): Promise<CompanyContactSelection> {
     // 1. Verify company existence and workspace ownership
     const company = await this.prisma.company.findFirst({
@@ -49,7 +49,7 @@ export class SelectContactUseCase {
     }
 
     const association = await this.prisma.personCompanyAssociation.findFirst({
-      where: { personId, companyId }
+      where: { personId, companyId },
     });
     if (!association) {
       this.logger.warn(

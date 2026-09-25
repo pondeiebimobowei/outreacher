@@ -32,7 +32,8 @@ describe('OutreachGenerationWorker', () => {
     updatedAt: new Date('2026-09-18T09:00:00Z'),
     person: {
       id: 'cnt-1',
-      firstName: 'Alice', lastName: 'Smith',
+      firstName: 'Alice',
+      lastName: 'Smith',
       title: 'VP Eng',
       personKind: 'PERSON',
     },
@@ -169,9 +170,7 @@ describe('OutreachGenerationWorker', () => {
   it('aborts persistence inside transaction when CampaignMember is updated concurrently during AI execution', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
     // Initial fetch returns non-stale contact
-    prisma.campaignMember.findUnique.mockResolvedValueOnce(
-      mockCampaignContact,
-    );
+    prisma.campaignMember.findUnique.mockResolvedValueOnce(mockCampaignContact);
     // Concurrent update occurs during AI execution -> transaction fetch returns stale contact
     const concurrentlyUpdatedContact = {
       ...mockCampaignContact,

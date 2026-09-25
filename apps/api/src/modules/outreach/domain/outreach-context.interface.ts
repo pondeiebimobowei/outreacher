@@ -7,7 +7,8 @@ export interface OutreachContext {
 
   person: {
     id: string;
-    firstName: string; lastName: string;
+    firstName: string;
+    lastName: string;
     title?: string | null;
     kind: PersonKind;
   };

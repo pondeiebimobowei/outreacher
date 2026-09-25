@@ -15,8 +15,8 @@ export class ListSenderAccountsUseCase {
             provider: true,
             status: true,
             name: true,
-          }
-        }
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

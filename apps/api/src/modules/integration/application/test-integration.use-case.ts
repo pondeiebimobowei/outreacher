@@ -11,8 +11,10 @@ import type { IConnectionTesterRegistry } from '../domain/connection-tester.inte
 export class TestIntegrationUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(SECRET_RESOLVER_TOKEN) private readonly secretResolver: ISecretResolver,
-    @Inject(CONNECTION_TESTER_REGISTRY_TOKEN) private readonly testerRegistry: IConnectionTesterRegistry,
+    @Inject(SECRET_RESOLVER_TOKEN)
+    private readonly secretResolver: ISecretResolver,
+    @Inject(CONNECTION_TESTER_REGISTRY_TOKEN)
+    private readonly testerRegistry: IConnectionTesterRegistry,
   ) {}
 
   public async execute(workspaceId: string, integrationId: string) {
@@ -24,7 +26,11 @@ export class TestIntegrationUseCase {
       throw new AppNotFoundException('Integration not found');
     }
 
-    const resolvedSecret = await this.secretResolver.resolve(integration.workspaceId, integration.secretReference, integration.provider);
+    const resolvedSecret = await this.secretResolver.resolve(
+      integration.workspaceId,
+      integration.secretReference,
+      integration.provider,
+    );
     const tester = this.testerRegistry.getTester(integration.provider);
     const result = await tester.testConnection(resolvedSecret);
 
@@ -33,12 +39,19 @@ export class TestIntegrationUseCase {
       return result;
     }
 
-    if (result.success && integration.status === IntegrationStatus.INVALID_CREDENTIALS) {
+    if (
+      result.success &&
+      integration.status === IntegrationStatus.INVALID_CREDENTIALS
+    ) {
       await this.prisma.integration.update({
         where: { id: integration.id },
         data: { status: IntegrationStatus.ACTIVE },
       });
-    } else if (!result.success && integration.status === IntegrationStatus.ACTIVE && result.reason === 'INVALID_CREDENTIALS') {
+    } else if (
+      !result.success &&
+      integration.status === IntegrationStatus.ACTIVE &&
+      result.reason === 'INVALID_CREDENTIALS'
+    ) {
       await this.prisma.integration.update({
         where: { id: integration.id },
         data: { status: IntegrationStatus.INVALID_CREDENTIALS },

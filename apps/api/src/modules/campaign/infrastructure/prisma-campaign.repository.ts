@@ -21,9 +21,13 @@ const campaignInclude = {
   },
 };
 
-type CampaignWithPrismaIncludes = Prisma.CampaignGetPayload<{ include: typeof campaignInclude }>;
+type CampaignWithPrismaIncludes = Prisma.CampaignGetPayload<{
+  include: typeof campaignInclude;
+}>;
 
-function mapCampaign(campaign: CampaignWithPrismaIncludes): CampaignWithSenders {
+function mapCampaign(
+  campaign: CampaignWithPrismaIncludes,
+): CampaignWithSenders {
   return {
     ...campaign,
     senders: campaign.campaignSenderAccounts.map((csa) => ({
@@ -32,7 +36,7 @@ function mapCampaign(campaign: CampaignWithPrismaIncludes): CampaignWithSenders 
       fromName: csa.senderAccount.fromName,
       fromEmail: csa.senderAccount.fromEmail,
       senderStatus: csa.senderAccount.status,
-      integrationStatus: csa.senderAccount.integration.status as CampaignSenderSummary['integrationStatus'],
+      integrationStatus: csa.senderAccount.integration.status,
     })),
   };
 }
@@ -53,7 +57,6 @@ export class PrismaCampaignRepository implements ICampaignRepository {
           normalizedName: data.normalizedName,
           status: data.status,
           followUpDelayBusinessDays: data.followUpDelayBusinessDays ?? 4,
-          
         },
         include: campaignInclude,
       });
@@ -70,7 +73,10 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     }
   }
 
-  async findById(workspaceId: string, id: string): Promise<CampaignWithSenders | null> {
+  async findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<CampaignWithSenders | null> {
     const campaign = await this.prisma.campaign.findFirst({
       where: { id, workspaceId },
       include: campaignInclude,
@@ -94,7 +100,9 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     return campaign ? mapCampaign(campaign) : null;
   }
 
-  async findManyByWorkspace(workspaceId: string): Promise<CampaignWithSenders[]> {
+  async findManyByWorkspace(
+    workspaceId: string,
+  ): Promise<CampaignWithSenders[]> {
     const campaigns = await this.prisma.campaign.findMany({
       where: { workspaceId },
       orderBy: { updatedAt: 'desc' },

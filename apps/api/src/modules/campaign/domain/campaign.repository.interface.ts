@@ -22,16 +22,19 @@ export interface CreateCampaignData {
   workspaceId: string;
   companyId: string;
   senderAccountId: string;
-  templateId: string,
+  templateId: string;
   name: string;
   normalizedName: string;
-  status: CampaignStatus,
+  status: CampaignStatus;
   followUpDelayBusinessDays?: number;
 }
 
 export interface ICampaignRepository {
   create(data: CreateCampaignData): Promise<CampaignWithSenders>;
-  findById(workspaceId: string, id: string): Promise<CampaignWithSenders | null>;
+  findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<CampaignWithSenders | null>;
   findByNormalizedName(
     workspaceId: string,
     companyId: string,

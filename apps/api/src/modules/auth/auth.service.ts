@@ -87,7 +87,10 @@ export class AuthService {
             data: {
               email,
               firstName: displayName ? displayName.split(' ')[0] : 'User',
-              lastName: displayName && displayName.includes(' ') ? displayName.split(' ').slice(1).join(' ') : '',
+              lastName:
+                displayName && displayName.includes(' ')
+                  ? displayName.split(' ').slice(1).join(' ')
+                  : '',
             },
           });
 
@@ -279,7 +282,10 @@ export class AuthService {
           data: {
             email: googleEmail,
             firstName: displayName ? displayName.split(' ')[0] : 'User',
-            lastName: displayName && displayName.includes(' ') ? displayName.split(' ').slice(1).join(' ') : '',
+            lastName:
+              displayName && displayName.includes(' ')
+                ? displayName.split(' ').slice(1).join(' ')
+                : '',
           },
         });
 

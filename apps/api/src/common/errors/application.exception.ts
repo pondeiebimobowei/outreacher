@@ -117,12 +117,20 @@ export class AppProviderFailureException extends AppException {
 
 export class SystemConfigurationException extends AppException {
   constructor(message: string = 'System configuration error') {
-    super(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR);
+    super(
+      message,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      ErrorCode.INTERNAL_SERVER_ERROR,
+    );
   }
 }
 
 export class SecretResolutionException extends AppException {
   constructor(message: string = 'Failed to resolve vault secret') {
-    super(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR);
+    super(
+      message,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      ErrorCode.INTERNAL_SERVER_ERROR,
+    );
   }
 }
