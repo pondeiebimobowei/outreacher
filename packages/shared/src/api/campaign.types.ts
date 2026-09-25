@@ -75,16 +75,19 @@ export interface CampaignContactDto {
   updatedAt: string;
 }
 
+export interface CampaignContactPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  title: string | null;
+  email: string | null;
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
+  confidence: string | null;
+}
+
+
 export interface CampaignContactSummaryDto extends CampaignContactDto {
-  person: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    title: string | null;
-    email: string | null;
-    personKind: 'PERSON' | 'ROLE_ADDRESS';
-    confidence: string | null;
-  };
+  person: CampaignContactPerson;
 }
 
 export interface AddCampaignContactsResponse {

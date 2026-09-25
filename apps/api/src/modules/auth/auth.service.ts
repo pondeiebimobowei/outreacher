@@ -247,6 +247,7 @@ export class AuthService {
       );
 
       return {
+        isNewUser: false,
         user: {
           id: existingIdentity.user.id,
           email: existingIdentity.user.email,
@@ -333,6 +334,7 @@ export class AuthService {
     const token = this.generateToken(user.id, workspace.id, user.email);
 
     return {
+      isNewUser: true,
       user: {
         id: user.id,
         email: user.email,

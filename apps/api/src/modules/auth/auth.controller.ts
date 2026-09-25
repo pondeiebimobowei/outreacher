@@ -119,7 +119,7 @@ export class AuthController {
       JSON.stringify({ state, codeVerifier }),
     ).toString('base64');
 
-    res.cookie('career_os_oauth_state', cookiePayload, {
+    res.cookie('outreacher_oauth_state', cookiePayload, {
       httpOnly: true,
       sameSite: 'lax',
       secure: isProd,
@@ -144,9 +144,9 @@ export class AuthController {
     @Res() res: express.Response,
   ) {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
-    const oauthCookie = req.cookies['career_os_oauth_state'];
+    const oauthCookie = req.cookies['outreacher_oauth_state'];
 
-    res.cookie('career_os_oauth_state', '', {
+    res.cookie('outreacher_oauth_state', '', {
       httpOnly: true,
       sameSite: 'lax',
       secure: isProd,
@@ -186,6 +186,10 @@ export class AuthController {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
-    return res.redirect(frontendUrl);
+    if (result.isNewUser) {
+      return res.redirect(`${frontendUrl}/onboarding`);
+    } else {
+      return res.redirect(`${frontendUrl}/dashboard`);
+    }
   }
 }

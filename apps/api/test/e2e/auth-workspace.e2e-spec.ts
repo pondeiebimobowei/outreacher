@@ -352,7 +352,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
 
       const cookies = res.get('Set-Cookie') || [];
       expect(
-        cookies.some((c: string) => c.startsWith('career_os_oauth_state=')),
+        cookies.some((c: string) => c.startsWith('outreacher_oauth_state=')),
       ).toBe(true);
     });
 
@@ -364,7 +364,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
 
       const cookies = initRes.get('Set-Cookie') || [];
       const stateCookie = cookies.find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
       const locationUrl = new URL(initRes.headers.location);
       const stateParam = locationUrl.searchParams.get('state');
@@ -403,7 +403,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
         .get('/api/v1/auth/google')
         .expect(302);
       const stateCookie1 = (init1.get('Set-Cookie') || []).find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
       const stateParam1 = new URL(init1.headers.location).searchParams.get(
         'state',
@@ -421,7 +421,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
         .get('/api/v1/auth/google')
         .expect(302);
       const stateCookie2 = (init2.get('Set-Cookie') || []).find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
       const stateParam2 = new URL(init2.headers.location).searchParams.get(
         'state',
@@ -461,7 +461,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
         .get('/api/v1/auth/google')
         .expect(302);
       const stateCookie = (init.get('Set-Cookie') || []).find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
       const stateParam = new URL(init.headers.location).searchParams.get(
         'state',
@@ -495,7 +495,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
         .get('/api/v1/auth/google')
         .expect(302);
       const stateCookie = (init.get('Set-Cookie') || []).find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
 
       const res2 = await request(app.getHttpServer())
@@ -513,7 +513,7 @@ describe('Auth & Workspace Engine (e2e)', () => {
         .get('/api/v1/auth/google')
         .expect(302);
       const stateCookie = (init.get('Set-Cookie') || []).find((c: string) =>
-        c.startsWith('career_os_oauth_state='),
+        c.startsWith('outreacher_oauth_state='),
       );
       const stateParam = new URL(init.headers.location).searchParams.get(
         'state',
