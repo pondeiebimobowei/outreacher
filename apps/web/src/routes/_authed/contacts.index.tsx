@@ -9,7 +9,6 @@ import { Building02Icon, UsersIcon, SearchIcon, ArrowRightIcon, MapPinIcon, Glob
 export const Route = createFileRoute('/_authed/contacts/')({
   component: ContactsIndexComponent,
 });
-
 const COMPANY_AVATAR_COLORS = [
   '#1D4ED8', // blue
   '#0F766E', // teal

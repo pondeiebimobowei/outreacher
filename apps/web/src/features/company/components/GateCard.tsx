@@ -16,8 +16,8 @@ export function GateCard({
   onCta?: () => void;
   ctaVariant?: 'default' | 'amber';
 }) {
-  const ctaBg = ctaVariant === 'amber' ? 'bg-[#78350F] hover:bg-[#92400E]' : 'bg-[var(--color-primary)] hover:bg-[#1E2D4A]';
-  
+  const ctaBg = ctaVariant === 'amber' ? 'bg-[#78350F] hover:bg-[#92400E]' : 'bg-(--color-primary) hover:bg-[#1E2D4A]';
+
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 px-8 bg-slate-50 rounded-none-none border border-slate-200 ">
       <div

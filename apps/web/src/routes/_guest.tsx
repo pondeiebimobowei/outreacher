@@ -11,7 +11,7 @@ function GuestLayoutComponent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 bg-[var(--color-background)]">
+      <div className="flex min-h-screen items-center justify-center p-4 bg-(--color-background)">
         <LoadingState message="Verifying session..." />
       </div>
     );
@@ -22,9 +22,9 @@ function GuestLayoutComponent() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[var(--color-background)]">
+    <div className="min-h-screen flex bg-(--color-background)">
       {/* Left brand panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-[var(--color-sidebar)] select-none">
+      <div className="hidden lg:flex flex-col justify-between w-[400px] shrink-0 p-10 bg-(--color-sidebar) select-none">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -52,7 +52,7 @@ function GuestLayoutComponent() {
 
       {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10 overflow-y-auto">
-        <div className="w-full max-w-[440px] bg-[var(--color-card)] rounded-none-none  border border-[var(--color-border)] p-7 sm:p-9">
+        <div className="w-full max-w-[440px] bg-(--color-card) rounded-none-none  border border-border p-7 sm:p-9">
           <Outlet />
         </div>
       </div>

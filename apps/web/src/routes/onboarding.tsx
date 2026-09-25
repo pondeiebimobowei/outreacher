@@ -205,7 +205,7 @@ function OnboardingComponent() {
 
   if (status === 'loading' || isProfileLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 bg-[var(--color-background)]">
+      <div className="flex min-h-screen items-center justify-center p-4 bg-(--color-background)">
         <LoadingState message="Loading onboarding..." />
       </div>
     );
@@ -214,23 +214,23 @@ function OnboardingComponent() {
   if (done) {
     const firstName = user?.name ? user.name.split(' ')[0] : 'there';
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-background)]">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-(--color-background)">
         <div className="w-full max-w-130 text-center py-8">
           <div className="w-16 h-16 rounded-none-none mx-auto flex items-center justify-center mb-6 text-indigo-700 ">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
           </div>
-          <h2 className="text-[26px] font-bold mb-2 font-heading tracking-tight text-[var(--color-primary)]">
+          <h2 className="text-[26px] font-bold mb-2 font-heading tracking-tight text-(--color-primary)">
             You're all set, {firstName}.
           </h2>
-          <p className="text-[15px] max-w-[420px] mx-auto leading-relaxed text-[var(--color-muted-fg)] font-body">
+          <p className="text-[15px] max-w-[420px] mx-auto leading-relaxed text-muted-fg font-body">
             Outreacher has everything it needs to help you find the right companies, identify relevant contacts, and send outreach grounded in evidence.
           </p>
           <button
             type="button"
             onClick={() => navigate({ to: '/dashboard' })}
-            className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-none-none font-semibold text-[15px]  bg-[var(--color-primary)] text-white -xs hover:bg-opacity-95 active:scale-[0.99] font-heading cursor-pointer"
+            className="mt-8 inline-flex items-center gap-2 px-7 py-3 rounded-none-none font-semibold text-[15px]  bg-(--color-primary) text-white -xs hover:bg-opacity-95 active:scale-[0.99] font-heading cursor-pointer"
           >
             <span>Enter Outreacher</span>
             <HugeiconsIcon icon={ArrowRightIcon} size={16} />
@@ -244,16 +244,16 @@ function OnboardingComponent() {
   const isLastStep = step === STEPS.length - 1;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--color-background)]">
+    <div className="min-h-screen flex flex-col bg-(--color-background)">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 sm:px-8 h-15 shrink-0 border-b border-[var(--color-border)] bg-[var(--color-card)] select-none">
+      <header className="flex items-center justify-between px-4 sm:px-8 h-15 shrink-0 border-b border-border bg-(--color-card) select-none">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-none-none flex items-center justify-center bg-[var(--color-accent)] -xs">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
           </div>
-          <span className="font-bold text-[15px] font-heading tracking-tight text-[var(--color-primary)]">
+          <span className="font-bold text-[15px] font-heading tracking-tight text-(--color-primary)">
             Outreacher
           </span>
         </div>
@@ -261,14 +261,14 @@ function OnboardingComponent() {
           <button
             type="button"
             onClick={() => navigate({ to: '/' })}
-            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]  font-body cursor-pointer"
+            className="text-[12.5px] text-muted-fg hover:text-(--color-primary)  font-body cursor-pointer"
           >
             Skip for now
           </button>
           <button
             type="button"
             onClick={() => void logout()}
-            className="text-[12.5px] text-[var(--color-muted-fg)] hover:text-red-600  font-body flex items-center gap-1 cursor-pointer"
+            className="text-[12.5px] text-muted-fg hover:text-red-600  font-body flex items-center gap-1 cursor-pointer"
           >
             <HugeiconsIcon icon={LogOutIcon} size={13} />
             <span>Log out</span>
@@ -288,34 +288,31 @@ function OnboardingComponent() {
                 <div key={s.id} className="flex items-center flex-1 last:flex-none">
                   <div className="flex flex-col items-center gap-1.5">
                     <div
-                      className={`w-7 h-7 rounded-none-full flex items-center justify-center text-[12px] font-bold  font-heading ${
-                        doneStep
-                          ? 'bg-[var(--color-accent)] text-white'
-                          : activeStep
-                          ? 'bg-[var(--color-primary)] text-white -xs ring-2 ring-[var(--color-accent)]/30'
+                      className={`w-7 h-7 rounded-none-full flex items-center justify-center text-[12px] font-bold  font-heading ${doneStep
+                        ? 'bg-[var(--color-accent)] text-white'
+                        : activeStep
+                          ? 'bg-(--color-primary) text-white -xs ring-2 ring-[var(--color-accent)]/30'
                           : 'bg-slate-100 text-slate-400 border border-slate-200'
-                      }`}
+                        }`}
                       aria-current={activeStep ? 'step' : undefined}
                     >
                       {doneStep ? <HugeiconsIcon icon={CheckIcon} size={13} strokeWidth={2.5} /> : i + 1}
                     </div>
                     <span
-                      className={`text-[11px] font-medium hidden sm:block font-heading ${
-                        activeStep
-                          ? 'text-[var(--color-primary)] font-semibold'
-                          : doneStep
+                      className={`text-[11px] font-medium hidden sm:block font-heading ${activeStep
+                        ? 'text-(--color-primary) font-semibold'
+                        : doneStep
                           ? 'text-[var(--color-accent)]'
                           : 'text-slate-400'
-                      }`}
+                        }`}
                     >
                       {s.label}
                     </span>
                   </div>
                   {i < STEPS.length - 1 && (
                     <div
-                      className={`flex-1 h-px mx-2 mb-4  ${
-                        doneStep ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
-                      }`}
+                      className={`flex-1 h-px mx-2 mb-4  ${doneStep ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
+                        }`}
                     />
                   )}
                 </div>
@@ -324,12 +321,12 @@ function OnboardingComponent() {
           </div>
 
           {/* Card */}
-          <div className="rounded-none-none p-6 sm:p-8 bg-[var(--color-card)] border border-[var(--color-border)] -xs">
+          <div className="rounded-none-none p-6 sm:p-8 bg-(--color-card) border border-border -xs">
             <div className="mb-6">
-              <h2 className="text-[22px] font-bold leading-tight font-heading tracking-tight text-[var(--color-primary)]">
+              <h2 className="text-[22px] font-bold leading-tight font-heading tracking-tight text-(--color-primary)">
                 {currentStep.label}
               </h2>
-              <p className="text-[14px] mt-1 text-[var(--color-muted-fg)] font-body">
+              <p className="text-[14px] mt-1 text-muted-fg font-body">
                 {currentStep.hint}
               </p>
             </div>
@@ -345,10 +342,10 @@ function OnboardingComponent() {
             {step === 0 && (
               <div className="flex flex-col gap-5">
                 <div>
-                  <label htmlFor="headline" className="block text-[13px] font-medium mb-1.5 font-heading text-[var(--color-primary)]">
+                  <label htmlFor="headline" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
                     Professional Headline
                   </label>
-                  <p className="text-[12.5px] mb-2 text-[var(--color-muted-fg)] font-body">
+                  <p className="text-[12.5px] mb-2 text-muted-fg font-body">
                     A concise statement of what you do professionally (e.g. Senior Frontend Engineer).
                   </p>
                   <div className="relative">
@@ -359,7 +356,7 @@ function OnboardingComponent() {
                       value={form.headline}
                       onChange={(e) => update('headline', e.target.value)}
                       placeholder="e.g. Senior Frontend Engineer"
-                      className="w-full px-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full px-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                       style={{
                         borderColor: errors.headline ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.headline ? '#FEF2F2' : 'var(--color-card)',
@@ -387,7 +384,7 @@ function OnboardingComponent() {
                     onChange={(roles) => update('targetRoles', roles)}
                     placeholder="Type a role and press Enter (e.g. Frontend Engineer)..."
                   />
-                  <p className="text-[12px] mt-1 text-[var(--color-muted-fg)] font-body">
+                  <p className="text-[12px] mt-1 text-muted-fg font-body">
                     Add up to 20 roles you are actively targeting.
                   </p>
                   {errors.targetRoles && (
@@ -410,7 +407,7 @@ function OnboardingComponent() {
                     onChange={(skills) => update('skills', skills)}
                     placeholder="Type a skill and press Enter (e.g. React)..."
                   />
-                  <p className="text-[12.5px] mt-1 text-[var(--color-muted-fg)] font-body">
+                  <p className="text-[12.5px] mt-1 text-muted-fg font-body">
                     Add up to 50 skills. These shape how Outreacher evaluates company and contact relevance.
                   </p>
                   {errors.skills && (
@@ -435,7 +432,7 @@ function OnboardingComponent() {
                             update('skills', [...form.skills, s]);
                           }
                         }}
-                        className="text-[11.5px] px-2.5 py-1 rounded-none-none  bg-[var(--color-muted)] text-[var(--color-muted-fg)] border border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] font-body cursor-pointer"
+                        className="text-[11.5px] px-2.5 py-1 rounded-none-none  bg-(--color-muted) text-muted-fg border border-border hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] font-body cursor-pointer"
                       >
                         + {s}
                       </button>
@@ -448,10 +445,10 @@ function OnboardingComponent() {
             {/* Step 3: Professional Summary */}
             {step === 2 && (
               <div>
-                <label htmlFor="summary" className="block text-[13px] font-medium mb-1.5 font-heading text-[var(--color-primary)]">
+                <label htmlFor="summary" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
                   Professional Summary
                 </label>
-                <p className="text-[12.5px] mb-2.5 text-[var(--color-muted-fg)] font-body">
+                <p className="text-[12.5px] mb-2.5 text-muted-fg font-body">
                   Write as you'd introduce yourself. This informs outreach generation — never invented.
                 </p>
                 <div className="relative">
@@ -462,7 +459,7 @@ function OnboardingComponent() {
                     value={form.summary}
                     onChange={(e) => update('summary', e.target.value)}
                     placeholder="e.g. I'm a software engineer with 6 years of experience building payment infrastructure at scale. I've led backend systems handling millions of transactions and I'm looking for my next challenge..."
-                    className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-[var(--color-card)] text-[var(--color-primary)] font-body leading-relaxed"
+                    className="w-full px-4 py-3 rounded-none-none text-[14px] outline-none  resize-none border bg-(--color-card) text-(--color-primary) font-body leading-relaxed"
                     style={{
                       borderColor: errors.summary ? '#FCA5A5' : 'var(--color-border)',
                       backgroundColor: errors.summary ? '#FEF2F2' : 'var(--color-card)',
@@ -475,9 +472,8 @@ function OnboardingComponent() {
                     }}
                   />
                   <span
-                    className={`absolute bottom-3 right-3 text-[11.5px] font-body ${
-                      form.summary.length > 1800 ? 'text-amber-500' : 'text-[var(--color-muted-fg)]'
-                    }`}
+                    className={`absolute bottom-3 right-3 text-[11.5px] font-body ${form.summary.length > 1800 ? 'text-amber-500' : 'text-muted-fg'
+                      }`}
                   >
                     {form.summary.length}/2000
                   </span>
@@ -493,22 +489,22 @@ function OnboardingComponent() {
             {/* Step 4: Presence & Links */}
             {step === 3 && (
               <div className="flex flex-col gap-4">
-                <p className="text-[13px] text-[var(--color-muted-fg)] font-body">
+                <p className="text-[13px] text-muted-fg font-body">
                   All fields are optional. Add links relevant to your target role.
                 </p>
 
                 {/* LinkedIn */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="linkedinUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
+                    <label htmlFor="linkedinUrl" className="text-[13px] font-medium font-heading text-(--color-primary)">
                       LinkedIn URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-(--color-muted) text-muted-fg font-body">
                       Optional
                     </span>
                   </div>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2zM4 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
                       </svg>
@@ -519,7 +515,7 @@ function OnboardingComponent() {
                       value={form.linkedinUrl}
                       onChange={(e) => update('linkedinUrl', e.target.value)}
                       placeholder="https://linkedin.com/in/username"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                       style={{
                         borderColor: errors.linkedinUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.linkedinUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -542,15 +538,15 @@ function OnboardingComponent() {
                 {/* GitHub */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="githubUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
+                    <label htmlFor="githubUrl" className="text-[13px] font-medium font-heading text-(--color-primary)">
                       GitHub URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-(--color-muted) text-muted-fg font-body">
                       Optional
                     </span>
                   </div>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                       </svg>
@@ -561,7 +557,7 @@ function OnboardingComponent() {
                       value={form.githubUrl}
                       onChange={(e) => update('githubUrl', e.target.value)}
                       placeholder="https://github.com/username"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                       style={{
                         borderColor: errors.githubUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.githubUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -584,15 +580,15 @@ function OnboardingComponent() {
                 {/* Portfolio */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="portfolioUrl" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
+                    <label htmlFor="portfolioUrl" className="text-[13px] font-medium font-heading text-(--color-primary)">
                       Portfolio / Website URL
                     </label>
-                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-[var(--color-muted)] text-[var(--color-muted-fg)] font-body">
+                    <span className="text-[11px] font-normal px-1.5 py-0.5 rounded-none bg-(--color-muted) text-muted-fg font-body">
                       Optional
                     </span>
                   </div>
                   <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                       </svg>
@@ -603,7 +599,7 @@ function OnboardingComponent() {
                       value={form.portfolioUrl}
                       onChange={(e) => update('portfolioUrl', e.target.value)}
                       placeholder="https://yoursite.com"
-                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                       style={{
                         borderColor: errors.portfolioUrl ? '#FCA5A5' : 'var(--color-border)',
                         backgroundColor: errors.portfolioUrl ? '#FEF2F2' : 'var(--color-card)',
@@ -626,14 +622,13 @@ function OnboardingComponent() {
             )}
 
             {/* Navigation buttons */}
-            <div className="flex items-center justify-between mt-8 pt-5 border-t border-[var(--color-border)]">
+            <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={step === 0}
-                className={`flex items-center gap-1.5 text-[13.5px] font-medium  font-body cursor-pointer ${
-                  step === 0 ? 'invisible pointer-events-none' : 'text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]'
-                }`}
+                className={`flex items-center gap-1.5 text-[13.5px] font-medium  font-body cursor-pointer ${step === 0 ? 'invisible pointer-events-none' : 'text-muted-fg hover:text-(--color-primary)'
+                  }`}
               >
                 <HugeiconsIcon icon={ArrowLeftIcon} size={15} /> Back
               </button>
@@ -642,7 +637,7 @@ function OnboardingComponent() {
                 type="button"
                 onClick={handleNext}
                 disabled={mutation.isPending}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-none-none text-[14px] font-semibold  bg-[var(--color-primary)] text-white -xs font-heading cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-none-none text-[14px] font-semibold  bg-(--color-primary) text-white -xs font-heading cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
               >
                 {mutation.isPending ? (
                   <>
@@ -667,7 +662,7 @@ function OnboardingComponent() {
           </div>
 
           {/* Reassurance subtext */}
-          <p className="text-center text-[12px] mt-4 text-[var(--color-muted-fg)] font-body">
+          <p className="text-center text-[12px] mt-4 text-muted-fg font-body">
             You can update this information at any time in your profile settings.
           </p>
         </div>

@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ChevronLeftIcon, ChevronRightIcon, HelpCircleIcon } from '@hugeicons/core-free-icons';;
+import { ChevronLeftIcon, ChevronRightIcon, HelpCircleIcon } from '@hugeicons/core-free-icons';
 import { useAuth } from '../../lib/auth-context';
 import { primaryNav, bottomNav } from '../../lib/nav';
 
@@ -26,13 +26,13 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   return (
     <aside
       role="complementary"
-      className="flex h-full flex-col bg-[var(--color-sidebar)] text-[var(--color-sidebar-fg)]   z-30 select-none"
+      className="flex h-full flex-col bg-(--color-sidebar) text-[var(--color-sidebar-fg)]   z-30 select-none"
       style={{ width: collapsed ? '64px' : '220px' }}
     >
       {/* Brand row */}
       <div className="flex h-[60px] items-center justify-between border-b border-[rgba(255,255,255,0.07)] px-4 shrink-0">
         <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
-          <div className="w-7 h-7 rounded-none-none flex items-center justify-center shrink-0 bg-[var(--color-accent)] -xs">
+          <div className="w-7 h-7 rounded-none flex items-center justify-center shrink-0 bg-[var(--color-accent)]">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
             </svg>
@@ -47,7 +47,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
           type="button"
           onClick={onToggle}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex h-7 w-7 items-center justify-center rounded-none-none text-[var(--color-sidebar-fg)] hover:bg-[var(--color-sidebar-hover)] hover:text-white  cursor-pointer shrink-0"
+          className="flex h-7 w-7 items-center justify-center rounded-nonoe text-[var(--color-sidebar-fg)] hover:bg-[var(--color-sidebar-hover)] hover:text-white  cursor-pointer shrink-0"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <HugeiconsIcon icon={ChevronRightIcon} size={16} /> : <HugeiconsIcon icon={ChevronLeftIcon} size={16} />}
@@ -58,14 +58,14 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       <div className="border-b border-[rgba(255,255,255,0.07)] p-2.5 shrink-0">
         {collapsed ? (
           <div
-            className="mx-auto flex h-8 w-8 items-center justify-center rounded-none-none bg-[rgba(255,255,255,0.08)] font-bold text-white/80 text-[11px] tracking-wider font-heading"
+            className="mx-auto flex h-8 w-8 items-center justify-center rounded-none bg-[rgba(255,255,255,0.08)] font-bold text-white/80 text-[11px] tracking-wider font-heading"
             title={`Workspace: ${workspace?.name || 'Workspace'}`}
           >
             {workspaceInitials}
           </div>
         ) : (
-          <div className="flex w-full items-center gap-2.5 rounded-none-none px-2.5 py-2 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)]">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-none-none bg-[rgba(255,255,255,0.12)] font-bold text-white text-[10px] tracking-tight font-heading">
+          <div className="flex w-full items-center gap-2.5 rounded-none px-2.5 py-2 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.06)]">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[rgba(255,255,255,0.12)] font-bold text-white text-[10px] tracking-tight font-heading">
               {workspaceInitials}
             </div>
             <div className="flex flex-col overflow-hidden min-w-0 flex-1">
@@ -89,23 +89,21 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
               key={item.id}
               to={item.to}
               onClick={onNavigate}
-              className={`group relative flex min-h-[44px] w-full items-center gap-3 rounded-none-none px-2.5 py-2 text-left  ${
-                active
+              className={`group relative flex min-h-[44px] w-full items-center gap-3 rounded-none px-2.5 py-2 text-left  ${active
                   ? 'bg-[rgba(255,255,255,0.1)] text-white font-semibold'
                   : 'text-[var(--color-sidebar-fg)] hover:bg-[var(--color-sidebar-hover)] hover:text-white'
-              }`}
+                }`}
               title={collapsed ? item.label : undefined}
             >
               {active && (
-                <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-none-r-md bg-[var(--color-accent)]" />
+                <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-none bg-[var(--color-accent)]" />
               )}
-              
+
               <HugeiconsIcon
                 icon={item.icon}
                 size={17}
-                className={`shrink-0  ${
-                  active ? 'text-white' : 'text-[var(--color-sidebar-fg)] group-hover:text-white'
-                }`}
+                className={`shrink-0  ${active ? 'text-white' : 'text-[var(--color-sidebar-fg)] group-hover:text-white'
+                  }`}
               />
               {!collapsed && (
                 <span className="truncate font-heading text-[13.5px]">
@@ -126,22 +124,20 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
               key={item.id}
               to={item.to}
               onClick={onNavigate}
-              className={`group relative flex min-h-[44px] w-full items-center gap-3 rounded-none-none px-2.5 py-2 text-left  ${
-                active
+              className={`group relative flex min-h-[44px] w-full items-center gap-3 rounded-none px-2.5 py-2 text-left  ${active
                   ? 'bg-[rgba(255,255,255,0.1)] text-white font-semibold'
                   : 'text-[var(--color-sidebar-fg)] hover:bg-[var(--color-sidebar-hover)] hover:text-white'
-              }`}
+                }`}
               title={collapsed ? item.label : undefined}
             >
               {active && (
-                <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-none-r-md bg-[var(--color-accent)]" />
+                <div className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-none bg-[var(--color-accent)]" />
               )}
               <HugeiconsIcon
                 icon={item.icon}
                 size={17}
-                className={`shrink-0  ${
-                  active ? 'text-white' : 'text-[var(--color-sidebar-fg)] group-hover:text-white'
-                }`}
+                className={`shrink-0  ${active ? 'text-white' : 'text-[var(--color-sidebar-fg)] group-hover:text-white'
+                  }`}
               />
               {!collapsed && (
                 <span className="truncate font-heading text-[13.5px]">
@@ -152,7 +148,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
           );
         })}
         <div
-          className="group flex min-h-[44px] w-full items-center gap-3 rounded-none-none px-2.5 py-2 text-left opacity-50 cursor-not-allowed select-none"
+          className="group flex min-h-[44px] w-full items-center gap-3 rounded-none px-2.5 py-2 text-left opacity-50 cursor-not-allowed select-none"
           title={collapsed ? 'Help & Documentation' : undefined}
         >
           <HugeiconsIcon icon={HelpCircleIcon} size={17} className="shrink-0 text-[var(--color-sidebar-fg)]" />

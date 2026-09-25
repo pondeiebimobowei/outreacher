@@ -41,15 +41,15 @@ function LoginComponent() {
 
   // Search parameters for signup mode routing
   const search = Route.useSearch() as { mode?: 'login' | 'signup' };
-  
+
   const [mode, setMode] = useState<'login' | 'signup'>(search.mode === 'signup' ? 'signup' : 'login');
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<FieldError>({});
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -85,7 +85,7 @@ function LoginComponent() {
       setErrors(errs);
       return;
     }
-    
+
     setErrors({});
     setFormError(null);
     setSubmitting(true);
@@ -114,13 +114,13 @@ function LoginComponent() {
             <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
           </svg>
         </div>
-        <span className="font-bold text-[16px] font-heading tracking-tight text-[var(--color-primary)]">Outreacher</span>
+        <span className="font-bold text-[16px] font-heading tracking-tight text-(--color-primary)">Outreacher</span>
       </div>
 
-      <h1 className="text-[24px] font-bold mb-1 font-heading tracking-tight text-[var(--color-primary)]">
+      <h1 className="text-[24px] font-bold mb-1 font-heading tracking-tight text-(--color-primary)">
         {mode === 'login' ? 'Welcome back' : 'Create your account'}
       </h1>
-      <p className="text-[14px] mb-7 text-[var(--color-muted-fg)] font-body">
+      <p className="text-[14px] mb-7 text-muted-fg font-body">
         {mode === 'login' ? 'Sign in to your account to continue.' : 'Get started with your proactive career outreach workspace.'}
       </p>
 
@@ -134,11 +134,11 @@ function LoginComponent() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         {mode === 'signup' && (
           <div>
-            <label htmlFor="name" className="block text-[13px] font-medium mb-1.5 font-heading text-[var(--color-primary)]">
+            <label htmlFor="name" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
               Full Name
             </label>
             <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
                 <HugeiconsIcon icon={UserIcon} size={15} />
               </div>
               <input
@@ -151,7 +151,7 @@ function LoginComponent() {
                   if (errors.name) setErrors((v) => ({ ...v, name: undefined }));
                 }}
                 placeholder="Alex Smith"
-                className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+                className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
                 style={{
                   borderColor: errors.name ? '#FCA5A5' : 'var(--color-border)',
                   backgroundColor: errors.name ? '#FEF2F2' : 'var(--color-card)',
@@ -174,11 +174,11 @@ function LoginComponent() {
 
         {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-[13px] font-medium mb-1.5 font-heading text-[var(--color-primary)]">
+          <label htmlFor="email" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
             Email
           </label>
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
               <HugeiconsIcon icon={Mail01Icon} size={15} />
             </div>
             <input
@@ -191,7 +191,7 @@ function LoginComponent() {
                 if (errors.email) setErrors((v) => ({ ...v, email: undefined }));
               }}
               placeholder="you@example.com"
-              className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+              className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
               style={{
                 borderColor: errors.email ? '#FCA5A5' : 'var(--color-border)',
                 backgroundColor: errors.email ? '#FEF2F2' : 'var(--color-card)',
@@ -214,7 +214,7 @@ function LoginComponent() {
         {/* Password */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="password" className="text-[13px] font-medium font-heading text-[var(--color-primary)]">
+            <label htmlFor="password" className="text-[13px] font-medium font-heading text-(--color-primary)">
               Password
             </label>
             {mode === 'login' && (
@@ -227,7 +227,7 @@ function LoginComponent() {
             )}
           </div>
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
               <HugeiconsIcon icon={LockIcon} size={15} />
             </div>
             <input
@@ -240,7 +240,7 @@ function LoginComponent() {
                 if (errors.password) setErrors((v) => ({ ...v, password: undefined }));
               }}
               placeholder="Your password"
-              className="w-full pl-9 pr-10 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+              className="w-full pl-9 pr-10 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
               style={{
                 borderColor: errors.password ? '#FCA5A5' : 'var(--color-border)',
                 backgroundColor: errors.password ? '#FEF2F2' : 'var(--color-card)',
@@ -255,7 +255,7 @@ function LoginComponent() {
             <button
               type="button"
               onClick={() => setShowPw((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2  text-[var(--color-muted-fg)] hover:text-[var(--color-primary)] p-0.5 rounded-none focus:outline-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2  text-muted-fg hover:text-(--color-primary) p-0.5 rounded-none focus:outline-none"
             >
               {showPw ? <HugeiconsIcon icon={EyeIcon} size={15} /> : <HugeiconsIcon icon={EyeIcon} size={15} />}
             </button>
@@ -270,7 +270,7 @@ function LoginComponent() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2.5 rounded-none-none text-[14px] font-semibold  mt-1 flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white -xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
+          className="w-full py-2.5 rounded-none-none text-[14px] font-semibold  mt-1 flex items-center justify-center gap-2 font-heading bg-(--color-primary) text-white -xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
         >
           {submitting ? (
             <>
@@ -288,17 +288,17 @@ function LoginComponent() {
       <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[var(--color-border)]" />
+            <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-[var(--color-card)] px-2.5 text-[var(--color-muted-fg)] font-body text-[11px] tracking-wider">Or continue with</span>
+            <span className="bg-(--color-card) px-2.5 text-muted-fg font-body text-[11px] tracking-wider">Or continue with</span>
           </div>
         </div>
 
         <div className="mt-4">
           <a
             href={googleAuthUrl}
-            className="flex w-full items-center justify-center gap-2.5 rounded-none-none border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 text-[14px] font-medium text-[var(--color-primary)]  hover:bg-[var(--color-muted)] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 active:scale-[0.99] -xs font-heading"
+            className="flex w-full items-center justify-center gap-2.5 rounded-none-none border border-border bg-(--color-card) px-4 py-2.5 text-[14px] font-medium text-(--color-primary)  hover:bg-(--color-muted) hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2 active:scale-[0.99] -xs font-heading"
           >
             <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -311,7 +311,7 @@ function LoginComponent() {
         </div>
       </div>
 
-      <p className="text-center text-[13px] mt-6 text-[var(--color-muted-fg)] font-body">
+      <p className="text-center text-[13px] mt-6 text-muted-fg font-body">
         {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
         <button
           type="button"

@@ -3,7 +3,7 @@ import type { CampaignDto, CampaignContactStatus } from '../../api/campaigns';
 import type { CampaignContactSummaryDto } from '../../api/outreach';
 import { MemberCard } from '../../features/campaign/components/MemberCard';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { PlayIcon, PauseIcon } from '@hugeicons/react';;
+import { PlayIcon, PauseIcon } from '@hugeicons/core-free-icons';;
 
 export type ReviewFilter =
   | 'ALL'

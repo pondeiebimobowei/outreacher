@@ -17,17 +17,17 @@ const PLANNED_CATEGORIES: Array<{
   bg: string;
   border: string;
 }> = [
-  { label: 'Networking', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
-  { label: 'Referral', color: '#065F46', bg: '#ECFDF5', border: '#A7F3D0' },
-  {
-    label: 'Hiring Manager',
-    color: '#5B21B6',
-    bg: '#F5F3FF',
-    border: '#DDD6FE',
-  },
-  { label: 'Recruiter', color: '#92400E', bg: '#FFF7ED', border: '#FED7AA' },
-  { label: 'Follow-up', color: '#7C3AED', bg: '#FEF3C7', border: '#FDE68A' },
-];
+    { label: 'Networking', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE' },
+    { label: 'Referral', color: '#065F46', bg: '#ECFDF5', border: '#A7F3D0' },
+    {
+      label: 'Hiring Manager',
+      color: '#5B21B6',
+      bg: '#F5F3FF',
+      border: '#DDD6FE',
+    },
+    { label: 'Recruiter', color: '#92400E', bg: '#FFF7ED', border: '#FED7AA' },
+    { label: 'Follow-up', color: '#7C3AED', bg: '#FEF3C7', border: '#FDE68A' },
+  ];
 
 // ─── Planned personalisation variable preview (non-functional illustration) ───
 //
@@ -48,13 +48,13 @@ function TemplatesComingSoonComponent() {
       {/* Page header */}
       <div className="mb-8">
         <h1
-          className="text-[24px] font-bold tracking-tight text-[var(--color-primary)]"
+          className="text-[24px] font-bold tracking-tight text-(--color-primary)"
           style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
         >
           Email templates
         </h1>
         <p
-          className="text-[14px] mt-1 text-[var(--color-muted-fg)]"
+          className="text-[14px] mt-1 text-muted-fg"
           style={{ fontFamily: 'sans-serif' }}
         >
           Create reusable outreach messages that can be adapted for different
@@ -87,7 +87,7 @@ function TemplatesComingSoonComponent() {
               <HugeiconsIcon icon={FileTextIcon} className="w-[18px] h-[18px]" strokeWidth={1.5} />
             </div>
             <h2
-              className="text-[15px] font-bold text-[var(--color-primary)]"
+              className="text-[15px] font-bold text-(--color-primary)"
               style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}
             >
               Template library
@@ -124,7 +124,7 @@ function TemplatesComingSoonComponent() {
 
           <div className="text-center max-w-md">
             <p
-              className="text-[14px] leading-relaxed text-[var(--color-muted-fg)]"
+              className="text-[14px] leading-relaxed text-muted-fg"
               style={{ fontFamily: 'sans-serif' }}
             >
               Template management is on the roadmap. When available, you will be

@@ -13,14 +13,14 @@ function AuthedLayoutComponent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
+      <div className="flex min-h-screen items-center justify-center bg-(--color-background)">
         <LoadingState message="Resolving authenticated session..." />
       </div>
     );
   }
   if (status === 'bootstrap_error') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-4">
+      <div className="flex min-h-screen items-center justify-center bg-(--color-background) p-4">
         <div className="w-full max-w-md rounded-none-none border border-red-200 bg-slate-50 p-6 -xs text-center">
           <div className="mb-3 text-red-600 font-semibold text-lg">Connection Error</div>
           <p className="text-sm text-slate-600 mb-4">
@@ -39,7 +39,7 @@ function AuthedLayoutComponent() {
   }
 
   if (status !== 'authenticated') {
-      return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (

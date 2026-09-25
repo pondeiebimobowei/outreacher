@@ -39,7 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--color-background)] font-body">
+    <div className="flex h-screen w-full overflow-hidden bg-(--color-background) font-body">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block shrink-0">
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileNavOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative flex w-64 max-w-xs flex-1 flex-col bg-[var(--color-sidebar)] pt-5 pb-4">
+          <div className="relative flex w-64 max-w-xs flex-1 flex-col bg-(--color-sidebar) pt-5 pb-4">
             <Sidebar
               collapsed={false}
               onToggle={() => setMobileNavOpen(false)}
@@ -65,11 +65,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Column */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header 
-          onMenuClick={() => setMobileNavOpen(true)} 
-          onOpenSearch={() => setPaletteOpen(true)} 
+        <Header
+          onMenuClick={() => setMobileNavOpen(true)}
+          onOpenSearch={() => setPaletteOpen(true)}
         />
-        
+
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 outline-none">
           {children}
         </main>

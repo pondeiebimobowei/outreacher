@@ -39,15 +39,15 @@ function ForgotPasswordComponent() {
             <path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z" />
           </svg>
         </div>
-        <span className="font-bold text-[16px] font-heading tracking-tight text-[var(--color-primary)]">
+        <span className="font-bold text-[16px] font-heading tracking-tight text-(--color-primary)">
           Outreacher
         </span>
       </div>
 
-      <h1 className="text-[24px] font-bold mb-1 font-heading tracking-tight text-[var(--color-primary)]">
+      <h1 className="text-[24px] font-bold mb-1 font-heading tracking-tight text-(--color-primary)">
         Reset your password
       </h1>
-      <p className="text-[14px] mb-7 text-[var(--color-muted-fg)] font-body">
+      <p className="text-[14px] mb-7 text-muted-fg font-body">
         Enter your email and we'll send a reset link.
       </p>
 
@@ -60,11 +60,11 @@ function ForgotPasswordComponent() {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <div>
-          <label htmlFor="reset-email" className="block text-[13px] font-medium mb-1.5 font-heading text-[var(--color-primary)]">
+          <label htmlFor="reset-email" className="block text-[13px] font-medium mb-1.5 font-heading text-(--color-primary)">
             Email
           </label>
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-fg)] pointer-events-none">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-fg pointer-events-none">
               <HugeiconsIcon icon={MailIcon} size={15} />
             </div>
             <input
@@ -77,7 +77,7 @@ function ForgotPasswordComponent() {
               }}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-[var(--color-card)] text-[var(--color-primary)] font-body"
+              className="w-full pl-9 pr-4 py-2.5 rounded-none-none text-[14px] outline-none  border bg-(--color-card) text-(--color-primary) font-body"
               style={{
                 borderColor: error ? '#FCA5A5' : 'var(--color-border)',
                 backgroundColor: error ? '#FEF2F2' : 'var(--color-card)',
@@ -95,7 +95,7 @@ function ForgotPasswordComponent() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-none-none text-[14px] font-semibold  flex items-center justify-center gap-2 font-heading bg-[var(--color-primary)] text-white -xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
+          className="w-full py-2.5 rounded-none-none text-[14px] font-semibold  flex items-center justify-center gap-2 font-heading bg-(--color-primary) text-white -xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-95 active:scale-[0.99]"
         >
           {loading ? (
             <>
@@ -113,7 +113,7 @@ function ForgotPasswordComponent() {
       <div className="mt-6 text-center">
         <Link
           to="/login"
-          className="text-[13px] inline-flex items-center justify-center gap-1.5 text-[var(--color-muted-fg)] hover:text-[var(--color-primary)]  font-body font-medium"
+          className="text-[13px] inline-flex items-center justify-center gap-1.5 text-muted-fg hover:text-(--color-primary)  font-body font-medium"
         >
           <HugeiconsIcon icon={ArrowLeftIcon} size={14} /> Back to sign in
         </Link>
