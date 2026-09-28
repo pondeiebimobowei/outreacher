@@ -13,10 +13,20 @@ class IdentityConfidence(str, Enum):
     AMBIGUOUS = "AMBIGUOUS"
     UNRESOLVED = "UNRESOLVED"
 
+class EvidenceType(str, Enum):
+    SEARCH_RESULT = "SEARCH_RESULT"
+    PAGE_IDENTITY = "PAGE_IDENTITY"
+
+class IdentityEvidence(BaseModel):
+    type: EvidenceType
+    source: str
+    url: str
+    signal: str
+    rank: Optional[int] = None
+
 class IdentityCandidate(BaseModel):
     domain: str
-    score: int
-    reasons: List[str]
+    evidence: List[IdentityEvidence] = []
 
 class CompanyIdentity(BaseModel):
     name: str
@@ -25,6 +35,7 @@ class CompanyIdentity(BaseModel):
     confidence: IdentityConfidence
     reasoning: str
     candidates: List[IdentityCandidate] = []
+    evidence: List[IdentityEvidence] = []
 
 class PageType(str, Enum):
     CAREERS_INDEX = "CAREERS_INDEX"
@@ -48,7 +59,7 @@ class DocumentQuality(str, Enum):
 class CrawlAttempt(BaseModel):
     strategy: str
     quality: DocumentQuality
-    error: Optional[str] = None
+    error: Optional[str]
 
 class CrawledDocument(BaseModel):
     url: str

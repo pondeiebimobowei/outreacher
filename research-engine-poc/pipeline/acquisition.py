@@ -1,5 +1,6 @@
 from typing import List
 from datetime import datetime, timezone
+from urllib.parse import urlparse, urlunparse
 from rich.console import Console
 from core.models import RawResearchPackage, PageType, IdentityConfidence
 from identity.resolver import IdentityResolver
@@ -9,6 +10,21 @@ from crawling.manager import CrawlManager
 from pipeline.discovery import URLClassifier, DomainScopeFilter
 
 console = Console()
+
+def canonicalize_url(url: str) -> str:
+    try:
+        parsed = urlparse(url)
+        # Lowercase scheme and netloc, drop fragment
+        scheme = parsed.scheme.lower()
+        netloc = parsed.netloc.lower()
+        path = parsed.path
+        if path == "":
+            path = "/"
+        # We optionally drop trailing slashes on paths > 1 char if we want strict dedup
+        # But keeping it simple for now:
+        return urlunparse((scheme, netloc, path, parsed.params, parsed.query, ""))
+    except:
+        return url
 
 class AcquisitionRunner:
     def __init__(self, resolver: IdentityResolver, discovery_search_provider: ISearchProvider, crawl_manager: CrawlManager):
@@ -34,16 +50,22 @@ class AcquisitionRunner:
             (f'site:{identity.domain} "product" OR "solutions"', 2)
         ]
         
-        discovered_urls = [identity.website_url]
+        raw_discovered = [identity.website_url]
         for query, num in queries:
             try:
                 raw_results = self.discovery_search_provider.search(query, num_results=num)
                 clean_results = SearchResultSanitizer.sanitize(raw_results)
-                discovered_urls.extend([r.url for r in clean_results])
+                raw_discovered.extend([r.url for r in clean_results])
             except Exception as e:
                 console.print(f"    [!] Search query failed: {str(e)}")
             
-        discovered_urls = list(dict.fromkeys(discovered_urls))
+        discovered_urls = []
+        seen = set()
+        for raw in raw_discovered:
+            canonical = canonicalize_url(raw)
+            if canonical not in seen:
+                seen.add(canonical)
+                discovered_urls.append(canonical)
         
         console.print(f"\n[bold blue]Step 3: URL Classification & Scoping[/bold blue]")
         classified_urls = []
