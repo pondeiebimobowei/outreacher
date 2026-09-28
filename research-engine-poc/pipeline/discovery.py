@@ -3,49 +3,50 @@ from urllib.parse import urlparse
 from core.models import PageType
 
 class DomainScopeFilter:
-    ALLOWED_ATS = ['greenhouse.io', 'lever.co', 'ashbyhq.com', 'workable.com', 'breezy.hr', 'jobs.']
-    
     @staticmethod
-    def is_allowed(url: str, primary_domain: str) -> bool:
-        parsed = urlparse(url)
-        netloc = parsed.netloc.lower()
-        
-        # Secure domain matching
-        if netloc == primary_domain or netloc.endswith("." + primary_domain):
-            return True
+    def is_allowed(url: str, verified_domain: str) -> bool:
+        try:
+            parsed = urlparse(url)
+            host = parsed.netloc.lower().replace('www.', '')
             
-        if any(netloc == ats or netloc.endswith("." + ats) for ats in DomainScopeFilter.ALLOWED_ATS):
-            return True
-            
-        return False
+            if host == verified_domain or host.endswith('.' + verified_domain):
+                return True
+                
+            allowed_ats_domains = ['greenhouse.io', 'lever.co', 'workable.com', 'breezy.hr', 'ashbyhq.com']
+            if any(host == ats or host.endswith('.' + ats) for ats in allowed_ats_domains):
+                return True
+                
+            return False
+        except:
+            return False
 
 class URLClassifier:
     @staticmethod
     def classify(url: str) -> PageType:
-        parsed = urlparse(url)
-        path = parsed.path.lower()
-        
-        if re.search(r'/(jobs?|careers?)/(.+)', path) or '/position/' in path or '/role/' in path or '/offer/' in path:
-            exclude = ['search', 'benefits', 'life', 'departments', 'teams', 'about', 'culture', 'locations']
-            if not any(e in path for e in exclude) and not re.search(r'/(page|p)/\d+', path):
-                return PageType.JOB_LISTING
+        try:
+            path = urlparse(url).path.lower()
+            if path == "" or path == "/":
+                return PageType.OTHER
                 
-        if path in ['/careers', '/jobs', '/careers/', '/jobs/'] or re.search(r'^/(careers|jobs)$', path) or '/careers/search' in path:
-            return PageType.CAREERS_INDEX
-            
-        if '/about' in path or '/company' in path or '/our-story' in path or '/culture' in path:
-            return PageType.ABOUT
-            
-        if '/product' in path or '/features' in path or '/solutions' in path:
-            return PageType.PRODUCT
-            
-        if '/case-study' in path or '/customers' in path or '/success-stories' in path:
-            return PageType.CASE_STUDY
-            
-        if '/blog' in path or '/news' in path or '/press' in path:
-            return PageType.BLOG
-            
-        if '/contact' in path:
-            return PageType.CONTACT
-            
-        return PageType.OTHER
+            if path.startswith('/blog') or '/blog/' in path:
+                return PageType.BLOG
+            if '/case-study' in path or '/customers' in path:
+                return PageType.CASE_STUDY
+                
+            if path in ['/about', '/about-us', '/our-story', '/company'] or path.startswith('/about/') or path.startswith('/company/'):
+                return PageType.ABOUT
+                
+            if path in ['/contact', '/contact-us'] or path.startswith('/contact/'):
+                return PageType.CONTACT
+                
+            if path in ['/careers', '/jobs'] or path.startswith('/careers/') or path.startswith('/jobs/'):
+                if 'software' in path or 'engineer' in path or re.search(r'\d+', path):
+                    return PageType.JOB_LISTING
+                return PageType.CAREERS_INDEX
+                
+            if path.startswith('/product') or '/solutions' in path:
+                return PageType.PRODUCT
+                
+            return PageType.OTHER
+        except:
+            return PageType.OTHER

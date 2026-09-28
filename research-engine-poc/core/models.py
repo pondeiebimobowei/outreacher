@@ -23,6 +23,8 @@ class IdentityEvidence(BaseModel):
     url: str
     signal: str
     rank: Optional[int] = None
+    query: Optional[str] = None
+    title: Optional[str] = None
 
 class IdentityCandidate(BaseModel):
     domain: str

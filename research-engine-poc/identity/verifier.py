@@ -4,11 +4,14 @@ from crawling.manager import CrawlManager
 from search.base import ISearchProvider
 from search.sanitizer import SearchResultSanitizer
 from core.models import PageType, IdentityEvidence, EvidenceType
+from pipeline.discovery import URLClassifier
 
 class WebsiteVerifier:
     def __init__(self, crawl_manager: CrawlManager, search_provider: ISearchProvider):
         self.crawl_manager = crawl_manager
         self.search_provider = search_provider
+        # Derive provider name
+        self.provider_name = search_provider.__class__.__name__.replace("SearchProvider", "").lower()
 
     def verify(self, company_name: str, website_url: str) -> Tuple[bool, str, List[IdentityEvidence]]:
         evidence_list = []
@@ -46,7 +49,6 @@ class WebsiteVerifier:
             return False, "Name not found on homepage.", evidence_list
 
         # 2. Discover Corroborating Page
-        # We query the search provider restricted to this domain to find an about or contact page
         domain = website_url.replace("https://", "").replace("http://", "").rstrip("/")
         query = f'site:{domain} "about" OR "company" OR "contact"'
         corroboration_urls = []
@@ -54,7 +56,6 @@ class WebsiteVerifier:
         try:
             raw_results = self.search_provider.search(query, num_results=3)
             clean_results = SearchResultSanitizer.sanitize(raw_results)
-            # Avoid the homepage itself
             for r in clean_results:
                 if r.url != website_url and r.url != website_url + "/":
                     corroboration_urls.append(r.url)
@@ -62,13 +63,17 @@ class WebsiteVerifier:
             pass
             
         if not corroboration_urls:
-            # Fallback to a common guess if search fails
             corroboration_urls.append(website_url + "/about")
 
         has_corroboration = False
         
-        for url in corroboration_urls[:2]: # Check at most 2 candidate corroboration pages
-            about_doc = self.crawl_manager.fetch_with_fallback(url, PageType.ABOUT)
+        for url in corroboration_urls:
+            ptype = URLClassifier.classify(url)
+            # MUST be a proper identity page type to count as corroboration
+            if ptype not in [PageType.ABOUT, PageType.CONTACT, PageType.CAREERS_INDEX]:
+                continue
+                
+            about_doc = self.crawl_manager.fetch_with_fallback(url, ptype)
             if about_doc.quality.name in ["VALID", "TOO_SHORT"]:
                 about_title = (about_doc.title or "").lower()
                 about_content = (about_doc.content or "").lower()
@@ -85,4 +90,4 @@ class WebsiteVerifier:
         if has_corroboration:
             return True, "Strong multi-page identity verified.", evidence_list
         else:
-            return False, "Weak verification: name found on homepage but uncorroborated on secondary pages.", evidence_list
+            return False, "Weak verification: name found on homepage but uncorroborated by a valid secondary page.", evidence_list

@@ -11,6 +11,7 @@ class IdentityResolver:
     def __init__(self, search_provider: ISearchProvider, verifier: WebsiteVerifier):
         self.search_provider = search_provider
         self.verifier = verifier
+        self.provider_name = search_provider.__class__.__name__.replace("SearchProvider", "").lower()
         
     def resolve(self, company_name: str) -> CompanyIdentity:
         query = f'"{company_name}" official website'
@@ -37,7 +38,6 @@ class IdentityResolver:
             parsed = urlparse(r.url)
             domain = parsed.netloc.replace('www.', '').lower()
             
-            # Exact exclusion match or subdomain of excluded
             if any(domain == ex or domain.endswith("." + ex) for ex in excluded_domains):
                 continue
                 
@@ -46,26 +46,23 @@ class IdentityResolver:
                 
             domain_ranks[domain].append(idx + 1)
                 
-            # We record one SEARCH_RESULT evidence object per distinct search result
             domain_evidence[domain].append(IdentityEvidence(
                 type=EvidenceType.SEARCH_RESULT,
-                source="search_engine",
+                source=self.provider_name,
                 url=r.url,
                 signal="RANKED_RESULT",
-                rank=idx + 1
+                rank=idx + 1,
+                query=query,
+                title=r.title
             ))
                 
         candidate_list = []
         for domain, evidence_list in domain_evidence.items():
-            # Candidate generation ranking score (not an identity proof)
-            # Better ranks give more points. Multiple hits give a small boost.
             ranks = domain_ranks[domain]
             best_rank = min(ranks)
             
-            # Simple heuristic: max 10 points for rank 1, down to 1 point for rank 10
             rank_score = max(0, 11 - best_rank)
             
-            # Boost if name strongly matches domain
             name_score = 0
             if clean_name and clean_name in domain:
                 name_score += 5
@@ -89,39 +86,56 @@ class IdentityResolver:
         for c in candidate_list:
             recorded_candidates.append(IdentityCandidate(domain=c[1], evidence=c[2]))
             
-        top_score = candidate_list[0][0]
-        top_domain = candidate_list[0][1]
-        top_evidence = candidate_list[0][2]
+        top_candidates = candidate_list[:2]
+        verified_candidates = []
+        all_verification_failures = []
         
-        scheme = urlparse(domain_top_result[top_domain].url).scheme or "https"
-        website_url = f"{scheme}://{top_domain}"
-        
-        confidence = IdentityConfidence.AMBIGUOUS
-        reasoning = f"Top candidate {top_domain} selected from {len(candidate_list)} domains."
-        
-        margin_ok = True
-        if len(candidate_list) > 1:
-            margin = top_score - candidate_list[1][0]
-            if margin < 3:
-                margin_ok = False
-                reasoning += " Margin to second place is too small (ambiguous search results)."
-                
-        # Candidate generation -> Verification
-        all_evidence = list(top_evidence)
-        if margin_ok:
+        for score, domain, evidence_list in top_candidates:
+            scheme = urlparse(domain_top_result[domain].url).scheme or "https"
+            website_url = f"{scheme}://{domain}"
+            
             is_verified, msg, ver_evidence = self.verifier.verify(company_name, website_url)
-            all_evidence.extend(ver_evidence)
-            reasoning += " " + msg
+            all_evidence = list(evidence_list) + ver_evidence
+            
             if is_verified:
-                confidence = IdentityConfidence.CONFIDENT
+                verified_candidates.append({
+                    "domain": domain,
+                    "website_url": website_url,
+                    "evidence": all_evidence,
+                    "msg": msg
+                })
             else:
-                confidence = IdentityConfidence.AMBIGUOUS
+                all_verification_failures.append(msg)
+                
+        if len(verified_candidates) == 1:
+            confidence = IdentityConfidence.CONFIDENT
+            best = verified_candidates[0]
+            reasoning = "Strongly verified top candidate. " + best["msg"]
+            domain = best["domain"]
+            website_url = best["website_url"]
+            all_evidence = best["evidence"]
+        elif len(verified_candidates) > 1:
+            confidence = IdentityConfidence.AMBIGUOUS
+            best = verified_candidates[0]
+            reasoning = "Multiple candidates strongly verified. Identity is ambiguous."
+            domain = best["domain"]
+            website_url = best["website_url"]
+            all_evidence = best["evidence"]
         else:
-            reasoning += " Skipped active verification due to weak/ambiguous search margin."
+            confidence = IdentityConfidence.AMBIGUOUS
+            failure_reason = all_verification_failures[0] if all_verification_failures else ""
+            reasoning = f"No candidates strongly verified. {failure_reason}"
+            domain = top_candidates[0][1]
+            scheme = urlparse(domain_top_result[domain].url).scheme or "https"
+            website_url = f"{scheme}://{domain}"
+            
+            # Re-verify just to grab the evidence array for the best failed candidate
+            _, _, failed_ev = self.verifier.verify(company_name, website_url)
+            all_evidence = top_candidates[0][2] + failed_ev
             
         return CompanyIdentity(
             name=company_name,
-            domain=top_domain,
+            domain=domain,
             website_url=website_url,
             confidence=confidence,
             reasoning=reasoning,
