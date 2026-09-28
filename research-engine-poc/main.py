@@ -2,6 +2,8 @@ import sys
 from rich.console import Console
 from search.duckduckgo import DuckDuckGoSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
+from crawling.playwright_crawler import PlaywrightCrawlerProvider
+from crawling.manager import CrawlManager
 from identity.resolver import IdentityResolver
 from pipeline.acquisition import AcquisitionRunner
 
@@ -14,22 +16,25 @@ def main():
         
     company_name = sys.argv[1]
     
-    # Initialize providers (Dependency Injection)
     search_provider = DuckDuckGoSearchProvider()
-    crawler_provider = TrafilaturaCrawlerProvider()
-    resolver = IdentityResolver(search_provider)
+    static_crawler = TrafilaturaCrawlerProvider()
+    browser_crawler = PlaywrightCrawlerProvider()
     
-    runner = AcquisitionRunner(resolver, search_provider, crawler_provider)
+    crawl_manager = CrawlManager(static_crawler, browser_crawler)
+    
+    # We use the static crawler just to verify identity homepage quickly
+    resolver = IdentityResolver(search_provider, crawl_manager)
+    
+    runner = AcquisitionRunner(resolver, search_provider, crawl_manager)
     
     try:
         package = runner.run(company_name)
         
         console.print("\n[bold magenta]--- Final Raw Research Package ---[/bold magenta]")
-        # Dump the JSON but truncate the document content slightly for readability in the console output
         output_dict = package.model_dump(mode="json")
         for doc in output_dict["documents"]:
             if doc.get("content"):
-                doc["content"] = doc["content"][:200] + "... [TRUNCATED FOR DISPLAY]"
+                doc["content"] = doc["content"][:100] + "... [TRUNCATED FOR DISPLAY]"
                 
         console.print_json(data=output_dict)
         

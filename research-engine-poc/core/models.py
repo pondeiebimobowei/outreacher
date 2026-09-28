@@ -30,6 +30,13 @@ class PageType(str, Enum):
     CONTACT = "CONTACT"
     OTHER = "OTHER"
 
+class DocumentQuality(str, Enum):
+    VALID = "VALID"
+    TOO_SHORT = "TOO_SHORT"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
+    BLOCKED = "BLOCKED"
+    SUSPECT = "SUSPECT"
+
 class CrawledDocument(BaseModel):
     url: str
     final_url: str
@@ -40,6 +47,7 @@ class CrawledDocument(BaseModel):
     retrieved_at: datetime
     word_count: int = 0
     page_type: PageType
+    quality: DocumentQuality = DocumentQuality.SUSPECT
     error: Optional[str]
 
 class RawResearchPackage(BaseModel):
