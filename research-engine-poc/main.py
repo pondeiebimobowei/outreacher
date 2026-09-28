@@ -34,7 +34,7 @@ def main():
     browser_crawler = PlaywrightCrawlerProvider()
     
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
-    verifier = WebsiteVerifier(crawl_manager)
+    verifier = WebsiteVerifier(crawl_manager, discovery_search)
     resolver = IdentityResolver(identity_search, verifier)
     
     runner = AcquisitionRunner(resolver, discovery_search, crawl_manager)

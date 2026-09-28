@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from enum import Enum
@@ -26,7 +26,7 @@ class IdentityEvidence(BaseModel):
 
 class IdentityCandidate(BaseModel):
     domain: str
-    evidence: List[IdentityEvidence] = []
+    evidence: List[IdentityEvidence] = Field(default_factory=list)
 
 class CompanyIdentity(BaseModel):
     name: str
@@ -34,8 +34,8 @@ class CompanyIdentity(BaseModel):
     website_url: str
     confidence: IdentityConfidence
     reasoning: str
-    candidates: List[IdentityCandidate] = []
-    evidence: List[IdentityEvidence] = []
+    candidates: List[IdentityCandidate] = Field(default_factory=list)
+    evidence: List[IdentityEvidence] = Field(default_factory=list)
 
 class PageType(str, Enum):
     CAREERS_INDEX = "CAREERS_INDEX"
@@ -59,12 +59,12 @@ class DocumentQuality(str, Enum):
 class CrawlAttempt(BaseModel):
     strategy: str
     quality: DocumentQuality
-    error: Optional[str]
+    error: Optional[str] = None
 
 class CrawledDocument(BaseModel):
     url: str
     final_url: str
-    status_code: Optional[int]
+    status_code: Optional[int] = None
     title: Optional[str] = None
     content: Optional[str] = None
     content_type: Optional[str] = None
@@ -74,7 +74,7 @@ class CrawledDocument(BaseModel):
     quality: DocumentQuality = DocumentQuality.SUSPECT
     error: Optional[str] = None
     fetch_strategy: str = "STATIC"
-    attempts: List[CrawlAttempt] = []
+    attempts: List[CrawlAttempt] = Field(default_factory=list)
 
 class RawResearchPackage(BaseModel):
     identity: CompanyIdentity

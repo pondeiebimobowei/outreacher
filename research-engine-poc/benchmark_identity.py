@@ -14,14 +14,14 @@ from identity.resolver import IdentityResolver
 console = Console()
 
 BENCHMARK_CASES = [
-    {"company": "Linear", "expected_domain": "linear.app", "expected_confidence": "CONFIDENT"},
-    {"company": "Stripe", "expected_domain": "stripe.com", "expected_confidence": "CONFIDENT"},
-    {"company": "Vercel", "expected_domain": "vercel.com", "expected_confidence": "CONFIDENT"},
-    {"company": "Moniepoint", "expected_domain": "moniepoint.com", "expected_confidence": "CONFIDENT"},
-    {"company": "Kelmond Media Company", "expected_domain": None, "expected_confidence": "AMBIGUOUS"}, # Or UNRESOLVED
-    {"company": "Manom Solutions", "expected_domain": None, "expected_confidence": "AMBIGUOUS"},
-    {"company": "Outray", "expected_domain": "outray.dev", "expected_confidence": "AMBIGUOUS"}, # The crawler fails so it stays AMBIGUOUS
-    {"company": "Acme Corp", "expected_domain": None, "expected_confidence": "AMBIGUOUS"}
+    {"company": "Linear", "expected_domain": "linear.app", "expected": "CONFIDENT"},
+    {"company": "Stripe", "expected_domain": "stripe.com", "expected": "CONFIDENT"},
+    {"company": "Vercel", "expected_domain": "vercel.com", "expected": "CONFIDENT"},
+    {"company": "Moniepoint", "expected_domain": "moniepoint.com", "expected": "CONFIDENT"},
+    {"company": "Kelmond Media Company", "expected": "ABSTAIN"},
+    {"company": "Manom Solutions", "expected": "ABSTAIN"},
+    {"company": "Outray", "expected": "ABSTAIN"},
+    {"company": "Acme Corp", "expected": "ABSTAIN"}
 ]
 
 def run_benchmark(provider_name: str):
@@ -35,14 +35,15 @@ def run_benchmark(provider_name: str):
     static_crawler = TrafilaturaCrawlerProvider()
     browser_crawler = PlaywrightCrawlerProvider()
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
-    verifier = WebsiteVerifier(crawl_manager)
+    
+    # Pass search provider to verifier for discovery of corroborating pages
+    verifier = WebsiteVerifier(crawl_manager, search_provider)
     resolver = IdentityResolver(search_provider, verifier)
     
     table = Table(title=f"Identity Results ({provider_name})")
     table.add_column("Company", style="cyan")
-    table.add_column("Expected", style="dim")
-    table.add_column("Selected", style="magenta")
-    table.add_column("Expected Conf", style="dim")
+    table.add_column("Expected Outcome", style="dim")
+    table.add_column("Selected Domain", style="magenta")
     table.add_column("Actual Conf", style="green")
     table.add_column("Match?", justify="center")
     table.add_column("Latency", justify="right")
@@ -51,8 +52,8 @@ def run_benchmark(provider_name: str):
     
     for case in BENCHMARK_CASES:
         company = case["company"]
-        expected_domain = case["expected_domain"]
-        expected_conf = case["expected_confidence"]
+        expected_domain = case.get("expected_domain")
+        expected_outcome = case["expected"]
         
         start_time = time.time()
         try:
@@ -62,34 +63,34 @@ def run_benchmark(provider_name: str):
             domain = identity.domain or "N/A"
             conf = identity.confidence.name
             
-            domain_match = (domain == expected_domain) if expected_domain else (conf != "CONFIDENT")
-            conf_match = (conf == expected_conf) or (expected_conf in ["AMBIGUOUS", "UNRESOLVED"] and conf in ["AMBIGUOUS", "UNRESOLVED"])
+            actual_outcome = "CONFIDENT" if conf == "CONFIDENT" else "ABSTAIN"
             
-            is_match = domain_match and conf_match
-            
-            # Metrics
-            if conf == "CONFIDENT":
-                if domain == expected_domain:
+            is_match = False
+            if expected_outcome == "CONFIDENT":
+                if actual_outcome == "CONFIDENT" and domain == expected_domain:
+                    is_match = True
                     metrics["correct_identity"] += 1
+                elif actual_outcome == "CONFIDENT" and domain != expected_domain:
+                    metrics["false_confident"] += 1
+            else: # expected ABSTAIN
+                if actual_outcome == "ABSTAIN":
+                    is_match = True
+                    metrics["correct_abstention"] += 1
                 else:
                     metrics["false_confident"] += 1
-            else:
-                if expected_domain is None or conf_match:
-                    metrics["correct_abstention"] += 1
             
             match_str = "[green]✓[/green]" if is_match else "[red]✗[/red]"
             
             table.add_row(
                 company, 
-                expected_domain or "None", 
+                f"{expected_outcome} ({expected_domain})" if expected_domain else expected_outcome, 
                 domain, 
-                expected_conf, 
                 conf, 
                 match_str,
                 latency
             )
         except Exception as e:
-            table.add_row(company, expected_domain or "None", "ERROR", expected_conf, str(e), "[red]✗[/red]", f"{time.time() - start_time:.1f}s")
+            table.add_row(company, expected_outcome, "ERROR", str(e), "[red]✗[/red]", f"{time.time() - start_time:.1f}s")
             
     console.print(table)
     console.print("\n[bold]Metrics[/bold]")

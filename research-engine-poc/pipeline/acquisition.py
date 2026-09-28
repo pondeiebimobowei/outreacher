@@ -14,14 +14,16 @@ console = Console()
 def canonicalize_url(url: str) -> str:
     try:
         parsed = urlparse(url)
-        # Lowercase scheme and netloc, drop fragment
         scheme = parsed.scheme.lower()
         netloc = parsed.netloc.lower()
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
         path = parsed.path
-        if path == "":
+        if path == "" or path == "/":
             path = "/"
-        # We optionally drop trailing slashes on paths > 1 char if we want strict dedup
-        # But keeping it simple for now:
+        else:
+            path = path.rstrip("/")
+            
         return urlunparse((scheme, netloc, path, parsed.params, parsed.query, ""))
     except:
         return url
