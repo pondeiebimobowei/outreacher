@@ -26,13 +26,14 @@ class URLClassifier:
         path = parsed.path.lower()
         
         if re.search(r'/(jobs?|careers?)/(.+)', path) or '/position/' in path or '/role/' in path or '/offer/' in path:
-            if not re.search(r'/(page|p)/\d+', path):
+            exclude = ['search', 'benefits', 'life', 'departments', 'teams', 'about', 'culture', 'locations']
+            if not any(e in path for e in exclude) and not re.search(r'/(page|p)/\d+', path):
                 return PageType.JOB_LISTING
                 
-        if path in ['/careers', '/jobs', '/careers/', '/jobs/'] or re.search(r'^/(careers|jobs)$', path):
+        if path in ['/careers', '/jobs', '/careers/', '/jobs/'] or re.search(r'^/(careers|jobs)$', path) or '/careers/search' in path:
             return PageType.CAREERS_INDEX
             
-        if '/about' in path or '/company' in path or '/our-story' in path:
+        if '/about' in path or '/company' in path or '/our-story' in path or '/culture' in path:
             return PageType.ABOUT
             
         if '/product' in path or '/features' in path or '/solutions' in path:

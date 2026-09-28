@@ -46,8 +46,19 @@ jobs:
           node-version: 24
           cache: 'pnpm'
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Python dependencies
+        run: cd research-engine-poc && uv sync
 
       - name: Wait for PostgreSQL TCP readiness
         run: |
@@ -94,3 +105,6 @@ jobs:
 
       - name: Run E2E tests
         run: pnpm test:e2e
+
+      - name: Run Python Research Engine Tests
+        run: cd research-engine-poc && PYTHONPATH=. uv run pytest tests/

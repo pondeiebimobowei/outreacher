@@ -5,7 +5,7 @@ class DocumentQualityEvaluator:
     def evaluate(doc: CrawledDocument) -> DocumentQuality:
         if doc.error:
             err_lower = doc.error.lower()
-            if "timeout" in err_lower or "connection" in err_lower or "playwright" in err_lower:
+            if "timeout" in err_lower or "connection" in err_lower or "playwright" in err_lower or "failed to download" in err_lower or "fetch failed" in err_lower:
                 return DocumentQuality.FETCH_FAILED
                 
         if doc.status_code:

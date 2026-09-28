@@ -45,18 +45,25 @@ class DocumentQuality(str, Enum):
     FETCH_FAILED = "FETCH_FAILED"
     HTTP_ERROR = "HTTP_ERROR"
 
+class CrawlAttempt(BaseModel):
+    strategy: str
+    quality: DocumentQuality
+    error: Optional[str] = None
+
 class CrawledDocument(BaseModel):
     url: str
     final_url: str
     status_code: Optional[int]
-    title: Optional[str]
-    content: Optional[str]
-    content_type: Optional[str]
+    title: Optional[str] = None
+    content: Optional[str] = None
+    content_type: Optional[str] = None
     retrieved_at: datetime
     word_count: int = 0
     page_type: PageType
     quality: DocumentQuality = DocumentQuality.SUSPECT
-    error: Optional[str]
+    error: Optional[str] = None
+    fetch_strategy: str = "STATIC"
+    attempts: List[CrawlAttempt] = []
 
 class RawResearchPackage(BaseModel):
     identity: CompanyIdentity

@@ -29,9 +29,9 @@ class AcquisitionRunner:
 
         console.print(f"\n[bold blue]Step 2: Scoped Discovery Phase[/bold blue]")
         queries = [
-            (f"site:{identity.domain} about company OR mission", 2),
-            (f"site:{identity.domain} careers OR jobs", 3),
-            (f"site:{identity.domain} product OR solutions", 2)
+            (f"site:{identity.domain} \"about\" OR \"company\" OR \"mission\"", 2),
+            (f"site:{identity.domain} \"careers\" OR \"jobs\"", 3),
+            (f"site:{identity.domain} \"product\" OR \"solutions\"", 2)
         ]
         
         discovered_urls = [identity.website_url]
