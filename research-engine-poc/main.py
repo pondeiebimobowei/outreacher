@@ -1,6 +1,8 @@
 import sys
+import os
 from rich.console import Console
 from search.duckduckgo import DuckDuckGoSearchProvider
+from search.serper import SerperSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
@@ -12,21 +14,30 @@ console = Console()
 
 def main():
     if len(sys.argv) < 2:
-        console.print("[red]Usage: python main.py <company_name>[/red]")
+        console.print("[red]Usage: python main.py <company_name> [--serper][/red]")
         sys.exit(1)
         
     company_name = sys.argv[1]
+    use_serper = "--serper" in sys.argv
     
-    search_provider = DuckDuckGoSearchProvider()
+    if use_serper:
+        if not os.environ.get("SERPER_API_KEY"):
+            console.print("[red]Error: --serper flag used but SERPER_API_KEY environment variable is not set.[/red]")
+            sys.exit(1)
+        identity_search = SerperSearchProvider()
+        discovery_search = SerperSearchProvider()
+    else:
+        identity_search = DuckDuckGoSearchProvider()
+        discovery_search = DuckDuckGoSearchProvider()
+    
     static_crawler = TrafilaturaCrawlerProvider()
     browser_crawler = PlaywrightCrawlerProvider()
     
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
-    
     verifier = WebsiteVerifier(crawl_manager)
-    resolver = IdentityResolver(search_provider, verifier)
+    resolver = IdentityResolver(identity_search, verifier)
     
-    runner = AcquisitionRunner(resolver, search_provider, crawl_manager)
+    runner = AcquisitionRunner(resolver, discovery_search, crawl_manager)
     
     try:
         package = runner.run(company_name)

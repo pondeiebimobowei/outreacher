@@ -11,9 +11,9 @@ from pipeline.discovery import URLClassifier, DomainScopeFilter
 console = Console()
 
 class AcquisitionRunner:
-    def __init__(self, resolver: IdentityResolver, search_provider: ISearchProvider, crawl_manager: CrawlManager):
+    def __init__(self, resolver: IdentityResolver, discovery_search_provider: ISearchProvider, crawl_manager: CrawlManager):
         self.resolver = resolver
-        self.search_provider = search_provider
+        self.discovery_search_provider = discovery_search_provider
         self.crawl_manager = crawl_manager
         
     def run(self, company_name: str) -> RawResearchPackage:
@@ -29,16 +29,19 @@ class AcquisitionRunner:
 
         console.print(f"\n[bold blue]Step 2: Scoped Discovery Phase[/bold blue]")
         queries = [
-            (f"site:{identity.domain} \"about\" OR \"company\" OR \"mission\"", 2),
-            (f"site:{identity.domain} \"careers\" OR \"jobs\"", 3),
-            (f"site:{identity.domain} \"product\" OR \"solutions\"", 2)
+            (f'site:{identity.domain} "about" OR "company" OR "mission"', 2),
+            (f'site:{identity.domain} "careers" OR "jobs"', 3),
+            (f'site:{identity.domain} "product" OR "solutions"', 2)
         ]
         
         discovered_urls = [identity.website_url]
         for query, num in queries:
-            raw_results = self.search_provider.search(query, num_results=num)
-            clean_results = SearchResultSanitizer.sanitize(raw_results)
-            discovered_urls.extend([r.url for r in clean_results])
+            try:
+                raw_results = self.discovery_search_provider.search(query, num_results=num)
+                clean_results = SearchResultSanitizer.sanitize(raw_results)
+                discovered_urls.extend([r.url for r in clean_results])
+            except Exception as e:
+                console.print(f"    [!] Search query failed: {str(e)}")
             
         discovered_urls = list(dict.fromkeys(discovered_urls))
         

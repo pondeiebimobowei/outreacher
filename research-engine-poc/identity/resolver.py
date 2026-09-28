@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from collections import defaultdict
 from search.base import ISearchProvider
 from search.sanitizer import SearchResultSanitizer
 from core.models import CompanyIdentity, IdentityConfidence, IdentityCandidate
@@ -19,37 +20,49 @@ class IdentityResolver:
             'linkedin.com', 'crunchbase.com', 'wikipedia.org', 
             'twitter.com', 'x.com', 'facebook.com', 'youtube.com',
             'glassdoor.com', 'g2.com', 'capterra.com', 'bloomberg.com',
-            'ycombinator.com', 'pitchbook.com', 'zoominfo.com', 'builtin.com'
+            'ycombinator.com', 'pitchbook.com', 'zoominfo.com', 'builtin.com',
+            'f6s.com', 'b2bhint.com', 'instagram.com', 'github.com', 'app.apollo.io'
         ]
         
-        candidate_list = []
+        domain_scores = defaultdict(int)
+        domain_reasons = defaultdict(set)
+        domain_result = {}
+        
+        name_lower = company_name.lower().strip()
+        clean_name = re.sub(r'[^a-z0-9]', '', name_lower)
+        
         for r in results:
             parsed = urlparse(r.url)
             domain = parsed.netloc.replace('www.', '')
             if any(ex in domain for ex in excluded_domains):
                 continue
                 
-            score = 0
-            reasons = []
-            name_lower = company_name.lower().strip()
-            clean_name = re.sub(r'[^a-z0-9]', '', name_lower)
+            # Multiple appearances bonus
+            if domain in domain_scores:
+                domain_scores[domain] += 2
+                domain_reasons[domain].add("Multiple search results")
+                continue
+                
+            domain_result[domain] = r
             
             if clean_name and clean_name in domain:
-                score += 5
-                reasons.append("Name in domain")
+                domain_scores[domain] += 5
+                domain_reasons[domain].add("Name in domain")
                 if domain.startswith(clean_name + "."):
-                    score += 3
-                    reasons.append("Domain prefix match")
+                    domain_scores[domain] += 3
+                    domain_reasons[domain].add("Domain prefix match")
                     
             if name_lower in r.title.lower():
-                score += 3
-                reasons.append("Name in title")
+                domain_scores[domain] += 3
+                domain_reasons[domain].add("Name in title")
                 
             if "official" in r.snippet.lower() or name_lower in r.snippet.lower():
-                score += 2
-                reasons.append("Snippet signal")
+                domain_scores[domain] += 2
+                domain_reasons[domain].add("Snippet signal")
                 
-            candidate_list.append((score, domain, r, reasons))
+        candidate_list = []
+        for domain, score in domain_scores.items():
+            candidate_list.append((score, domain, domain_result[domain], list(domain_reasons[domain])))
             
         if not candidate_list:
             return CompanyIdentity(
@@ -65,7 +78,9 @@ class IdentityResolver:
         for c in candidate_list:
             recorded_candidates.append(IdentityCandidate(domain=c[1], score=c[0], reasons=c[3]))
             
-        top_score, top_domain, top_result, top_reasons = candidate_list[0]
+        top_score = candidate_list[0][0]
+        top_domain = candidate_list[0][1]
+        top_result = candidate_list[0][2]
         
         scheme = urlparse(top_result.url).scheme or "https"
         website_url = f"{scheme}://{top_domain}"
@@ -73,12 +88,19 @@ class IdentityResolver:
         confidence = IdentityConfidence.AMBIGUOUS
         verification_reason = f"Top Score: {top_score}."
         
-        if top_score >= 8:
+        margin_ok = True
+        if len(candidate_list) > 1:
+            margin = top_score - candidate_list[1][0]
+            if margin < 3:
+                margin_ok = False
+                verification_reason += f" Margin to 2nd candidate is only {margin}."
+                
+        if top_score >= 8 and margin_ok:
             is_verified, msg = self.verifier.verify(company_name, website_url)
             verification_reason += " " + msg
             if is_verified:
                 confidence = IdentityConfidence.CONFIDENT
-        else:
+        elif top_score < 8:
             verification_reason += " Score too low for automatic CONFIDENT."
                 
         return CompanyIdentity(
