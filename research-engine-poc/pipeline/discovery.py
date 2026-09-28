@@ -9,10 +9,14 @@ class DomainScopeFilter:
     def is_allowed(url: str, primary_domain: str) -> bool:
         parsed = urlparse(url)
         netloc = parsed.netloc.lower()
-        if netloc.endswith(primary_domain) or netloc == primary_domain:
+        
+        # Secure domain matching
+        if netloc == primary_domain or netloc.endswith("." + primary_domain):
             return True
-        if any(netloc.endswith(ats) for ats in DomainScopeFilter.ALLOWED_ATS):
+            
+        if any(netloc == ats or netloc.endswith("." + ats) for ats in DomainScopeFilter.ALLOWED_ATS):
             return True
+            
         return False
 
 class URLClassifier:
@@ -33,6 +37,9 @@ class URLClassifier:
             
         if '/product' in path or '/features' in path or '/solutions' in path:
             return PageType.PRODUCT
+            
+        if '/case-study' in path or '/customers' in path or '/success-stories' in path:
+            return PageType.CASE_STUDY
             
         if '/blog' in path or '/news' in path or '/press' in path:
             return PageType.BLOG

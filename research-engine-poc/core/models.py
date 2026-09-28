@@ -13,12 +13,18 @@ class IdentityConfidence(str, Enum):
     AMBIGUOUS = "AMBIGUOUS"
     UNRESOLVED = "UNRESOLVED"
 
+class IdentityCandidate(BaseModel):
+    domain: str
+    score: int
+    reasons: List[str]
+
 class CompanyIdentity(BaseModel):
     name: str
     domain: str
     website_url: str
     confidence: IdentityConfidence
     reasoning: str
+    candidates: List[IdentityCandidate] = []
 
 class PageType(str, Enum):
     CAREERS_INDEX = "CAREERS_INDEX"
@@ -36,6 +42,8 @@ class DocumentQuality(str, Enum):
     EXTRACTION_FAILED = "EXTRACTION_FAILED"
     BLOCKED = "BLOCKED"
     SUSPECT = "SUSPECT"
+    FETCH_FAILED = "FETCH_FAILED"
+    HTTP_ERROR = "HTTP_ERROR"
 
 class CrawledDocument(BaseModel):
     url: str

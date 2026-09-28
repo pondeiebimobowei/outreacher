@@ -4,6 +4,7 @@ from search.duckduckgo import DuckDuckGoSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
+from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 from pipeline.acquisition import AcquisitionRunner
 
@@ -22,8 +23,8 @@ def main():
     
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
     
-    # We use the static crawler just to verify identity homepage quickly
-    resolver = IdentityResolver(search_provider, crawl_manager)
+    verifier = WebsiteVerifier(crawl_manager)
+    resolver = IdentityResolver(search_provider, verifier)
     
     runner = AcquisitionRunner(resolver, search_provider, crawl_manager)
     

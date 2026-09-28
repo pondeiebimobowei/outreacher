@@ -15,7 +15,9 @@ class CrawlManager:
         quality = DocumentQualityEvaluator.evaluate(doc)
         doc.quality = quality
         
-        if quality in [DocumentQuality.BLOCKED, DocumentQuality.EXTRACTION_FAILED, DocumentQuality.TOO_SHORT]:
+        # Trigger fallback for any failure class (but not TOO_SHORT, since Playwright won't invent words)
+        # We might want to fallback for TOO_SHORT if we suspect client-side rendering
+        if quality in [DocumentQuality.BLOCKED, DocumentQuality.EXTRACTION_FAILED, DocumentQuality.FETCH_FAILED, DocumentQuality.HTTP_ERROR, DocumentQuality.TOO_SHORT]:
             console.print(f"    [yellow]![/yellow] Static crawl yielded {quality.name}. Falling back to Browser...")
             fallback_doc = self.browser_crawler.fetch(url, page_type)
             fallback_quality = DocumentQualityEvaluator.evaluate(fallback_doc)
