@@ -35,19 +35,28 @@ class DomainScopeFilter:
         # Company name variations
         if company_name:
             name_lower = company_name.lower().strip()
-            # Clean alphanumeric without spaces (e.g. 'moniepoint')
-            clean_name = re.sub(r'[^a-z0-9]', '', name_lower)
-            if clean_name and len(clean_name) >= 2:
-                slugs.add(clean_name)
-            # Hyphenated (e.g. 'acme-corp')
-            hyphen_name = re.sub(r'\s+', '-', name_lower)
-            hyphen_name = re.sub(r'[^a-z0-9-]', '', hyphen_name).strip('-')
-            if hyphen_name and len(hyphen_name) >= 2:
-                slugs.add(hyphen_name)
-            # Words in name (e.g. 'acme' from 'Acme Corp')
-            for word in re.findall(r'\b[a-z0-9]+\b', name_lower):
-                if len(word) >= 3 and word not in {'corp', 'inc', 'llc', 'ltd', 'company', 'solutions', 'technologies', 'group'}:
-                    slugs.add(word)
+            
+            # Direct clean alphanumeric (e.g. 'moniepoint', 'acmecorp')
+            clean_full = re.sub(r'[^a-z0-9]', '', name_lower)
+            if clean_full and len(clean_full) >= 2:
+                slugs.add(clean_full)
+                
+            # Direct hyphenated (e.g. 'acme-corp')
+            hyphen_full = re.sub(r'\s+', '-', name_lower)
+            hyphen_full = re.sub(r'[^a-z0-9-]', '', hyphen_full).strip('-')
+            if hyphen_full and len(hyphen_full) >= 2:
+                slugs.add(hyphen_full)
+                
+            # Name stripped of common corporate suffixes
+            stripped_name = re.sub(r'\b(inc|corp|corporation|llc|ltd|limited|company|co|technologies|solutions|group)\b', '', name_lower).strip()
+            if stripped_name and stripped_name != name_lower:
+                clean_stripped = re.sub(r'[^a-z0-9]', '', stripped_name)
+                if clean_stripped and len(clean_stripped) >= 2:
+                    slugs.add(clean_stripped)
+                hyphen_stripped = re.sub(r'\s+', '-', stripped_name)
+                hyphen_stripped = re.sub(r'[^a-z0-9-]', '', hyphen_stripped).strip('-')
+                if hyphen_stripped and len(hyphen_stripped) >= 2:
+                    slugs.add(hyphen_stripped)
                     
         return slugs
 

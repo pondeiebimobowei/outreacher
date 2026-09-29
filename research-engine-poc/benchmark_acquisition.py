@@ -11,6 +11,8 @@ from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from discovery.discoverer import ScopedDiscoverer
+from discovery.ranking import DiversityBudgetRanker
 from pipeline.acquisition import AcquisitionRunner
 from core.models import DocumentQuality, IdentityConfidence, IdentityContext
 
@@ -46,7 +48,9 @@ def run_benchmark(provider_name: str, verbose: bool = False):
     
     verifier = WebsiteVerifier(crawl_manager, discovery_search)
     resolver = IdentityResolver(identity_search, verifier)
-    runner = AcquisitionRunner(resolver, discovery_search, crawl_manager, max_crawl_budget=6)
+    discoverer = ScopedDiscoverer(discovery_search)
+    ranker = DiversityBudgetRanker()
+    runner = AcquisitionRunner(resolver, discoverer, ranker, crawl_manager, max_crawl_budget=6)
     
     summary_table = Table(title=f"Acquisition Summary ({provider_name})", expand=True)
     summary_table.add_column("Company", style="cyan", no_wrap=True)

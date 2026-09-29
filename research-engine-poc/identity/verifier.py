@@ -41,9 +41,9 @@ from crawling.manager import CrawlManager
 from search.base import ISearchProvider
 from search.sanitizer import SearchResultSanitizer
 from core.models import (
-    EvidenceType, IdentityEvidence, PageType, SiteRelationship,
+    DocumentQuality, EvidenceType, IdentityEvidence, PageType, SiteRelationship,
 )
-from pipeline.discovery import URLClassifier
+from discovery.classifier import TwoStageClassifier
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -406,13 +406,13 @@ class WebsiteVerifier:
             urls.append(fallback)
 
         for url in urls:
-            ptype    = URLClassifier.classify(url)
+            ptype    = TwoStageClassifier.stage1_classify_url(url)
             strength = _CORROBORATION_STRENGTH.get(ptype)
             if strength is None:
                 continue
 
             doc = self.crawl_manager.fetch_with_fallback(url, ptype)
-            if doc.quality.name not in ["VALID", "TOO_SHORT"]:
+            if doc.quality not in {DocumentQuality.VALID, DocumentQuality.TOO_SHORT}:
                 continue
 
             doc_title   = (doc.title   or "").strip()

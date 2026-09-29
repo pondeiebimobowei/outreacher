@@ -1,72 +1,19 @@
-import re
-from typing import List, Optional, Dict
+from typing import List, Optional
 from datetime import datetime, timezone
-from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from rich.console import Console
 
 from core.models import (
     RawResearchPackage, PageType, IdentityConfidence,
     IdentityContext, CrawledDocument, DocumentQuality,
 )
+from core.urls import canonicalize_url
 from identity.resolver import IdentityResolver
-from search.base import ISearchProvider
 from crawling.manager import CrawlManager
 from discovery.discoverer import ScopedDiscoverer
 from discovery.ranking import DiversityBudgetRanker
 from discovery.classifier import TwoStageClassifier
 
 console = Console()
-
-# Query parameters to strip during URL canonicalization
-_TRACKING_PARAMS = {
-    'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-    'ref', 'ref_src', 'ref_url', 'source', 'srsltid', 'fbclid', 'gclid',
-    'gclsrc', 'dclid', 'zanpid', 'msclkid', 'mc_cid', 'mc_eid',
-}
-
-
-def canonicalize_url(url: str) -> str:
-    """
-    Normalizes a URL to prevent duplicate crawls of identical pages:
-      - Lowercases scheme and netloc
-      - Strips 'www.' prefix
-      - Normalizes path (collapses duplicate slashes, removes trailing slash except root '/')
-      - Strips tracking & marketing query parameters (utm_*, ref, srsltid, etc.)
-      - Strips URL fragments (#hash)
-    """
-    if not url:
-        return ""
-    try:
-        parsed = urlparse(url.strip())
-        scheme = parsed.scheme.lower() or "https"
-        netloc = parsed.netloc.lower()
-        if netloc.startswith("www."):
-            netloc = netloc[4:]
-            
-        # Normalize path
-        path = parsed.path
-        path = re.sub(r'/+', '/', path)
-        if path in ("", "/"):
-            path = "/"
-        else:
-            path = path.rstrip("/")
-            
-        # Filter tracking query parameters
-        filtered_query = ""
-        if parsed.query:
-            query_pairs = parse_qsl(parsed.query, keep_blank_values=False)
-            clean_pairs = [
-                (k, v) for k, v in query_pairs
-                if k.lower() not in _TRACKING_PARAMS and not k.lower().startswith('utm_')
-            ]
-            if clean_pairs:
-                clean_pairs.sort(key=lambda x: x[0])
-                filtered_query = urlencode(clean_pairs)
-                
-        return urlunparse((scheme, netloc, path, "", filtered_query, ""))
-    except Exception:
-        return url.strip()
-
 
 class AcquisitionRunner:
     """
@@ -79,12 +26,14 @@ class AcquisitionRunner:
     def __init__(
         self,
         resolver: IdentityResolver,
-        discovery_search_provider: ISearchProvider,
+        discoverer: ScopedDiscoverer,
+        ranker: DiversityBudgetRanker,
         crawl_manager: CrawlManager,
         max_crawl_budget: int = 8,
     ):
         self.resolver = resolver
-        self.discoverer = ScopedDiscoverer(discovery_search_provider)
+        self.discoverer = discoverer
+        self.ranker = ranker
         self.crawl_manager = crawl_manager
         self.max_crawl_budget = max_crawl_budget
 
@@ -116,7 +65,7 @@ class AcquisitionRunner:
         console.print(f"  Discovered {len(all_discovered)} in-scope URLs across research categories.")
 
         console.print(f"\n[bold blue]Step 3: Diversity Budget Allocation[/bold blue]")
-        budgeted_items = DiversityBudgetRanker.select_budgeted_urls(
+        budgeted_items = self.ranker.select_budgeted_urls(
             all_discovered,
             max_budget=self.max_crawl_budget,
         )
@@ -135,7 +84,6 @@ class AcquisitionRunner:
                 provisional=item.provisional_page_type,
                 title=doc.title,
                 content=doc.content,
-                url=doc.url,
             )
             
             doc.page_type = final_type

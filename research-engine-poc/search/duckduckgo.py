@@ -1,9 +1,13 @@
 from typing import List
 from ddgs import DDGS
-from .base import ISearchProvider
+from .base import ISearchProvider, SearchProviderError
 from core.models import SearchResult
 
 class DuckDuckGoSearchProvider(ISearchProvider):
+    @property
+    def name(self) -> str:
+        return "duckduckgo"
+
     def search(self, query: str, num_results: int = 5) -> List[SearchResult]:
         results = []
         try:
@@ -14,6 +18,6 @@ class DuckDuckGoSearchProvider(ISearchProvider):
                         url=r.get('href', ''),
                         snippet=r.get('body', '')
                     ))
-        except Exception as e:
-            print(f"[!] DuckDuckGo Search Error: {e}")
+        except Exception as exc:
+            raise SearchProviderError(f"DuckDuckGo search failed for query '{query}': {exc}") from exc
         return results

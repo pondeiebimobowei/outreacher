@@ -13,7 +13,9 @@ from discovery.classifier import TwoStageClassifier
 from discovery.queries import DiscoveryQueryBuilder
 from discovery.ranking import DiversityBudgetRanker
 from discovery.discoverer import ScopedDiscoverer
-from pipeline.acquisition import canonicalize_url, AcquisitionRunner
+from core.urls import canonicalize_url
+from pipeline.acquisition import AcquisitionRunner
+from search.base import ISearchProvider, SearchProviderError
 from search.sanitizer import SearchResultSanitizer
 from crawling.evaluator import DocumentQualityEvaluator
 from crawling.manager import CrawlManager
@@ -92,6 +94,14 @@ def test_domain_scope_security():
     # Reject evil ATS domain spoofing
     assert DomainScopeFilter.is_allowed("https://evilgreenhouse.io/moniepoint", "moniepoint.com") is False
     assert DomainScopeFilter.is_allowed("https://greenhouse.io.evil.com/moniepoint", "moniepoint.com") is False
+
+
+def test_domain_scope_rejects_loose_word_collision():
+    # Company "Global Media Inc" on domain "globalmedia.com" should not match unrelated tenant "media" or "global"
+    assert DomainScopeFilter.is_allowed("https://jobs.lever.co/media", "globalmedia.com", company_name="Global Media Inc") is False
+    assert DomainScopeFilter.is_allowed("https://jobs.lever.co/global", "globalmedia.com", company_name="Global Media Inc") is False
+    assert DomainScopeFilter.is_allowed("https://jobs.lever.co/globalmedia", "globalmedia.com", company_name="Global Media Inc") is True
+    assert DomainScopeFilter.is_allowed("https://jobs.lever.co/global-media", "globalmedia.com", company_name="Global Media Inc") is True
 
 
 # ── 3. Two-Stage Classification Tests ─────────────────────────────────────────
@@ -197,6 +207,11 @@ def test_diversity_budget_ranker():
     assert job_count <= 3
 
 
+def test_diversity_budget_empty():
+    assert DiversityBudgetRanker.select_budgeted_urls([]) == []
+    assert DiversityBudgetRanker.select_budgeted_urls([], max_budget=0) == []
+
+
 # ── 5. Canonicalization Tests ─────────────────────────────────────────────────
 
 def test_url_canonicalization():
@@ -219,6 +234,14 @@ def test_url_canonicalization():
     # Substantive query params preserved
     url_with_search = "https://acme.com/search?q=engineer&location=remote"
     assert canonicalize_url(url_with_search) == "https://acme.com/search?location=remote&q=engineer"
+
+
+def test_url_canonicalization_invalid_inputs():
+    assert canonicalize_url("") == ""
+    assert canonicalize_url("not-a-url") == ""
+    assert canonicalize_url("/relative/path") == ""
+    assert canonicalize_url("javascript:alert(1)") == ""
+    assert canonicalize_url("ftp://example.com/file") == ""
 
 
 # ── 6. Document Quality Evaluator Tests ───────────────────────────────────────
@@ -258,6 +281,13 @@ def test_document_quality_evaluator():
     )
     assert DocumentQualityEvaluator.evaluate(doc_about_valid) == DocumentQuality.VALID
     
+    # Homepage: >= 80 words -> VALID, < 80 -> TOO_SHORT
+    doc_hp_valid = CrawledDocument(
+        url="x", final_url="x", status_code=200, content="Welcome to the homepage of our product " * 20,
+        word_count=90, retrieved_at=datetime(2024, 1, 1), page_type=PageType.HOMEPAGE,
+    )
+    assert DocumentQualityEvaluator.evaluate(doc_hp_valid) == DocumentQuality.VALID
+    
     # Cloudflare challenge interception -> BLOCKED
     doc_cf = CrawledDocument(
         url="x", final_url="x", status_code=200,
@@ -286,7 +316,51 @@ def test_search_sanitization():
     assert clean[1].url == "https://acme.com/unwrapped"
 
 
-# ── 8. End-to-End Acquisition Runner Tests ────────────────────────────────────
+# ── 8. Crawl Manager Best-Attempt Selection Tests ─────────────────────────────
+
+def test_crawl_manager_best_attempt_selection():
+    # Case 1: Browser fallback succeeds with VALID after static returned TOO_SHORT
+    class _ShortStatic(ICrawlerProvider):
+        def fetch(self, url: str, page_type: PageType = PageType.OTHER) -> CrawledDocument:
+            return CrawledDocument(
+                url=url, final_url=url, status_code=200, title="Short",
+                content="Short snippet of text.", word_count=5, page_type=page_type,
+                quality=DocumentQuality.TOO_SHORT, retrieved_at=datetime.now(timezone.utc),
+            )
+
+    class _ValidBrowser(ICrawlerProvider):
+        def fetch(self, url: str, page_type: PageType = PageType.OTHER) -> CrawledDocument:
+            return CrawledDocument(
+                url=url, final_url=url, status_code=200, title="Full Page",
+                content="Comprehensive and long text content " * 30, word_count=180,
+                page_type=page_type, quality=DocumentQuality.VALID,
+                retrieved_at=datetime.now(timezone.utc),
+            )
+
+    mgr = CrawlManager(_ShortStatic(), _ValidBrowser())
+    res = mgr.fetch_with_fallback("https://acme.com/about", PageType.ABOUT)
+    assert res.quality == DocumentQuality.VALID
+    assert res.fetch_strategy == "BROWSER"
+    assert len(res.attempts) == 2
+
+    # Case 2: Browser fallback fails (EXTRACTION_FAILED) after static had 40 words (TOO_SHORT) -> preserves static
+    class _FailedBrowser(ICrawlerProvider):
+        def fetch(self, url: str, page_type: PageType = PageType.OTHER) -> CrawledDocument:
+            return CrawledDocument(
+                url=url, final_url=url, status_code=200, title="Empty",
+                content="", word_count=0, page_type=page_type,
+                quality=DocumentQuality.EXTRACTION_FAILED, retrieved_at=datetime.now(timezone.utc),
+            )
+
+    mgr2 = CrawlManager(_ShortStatic(), _FailedBrowser())
+    res2 = mgr2.fetch_with_fallback("https://acme.com/about", PageType.ABOUT)
+    # Static attempt was TOO_SHORT (quality 5), browser was EXTRACTION_FAILED (quality 3) -> preserves static
+    assert res2.quality == DocumentQuality.TOO_SHORT
+    assert res2.word_count == 5
+    assert len(res2.attempts) == 2
+
+
+# ── 9. End-to-End Acquisition Runner Tests ────────────────────────────────────
 
 class _MockResolver:
     def __init__(self, confidence=IdentityConfidence.CONFIDENT, domain="acme.com"):
@@ -308,9 +382,12 @@ class _MockResolver:
             ]
         )
 
-class _MockDiscoverySearch:
+class _MockDiscoverySearch(ISearchProvider):
     def __init__(self, results_by_query=None):
         self.results_by_query = results_by_query or {}
+    @property
+    def name(self) -> str:
+        return "mock_discovery_search"
     def search(self, query: str, num_results: int = 5):
         return self.results_by_query.get(query, [
             SearchResult(title="About Acme", url="https://acme.com/about", snippet=""),
@@ -333,10 +410,12 @@ class _MockCrawler(ICrawlerProvider):
 def test_acquisition_runner_successful_flow():
     resolver = _MockResolver(confidence=IdentityConfidence.CONFIDENT, domain="acme.com")
     search_prov = _MockDiscoverySearch()
+    discoverer = ScopedDiscoverer(search_prov)
+    ranker = DiversityBudgetRanker()
     crawler = _MockCrawler()
     crawl_mgr = CrawlManager(crawler, crawler)
     
-    runner = AcquisitionRunner(resolver, search_prov, crawl_mgr, max_crawl_budget=5)
+    runner = AcquisitionRunner(resolver, discoverer, ranker, crawl_mgr, max_crawl_budget=5)
     package = runner.run("Acme")
     
     assert package.identity.confidence == IdentityConfidence.CONFIDENT
@@ -355,10 +434,12 @@ def test_acquisition_runner_successful_flow():
 def test_acquisition_runner_aborts_on_ambiguous_identity():
     resolver = _MockResolver(confidence=IdentityConfidence.AMBIGUOUS, domain="acme.com")
     search_prov = _MockDiscoverySearch()
+    discoverer = ScopedDiscoverer(search_prov)
+    ranker = DiversityBudgetRanker()
     crawler = _MockCrawler()
     crawl_mgr = CrawlManager(crawler, crawler)
     
-    runner = AcquisitionRunner(resolver, search_prov, crawl_mgr)
+    runner = AcquisitionRunner(resolver, discoverer, ranker, crawl_mgr)
     package = runner.run("Acme")
     
     assert package.identity.confidence == IdentityConfidence.AMBIGUOUS

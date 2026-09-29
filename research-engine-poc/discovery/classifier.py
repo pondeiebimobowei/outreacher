@@ -39,44 +39,40 @@ class TwoStageClassifier:
             parsed = urlparse(url.strip())
             host = parsed.netloc.lower()
             path = parsed.path.lower().rstrip('/')
+            segments = [s for s in path.strip('/').split('/') if s]
             
             # Root path is HOMEPAGE
-            if path in ("", "/"):
+            if not segments:
                 return PageType.HOMEPAGE
 
-            # 1. Blog / News / Press / Engineering Blog
-            if path.startswith('/blog') or '/blog/' in path or \
-               path.startswith('/news') or '/news/' in path or \
-               path.startswith('/press') or '/press/' in path or \
-               path.startswith('/articles') or '/articles/' in path or \
-               path.startswith('/engineering') or '/engineering/' in path:
+            first = segments[0]
+
+            # 1. Blog / News / Press / Articles / Engineering Blog
+            if first in ('blog', 'blogs', 'news', 'press', 'articles', 'article', 'engineering', 'posts', 'post'):
                 return PageType.BLOG
 
             # 2. Case studies / Customer stories
-            if '/case-study' in path or '/case-studies' in path or \
-               '/customers' in path or '/stories' in path or '/customer-stories' in path:
+            if first in ('case-study', 'case-studies', 'customers', 'customer-stories', 'stories', 'clients'):
                 return PageType.CASE_STUDY
 
             # 3. About / Company / Mission / Team
-            if path in ['/about', '/about-us', '/our-story', '/company', '/team', '/mission', '/who-we-are', '/values'] or \
-               path.startswith('/about/') or path.startswith('/company/') or path.startswith('/team/'):
+            if first in ('about', 'about-us', 'our-story', 'company', 'team', 'mission', 'who-we-are', 'values'):
                 return PageType.ABOUT
 
             # 4. Contact
-            if path in ['/contact', '/contact-us', '/get-in-touch'] or path.startswith('/contact/'):
+            if first in ('contact', 'contact-us', 'get-in-touch'):
                 return PageType.CONTACT
 
-            # 5. Careers & Job Listings
-            # Standalone job paths (e.g. /position/12345, /job/12345)
-            if re.match(r'^/(?:position|positions|job|jobs|posting|postings)/[a-zA-Z0-9_-]+', path):
-                if path in ['/jobs', '/jobs/search', '/jobs/all', '/positions', '/positions/search']:
+            # 5. Standalone job paths (e.g. /position/12345, /job/12345)
+            if first in ('position', 'positions', 'job', 'jobs', 'posting', 'postings'):
+                if len(segments) == 1:
+                    return PageType.CAREERS_INDEX
+                if len(segments) >= 2 and segments[1] in ('search', 'all'):
                     return PageType.CAREERS_INDEX
                 return PageType.JOB_LISTING
 
-            # Paths under /careers/ or /jobs/
-            if path in ['/careers', '/jobs'] or path.startswith('/careers/') or path.startswith('/jobs/'):
-                segments = [s for s in path.strip('/').split('/') if s]
-                
+            # Paths under /careers/
+            if first == 'careers':
                 # Check career info subpages -> OTHER
                 if len(segments) >= 2 and segments[1] in cls._CAREER_INFO_SUBPATHS:
                     return PageType.OTHER
@@ -96,15 +92,12 @@ class TwoStageClassifier:
 
             # ATS domain paths (e.g. boards.greenhouse.io/acme/jobs/123, jobs.lever.co/acme/uuid)
             if any(ats in host for ats in cls._ATS_DOMAINS):
-                segments = [s for s in path.strip('/').split('/') if s]
                 if len(segments) >= 2 and segments[1] not in ['all', 'search', 'teams', 'departments']:
                     return PageType.JOB_LISTING
                 return PageType.CAREERS_INDEX
 
             # 6. Product / Solutions / Features / Platform / Pricing
-            if path in ['/product', '/products', '/solutions', '/features', '/platform', '/pricing'] or \
-               path.startswith('/product/') or path.startswith('/products/') or path.startswith('/solutions/') or \
-               path.startswith('/features/') or path.startswith('/platform/'):
+            if first in ('product', 'products', 'solutions', 'features', 'platform', 'pricing'):
                 return PageType.PRODUCT
 
             # 7. Fallback to DiscoveryPurpose if URL path is uninformative

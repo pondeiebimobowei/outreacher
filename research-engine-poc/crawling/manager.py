@@ -5,6 +5,16 @@ from rich.console import Console
 
 console = Console()
 
+_QUALITY_PRIORITY = {
+    DocumentQuality.VALID: 6,
+    DocumentQuality.TOO_SHORT: 5,
+    DocumentQuality.SUSPECT: 4,
+    DocumentQuality.EXTRACTION_FAILED: 3,
+    DocumentQuality.FETCH_FAILED: 2,
+    DocumentQuality.BLOCKED: 1,
+    DocumentQuality.HTTP_ERROR: 0,
+}
+
 class CrawlManager:
     def __init__(self, static_crawler: ICrawlerProvider, browser_crawler: ICrawlerProvider):
         self.static_crawler = static_crawler
@@ -36,9 +46,26 @@ class CrawlManager:
             fallback_doc.fetch_strategy = "BROWSER"
             
             browser_attempt = CrawlAttempt(strategy="BROWSER", quality=fallback_quality, error=fallback_doc.error)
-            fallback_doc.attempts = [static_attempt, browser_attempt]
+            attempts = [static_attempt, browser_attempt]
             
-            return fallback_doc
+            # Pick best attempt: higher quality priority, or higher word count on tie
+            static_score = _QUALITY_PRIORITY.get(quality, 0)
+            fallback_score = _QUALITY_PRIORITY.get(fallback_quality, 0)
+            
+            if fallback_score > static_score:
+                fallback_doc.attempts = attempts
+                return fallback_doc
+            elif fallback_score == static_score:
+                if fallback_doc.word_count >= doc.word_count:
+                    fallback_doc.attempts = attempts
+                    return fallback_doc
+                else:
+                    doc.attempts = attempts
+                    return doc
+            else:
+                # Static attempt had better content / higher quality
+                doc.attempts = attempts
+                return doc
             
         doc.attempts = [static_attempt]
         return doc

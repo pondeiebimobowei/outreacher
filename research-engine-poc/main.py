@@ -8,6 +8,8 @@ from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from discovery.discoverer import ScopedDiscoverer
+from discovery.ranking import DiversityBudgetRanker
 from pipeline.acquisition import AcquisitionRunner
 
 console = Console()
@@ -36,8 +38,10 @@ def main():
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
     verifier = WebsiteVerifier(crawl_manager, discovery_search)
     resolver = IdentityResolver(identity_search, verifier)
+    discoverer = ScopedDiscoverer(discovery_search)
+    ranker = DiversityBudgetRanker()
     
-    runner = AcquisitionRunner(resolver, discovery_search, crawl_manager)
+    runner = AcquisitionRunner(resolver, discoverer, ranker, crawl_manager)
     
     try:
         package = runner.run(company_name)

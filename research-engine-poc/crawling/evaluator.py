@@ -24,6 +24,7 @@ class DocumentQualityEvaluator:
 
     # Contextual word count thresholds by page type
     _MIN_WORD_THRESHOLDS = {
+        PageType.HOMEPAGE: 80,
         PageType.CONTACT: 20,
         PageType.CAREERS_INDEX: 50,
         PageType.JOB_LISTING: 50,

@@ -1,18 +1,14 @@
 from typing import List, Optional
 from rich.console import Console
 from core.models import DiscoveredURL, DiscoveryPurpose, PageType
-from search.base import ISearchProvider
+from core.urls import canonicalize_url
+from search.base import ISearchProvider, SearchProviderError
 from search.sanitizer import SearchResultSanitizer
 from .queries import DiscoveryQueryBuilder
 from .scope import DomainScopeFilter
 from .classifier import TwoStageClassifier
 
 console = Console()
-
-def _canonicalize_quick(url: str) -> str:
-    """Imported from pipeline.acquisition to avoid circular dependencies."""
-    from pipeline.acquisition import canonicalize_url
-    return canonicalize_url(url)
 
 class ScopedDiscoverer:
     """
@@ -21,11 +17,10 @@ class ScopedDiscoverer:
     """
     def __init__(self, search_provider: ISearchProvider):
         self.search_provider = search_provider
-        self.provider_name = (
-            search_provider.__class__.__name__
-            .replace("SearchProvider", "")
-            .lower()
-        )
+
+    @property
+    def provider_name(self) -> str:
+        return self.search_provider.name
 
     def discover(
         self,
@@ -38,7 +33,7 @@ class ScopedDiscoverer:
 
         # Seed with canonical homepage
         hp_url = homepage_url or f"https://{domain}"
-        can_hp = _canonicalize_quick(hp_url)
+        can_hp = canonicalize_url(hp_url)
         if can_hp:
             seen_urls.add(can_hp)
             discovered.append(DiscoveredURL(
@@ -58,7 +53,7 @@ class ScopedDiscoverer:
                 clean_results = SearchResultSanitizer.sanitize(raw_results)
                 
                 for rank, res in enumerate(clean_results, start=1):
-                    can_url = _canonicalize_quick(res.url)
+                    can_url = canonicalize_url(res.url)
                     if not can_url or can_url in seen_urls:
                         continue
                         

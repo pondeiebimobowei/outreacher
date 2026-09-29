@@ -31,7 +31,7 @@ from core.models import (
     DocumentQuality, EvidenceType, IdentityConfidence, PageType,
     CrawledDocument, SearchResult, SiteRelationship,
 )
-from pipeline.discovery import URLClassifier
+from discovery.classifier import TwoStageClassifier
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 
@@ -57,6 +57,9 @@ def _fail(url, ptype=PageType.OTHER):
 class _Search:
     def __init__(self, results=None):
         self._r = results or []
+    @property
+    def name(self) -> str:
+        return "mock_search"
     def search(self, query, num_results=5):
         return self._r
 
@@ -77,19 +80,19 @@ def _make(search_results, pages):
 # ── 1–5. Structural invariants ────────────────────────────────────────────────
 
 def test_classifier_blog_before_company():
-    assert URLClassifier.classify("https://a.com/blog/company-news") == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url("https://a.com/blog/company-news") == PageType.BLOG
 
 def test_classifier_company_path_is_about():
-    assert URLClassifier.classify("https://a.com/company/about") == PageType.ABOUT
+    assert TwoStageClassifier.stage1_classify_url("https://a.com/company/about") == PageType.ABOUT
 
 def test_classifier_contact():
-    assert URLClassifier.classify("https://a.com/contact") == PageType.CONTACT
+    assert TwoStageClassifier.stage1_classify_url("https://a.com/contact") == PageType.CONTACT
 
 def test_classifier_careers():
-    assert URLClassifier.classify("https://a.com/careers") == PageType.CAREERS_INDEX
+    assert TwoStageClassifier.stage1_classify_url("https://a.com/careers") == PageType.CAREERS_INDEX
 
 def test_classifier_job_listing():
-    assert URLClassifier.classify("https://a.com/careers/123-engineer") == PageType.JOB_LISTING
+    assert TwoStageClassifier.stage1_classify_url("https://a.com/careers/123-engineer") == PageType.JOB_LISTING
 
 def test_homepage_only_never_confident():
     _, r = _make(
