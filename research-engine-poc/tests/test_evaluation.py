@@ -10,8 +10,8 @@ from core.evidence import (
 )
 
 def test_evaluation_dataset_categories_and_ground_truth():
-    """Verifies that all 14 benchmark cases execute deterministically and meet ground truth contracts."""
-    assert len(EVALUATION_DATASET) == 14
+    """Verifies that all 22 benchmark cases execute deterministically and meet ground truth contracts."""
+    assert len(EVALUATION_DATASET) == 22
 
     category_counts = {}
     for case in EVALUATION_DATASET:
@@ -38,7 +38,7 @@ def test_evaluation_dataset_categories_and_ground_truth():
     assert category_counts["NEGATIVE_GATING"] == 4
     assert category_counts["CONTRACT_FIXTURE"] == 2
     assert category_counts["IDENTITY_SAFETY"] == 1
-    assert category_counts["SEMANTIC_STRESS"] == 4
+    assert category_counts["SEMANTIC_STRESS"] == 12
 
 def test_negative_gating_never_produces_false_confirmed():
     """Explicitly verifies that negative cases reject CONFIRMED openings and demote to PROACTIVE."""

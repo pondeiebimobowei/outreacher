@@ -518,10 +518,11 @@ We provide execution, clearing, custody, and digital wealth solutions for hundre
         ),
     ),
 
-    # ── Category 5: Semantic Stress Testing Fixtures ──────────────────────────
+    # ── Category 5: Semantic Stress Testing Fixtures (12 Frozen Cases v1.1) ───
+    # Negation Family (4 fixtures)
     EvaluationBenchmarkCase(
         category="SEMANTIC_STRESS",
-        case_id="stress_paused_hiring_negation",
+        case_id="stress_negation_paused_hiring",
         company="Nexar Robotics",
         description="Negated hiring state: company explicitly pauses hiring while restructuring",
         expected_opportunity_type=OpportunityType.PROACTIVE,
@@ -570,34 +571,44 @@ We are not accepting applications for Software Engineer or Robotics Engineer rol
 
     EvaluationBenchmarkCase(
         category="SEMANTIC_STRESS",
-        case_id="stress_unstated_metric_extrapolation",
-        company="AfriPay Cloud",
-        description="Unstated metrics: B2B gateway serving banks without disclosing quantitative customer count",
+        case_id="stress_negation_hiring_freeze",
+        company="KubeWave",
+        description="Company-wide hiring freeze across backend and data infrastructure",
         expected_opportunity_type=OpportunityType.PROACTIVE,
         expected_role_title="General Outreach",
         expected_identity_confidence=IdentityConfidence.CONFIDENT,
-        ground_truth_notes="Tests anti-hallucination on quantities: customer_count or user numbers must NOT be invented.",
+        ground_truth_notes="Tests freeze notice: no active engineering hiring claims permitted.",
         expected_accepted_predicates=["provides_product"],
-        expected_omitted_predicates=["serves_customer_count", "active_user_count"],
-        prohibited_predicates=["serves_customer_count", "active_user_count"],
+        expected_omitted_predicates=["hiring_role", "engineering_practice"],
+        prohibited_predicates=["hiring_role", "engineering_practice"],
         package=RawResearchPackage(
             identity=CompanyIdentity(
-                name="AfriPay Cloud",
-                domain="afripaycloud.com",
-                website_url="https://afripaycloud.com",
+                name="KubeWave",
+                domain="kubewave.io",
+                website_url="https://kubewave.io",
                 confidence=IdentityConfidence.CONFIDENT,
-                reasoning="Verified payment infrastructure provider.",
+                reasoning="Verified cloud container orchestrator.",
             ),
             documents=[
                 CrawledDocument(
-                    url="https://afripaycloud.com/overview",
-                    final_url="https://afripaycloud.com/overview",
+                    url="https://kubewave.io/about",
+                    final_url="https://kubewave.io/about",
                     page_type=PageType.ABOUT,
-                    title="About AfriPay Cloud",
-                    content="""AfriPay Cloud Overview
-AfriPay Cloud provides B2B payment gateway infrastructure and clearing protocols.
-Serving enterprise banks and regulated financial institutions across Nigeria and Ghana with multi-currency settlement.
-Built with resilient Go microservices and Kafka event streaming.""",
+                    title="About KubeWave",
+                    content="""About KubeWave
+KubeWave provides Kubernetes cluster autoscaling and workload placement engines.
+Headquartered in Seattle, powering multi-tenant cluster management.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://kubewave.io/careers/status",
+                    final_url="https://kubewave.io/careers/status",
+                    page_type=PageType.CAREERS_INDEX,
+                    title="Careers Status - KubeWave",
+                    content="""Recruitment Notice
+KubeWave has enacted a complete hiring freeze across all backend engineering, DevOps, and data teams for the remainder of the fiscal year.
+No open headcount is available.""",
                     retrieved_at=datetime.now(timezone.utc),
                     quality=DocumentQuality.VALID,
                 ),
@@ -608,7 +619,103 @@ Built with resilient Go microservices and Kafka event streaming.""",
 
     EvaluationBenchmarkCase(
         category="SEMANTIC_STRESS",
-        case_id="stress_launch_vs_founded_confusion",
+        case_id="stress_negation_non_engineering_only",
+        company="SalesPeak",
+        description="Exclusively non-engineering roles open with explicit exclusion of engineering",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests role domain discrimination: non-engineering role must not produce engineering practice claims.",
+        expected_accepted_predicates=["provides_product", "hiring_role"],
+        expected_omitted_predicates=["engineering_practice"],
+        prohibited_predicates=["engineering_practice"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="SalesPeak",
+                domain="salespeak.co",
+                website_url="https://salespeak.co",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified sales engagement platform.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://salespeak.co/about",
+                    final_url="https://salespeak.co/about",
+                    page_type=PageType.ABOUT,
+                    title="About SalesPeak",
+                    content="""About SalesPeak
+SalesPeak develops outbound sales automation and dialer CRM integrations.
+Founded in 2020 in Chicago.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://salespeak.co/careers/openings",
+                    final_url="https://salespeak.co/careers/openings",
+                    page_type=PageType.CAREERS_INDEX,
+                    title="Careers at SalesPeak",
+                    content="""Open Positions
+We are actively hiring for an Account Executive in Chicago.
+Note: All technical and software engineering hiring is completely closed. We have zero engineering vacancies.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_negation_archived_historical_posting",
+        company="LegacyGrid",
+        description="Historical archived requisition with explicit closed watermark",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests historical closed archive: archived job must NOT produce active hiring claims.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["hiring_role"],
+        prohibited_predicates=["hiring_role"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="LegacyGrid",
+                domain="legacygrid.net",
+                website_url="https://legacygrid.net",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified grid management software vendor.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://legacygrid.net/overview",
+                    final_url="https://legacygrid.net/overview",
+                    page_type=PageType.ABOUT,
+                    title="LegacyGrid Overview",
+                    content="""LegacyGrid Platform
+LegacyGrid develops smart grid load forecasting and SCADA telemetry analysis software.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://legacygrid.net/archive/jobs/2022-frontend-lead",
+                    final_url="https://legacygrid.net/archive/jobs/2022-frontend-lead",
+                    page_type=PageType.JOB_LISTING,
+                    title="Senior Frontend Lead (ARCHIVED - FILLED)",
+                    content="""ARCHIVED REQUISITION (CLOSED DEC 2022)
+Role: Senior Frontend Lead
+Status: This position was filled in December 2022. Applications are closed.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    # Temporal Family (3 fixtures)
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_temporal_product_launch_vs_founding",
         company="ReconFlow AI",
         description="Temporal attribute distinction: product launched in 2024, founding year unstated",
         expected_opportunity_type=OpportunityType.PROACTIVE,
@@ -645,7 +752,82 @@ Eliminate manual ledger matching with AI-powered invoice reconciliation.""",
 
     EvaluationBenchmarkCase(
         category="SEMANTIC_STRESS",
-        case_id="stress_multi_entity_attribute_contamination",
+        case_id="stress_temporal_acquisition_year_vs_founding",
+        company="CloudMesh",
+        description="Acquisition year vs inception year: founded in 2018, acquired in 2023",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests temporal disambiguation: acquisition year (2023) must not overwrite founding year (2018).",
+        expected_accepted_predicates=["provides_product", "founded_in"],
+        expected_omitted_predicates=[],
+        prohibited_predicates=[],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="CloudMesh",
+                domain="cloudmesh.io",
+                website_url="https://cloudmesh.io",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified network virtualization vendor.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://cloudmesh.io/about",
+                    final_url="https://cloudmesh.io/about",
+                    page_type=PageType.ABOUT,
+                    title="About CloudMesh",
+                    content="""About CloudMesh
+CloudMesh was founded in 2018 in Dublin to develop zero-trust mesh networking.
+CloudMesh was acquired by Titan Enterprise Holdings in 2023.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_temporal_office_expansion_year",
+        company="Apex Systems Group",
+        description="Hub expansion year vs inception year: London hub opened in 2022",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests temporal office opening: expansion year (2022) must NOT be extracted as founded_in.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["founded_in"],
+        prohibited_predicates=["founded_in"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="Apex Systems Group",
+                domain="apexsystemsgroup.com",
+                website_url="https://apexsystemsgroup.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified enterprise systems integrator.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://apexsystemsgroup.com/press/london-hub",
+                    final_url="https://apexsystemsgroup.com/press/london-hub",
+                    page_type=PageType.BLOG,
+                    title="London Engineering Hub Opening - Apex Systems Group",
+                    content="""European Expansion
+Apex Systems Group opened its London engineering hub in 2022 to support growing UK enterprise clients.
+Apex provides legacy modernization and cloud migration services.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    # Entity Contamination Family (3 fixtures)
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_entity_partner_infrastructure",
         company="DataCore Solutions",
         description="Multi-entity attribution: partner operates 10,000 servers, target builds software plugins",
         expected_opportunity_type=OpportunityType.PROACTIVE,
@@ -680,6 +862,157 @@ DataCore connects seamlessly to CloudGrid telemetry pipelines.""",
             discovered_at=datetime.now(timezone.utc),
         ),
     ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_entity_customer_usage_scale",
+        company="AuthGuard",
+        description="Customer user base attribution: customer serves 50M users, vendor builds SDK",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests entity isolation: client's user count (50M) must NOT be claimed as vendor's active_user_count.",
+        expected_accepted_predicates=["provides_product", "notable_customer"],
+        expected_omitted_predicates=["active_user_count", "serves_customer_count"],
+        prohibited_predicates=["active_user_count", "serves_customer_count"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="AuthGuard",
+                domain="authguard.dev",
+                website_url="https://authguard.dev",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified authentication SDK developer.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://authguard.dev/customers/finbank",
+                    final_url="https://authguard.dev/customers/finbank",
+                    page_type=PageType.CASE_STUDY,
+                    title="FinBank Case Study - AuthGuard",
+                    content="""Case Study: FinBank
+AuthGuard provides multi-factor authentication SDKs for mobile applications.
+Our enterprise customer FinBank serves 50 million retail banking customers across Latin America.
+FinBank integrated AuthGuard biometric verification into their mobile apps.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_entity_parent_revenue_scope",
+        company="MicroCAD Labs",
+        description="Parent revenue vs subsidiary: parent generated $2B group revenue",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests entity revenue isolation: parent company group revenue must NOT be claimed as subsidiary business_scale.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["business_scale"],
+        prohibited_predicates=["business_scale"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="MicroCAD Labs",
+                domain="microcadlabs.com",
+                website_url="https://microcadlabs.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified computer-aided design software boutique.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://microcadlabs.com/about",
+                    final_url="https://microcadlabs.com/about",
+                    page_type=PageType.ABOUT,
+                    title="About MicroCAD Labs",
+                    content="""About MicroCAD Labs
+MicroCAD Labs develops 3D geometric modeling kernel libraries for industrial designers.
+MicroCAD is an independent research subsidiary of MegaIndustrial Group, which reported $2B annual conglomerate revenue.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    # Quantitative Precision Family (2 fixtures)
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_quantity_vague_customer_extrapolation",
+        company="AfriPay Cloud",
+        description="Unstated metrics: B2B gateway serving banks without disclosing quantitative customer count",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests anti-hallucination on quantities: customer_count or user numbers must NOT be invented.",
+        expected_accepted_predicates=["provides_product", "target_market"],
+        expected_omitted_predicates=["serves_customer_count", "active_user_count"],
+        prohibited_predicates=["serves_customer_count", "active_user_count"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="AfriPay Cloud",
+                domain="afripaycloud.com",
+                website_url="https://afripaycloud.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified payment infrastructure provider.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://afripaycloud.com/overview",
+                    final_url="https://afripaycloud.com/overview",
+                    page_type=PageType.ABOUT,
+                    title="About AfriPay Cloud",
+                    content="""AfriPay Cloud Overview
+AfriPay Cloud provides B2B payment gateway infrastructure and clearing protocols.
+Serving enterprise banks and regulated financial institutions across Nigeria and Ghana with multi-currency settlement.
+Built with resilient Go microservices and Kafka event streaming.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_quantity_unstated_headcount",
+        company="NovaKernel",
+        description="Vague team description without disclosing quantitative employee count",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests headcount anti-hallucination: vague team phrase must NOT produce fabricated business_scale or active_user_count.",
+        expected_accepted_predicates=["provides_product", "company_description"],
+        expected_omitted_predicates=["business_scale", "active_user_count"],
+        prohibited_predicates=["business_scale", "active_user_count"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="NovaKernel",
+                domain="novakernel.org",
+                website_url="https://novakernel.org",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified systems software engineering collective.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://novakernel.org/team",
+                    final_url="https://novakernel.org/team",
+                    page_type=PageType.ABOUT,
+                    title="About NovaKernel Team",
+                    content="""NovaKernel Systems
+NovaKernel develops low-latency Linux kernel extensions for high-frequency algorithmic trading.
+We are a distributed, collaborative group of systems engineers across North America and Europe.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
 ]
 
 
@@ -701,6 +1034,8 @@ def audit_semantic_claims(graph: ClaimGraph, case: EvaluationBenchmarkCase) -> D
         "missing_expected": missing_expected,
         "prohibited_found": prohibited_found,
         "unwanted_omitted": unwanted_omitted,
+        "expected_count": len(case.expected_accepted_predicates or []),
+        "prohibited_count": len(case.prohibited_predicates or []),
     }
 
 
@@ -730,7 +1065,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     case_table.add_column("Rejected", justify="right", style="red")
     case_table.add_column("GF", justify="right")
     case_table.add_column("Sem Audit", justify="center")
-    case_table.add_column("Latency", justify="right")
+    case_table.add_column("LLM Latency", justify="right", style="dim")
+    case_table.add_column("Total Elapsed", justify="right")
     case_table.add_column("Tokens", justify="right", style="dim")
 
     total_cases = len(EVALUATION_DATASET)
@@ -745,8 +1081,14 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     grounding_failures = 0
     semantic_stress_cases_count = 0
     semantic_stress_clean_count = 0
+    total_expected_propositions = 0
+    missing_expected_propositions = 0
+    total_prohibited_propositions = 0
+    prohibited_accepted_propositions = 0
+
     total_latency_s = 0.0
     case_latencies: List[float] = []
+    case_inference_latencies: List[float] = []
     total_tokens_consumed = 0
     provider_errors = 0
     validation_errors = 0
@@ -764,6 +1106,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             meta = getattr(synthesizer, "last_metadata", None)
             tokens = meta.total_tokens if meta and meta.total_tokens else 0
             total_tokens_consumed += tokens
+            inf_latency_s = (meta.latency_ms / 1000.0) if meta and meta.latency_ms else duration_s
+            case_inference_latencies.append(inf_latency_s)
 
             actual_opp = dto.opportunities[0].opportunity_type if dto.opportunities else OpportunityType.UNCLASSIFIED
             is_opp_match = (actual_opp == case.expected_opportunity_type)
@@ -797,6 +1141,11 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             audit_res = audit_semantic_claims(graph, case)
             if audit_res["has_rules"]:
                 semantic_stress_cases_count += 1
+                total_expected_propositions += audit_res["expected_count"]
+                missing_expected_propositions += len(audit_res["missing_expected"])
+                total_prohibited_propositions += audit_res["prohibited_count"]
+                prohibited_accepted_propositions += len(audit_res["prohibited_found"])
+
                 if audit_res["passed"]:
                     semantic_stress_clean_count += 1
                 sem_label = "[bold green]PASS[/bold green]" if audit_res["passed"] else "[bold red]FAIL[/bold red]"
@@ -818,6 +1167,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 "rejected_claims": rejected_count,
                 "grounding_failures": case_gf,
                 "semantic_audit": audit_res,
+                "inference_latency_s": inf_latency_s,
                 "latency_s": duration_s,
                 "tokens": tokens,
             }
@@ -834,19 +1184,21 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 str(rejected_count),
                 gf_label,
                 sem_label,
+                f"{inf_latency_s:.2f}s",
                 f"{duration_s:.2f}s",
                 str(tokens) if tokens > 0 else "-",
             )
         except Exception as e:
             duration_s = time.perf_counter() - start_time
             case_latencies.append(duration_s)
+            case_inference_latencies.append(duration_s)
             err_type = "PROVIDER_ERROR" if "API" in type(e).__name__ or "Http" in type(e).__name__ or "timeout" in str(e).lower() else "VALIDATION_ERROR"
             if err_type == "PROVIDER_ERROR":
                 provider_errors += 1
             else:
                 validation_errors += 1
 
-            audit_res = {"has_rules": bool(case.expected_accepted_predicates or case.prohibited_predicates), "passed": False}
+            audit_res = {"has_rules": bool(case.expected_accepted_predicates or case.prohibited_predicates), "passed": False, "missing_expected": [], "prohibited_found": []}
             if audit_res["has_rules"]:
                 semantic_stress_cases_count += 1
 
@@ -861,6 +1213,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 "rejected_claims": 0,
                 "grounding_failures": 0,
                 "semantic_audit": audit_res,
+                "inference_latency_s": duration_s,
                 "latency_s": duration_s,
                 "tokens": 0,
             }
@@ -875,7 +1228,9 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 f"[bold red]{err_type}[/bold red]",
                 "0",
                 "0",
+                "-",
                 "[bold red]ERROR[/bold red]",
+                "-",
                 f"{duration_s:.2f}s",
                 "-",
             )
@@ -895,13 +1250,27 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     confirmed_recall_pct = ((expected_confirmed_cases - missed_confirmed) / expected_confirmed_cases * 100.0) if expected_confirmed_cases > 0 else 100.0
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
     acceptance_rate_pct = (total_accepted_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
-    semantic_accuracy_pct = (semantic_stress_clean_count / semantic_stress_cases_count * 100.0) if semantic_stress_cases_count > 0 else 100.0
 
-    sorted_latencies = sorted(case_latencies) if case_latencies else [0.0]
-    p50_latency = sorted_latencies[len(sorted_latencies) // 2]
-    p95_index = min(len(sorted_latencies) - 1, int(0.95 * len(sorted_latencies)))
-    p95_latency = sorted_latencies[p95_index]
-    avg_latency = total_latency_s / total_cases if total_cases > 0 else 0.0
+    # Granular Semantic Metrics
+    case_semantic_pass_rate_pct = (semantic_stress_clean_count / semantic_stress_cases_count * 100.0) if semantic_stress_cases_count > 0 else 100.0
+    prohibited_acceptance_rate_pct = (prohibited_accepted_propositions / total_prohibited_propositions * 100.0) if total_prohibited_propositions > 0 else 0.0
+    required_omission_rate_pct = (missing_expected_propositions / total_expected_propositions * 100.0) if total_expected_propositions > 0 else 0.0
+    total_props_evaluated = total_expected_propositions + total_prohibited_propositions
+    correct_props = (total_expected_propositions - missing_expected_propositions) + (total_prohibited_propositions - prohibited_accepted_propositions)
+    prop_precision_pct = (correct_props / total_props_evaluated * 100.0) if total_props_evaluated > 0 else 100.0
+
+    # Latency Percentiles
+    sorted_elapsed = sorted(case_latencies) if case_latencies else [0.0]
+    p50_elapsed = sorted_elapsed[len(sorted_elapsed) // 2]
+    p95_index_el = min(len(sorted_elapsed) - 1, int(0.95 * len(sorted_elapsed)))
+    p95_elapsed = sorted_elapsed[p95_index_el]
+    avg_elapsed = total_latency_s / total_cases if total_cases > 0 else 0.0
+
+    sorted_inf = sorted(case_inference_latencies) if case_inference_latencies else [0.0]
+    p50_inf = sorted_inf[len(sorted_inf) // 2]
+    p95_index_inf = min(len(sorted_inf) - 1, int(0.95 * len(sorted_inf)))
+    p95_inf = sorted_inf[p95_index_inf]
+    avg_inf = sum(case_inference_latencies) / len(case_inference_latencies) if case_inference_latencies else 0.0
 
     scorecard.add_row("Model & Timestamp", f"{model_name} @ {run_timestamp}", "Deterministic Model ID")
     scorecard.add_row("Total Evaluation Cases", f"{total_cases} Cases ({total_cases - provider_errors - validation_errors} SUCCESS, {provider_errors} PROVIDER_ERR, {validation_errors} VAL_ERR)", f"{total_cases} Cases")
@@ -909,7 +1278,10 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     scorecard.add_row("Recall: Confirmed Opening Recall", f"{confirmed_recall_pct:.1f}% ({expected_confirmed_cases - missed_confirmed}/{expected_confirmed_cases})", "100.0% (High Recall)")
     scorecard.add_row("Safety: False CONFIRMED Rate", f"{false_conf_pct:.1f}% ({false_confirmed}/{expected_non_confirmed_cases})", "0.0% (Hard Safety Invariant)")
     scorecard.add_row("Grounding: Provenance Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
-    scorecard.add_row("Semantic: Entailment & Omission Accuracy", f"{semantic_accuracy_pct:.1f}% ({semantic_stress_clean_count}/{semantic_stress_cases_count})", "100.0% (Zero Hallucination / Contamination)")
+    scorecard.add_row("Semantic: Case-Level Pass Rate", f"{case_semantic_pass_rate_pct:.1f}% ({semantic_stress_clean_count}/{semantic_stress_cases_count})", "100.0% Clean Cases")
+    scorecard.add_row("Semantic: Prohibited Acceptance Rate", f"{prohibited_acceptance_rate_pct:.1f}% ({prohibited_accepted_propositions}/{total_prohibited_propositions})", "0.0% (Zero False Positive Entailment)")
+    scorecard.add_row("Semantic: Required Omission Rate", f"{required_omission_rate_pct:.1f}% ({missing_expected_propositions}/{total_expected_propositions})", "0.0% (Zero Required Omission)")
+    scorecard.add_row("Semantic: Proposition Precision", f"{prop_precision_pct:.1f}% ({correct_props}/{total_props_evaluated})", "100.0% Rule Precision")
     scorecard.add_row("Grounding: Candidate Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
     scorecard.add_row("Grounding: Accepted Claim Rate (Diagnostic)", f"{total_accepted_claims}/{total_candidates} ({acceptance_rate_pct:.1f}%)", "Diagnostic Yield")
     scorecard.add_row("Usefulness: Total Grounded Claims Accepted", str(total_accepted_claims), "High useful yield")
@@ -920,7 +1292,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     if not cat_summary:
         cat_summary = "None"
     scorecard.add_row("Usefulness: Claims by Category", cat_summary, "Balanced distribution across domain taxonomy")
-    scorecard.add_row("Performance: Latency (Avg / p50 / p95)", f"{avg_latency:.2f}s / {p50_latency:.2f}s / {p95_latency:.2f}s", "< 10.0s")
+    scorecard.add_row("Performance: Pure LLM Latency (Avg / p50 / p95)", f"{avg_inf:.2f}s / {p50_inf:.2f}s / {p95_inf:.2f}s", "< 10.0s (Model Inference)")
+    scorecard.add_row("Performance: Benchmark Elapsed (Avg / p50 / p95)", f"{avg_elapsed:.2f}s / {p50_elapsed:.2f}s / {p95_elapsed:.2f}s", "Includes Pacing/Retries")
     scorecard.add_row("Performance: Total Token Consumption", str(total_tokens_consumed), "-")
 
     console.print()
@@ -942,14 +1315,26 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "grounding_failures": grounding_failures,
         "semantic_stress_cases_count": semantic_stress_cases_count,
         "semantic_stress_clean_count": semantic_stress_clean_count,
-        "semantic_accuracy_pct": semantic_accuracy_pct,
+        "case_semantic_pass_rate_pct": case_semantic_pass_rate_pct,
+        "prohibited_acceptance_rate_pct": prohibited_acceptance_rate_pct,
+        "prohibited_accepted_propositions": prohibited_accepted_propositions,
+        "total_prohibited_propositions": total_prohibited_propositions,
+        "required_omission_rate_pct": required_omission_rate_pct,
+        "missing_expected_propositions": missing_expected_propositions,
+        "total_expected_propositions": total_expected_propositions,
+        "prop_precision_pct": prop_precision_pct,
+        "correct_props": correct_props,
+        "total_props_evaluated": total_props_evaluated,
         "total_claims": total_accepted_claims,
         "rejected_claims": total_rejected_claims,
         "acceptance_rate_pct": acceptance_rate_pct,
         "claims_by_category": claims_by_category,
-        "avg_latency_s": avg_latency,
-        "p50_latency_s": p50_latency,
-        "p95_latency_s": p95_latency,
+        "avg_inf_latency_s": avg_inf,
+        "p50_inf_latency_s": p50_inf,
+        "p95_inf_latency_s": p95_inf,
+        "avg_elapsed_s": avg_elapsed,
+        "p50_elapsed_s": p50_elapsed,
+        "p95_elapsed_s": p95_elapsed,
         "total_tokens": total_tokens_consumed,
         "case_details": case_details,
     }
@@ -960,8 +1345,8 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
         return
 
     # 1. Executive Summary Table
-    comp_table = Table(title="Cross-Provider Comparative Benchmark Matrix", expand=True, show_lines=True)
-    comp_table.add_column("Evaluation Dimension", style="cyan", width=28)
+    comp_table = Table(title="Cross-Provider Comparative Benchmark Matrix (Corpus v1.1)", expand=True, show_lines=True)
+    comp_table.add_column("Evaluation Dimension", style="cyan", width=30)
     for r in results:
         comp_table.add_column(f"{r['provider']}\n[dim]({r['model']})[/dim]", style="bold", justify="right")
 
@@ -982,8 +1367,20 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
         *[str(r["grounding_failures"]) for r in results]
     )
     comp_table.add_row(
-        "Semantic: Entailment & Omission Accuracy",
-        *[f"{r['semantic_accuracy_pct']:.1f}% ({r['semantic_stress_clean_count']}/{r['semantic_stress_cases_count']})" if r.get("semantic_stress_cases_count", 0) > 0 else "N/A" for r in results]
+        "Semantic: Case Pass Rate",
+        *[f"{r['case_semantic_pass_rate_pct']:.1f}% ({r['semantic_stress_clean_count']}/{r['semantic_stress_cases_count']})" for r in results]
+    )
+    comp_table.add_row(
+        "Semantic: Prohibited Acceptance Rate",
+        *[f"{r['prohibited_acceptance_rate_pct']:.1f}% ({r['prohibited_accepted_propositions']}/{r['total_prohibited_propositions']})" for r in results]
+    )
+    comp_table.add_row(
+        "Semantic: Required Omission Rate",
+        *[f"{r['required_omission_rate_pct']:.1f}% ({r['missing_expected_propositions']}/{r['total_expected_propositions']})" for r in results]
+    )
+    comp_table.add_row(
+        "Semantic: Proposition Precision",
+        *[f"{r['prop_precision_pct']:.1f}% ({r['correct_props']}/{r['total_props_evaluated']})" for r in results]
     )
     comp_table.add_row(
         "Total Accepted Claims",
@@ -998,8 +1395,12 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
         *[f"{r['acceptance_rate_pct']:.1f}%" for r in results]
     )
     comp_table.add_row(
-        "Latency: Avg / p50 / p95",
-        *[f"{r['avg_latency_s']:.2f}s / {r['p50_latency_s']:.2f}s / {r['p95_latency_s']:.2f}s" for r in results]
+        "Latency: Pure LLM (Avg / p50 / p95)",
+        *[f"{r['avg_inf_latency_s']:.2f}s / {r['p50_inf_latency_s']:.2f}s / {r['p95_inf_latency_s']:.2f}s" for r in results]
+    )
+    comp_table.add_row(
+        "Latency: Benchmark Elapsed",
+        *[f"{r['avg_elapsed_s']:.2f}s / {r['p50_elapsed_s']:.2f}s / {r['p95_elapsed_s']:.2f}s" for r in results]
     )
     comp_table.add_row(
         "Total Tokens Consumed",
@@ -1011,7 +1412,7 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
 
     # 2. Side-by-Side Per-Case Diff Table
     diff_table = Table(title="Per-Case Model Comparison (Gemini vs Mistral)", expand=True, show_lines=True)
-    diff_table.add_column("Case ID", style="cyan", width=24)
+    diff_table.add_column("Case ID", style="cyan", width=28)
     diff_table.add_column("Expected Opp", style="bold", width=12)
     for r in results:
         diff_table.add_column(f"{r['provider']}\nOpp | Acc / Rej | Sem", justify="center")
