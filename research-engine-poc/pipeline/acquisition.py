@@ -84,6 +84,7 @@ class AcquisitionRunner:
                 provisional=item.provisional_page_type,
                 title=doc.title,
                 content=doc.content,
+                url=item.url,
             )
             
             refined_doc = doc.model_copy(update={

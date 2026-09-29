@@ -226,8 +226,14 @@ class ClaimGraphBuilder:
         ]
         if valid_job_docs:
             for jd in valid_job_docs:
+                clean_title = jd.title.strip()
+                for sep in [" | ", " - ", " – ", " — ", " at "]:
+                    if sep in clean_title and (company_name.lower() in clean_title.lower() or "careers" in clean_title.lower()):
+                        parts = clean_title.split(sep)
+                        if len(parts) >= 2 and len(parts[0].strip()) > 3:
+                            clean_title = parts[0].strip()
                 opportunities.append(ResearchOpportunityDTO(
-                    role_title=jd.title.strip(),
+                    role_title=clean_title,
                     opening_source_url=jd.url,
                     role_url=jd.url,
                     role_description=jd.content[:200] if jd.content else None,

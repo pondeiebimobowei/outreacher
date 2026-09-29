@@ -28,6 +28,24 @@ class TwoStageClassifier:
         'greenhouse.io', 'lever.co', 'workable.com', 'breezy.hr', 'ashbyhq.com',
     }
 
+    _BLOG_SUBPATHS = {
+        'blog', 'blogs', 'news', 'press', 'press-releases', 'articles', 'article',
+        'engineering', 'posts', 'post', 'now', 'updates', 'changelog', 'announcements',
+        'announcement', 'journal', 'insights', 'media', 'feed', 'releases',
+    }
+
+    _ANNOUNCEMENT_SLUG_PATTERNS = [
+        r'\bannounc(ing|ement)\b',
+        r'\bseed-round\b',
+        r'\bseries-[a-f]\b',
+        r'\bfunding\b',
+        r'\brais(es|ed)\b',
+        r'\bpress-release\b',
+        r'\bnext-chapter\b',
+        r'\bintroducing\b',
+        r'\bunveiling\b',
+    ]
+
     @classmethod
     def stage1_classify_url(
         cls,
@@ -46,9 +64,14 @@ class TwoStageClassifier:
                 return PageType.HOMEPAGE
 
             first = segments[0]
+            leaf = segments[-1]
 
-            # 1. Blog / News / Press / Articles / Engineering Blog
-            if first in ('blog', 'blogs', 'news', 'press', 'articles', 'article', 'engineering', 'posts', 'post'):
+            # 1. Blog / News / Press / Articles / Announcements / Engineering / Updates
+            if first in cls._BLOG_SUBPATHS:
+                return PageType.BLOG
+
+            # Check if any path segment or leaf contains explicit announcement/funding tokens
+            if any(re.search(pat, path) for pat in cls._ANNOUNCEMENT_SLUG_PATTERNS):
                 return PageType.BLOG
 
             # 2. Case studies / Customer stories
@@ -85,7 +108,6 @@ class TwoStageClassifier:
                     return PageType.CAREERS_INDEX
                     
                 # Leaf segment token-level inspection
-                leaf = segments[-1]
                 leaf_tokens = set(re.split(r'[-_]', leaf))
                 
                 # Check if leaf represents non-job career subcontent
@@ -113,7 +135,7 @@ class TwoStageClassifier:
             if first in ('product', 'products', 'solutions', 'features', 'platform', 'pricing'):
                 return PageType.PRODUCT
 
-            # 7. Fallback to DiscoveryPurpose if URL path is uninformative
+            # 7. Fallback to DiscoveryPurpose only if URL path is neutral/uninformative
             if purpose == DiscoveryPurpose.ABOUT:
                 return PageType.ABOUT
             elif purpose == DiscoveryPurpose.PRODUCT:
@@ -141,17 +163,26 @@ class TwoStageClassifier:
         content: Optional[str] = None,
         url: str = "",
     ) -> PageType:
-        """Stage 2: Refine or confirm provisional PageType using crawled text and HTML title."""
+        """Stage 2: Refine or confirm provisional PageType using crawled text, HTML title, and URL."""
         if not content:
             return provisional
 
         text_sample = f"{title or ''} {content[:800]}".lower()
 
+        # Blog / News / Announcement / Funding signals in title or opening content
+        has_announcement_signals = any(k in text_sample for k in [
+            "announcing ", "announces ", "seed round", "series a", "series b",
+            "series c", "raises $", "raised $", "funding round", "min read",
+            "press release", "written by", "published on", "next chapter"
+        ])
+        if provisional in (PageType.ABOUT, PageType.OTHER, PageType.HOMEPAGE) and has_announcement_signals:
+            return PageType.BLOG
+
         # Job posting signals
         has_job_structure = (
             ("responsibilities" in text_sample or "what you'll do" in text_sample or "duties" in text_sample) and
             ("qualifications" in text_sample or "requirements" in text_sample or "what you need" in text_sample or "skills" in text_sample)
-        ) or "apply for this job" in text_sample or "apply now" in text_sample
+        ) or "apply for this job" in text_sample or "apply now" in text_sample or "apply for this role" in text_sample
 
         # Careers index signals
         has_board_structure = (

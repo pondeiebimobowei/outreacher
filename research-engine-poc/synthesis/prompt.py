@@ -21,17 +21,24 @@ CRITICAL INVARIANTS:
    - FACT: Directly stated in the source text. MUST provide verbatim supporting_quotes from cited spans.
    - INFERENCE: A reasoned deduction logically implied by the evidence. Must cite spans and quote relevant supporting text.
    - UNKNOWN: Information that was investigated but could not be established from the evidence. UNKNOWN claims must have 0 evidence citations, 0 supporting_quotes, and confidence 0.0.
-4. ALLOWED VALUES:
-   - category MUST be one of: ["OVERVIEW", "PRODUCT", "HIRING", "TECH_STACK", "CUSTOMER", "TRACTION", "MISSION", "CONTACT"]
-   - classification MUST be one of: ["FACT", "INFERENCE", "UNKNOWN"]
+4. ALLOWED CATEGORIES & CANONICAL PREDICATES:
+   Use precise, snake_case domain predicates:
+   - OVERVIEW: company_description, founded_in, headquarters_location, company_type, company_mission
+   - PRODUCT: provides_product, core_capability, target_users, pricing_model, deployment_model
+   - TECH_STACK: frontend_framework, backend_language, database_system, infrastructure_tool
+   - HIRING: hiring_role, required_skill, benefits_offered, engineering_practice
+   - CUSTOMER: serves_customer_count, notable_customer, target_market, customer_case_study
+   - TRACTION: active_user_count, business_scale, funding_stage, regional_presence
+   - MISSION: mission_statement, core_values
+   - CONTACT: office_address, contact_email, support_channel
 5. CALIBRATED CONFIDENCE: Assign realistic confidence (0.80 - 0.95 for direct facts; 0.50 - 0.75 for inferences; strictly 0.0 for UNKNOWN).
 6. OUTPUT FORMAT: You MUST return a single valid JSON object strictly matching this schema:
 {
   "claims": [
     {
-      "subject": "string (entity name)",
-      "predicate": "string (e.g. provides_product, requires_skill, operates_as, uses_tech_stack)",
-      "object_value": "string (concrete proposition value)",
+      "subject": "string (entity name, e.g. Linear)",
+      "predicate": "string (clean snake_case predicate, e.g. founded_in, serves_customer_count, provides_product)",
+      "object_value": "string (concrete proposition value, e.g. '2019', 'Over 40,000 companies')",
       "category": "OVERVIEW" | "PRODUCT" | "HIRING" | "TECH_STACK" | "CUSTOMER" | "TRACTION" | "MISSION" | "CONTACT",
       "classification": "FACT" | "INFERENCE" | "UNKNOWN",
       "evidence_span_ids": ["span_id_1"],
@@ -41,7 +48,7 @@ CRITICAL INVARIANTS:
     }
   ],
   "unknowns": [
-    "string (concise open research topic noun phrase, e.g. 'Office locations', 'Pricing tiers')"
+    "string (concise open research topic noun phrase, e.g. 'Pricing tiers', 'Exact revenue figures', 'Detailed executive team roster')"
   ]
 }
 """

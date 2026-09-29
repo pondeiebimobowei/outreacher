@@ -135,6 +135,13 @@ def test_export_to_dto_and_nest_dict_with_lineage():
     assert opp["roleTitle"] == "Senior Backend Engineer"
     assert opp["openingSourceUrl"] == "https://acme.com/careers/backend"
 
+    # URL integrity contract: URLs must be pure raw strings, never Markdown links like [url](url)
+    assert not opp["openingSourceUrl"].startswith("[")
+    assert not opp["openingSourceUrl"].endswith(")")
+    for src in nest_dict["sources"]:
+        assert src["url"].startswith("http://") or src["url"].startswith("https://")
+        assert "[" not in src["url"] and "](" not in src["url"]
+
     ev = nest_dict["evidence"][0]
     assert "claimId" in ev
     assert "evidenceRef" in ev

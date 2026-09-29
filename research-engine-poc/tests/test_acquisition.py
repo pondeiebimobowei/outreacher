@@ -153,6 +153,20 @@ def test_two_stage_classifier_stage1_url():
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/marketing-resources") == PageType.OTHER
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/software-news") == PageType.BLOG
 
+    # News / Announcement / Seed round override over DiscoveryPurpose.ABOUT
+    assert TwoStageClassifier.stage1_classify_url(
+        "https://linear.app/now/linear-s-next-chapter-announcing-our-usd4-2m-seed-round",
+        purpose=DiscoveryPurpose.ABOUT,
+    ) == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url(
+        "https://acme.com/updates/series-a-announcement",
+        purpose=DiscoveryPurpose.ABOUT,
+    ) == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url(
+        "https://acme.com/changelog/launch-v2",
+        purpose=DiscoveryPurpose.PRODUCT,
+    ) == PageType.BLOG
+
 
 def test_two_stage_classifier_stage2_content():
     # Upgrade CAREERS_INDEX -> JOB_LISTING if single job structure is found
@@ -177,6 +191,27 @@ def test_two_stage_classifier_stage2_content():
         content=about_content,
     )
     assert refined_about == PageType.ABOUT
+
+    # Refine ABOUT -> BLOG if content is an announcement / funding release
+    funding_announcement = "Announcing our $4.2M Seed Round! Today we are thrilled to announce our next chapter. 3 min read. Published on June 12."
+    refined_announcement = TwoStageClassifier.stage2_refine_content(
+        provisional=PageType.ABOUT,
+        title="Linear's Next Chapter: Announcing our $4.2M Seed Round",
+        content=funding_announcement,
+    )
+    assert refined_announcement == PageType.BLOG
+
+def test_trafilatura_title_extraction():
+    from crawling.trafilatura_crawler import extract_html_title
+    html_with_title = "<html><head><title>Senior Frontend Engineer | Linear</title></head><body><h1>Senior Frontend Engineer</h1><p>Join us.</p></body></html>"
+    # trafilatura metadata automatically canonicalizes and extracts title cleanly
+    assert extract_html_title(html_with_title) == "Senior Frontend Engineer"
+
+    html_with_h1_only = "<html><body><h1>Lead Infrastructure Engineer</h1><p>Join us.</p></body></html>"
+    assert extract_html_title(html_with_h1_only) == "Lead Infrastructure Engineer"
+
+    assert extract_html_title(None) is None
+    assert extract_html_title("") is None
 
 
 # ── 4. Diversity Budget Ranking Tests ─────────────────────────────────────────
