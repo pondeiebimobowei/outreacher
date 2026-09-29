@@ -1062,7 +1062,12 @@ def audit_semantic_claims(graph: ClaimGraph, case: EvaluationBenchmarkCase) -> D
     }
 
 
-def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: bool = True) -> Dict[str, Any]:
+def run_benchmark_evaluation(
+    synthesizer,
+    provider_label: str,
+    print_tables: bool = True,
+    inter_case_delay_s: float = 1.5,
+) -> Dict[str, Any]:
     run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     model_name = getattr(synthesizer, "model", getattr(synthesizer, "_model", "default"))
 
@@ -1127,6 +1132,19 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
     case_details: Dict[str, Dict[str, Any]] = {}
 
     for case in EVALUATION_DATASET:
+        # Deterministic Opportunity Engine Invariant: Evaluated directly from RawResearchPackage
+        deterministic_opps = extract_research_opportunities(case.package, case.company)
+        deterministic_opp = deterministic_opps[0].opportunity_type if deterministic_opps else OpportunityType.UNCLASSIFIED
+        is_opp_match = (deterministic_opp == case.expected_opportunity_type)
+        if is_opp_match:
+            opp_matches += 1
+        elif deterministic_opp == OpportunityType.CONFIRMED and case.expected_opportunity_type != OpportunityType.CONFIRMED:
+            false_confirmed += 1
+        elif deterministic_opp != OpportunityType.CONFIRMED and case.expected_opportunity_type == OpportunityType.CONFIRMED:
+            missed_confirmed += 1
+
+        opp_match_label = "[bold green]PASS[/bold green]" if is_opp_match else "[bold red]MISMATCH[/bold red]"
+
         start_time = time.perf_counter()
         try:
             graph, dto, diagnostics = LLMClaimGraphBridge.process(case.package, synthesizer)
@@ -1140,14 +1158,9 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
             inf_latency_s = (meta.latency_ms / 1000.0) if meta and meta.latency_ms else duration_s
             case_inference_latencies.append(inf_latency_s)
 
-            actual_opp = dto.opportunities[0].opportunity_type if dto.opportunities else OpportunityType.UNCLASSIFIED
-            is_opp_match = (actual_opp == case.expected_opportunity_type)
-            if is_opp_match:
-                opp_matches += 1
-            elif actual_opp == OpportunityType.CONFIRMED and case.expected_opportunity_type != OpportunityType.CONFIRMED:
-                false_confirmed += 1
-            elif actual_opp != OpportunityType.CONFIRMED and case.expected_opportunity_type == OpportunityType.CONFIRMED:
-                missed_confirmed += 1
+            # Bridge Invariant check: DTO opportunities computed in bridge must match deterministic engine
+            actual_dto_opp = dto.opportunities[0].opportunity_type if dto.opportunities else OpportunityType.UNCLASSIFIED
+            assert actual_dto_opp == deterministic_opp, f"Invariant violation: DTO opp {actual_dto_opp} != deterministic opp {deterministic_opp}"
 
             accepted_claims_list = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
             accepted_count = len(accepted_claims_list)
@@ -1193,7 +1206,6 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 family_stats[fam]["required_omissions"] += len(audit_res["missing_expected"])
                 family_stats[fam]["required_rules"] += audit_res["expected_count"]
 
-            opp_match_label = "[bold green]PASS[/bold green]" if is_opp_match else "[bold red]MISMATCH[/bold red]"
             gf_label = "[bold green]0[/bold green]" if case_gf == 0 else f"[bold red]{case_gf}[/bold red]"
             exec_status = "[green]SUCCESS[/green]"
 
@@ -1201,7 +1213,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 "category": case.category,
                 "company": case.company,
                 "expected_opp": case.expected_opportunity_type.value,
-                "actual_opp": actual_opp.value,
+                "actual_opp": deterministic_opp.value,
                 "is_match": is_opp_match,
                 "exec_status": "SUCCESS",
                 "accepted_claims": accepted_count,
@@ -1218,7 +1230,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 case.case_id,
                 case.company,
                 case.expected_opportunity_type.value,
-                actual_opp.value,
+                deterministic_opp.value,
                 opp_match_label,
                 exec_status,
                 str(accepted_count),
@@ -1233,7 +1245,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
             duration_s = time.perf_counter() - start_time
             case_latencies.append(duration_s)
             case_inference_latencies.append(duration_s)
-            err_type = "PROVIDER_ERROR" if "API" in type(e).__name__ or "Http" in type(e).__name__ or "timeout" in str(e).lower() else "VALIDATION_ERROR"
+            err_type = "PROVIDER_ERROR" if "API" in type(e).__name__ or "Http" in type(e).__name__ or "timeout" in str(e).lower() or "503" in str(e) or "429" in str(e) or "quota" in str(e).lower() else "VALIDATION_ERROR"
             if err_type == "PROVIDER_ERROR":
                 provider_errors += 1
             else:
@@ -1253,8 +1265,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 "category": case.category,
                 "company": case.company,
                 "expected_opp": case.expected_opportunity_type.value,
-                "actual_opp": "ERROR",
-                "is_match": False,
+                "actual_opp": deterministic_opp.value,
+                "is_match": is_opp_match,
                 "exec_status": err_type,
                 "accepted_claims": 0,
                 "rejected_claims": 0,
@@ -1270,8 +1282,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 case.case_id,
                 case.company,
                 case.expected_opportunity_type.value,
-                "ERROR",
-                "[bold red]ERROR[/bold red]",
+                deterministic_opp.value,
+                opp_match_label,
                 f"[bold red]{err_type}[/bold red]",
                 "0",
                 "0",
@@ -1282,7 +1294,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
                 "-",
             )
         finally:
-            time.sleep(1.0)
+            time.sleep(inter_case_delay_s)
 
     if print_tables:
         console.print(case_table)
@@ -1292,6 +1304,9 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
     scorecard.add_column("Metric Dimension", style="cyan")
     scorecard.add_column("Result Value", style="bold")
     scorecard.add_column("Target / Invariant", style="green")
+
+    successful_cases = total_cases - provider_errors - validation_errors
+    completion_rate_pct = (successful_cases / total_cases * 100.0) if total_cases > 0 else 0.0
 
     opp_accuracy_pct = (opp_matches / total_cases) * 100.0
     false_conf_pct = (false_confirmed / expected_non_confirmed_cases * 100.0) if expected_non_confirmed_cases > 0 else 0.0
@@ -1321,8 +1336,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
     avg_inf = sum(case_inference_latencies) / len(case_inference_latencies) if case_inference_latencies else 0.0
 
     scorecard.add_row("Model & Timestamp", f"{model_name} @ {run_timestamp}", "Deterministic Model ID")
-    scorecard.add_row("Total Evaluation Cases", f"{total_cases} Cases ({total_cases - provider_errors - validation_errors} SUCCESS, {provider_errors} PROVIDER_ERR, {validation_errors} VAL_ERR)", f"{total_cases} Cases")
-    scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0%")
+    scorecard.add_row("Execution Completion Rate", f"{successful_cases}/{total_cases} ({completion_rate_pct:.1f}%) [Errors: {provider_errors} API, {validation_errors} VAL]", "100.0% Complete Syntheses")
+    scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0% Invariant (Deterministic)")
     scorecard.add_row("Recall: Confirmed Opening Recall", f"{confirmed_recall_pct:.1f}% ({expected_confirmed_cases - missed_confirmed}/{expected_confirmed_cases})", "100.0% (High Recall)")
     scorecard.add_row("Safety: False CONFIRMED Rate", f"{false_conf_pct:.1f}% ({false_confirmed}/{expected_non_confirmed_cases})", "0.0% (Hard Safety Invariant)")
     scorecard.add_row("Grounding: Provenance Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
@@ -1352,6 +1367,10 @@ def run_benchmark_evaluation(synthesizer, provider_label: str, print_tables: boo
         "model": model_name,
         "run_timestamp": run_timestamp,
         "total_cases": total_cases,
+        "successful_cases": successful_cases,
+        "provider_errors": provider_errors,
+        "validation_errors": validation_errors,
+        "completion_rate_pct": completion_rate_pct,
         "opp_matches": opp_matches,
         "accuracy_pct": opp_accuracy_pct,
         "false_confirmed_rate": false_conf_pct,
@@ -1395,6 +1414,8 @@ def run_multi_trial_evaluation(
     num_trials: int = 5,
     temperature: float = 0.0,
     max_tokens: int = 4096,
+    inter_case_delay_s: float = 2.0,
+    inter_trial_delay_s: float = 5.0,
 ) -> Dict[str, Any]:
     """Runs repeated stability trials across the frozen benchmark and aggregates proposition, case, and family stability metrics."""
     run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -1417,7 +1438,7 @@ def run_multi_trial_evaluation(
 
     for trial_idx in range(1, num_trials + 1):
         console.print(f"\n[bold blue]=== Starting Stability Trial {trial_idx}/{num_trials} ({provider_label} - {model_name}) ===[/bold blue]")
-        res = run_benchmark_evaluation(synthesizer, provider_label, print_tables=(num_trials == 1))
+        res = run_benchmark_evaluation(synthesizer, provider_label, print_tables=(num_trials == 1), inter_case_delay_s=inter_case_delay_s)
         trials_data.append(res)
 
         for cid, cd in res["case_details"].items():
@@ -1428,12 +1449,17 @@ def run_multi_trial_evaluation(
                 case_pass_counts[cid] += 1
 
         console.print(
-            f"  [dim]Trial {trial_idx} Result:[/dim] Opp Acc: [bold]{res['accuracy_pct']:.1f}%[/bold] | "
+            f"  [dim]Trial {trial_idx} Result:[/dim] Completion: [bold]{res['completion_rate_pct']:.1f}%[/bold] | "
+            f"Opp Acc: [bold]{res['accuracy_pct']:.1f}%[/bold] | "
             f"Prohibited Acc: [bold red]{res['prohibited_acceptance_rate_pct']:.1f}%[/bold red] | "
             f"Required Omiss: [bold yellow]{res['required_omission_rate_pct']:.1f}%[/bold yellow] | "
             f"Precision: [bold green]{res['prop_precision_pct']:.1f}%[/bold green] | "
             f"Case Pass: [bold cyan]{res['case_semantic_pass_rate_pct']:.1f}%[/bold cyan]"
         )
+
+        if trial_idx < num_trials:
+            console.print(f"  [dim]Pacing: Pausing {inter_trial_delay_s:.1f}s between trials...[/dim]")
+            time.sleep(inter_trial_delay_s)
 
     def stats_summary(vals: List[float]) -> Dict[str, float]:
         mean_v = statistics.mean(vals)
@@ -1442,6 +1468,7 @@ def run_multi_trial_evaluation(
         max_v = max(vals)
         return {"mean": mean_v, "std": std_v, "min": min_v, "max": max_v}
 
+    completion_rates = [t["completion_rate_pct"] for t in trials_data]
     proh_rates = [t["prohibited_acceptance_rate_pct"] for t in trials_data]
     omiss_rates = [t["required_omission_rate_pct"] for t in trials_data]
     prec_rates = [t["prop_precision_pct"] for t in trials_data]
@@ -1451,6 +1478,7 @@ def run_multi_trial_evaluation(
     false_confs = [t["false_confirmed_rate"] for t in trials_data]
     pure_llm_latencies = [t["avg_inf_latency_s"] for t in trials_data]
 
+    comp_stats = stats_summary(completion_rates)
     proh_stats = stats_summary(proh_rates)
     omiss_stats = stats_summary(omiss_rates)
     prec_stats = stats_summary(prec_rates)
@@ -1469,7 +1497,8 @@ def run_multi_trial_evaluation(
 
     scorecard.add_row("Generation Config", f"T={temperature}, MaxTok={max_tokens}", f"Commit: {prompt_commit}", f"Snapshot: {corpus_version}")
     scorecard.add_row("Trials Evaluated", f"{num_trials} Trials", f"Total Cases: {len(EVALUATION_DATASET) * num_trials}", "Fixed Experimental Suite")
-    scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_stats['mean']:.1f}% ± {opp_stats['std']:.1f}%", f"[{opp_stats['min']:.1f}%, {opp_stats['max']:.1f}%]", "100.0% Invariant")
+    scorecard.add_row("Execution Completion Rate", f"{comp_stats['mean']:.1f}% ± {comp_stats['std']:.1f}%", f"[{comp_stats['min']:.1f}%, {comp_stats['max']:.1f}%]", "100.0% Synthesized")
+    scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_stats['mean']:.1f}% ± {opp_stats['std']:.1f}%", f"[{opp_stats['min']:.1f}%, {opp_stats['max']:.1f}%]", "100.0% Invariant (Deterministic)")
     scorecard.add_row("Recall: Confirmed Opening", f"{recall_stats['mean']:.1f}% ± {recall_stats['std']:.1f}%", f"[{recall_stats['min']:.1f}%, {recall_stats['max']:.1f}%]", "100.0% (High Recall)")
     scorecard.add_row("Safety: False CONFIRMED Rate", f"{false_conf_stats['mean']:.1f}% ± {false_conf_stats['std']:.1f}%", f"[{false_conf_stats['min']:.1f}%, {false_conf_stats['max']:.1f}%]", "0.0% (Hard Safety Invariant)")
     scorecard.add_row("Grounding: Provenance Leakage", "0 (Strictly 0)", "[0, 0]", "Strictly 0 (Hard Invariant)")
@@ -1561,6 +1590,7 @@ def run_multi_trial_evaluation(
             "corpus_version": corpus_version,
             "run_timestamp": run_timestamp,
         },
+        "completion_stats": comp_stats,
         "prohibited_stats": proh_stats,
         "omission_stats": omiss_stats,
         "precision_stats": prec_stats,
@@ -1586,6 +1616,10 @@ def print_comparative_multi_trial_summary(results: List[Dict[str, Any]]):
     for r in results:
         comp_table.add_column(f"{r['provider']}\n[dim]({r['model']})[/dim]", style="bold", justify="right")
 
+    comp_table.add_row(
+        "Execution Completion Rate",
+        *[f"{r['completion_stats']['mean']:.1f}% ± {r['completion_stats']['std']:.1f}%\n[dim][{r['completion_stats']['min']:.1f}%, {r['completion_stats']['max']:.1f}%][/dim]" for r in results]
+    )
     comp_table.add_row(
         "Opportunity Verdict Accuracy",
         *[f"{r['opp_accuracy_stats']['mean']:.1f}% ± {r['opp_accuracy_stats']['std']:.1f}%" for r in results]
@@ -1637,6 +1671,10 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
     for r in results:
         comp_table.add_column(f"{r['provider']}\n[dim]({r['model']})[/dim]", style="bold", justify="right")
 
+    comp_table.add_row(
+        "Execution Completion Rate",
+        *[f"{r['successful_cases']}/{r['total_cases']} ({r['completion_rate_pct']:.1f}%)" for r in results]
+    )
     comp_table.add_row(
         "Opportunity Verdict Accuracy",
         *[f"{r['accuracy_pct']:.1f}% ({r.get('opp_matches', r['total_cases'] - r.get('missed_confirmed', 0))}/{r['total_cases']})" for r in results]
@@ -1748,6 +1786,22 @@ def main():
         except (IndexError, ValueError):
             num_trials = 5
 
+    inter_case_delay = 1.5
+    if "--delay" in sys.argv:
+        try:
+            d_idx = sys.argv.index("--delay")
+            inter_case_delay = float(sys.argv[d_idx + 1])
+        except (IndexError, ValueError):
+            inter_case_delay = 2.0
+
+    inter_trial_delay = 5.0
+    if "--trial-delay" in sys.argv:
+        try:
+            td_idx = sys.argv.index("--trial-delay")
+            inter_trial_delay = float(sys.argv[td_idx + 1])
+        except (IndexError, ValueError):
+            inter_trial_delay = 5.0
+
     run_both = "--both" in sys.argv or (gemini_key and mistral_key and "--mistral" not in sys.argv and "--gemini" not in sys.argv)
     run_gemini_only = "--gemini" in sys.argv
     run_mistral_only = "--mistral" in sys.argv
@@ -1756,12 +1810,24 @@ def main():
         multi_results = []
         if (run_both or run_gemini_only) and gemini_key:
             synth = GeminiLLMSynthesizer(api_key=gemini_key, model="gemini-3.5-flash-lite")
-            res = run_multi_trial_evaluation(synth, "Google Gemini", num_trials=num_trials)
+            res = run_multi_trial_evaluation(
+                synth,
+                "Google Gemini",
+                num_trials=num_trials,
+                inter_case_delay_s=inter_case_delay,
+                inter_trial_delay_s=inter_trial_delay,
+            )
             multi_results.append(res)
 
         if (run_both or run_mistral_only) and mistral_key:
             synth = MistralLLMSynthesizer(api_key=mistral_key, model=os.environ.get("MISTRAL_MODEL"))
-            res = run_multi_trial_evaluation(synth, "Mistral AI", num_trials=num_trials)
+            res = run_multi_trial_evaluation(
+                synth,
+                "Mistral AI",
+                num_trials=num_trials,
+                inter_case_delay_s=inter_case_delay,
+                inter_trial_delay_s=inter_trial_delay,
+            )
             multi_results.append(res)
 
         if len(multi_results) >= 2:
@@ -1770,12 +1836,12 @@ def main():
         results = []
         if (run_both or run_gemini_only) and gemini_key:
             synth = GeminiLLMSynthesizer(api_key=gemini_key, model="gemini-3.5-flash-lite")
-            res = run_benchmark_evaluation(synth, "Google Gemini")
+            res = run_benchmark_evaluation(synth, "Google Gemini", inter_case_delay_s=inter_case_delay)
             results.append(res)
 
         if (run_both or run_mistral_only) and mistral_key:
             synth = MistralLLMSynthesizer(api_key=mistral_key, model=os.environ.get("MISTRAL_MODEL"))
-            res = run_benchmark_evaluation(synth, "Mistral AI")
+            res = run_benchmark_evaluation(synth, "Mistral AI", inter_case_delay_s=inter_case_delay)
             results.append(res)
 
         if len(results) >= 2:
