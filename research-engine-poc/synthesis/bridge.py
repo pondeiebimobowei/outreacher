@@ -307,10 +307,21 @@ class LLMClaimGraphBridge:
 
         # 6. Constrained Summary (Grounding Invariant: Summary cannot fabricate ungrounded claims)
         accepted_facts = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
-        if not accepted_facts:
-            final_summary = f"Research completed for {company_name} with {len(package.documents)} crawled documents, but no valid evidence-grounded claims could be verified."
+        if package.identity and package.identity.confidence != IdentityConfidence.CONFIDENT:
+            final_summary = (
+                f"Research skipped for {company_name}: Identity confidence is "
+                f"{package.identity.confidence.value} ({package.identity.reasoning or 'verification incomplete'})."
+            )
+            status = ResearchStatus.FAILED
+        elif not package.documents:
+            final_summary = f"Research failed for {company_name}: No documents were retrieved."
+            status = ResearchStatus.FAILED
+        elif not accepted_facts:
+            final_summary = f"Research yielded {len(package.documents)} documents for {company_name}, but no valid evidence-grounded claims could be verified."
+            status = ResearchStatus.PARTIAL
         elif stage2_summary and stage2_summary.strip():
             final_summary = stage2_summary.strip()
+            status = ResearchStatus.COMPLETED
         else:
             overview_facts = [c.object_value for c in accepted_facts if c.category == ClaimCategory.OVERVIEW]
             product_facts = [c.object_value for c in accepted_facts if c.category == ClaimCategory.PRODUCT]
@@ -320,8 +331,7 @@ class LLMClaimGraphBridge:
                 final_summary = f"{company_name}: {product_facts[0]}"
             else:
                 final_summary = f"Verified research profile for {company_name} with {len(accepted_facts)} grounded claims."
-
-        status = ResearchStatus.COMPLETED if accepted_facts else (ResearchStatus.PARTIAL if package.documents else ResearchStatus.FAILED)
+            status = ResearchStatus.COMPLETED
 
         return CompanyResearchDTO(
             summary=final_summary,
