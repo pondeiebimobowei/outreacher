@@ -658,7 +658,54 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "claims_by_category": claims_by_category,
         "avg_latency_s": total_latency_s / total_cases,
         "total_tokens": total_tokens_consumed,
+        "case_details": case_details if 'case_details' in locals() else {},
     }
+
+
+def print_comparative_summary(results: List[Dict[str, Any]]):
+    if len(results) < 2:
+        return
+
+    comp_table = Table(title="Cross-Provider Comparative Benchmark Matrix", expand=True, show_lines=True)
+    comp_table.add_column("Evaluation Dimension", style="cyan", width=28)
+    for r in results:
+        comp_table.add_column(r["provider"], style="bold", justify="right")
+
+    comp_table.add_row(
+        "Opportunity Verdict Accuracy",
+        *[f"{r['accuracy_pct']:.1f}%" for r in results]
+    )
+    comp_table.add_row(
+        "Safety: False CONFIRMED Rate",
+        *[f"{r['false_confirmed_rate']:.1f}%" for r in results]
+    )
+    comp_table.add_row(
+        "Recall: Missed CONFIRMED Openings",
+        *[str(r["missed_confirmed"]) for r in results]
+    )
+    comp_table.add_row(
+        "Grounding: Hallucination Leakage",
+        *[str(r["grounding_failures"]) for r in results]
+    )
+    comp_table.add_row(
+        "Total Accepted Claims",
+        *[str(r["total_claims"]) for r in results]
+    )
+    comp_table.add_row(
+        "Rejected Candidate Claims",
+        *[str(r["rejected_claims"]) for r in results]
+    )
+    comp_table.add_row(
+        "Average Case Latency",
+        *[f"{r['avg_latency_s']:.2f}s" for r in results]
+    )
+    comp_table.add_row(
+        "Total Tokens Consumed",
+        *[str(r["total_tokens"]) for r in results]
+    )
+
+    console.print("\n")
+    console.print(comp_table)
 
 
 def main():
@@ -680,6 +727,9 @@ def main():
         synth = MistralLLMSynthesizer(api_key=mistral_key, model="mistral-small-latest")
         res = run_benchmark_evaluation(synth, "Mistral Small")
         results.append(res)
+
+    if len(results) >= 2:
+        print_comparative_summary(results)
 
 if __name__ == "__main__":
     main()
