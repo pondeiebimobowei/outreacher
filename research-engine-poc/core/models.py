@@ -171,11 +171,14 @@ class DocumentQuality(str, Enum):
     HTTP_ERROR = "HTTP_ERROR"
 
 class CrawlAttempt(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     strategy: str
     quality: DocumentQuality
     error: Optional[str] = None
 
 class CrawledDocument(BaseModel):
+    model_config = ConfigDict(frozen=True)
 
     url: str
     final_url: str
@@ -208,6 +211,7 @@ class RawResearchPackage(BaseModel):
     """
     Immutable container of verified identity and crawled documents.
     Serves as the raw, un-tampered input to evidence extraction and claim generation.
+    Deeply immutable: cannot modify package, documents, attempts, or identity structures.
     """
     model_config = ConfigDict(frozen=True)
 

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pydantic import ValidationError
 
 from core.models import (
-    CrawledDocument, PageType, DocumentQuality, CompanyIdentity,
+    CrawledDocument, CrawlAttempt, PageType, DocumentQuality, CompanyIdentity,
     IdentityConfidence, RawResearchPackage,
 )
 from core.evidence import (
@@ -40,25 +40,47 @@ def test_span_id_determinism():
     assert id1.startswith("span_")
 
 
-# ── 2. Model Deep Immutability Tests ──────────────────────────────────────────
-
-def test_evidence_span_immutability():
+def test_crawled_document_and_package_deep_immutability():
     now = datetime.now(timezone.utc)
-    span = EvidenceSpan(
-        id="span_1234567890abcdef",
-        document_hash="hash1",
-        source_url="https://stripe.com/about",
-        page_type=PageType.ABOUT,
-        section="Overview",
-        char_start=0,
-        char_end=15,
-        text="Stripe overview",
-        evidence_type=ResearchEvidenceType.COMPANY_OVERVIEW,
+    attempt = CrawlAttempt(strategy="STATIC", quality=DocumentQuality.VALID)
+    
+    with pytest.raises(ValidationError):
+        attempt.strategy = "BROWSER"
+
+    doc = CrawledDocument(
+        url="https://stripe.com",
+        final_url="https://stripe.com",
+        status_code=200,
+        content="Stripe content",
         retrieved_at=now,
+        page_type=PageType.HOMEPAGE,
+        quality=DocumentQuality.VALID,
+        attempts=[attempt],
     )
     
     with pytest.raises(ValidationError):
-        span.text = "Modified text"
+        doc.content = "Tampered content"
+
+    with pytest.raises(ValidationError):
+        doc.quality = DocumentQuality.BLOCKED
+
+    identity = CompanyIdentity(
+        name="Stripe",
+        domain="stripe.com",
+        website_url="https://stripe.com",
+        confidence=IdentityConfidence.CONFIDENT,
+        reasoning="Primary verified.",
+    )
+
+    package = RawResearchPackage(
+        identity=identity,
+        documents=[doc],
+        discovered_at=now,
+    )
+
+    # Nested documents cannot be mutated
+    with pytest.raises(ValidationError):
+        package.documents[0].content = "Tampered in package"
 
 
 def test_claim_deep_immutability_and_invariants():

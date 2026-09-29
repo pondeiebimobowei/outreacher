@@ -86,16 +86,18 @@ class AcquisitionRunner:
                 content=doc.content,
             )
             
-            doc.page_type = final_type
-            doc.provisional_page_type = item.provisional_page_type
-            doc.purpose = item.purpose
-            doc.source_query = item.query
-            doc.search_rank = item.rank
+            refined_doc = doc.model_copy(update={
+                "page_type": final_type,
+                "provisional_page_type": item.provisional_page_type,
+                "purpose": item.purpose,
+                "source_query": item.query,
+                "search_rank": item.rank,
+            })
             
-            color = "green" if doc.quality == DocumentQuality.VALID else "yellow" if doc.quality == DocumentQuality.TOO_SHORT else "red"
+            color = "green" if refined_doc.quality == DocumentQuality.VALID else "yellow" if refined_doc.quality == DocumentQuality.TOO_SHORT else "red"
             type_change = f" -> [magenta]{final_type.name}[/magenta]" if final_type != item.provisional_page_type else ""
-            console.print(f"    [{color}]{doc.quality.name}[/{color}]: {doc.word_count} words (strategy={doc.fetch_strategy}){type_change}")
-            documents.append(doc)
+            console.print(f"    [{color}]{refined_doc.quality.name}[/{color}]: {refined_doc.word_count} words (strategy={refined_doc.fetch_strategy}){type_change}")
+            documents.append(refined_doc)
             
         return RawResearchPackage(
             identity=identity,

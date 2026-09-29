@@ -21,16 +21,13 @@ class CrawlManager:
         self.browser_crawler = browser_crawler
         
     def fetch_with_fallback(self, url: str, page_type: PageType) -> CrawledDocument:
-        doc = self.static_crawler.fetch(url, page_type)
-        quality = DocumentQualityEvaluator.evaluate(doc)
-        doc.quality = quality
-        
-        static_attempt = CrawlAttempt(strategy="STATIC", quality=quality, error=doc.error)
+        raw_doc = self.static_crawler.fetch(url, page_type)
+        quality = DocumentQualityEvaluator.evaluate(raw_doc)
+        static_attempt = CrawlAttempt(strategy="STATIC", quality=quality, error=raw_doc.error)
         
         # Permanent 404 / 410 client errors will not resolve with a browser; skip expensive fallback.
-        if doc.status_code in [404, 410]:
-            doc.attempts = [static_attempt]
-            return doc
+        if raw_doc.status_code in [404, 410]:
+            return raw_doc.model_copy(update={"quality": quality, "attempts": (static_attempt,)})
         
         # Trigger browser fallback on client-rendered pages, WAF blocks, or network timeouts
         if quality in [
@@ -40,32 +37,23 @@ class CrawlManager:
             DocumentQuality.TOO_SHORT,
         ]:
             console.print(f"    [yellow]![/yellow] Static crawl yielded {quality.name}. Falling back to Browser...")
-            fallback_doc = self.browser_crawler.fetch(url, page_type)
-            fallback_quality = DocumentQualityEvaluator.evaluate(fallback_doc)
-            fallback_doc.quality = fallback_quality
-            fallback_doc.fetch_strategy = "BROWSER"
-            
-            browser_attempt = CrawlAttempt(strategy="BROWSER", quality=fallback_quality, error=fallback_doc.error)
-            attempts = [static_attempt, browser_attempt]
+            fallback_raw = self.browser_crawler.fetch(url, page_type)
+            fallback_quality = DocumentQualityEvaluator.evaluate(fallback_raw)
+            browser_attempt = CrawlAttempt(strategy="BROWSER", quality=fallback_quality, error=fallback_raw.error)
+            attempts = (static_attempt, browser_attempt)
             
             # Pick best attempt: higher quality priority, or higher word count on tie
             static_score = _QUALITY_PRIORITY.get(quality, 0)
             fallback_score = _QUALITY_PRIORITY.get(fallback_quality, 0)
             
-            if fallback_score > static_score:
-                fallback_doc.attempts = attempts
-                return fallback_doc
-            elif fallback_score == static_score:
-                if fallback_doc.word_count >= doc.word_count:
-                    fallback_doc.attempts = attempts
-                    return fallback_doc
-                else:
-                    doc.attempts = attempts
-                    return doc
+            if fallback_score > static_score or (fallback_score == static_score and fallback_raw.word_count >= raw_doc.word_count):
+                return fallback_raw.model_copy(update={
+                    "quality": fallback_quality,
+                    "fetch_strategy": "BROWSER",
+                    "attempts": attempts,
+                })
             else:
                 # Static attempt had better content / higher quality
-                doc.attempts = attempts
-                return doc
+                return raw_doc.model_copy(update={"quality": quality, "attempts": attempts})
             
-        doc.attempts = [static_attempt]
-        return doc
+        return raw_doc.model_copy(update={"quality": quality, "attempts": (static_attempt,)})
