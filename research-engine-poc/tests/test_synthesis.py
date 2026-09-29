@@ -68,7 +68,7 @@ class _MockSynthesizer(ILLMSynthesizer):
     def extract_claims(self, identity, spans):
         if self.hallucinate:
             return LLMResearchExtraction(
-                summary="Linear is building product software.",
+                summary="Linear operates massive quantum data centers across the globe.",
                 claims=[
                     LLMClaimCandidate(
                         subject="Linear",
@@ -124,30 +124,39 @@ def test_llm_claim_graph_bridge_valid_flow():
     package = create_test_package()
     synthesizer = _MockSynthesizer()
 
-    graph, dto = LLMClaimGraphBridge.process(package, synthesizer)
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, synthesizer)
 
+    assert len(diagnostics) == 0
     assert isinstance(graph, ClaimGraph)
     assert len(graph.claims) == 3
     assert len(dto.findings) == 2  # 2 FACT findings (UNKNOWN excluded from findings)
     assert len(dto.evidence) == 3
     assert dto.opportunities[0].opportunity_type.value == "CONFIRMED"
     assert dto.opportunities[0].role_title == "Product Engineer"
+    assert dto.summary == "Linear is a purpose-built system for software teams."
 
     # Lineage is preserved
     assert dto.findings[0].claim_id is not None
     assert len(dto.findings[0].evidence_refs) == 1
     assert dto.evidence[0].evidence_ref.startswith("span_")
 
-def test_llm_claim_graph_bridge_sanitizes_hallucinated_citations():
+def test_llm_claim_graph_bridge_rejects_hallucinated_citations_and_guards_summary():
     package = create_test_package()
     synthesizer = _MockSynthesizer(hallucinate=True)
 
-    graph, dto = LLMClaimGraphBridge.process(package, synthesizer)
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, synthesizer)
 
-    assert isinstance(graph, ClaimGraph)
-    # The claim with hallucinated citation was demoted to UNKNOWN with 0 refs & 0.0 confidence
-    assert len(graph.claims) == 1
-    claim = graph.claims[0]
-    assert claim.classification == ClaimClassification.UNKNOWN
-    assert claim.evidence_refs == ()
-    assert claim.confidence == 0.0
+    # 1. Candidate was explicitly rejected, NOT converted to UNKNOWN
+    assert len(diagnostics) == 1
+    assert diagnostics[0].candidate_index == 1
+    assert "Missing or hallucinated" in diagnostics[0].reason
+    assert diagnostics[0].invalid_evidence_refs == ("span_hallucinated_12345678",)
+
+    # 2. Graph claims is empty
+    assert len(graph.claims) == 0
+    assert len(dto.findings) == 0
+
+    # 3. Grounded summary prevents ungrounded hallucinated summary escape hatch
+    assert "no valid evidence-grounded claims could be verified" in dto.summary
+    assert "quantum data centers" not in dto.summary
+    assert dto.status.value == "PARTIAL"

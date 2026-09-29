@@ -23,6 +23,17 @@ class LLMClaimCandidate(BaseModel):
             raise ValueError(f"Confidence must be between 0.0 and 1.0, got {v}")
         return v
 
+class ClaimRejectionDiagnostic(BaseModel):
+    """
+    Diagnostic recorded when an untrusted LLM candidate fails deterministic validation.
+    Distinguishes rejected model output from legitimate epistemic UNKNOWN states.
+    """
+    candidate_index: int
+    subject: str
+    predicate: str
+    reason: str
+    invalid_evidence_refs: tuple[str, ...] = Field(default_factory=tuple)
+
 class LLMResearchExtraction(BaseModel):
     """
     Structured JSON output contract expected from the LLM synthesis model.

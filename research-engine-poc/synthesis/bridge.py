@@ -1,5 +1,5 @@
 import hashlib
-from typing import List, Set, Optional, Dict
+from typing import List, Set, Optional, Dict, Tuple
 from core.models import RawResearchPackage, PageType, DocumentQuality
 from core.evidence import (
     EvidenceSpan, Claim, ClaimGraph, ClaimCategory, ClaimClassification,
@@ -11,7 +11,7 @@ from core.dto import (
     OpportunityType, ResearchStatus,
 )
 from .base import ILLMSynthesizer
-from .models import LLMResearchExtraction, LLMClaimCandidate
+from .models import LLMResearchExtraction, LLMClaimCandidate, ClaimRejectionDiagnostic
 
 class LLMClaimGraphBridge:
     """
@@ -20,9 +20,9 @@ class LLMClaimGraphBridge:
       2. Assembles prompt context with Company Context and Numbered EvidenceSpans.
       3. Invokes ILLMSynthesizer to obtain structured LLMResearchExtraction.
       4. Deterministically validates all candidate claims against actual extracted span IDs.
-      5. Rejects / sanitizes any hallucinated span citations or invalid confidence values.
-      6. Constructs self-validating ClaimGraph.
-      7. Emits lineage-preserving CompanyResearchDTO for NestJS consumption.
+      5. Rejects candidate claims with invalid/missing citations, recording ClaimRejectionDiagnostics.
+      6. Synthesizes a grounded summary constrained by accepted claims.
+      7. Constructs self-validating ClaimGraph and emits lineage-preserving CompanyResearchDTO.
     """
 
     @classmethod
@@ -30,7 +30,7 @@ class LLMClaimGraphBridge:
         cls,
         package: RawResearchPackage,
         synthesizer: ILLMSynthesizer,
-    ) -> tuple[ClaimGraph, CompanyResearchDTO]:
+    ) -> Tuple[ClaimGraph, CompanyResearchDTO, List[ClaimRejectionDiagnostic]]:
         """Runs the deterministic extraction -> LLM synthesis -> deterministic validation lifecycle."""
         # 1. Deterministic Span Extraction
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
@@ -41,29 +41,48 @@ class LLMClaimGraphBridge:
 
         # 3. Deterministic Validation & Invariant Enforcement
         verified_claims: List[Claim] = []
+        diagnostics: List[ClaimRejectionDiagnostic] = []
         seen_claim_ids: Set[str] = set()
 
-        for cand in extraction.claims:
-            # Filter evidence references to only span IDs that genuinely exist
-            valid_refs = tuple(ref for ref in cand.evidence_span_ids if ref in valid_span_ids)
-
+        for idx, cand in enumerate(extraction.claims, start=1):
             classification = cand.classification
             confidence = cand.confidence
 
-            # Enforce invariant: UNKNOWN must have 0 refs and 0.0 confidence
+            # UNKNOWN invariant: 0 evidence refs, 0.0 confidence
             if classification == ClaimClassification.UNKNOWN:
-                valid_refs = ()
+                valid_refs: Tuple[str, ...] = ()
                 confidence = 0.0
             elif classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE):
-                # If all citations were hallucinated, demote to UNKNOWN
-                if not valid_refs:
-                    classification = ClaimClassification.UNKNOWN
-                    confidence = 0.0
-                else:
-                    if confidence <= 0.0:
-                        confidence = 0.5
+                # Filter evidence references to only span IDs that genuinely exist in this package
+                resolved_refs = tuple(ref for ref in cand.evidence_span_ids if ref in valid_span_ids)
+                
+                # REJECTION GATE: If required evidence is missing or hallucinated, reject candidate
+                if not resolved_refs:
+                    diagnostics.append(ClaimRejectionDiagnostic(
+                        candidate_index=idx,
+                        subject=cand.subject,
+                        predicate=cand.predicate,
+                        reason="Rejected: Missing or hallucinated evidence references.",
+                        invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                    ))
+                    continue
+                
+                valid_refs = resolved_refs
+                if confidence <= 0.0:
+                    confidence = 0.85 if classification == ClaimClassification.FACT else 0.65
+            else:
+                diagnostics.append(ClaimRejectionDiagnostic(
+                    candidate_index=idx,
+                    subject=cand.subject,
+                    predicate=cand.predicate,
+                    reason=f"Rejected: Unrecognized classification '{classification}'",
+                    invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                ))
+                continue
 
-            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value}:{cand.category.value}:{classification.value}"
+            # Deterministic Claim ID derived from proposition and sorted citations
+            refs_key = ":".join(sorted(valid_refs))
+            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value}:{cand.category.value}:{classification.value}:{refs_key}"
             claim_id = f"claim_{hashlib.sha256(raw_key.encode('utf-8')).hexdigest()[:16]}"
 
             if claim_id in seen_claim_ids:
@@ -89,16 +108,16 @@ class LLMClaimGraphBridge:
             claims=verified_claims,
         )
 
-        # 5. Export to NestJS DTO
+        # 5. Grounded Summary Synthesis & Export to NestJS DTO
         dto = cls._export_to_dto(graph, package, extraction.summary, extraction.unknowns)
-        return graph, dto
+        return graph, dto, diagnostics
 
     @classmethod
     def _export_to_dto(
         cls,
         graph: ClaimGraph,
         package: RawResearchPackage,
-        summary: Optional[str],
+        raw_summary: Optional[str],
         additional_unknowns: List[str],
     ) -> CompanyResearchDTO:
         span_by_id = {s.id: s for s in graph.evidence_spans}
@@ -190,9 +209,20 @@ class LLMClaimGraphBridge:
         graph_unknowns = [c.object_value for c in graph.claims if c.classification == ClaimClassification.UNKNOWN]
         all_unknowns = list(dict.fromkeys(graph_unknowns + additional_unknowns))
 
-        # 6. Summary
-        final_summary = summary or f"Research profile for {company_name} based on {len(package.documents)} verified documents."
-        status = ResearchStatus.COMPLETED if package.documents else ResearchStatus.FAILED
+        # 6. Constrained Summary (Grounding Invariant: Summary cannot fabricate ungrounded claims)
+        accepted_facts = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
+        if not accepted_facts:
+            final_summary = f"Research completed for {company_name} with {len(package.documents)} crawled documents, but no valid evidence-grounded claims could be verified."
+        elif raw_summary and raw_summary.strip():
+            final_summary = raw_summary.strip()
+        else:
+            overview_facts = [c.object_value for c in accepted_facts if c.category == ClaimCategory.OVERVIEW]
+            if overview_facts:
+                final_summary = f"{company_name}: {overview_facts[0]}"
+            else:
+                final_summary = f"Verified research profile for {company_name} with {len(accepted_facts)} grounded claims."
+
+        status = ResearchStatus.COMPLETED if accepted_facts else (ResearchStatus.PARTIAL if package.documents else ResearchStatus.FAILED)
 
         return CompanyResearchDTO(
             summary=final_summary,
