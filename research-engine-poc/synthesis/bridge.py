@@ -10,6 +10,7 @@ from core.dto import (
     ResearchOpportunityDTO, ResearchEvidenceDTO, SourceTier,
     OpportunityType, ResearchStatus,
 )
+from core.opportunities import extract_research_opportunities
 from .base import ILLMSynthesizer
 from .models import LLMResearchExtraction, LLMClaimCandidate, ClaimRejectionDiagnostic
 
@@ -274,43 +275,8 @@ class LLMClaimGraphBridge:
                 evidence_ref=evidence_ref,
             ))
 
-        # 4. Opportunities (Strict verification: only CONFIRMED when valid doc with non-empty title exists)
-        opportunities: List[ResearchOpportunityDTO] = []
-        valid_job_docs = [
-            d for d in package.documents
-            if d.page_type == PageType.JOB_LISTING and d.quality == DocumentQuality.VALID and d.title and d.title.strip()
-        ]
-        if valid_job_docs:
-            for jd in valid_job_docs:
-                clean_title = jd.title.strip()
-                for sep in [" | ", " - ", " – ", " — ", " at "]:
-                    if sep in clean_title and (company_name.lower() in clean_title.lower() or "careers" in clean_title.lower()):
-                        parts = clean_title.split(sep)
-                        if len(parts) >= 2 and len(parts[0].strip()) > 3:
-                            clean_title = parts[0].strip()
-                opportunities.append(ResearchOpportunityDTO(
-                    role_title=clean_title,
-                    opening_source_url=jd.url,
-                    role_url=jd.url,
-                    role_description=jd.content[:200] if jd.content else None,
-                    opportunity_type=OpportunityType.CONFIRMED,
-                ))
-        elif package.documents and any(d.quality == DocumentQuality.VALID for d in package.documents):
-            opportunities.append(ResearchOpportunityDTO(
-                role_title="General Outreach",
-                opening_source_url=package.identity.website_url,
-                role_url=package.identity.website_url,
-                role_description="Proactive outreach based on verified company overview and signals.",
-                opportunity_type=OpportunityType.PROACTIVE,
-            ))
-        else:
-            opportunities.append(ResearchOpportunityDTO(
-                role_title="Unclassified Target",
-                opening_source_url=package.identity.website_url,
-                role_url=package.identity.website_url,
-                role_description="Insufficient evidence collected to classify opportunity.",
-                opportunity_type=OpportunityType.UNCLASSIFIED,
-            ))
+        # 4. Opportunities (Strict verification gate: active job posting signals required for CONFIRMED)
+        opportunities = extract_research_opportunities(package, company_name)
 
         # 5. Sanitized Unknowns
         graph_unknowns = [c.object_value for c in graph.claims if c.classification == ClaimClassification.UNKNOWN]
