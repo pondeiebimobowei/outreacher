@@ -21,6 +21,26 @@ from synthesis.bridge import LLMClaimGraphBridge
 from synthesis.providers.gemini import GeminiLLMSynthesizer
 from synthesis.providers.mistral import MistralLLMSynthesizer
 
+def load_env_file(filepath: str = ".env") -> None:
+    """Lightweight .env loader that populates os.environ if file exists."""
+    if not os.path.exists(filepath):
+        return
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip().strip("'\"")
+                if key and key not in os.environ:
+                    os.environ[key] = val
+    except Exception:
+        pass
+
+load_env_file()
+
 console = Console()
 
 def get_git_commit() -> str:
