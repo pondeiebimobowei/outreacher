@@ -6,7 +6,7 @@ from core.models import (
     RawResearchPackage, PageType, IdentityConfidence,
     IdentityContext, CrawledDocument, DocumentQuality,
 )
-from core.urls import canonicalize_url
+from core.urls import canonicalize_url, deduplicate_documents_by_canonical_url
 from identity.resolver import IdentityResolver
 from crawling.manager import CrawlManager
 from discovery.discoverer import ScopedDiscoverer
@@ -100,8 +100,9 @@ class AcquisitionRunner:
             console.print(f"    [{color}]{refined_doc.quality.name}[/{color}]: {refined_doc.word_count} words (strategy={refined_doc.fetch_strategy}){type_change}")
             documents.append(refined_doc)
             
+        deduped_docs = deduplicate_documents_by_canonical_url(documents)
         return RawResearchPackage(
             identity=identity,
-            documents=documents,
+            documents=deduped_docs,
             discovered_at=datetime.now(timezone.utc),
         )

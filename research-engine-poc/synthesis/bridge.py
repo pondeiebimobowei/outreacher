@@ -10,6 +10,7 @@ from core.dto import (
     ResearchOpportunityDTO, ResearchEvidenceDTO, SourceTier,
     OpportunityType, ResearchStatus,
 )
+from core.urls import deduplicate_documents_by_canonical_url
 from core.opportunities import extract_research_opportunities
 from .base import ILLMSynthesizer
 from .models import LLMResearchExtraction, LLMClaimCandidate, ClaimRejectionDiagnostic
@@ -76,7 +77,12 @@ class LLMClaimGraphBridge:
         synthesizer: ILLMSynthesizer,
     ) -> Tuple[ClaimGraph, CompanyResearchDTO, List[ClaimRejectionDiagnostic]]:
         """Runs the deterministic extraction -> LLM synthesis -> deterministic validation lifecycle."""
-        # 1. Deterministic Span Extraction
+        # 1. Canonicalize and deduplicate documents at package boundary
+        package = package.model_copy(update={
+            "documents": deduplicate_documents_by_canonical_url(package.documents)
+        })
+
+        # 2. Deterministic Span Extraction
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
         valid_span_ids: Set[str] = {s.id for s in spans}
         span_by_id: Dict[str, EvidenceSpan] = {s.id: s for s in spans}

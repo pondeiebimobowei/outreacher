@@ -115,22 +115,15 @@ class DeterministicEvidenceExtractor:
         Extracts deterministic evidence spans across crawled documents in a package.
         
         Provenance Contract:
-          - Documents are deduplicated by canonical URL prior to extraction.
-          - Identical document content shares a deterministic evidence identity (doc_hash + span offsets).
-          - Redundant spans across identical content are collapsed to preserve span ID uniqueness in ClaimGraph.
+          - Upstream acquisition guarantees that RawResearchPackage.documents is deduplicated by canonical URL.
+          - Evidence spans derive identity from content hash + line offsets (document_hash, char_start, char_end).
+          - Distinct documents with identical extracted text share identical span IDs; collapsing spans preserves
+            span ID uniqueness in ClaimGraph and attributes provenance to the first-encountered canonical document.
         """
-        from core.urls import canonicalize_url
-
         all_spans: List[EvidenceSpan] = []
-        seen_urls = set()
         seen_span_ids = set()
 
         for doc in package.documents:
-            canon_url = canonicalize_url(doc.final_url or doc.url)
-            if canon_url in seen_urls:
-                continue
-            seen_urls.add(canon_url)
-
             for span in cls.extract_document_spans(doc):
                 if span.id not in seen_span_ids:
                     seen_span_ids.add(span.id)

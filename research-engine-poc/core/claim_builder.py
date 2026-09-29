@@ -11,6 +11,7 @@ from core.dto import (
     ResearchOpportunityDTO, ResearchEvidenceDTO, SourceTier,
     OpportunityType, ResearchStatus,
 )
+from core.urls import deduplicate_documents_by_canonical_url
 from core.opportunities import extract_research_opportunities
 
 class ClaimGraphBuilder:
@@ -26,7 +27,12 @@ class ClaimGraphBuilder:
     @classmethod
     def build_from_package(cls, package: RawResearchPackage) -> ClaimGraph:
         """Extracts deterministic evidence spans and builds grounded claims."""
-        # 1. Extract deterministic EvidenceSpans
+        # 1. Canonicalize and deduplicate documents at package boundary
+        package = package.model_copy(update={
+            "documents": deduplicate_documents_by_canonical_url(package.documents)
+        })
+
+        # 2. Extract deterministic EvidenceSpans
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
         
         # 2. Derive grounded Claims

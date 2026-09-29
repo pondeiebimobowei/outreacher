@@ -34,10 +34,14 @@ class EvaluationBenchmarkCase:
     ground_truth_notes: str
 
 
-# ── Benchmark Evaluation Dataset with Ground Truth & Negative Cases ───────────
+# ── Benchmark Evaluation Dataset (10 Cases across 4 Dimensions) ────────────────
+# 1. REAL_WORLD: Observed evidence + human-established expected outcome
+# 2. NEGATIVE_GATING: Negative vacancy signal & false-positive reduction
+# 3. CONTRACT_FIXTURE: Invariant test case constructed to verify boundary behavior
+# 4. IDENTITY_SAFETY: Disambiguation and domain collision safety scenario
 
 EVALUATION_DATASET: List[EvaluationBenchmarkCase] = [
-    # ── Category 1: Real-World Ground Truth Cases ─────────────────────────────
+    # ── Category 1: Real-World Cases (Observed Evidence + Expected Result) ─────
     EvaluationBenchmarkCase(
         category="REAL_WORLD",
         case_id="real_moniepoint_corporate",

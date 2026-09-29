@@ -87,3 +87,23 @@ def canonicalize_url(url: str) -> str:
         return urlunparse((scheme, netloc, path, "", filtered_query, ""))
     except Exception:
         return ""
+
+def deduplicate_documents_by_canonical_url(documents: list) -> list:
+    """
+    Deduplicates a list of CrawledDocument instances by canonical URL:
+      - Normalizes doc.final_url or doc.url using canonicalize_url.
+      - Preserves first-encountered document order.
+      - Ensures downstream packages, evidence extractors, and ClaimGraphs operate on an identical, canonical document universe.
+    """
+    seen_keys: Set[str] = set()
+    deduped = []
+    for doc in documents:
+        raw_url = getattr(doc, "final_url", None) or getattr(doc, "url", None) or ""
+        canon_url = canonicalize_url(raw_url)
+        key = canon_url if canon_url else raw_url
+        if key and key not in seen_keys:
+            seen_keys.add(key)
+            deduped.append(doc)
+        elif not key:
+            deduped.append(doc)
+    return deduped
