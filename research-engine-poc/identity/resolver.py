@@ -112,8 +112,13 @@ class IdentityResolver:
             scheme           = urlparse(first_url).scheme or "https"
             website_url_cand = f"{scheme}://{domain}"
 
+            # The search result title (from Google's index) is passed as hint_title.
+            # The verifier uses it only when the live crawler returns an empty title,
+            # which is common for JS-rendered SPA homepages.
+            search_title = domain_top_result[domain].title or ""
+
             rel, msg, ver_ev = self.verifier.classify_relationship(
-                company_name, website_url_cand
+                company_name, website_url_cand, hint_title=search_title,
             )
             is_primary = rel == SiteRelationship.PRIMARY
 

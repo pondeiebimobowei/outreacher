@@ -365,6 +365,7 @@ def test_vercel_com_is_primary():
     )
 
 
+
 # ── 14–18. Unit tests for matching helpers ────────────────────────────────────
 
 def test_title_matches_entity_colon():
@@ -396,3 +397,104 @@ def test_secondary_title_rejects_longer_entity():
     assert WebsiteVerifier._secondary_title_matches_entity(
         "About Linear Solutions", "Linear"
     ) is False
+
+
+# ── 19. CONFIDENT → PRIMARY invariant ────────────────────────────────────────
+
+def test_confident_result_always_backed_by_primary_relationship():
+    """
+    Core invariant: when resolver.resolve() returns CONFIDENT, the chosen
+    candidate must carry relationship == PRIMARY.
+
+    This is a stronger check than merely asserting confidence == CONFIDENT,
+    because it verifies that the decision policy never bypasses the relationship
+    layer (e.g. by promoting a LEGACY or UNKNOWN candidate to CONFIDENT).
+    """
+    _, r = _make(
+        [SearchResult(title="Moniepoint", url="https://moniepoint.com", snippet="")],
+        {
+            "https://moniepoint.com": _doc(
+                "https://moniepoint.com",
+                title="Moniepoint - Business Banking",
+                content="Moniepoint is Nigeria's leading business banking platform.",
+            ),
+            "https://moniepoint.com/about": _doc(
+                "https://moniepoint.com/about",
+                title="About Moniepoint",
+                content="About Moniepoint. Moniepoint enables financial services.",
+                ptype=PageType.ABOUT,
+            ),
+        },
+    )
+    result = r.resolve("Moniepoint")
+    assert result.confidence == IdentityConfidence.CONFIDENT, (
+        f"Expected CONFIDENT, got {result.confidence.name}: {result.reasoning}"
+    )
+    chosen = next(
+        (c for c in result.candidates if c.domain == result.domain), None
+    )
+    assert chosen is not None, "Chosen domain not found in candidates list."
+    assert chosen.relationship == SiteRelationship.PRIMARY, (
+        f"CONFIDENT result must be backed by a PRIMARY candidate, "
+        f"but chosen candidate '{chosen.domain}' has relationship={chosen.relationship}."
+    )
+
+
+# ── 20. Moniepoint via sentence-ID + medium corroboration ────────────────────
+
+def test_moniepoint_resolves_confident_via_sentence_id_and_contact():
+    """
+    Regression for the live Moniepoint failure mode:
+
+    Homepage title: empty (SPA — crawler returns no title, hint_title not in unit test scope)
+    Homepage content: "Moniepoint is Nigeria's leading..." → SELF_IDENTITY_STATEMENT fires
+    Secondary page: moniepoint.com/contact → NAME_IN_MEDIUM_PAGE (contact page, name present)
+    Domain: moniepoint → moniepoint → exact
+
+    Decision branch: hp_sentence_id + corr_name_match + "medium" + domain_signal="exact"
+    Expected: PRIMARY → CONFIDENT
+    """
+    primary_results = [
+        SearchResult(title="Moniepoint – Business Banking", url="https://moniepoint.com", snippet=""),
+    ]
+    secondary_results = [
+        SearchResult(title="Contact Us", url="https://moniepoint.com/contact", snippet=""),
+    ]
+
+    class _TwoPhaseSearch:
+        def __init__(self):
+            self._calls = 0
+        def search(self, query, num_results=5):
+            self._calls += 1
+            if self._calls == 1:
+                return primary_results
+            return secondary_results
+
+    s = _TwoPhaseSearch()
+    c = _Crawler({
+        # No title on homepage (simulates SPA with empty crawled title)
+        "https://moniepoint.com": _doc(
+            "https://moniepoint.com",
+            title="",
+            content=(
+                "Moniepoint is Nigeria's leading business banking platform. "
+                "Moniepoint helps over 1.5 million businesses grow."
+            ),
+        ),
+        # About page fails (404) — verifier must fall back to contact
+        "https://moniepoint.com/about": _fail("https://moniepoint.com/about", PageType.ABOUT),
+        "https://moniepoint.com/contact": _doc(
+            "https://moniepoint.com/contact",
+            title="Contact Us",
+            content="Contact Moniepoint. We'd love to hear from you.",
+            ptype=PageType.CONTACT,
+        ),
+    })
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Moniepoint")
+    assert result.confidence == IdentityConfidence.CONFIDENT, (
+        f"Expected CONFIDENT, got {result.confidence.name}: {result.reasoning}"
+    )
+    chosen = next(c for c in result.candidates if c.domain == result.domain)
+    assert chosen.relationship == SiteRelationship.PRIMARY

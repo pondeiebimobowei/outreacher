@@ -86,13 +86,18 @@ class WebsiteVerifier:
     # ── Public API ─────────────────────────────────────────────────────────────
 
     def classify_relationship(
-        self, company_name: str, website_url: str
+        self, company_name: str, website_url: str,
+        hint_title: Optional[str] = None,
     ) -> Tuple[SiteRelationship, str, List[IdentityEvidence]]:
         """
         Classify the relationship between *website_url* and *company_name*.
 
         Returns (relationship, reasoning, evidence_list).
         Only SiteRelationship.PRIMARY is eligible for CONFIDENT.
+
+        hint_title: the page title from the search result (Google-indexed).
+          Used as a fallback when the live crawler cannot extract a title from
+          a JS-rendered SPA. Priority: crawled title > hint_title > "".
         """
         evidence: List[IdentityEvidence] = []
         company_lower = company_name.lower().strip()
@@ -104,7 +109,9 @@ class WebsiteVerifier:
         if hp_doc.quality.name not in ["VALID", "TOO_SHORT"]:
             return SiteRelationship.UNKNOWN, "Homepage fetch failed or blocked.", evidence
 
-        hp_title   = (hp_doc.title   or "").strip()
+        # Use the search-result title (Google-indexed) as a fallback when the
+        # live crawler returns no title — common for JS-rendered SPAs.
+        hp_title   = (hp_doc.title or hint_title or "").strip()
         hp_content = (hp_doc.content or "")
         hp_sample  = (hp_title + " " + hp_content[:3000]).lower()
 
@@ -186,22 +193,38 @@ class WebsiteVerifier:
                     evidence,
                 )
 
-        if hp_title_match and corr_name_match and corr_strength == "strong":
-            # Strong homepage title + name in about page (secondary title didn't entity-match).
+        if hp_title_match and corr_name_match and corr_strength in ("strong", "medium"):
+            # Homepage entity-title match + secondary page name corroboration.
+            # Covers cases where the secondary page title isn't perfectly structured
+            # (e.g. "Contact Us | Moniepoint") but name presence confirms identity.
             if domain_signal == "exact":
                 return (
                     SiteRelationship.PRIMARY,
-                    f"Homepage entity-title match + name in about page "
-                    f"(corroboration={corr_strength}, domain_signal={domain_signal}).",
+                    f"Homepage entity-title match + name corroborated in "
+                    f"{corr_strength} secondary page (domain_signal={domain_signal}).",
                     evidence,
                 )
             else:
                 return (
                     SiteRelationship.LEGACY,
-                    f"Homepage entity-title match + name in about page, "
+                    f"Homepage entity-title match + name in secondary page, "
                     f"no domain correspondence (domain_signal={domain_signal}).",
                     evidence,
                 )
+
+        if hp_sentence_id and corr_name_match and corr_strength in ("strong", "medium") and domain_signal == "exact":
+            # Homepage sentence-initial self-ID + secondary page name corroboration
+            # + exact domain — all three gates passed.
+            # domain_signal=="exact" is the key safety invariant: only fires when the
+            # primary domain label exactly matches the company name (e.g. "moniepoint"
+            # for "Moniepoint"), preventing a third-party site from reaching PRIMARY
+            # through accidental sentence-initial matches.
+            return (
+                SiteRelationship.PRIMARY,
+                f"Homepage self-ID statement + name corroborated in "
+                f"{corr_strength} secondary page (domain_signal={domain_signal}).",
+                evidence,
+            )
 
         if corr_strength == "supplemental":
             return (
