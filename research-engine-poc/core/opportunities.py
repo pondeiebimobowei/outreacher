@@ -1,3 +1,11 @@
+"""
+Opportunity Engine & Verification Gates.
+
+Invariant:
+  CONFIRMED should mean evidence supports an active-looking opening at retrieval time,
+  not merely that the URL looks like a job page.
+"""
+
 import re
 from typing import List, Optional, Set
 from core.models import CrawledDocument, DocumentQuality, PageType, RawResearchPackage
