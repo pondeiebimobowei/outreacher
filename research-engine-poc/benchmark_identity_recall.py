@@ -509,6 +509,77 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
             "https://scalehub.com/about": _doc("https://scalehub.com/about", title="About ScaleHub", content="About ScaleHub: ScaleHub is a brand of CloudMesh Global Corporation. A product of CloudMesh.", ptype=PageType.ABOUT),
         },
     ),
+
+    # ── Category: Generalization Hardening Fixtures (v1.2 Dev Expansion) ────
+    IdentityRecallCase(
+        case_id="dev_route_probing_about_us",
+        category="UNCONVENTIONAL_PATH",
+        company="GitLab Engineering",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="gitlab.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Secondary corroboration hosted exclusively at /about-us, discovered via multi-candidate conventional route probing.",
+        search_results=[
+            SearchResult(title="GitLab Engineering: The DevSecOps Platform", url="https://gitlab.com", snippet="GitLab is the open DevSecOps platform."),
+        ],
+        mock_documents={
+            "https://gitlab.com": _doc("https://gitlab.com", title="GitLab Engineering: The DevSecOps Platform", content="GitLab Engineering provides automated CI/CD and security testing.", ptype=PageType.HOMEPAGE),
+            "https://gitlab.com/about": _fail_doc("https://gitlab.com/about"),
+            "https://gitlab.com/about-us": _doc("https://gitlab.com/about-us", title="About GitLab Engineering", content="About GitLab Engineering: Empowering organizations to innovate faster.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="dev_lexical_subtoken_domain_match",
+        category="INDIRECT_SELF_ID",
+        company="Retool Platform",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="retool.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Distinctive sub-token 'retool' matches domain 'retool.com' under partial token correspondence.",
+        search_results=[
+            SearchResult(title="Retool Platform – Build Internal Software", url="https://retool.com", snippet="Retool Platform helps developers build internal apps."),
+        ],
+        mock_documents={
+            "https://retool.com": _doc("https://retool.com", title="Retool Platform – Build Internal Software", content="Retool Platform powers internal tools for thousands of engineering teams.", ptype=PageType.HOMEPAGE),
+            "https://retool.com/about": _doc("https://retool.com/about", title="About Retool Platform", content="About Retool Platform: Fast UI components and integrations.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="dev_route_probing_company_team",
+        category="UNCONVENTIONAL_PATH",
+        company="Anthropic AI",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="anthropic.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Secondary corroboration located at /company/about route discovered via multi-candidate probing.",
+        search_results=[
+            SearchResult(title="Anthropic AI – AI Research and Products", url="https://anthropic.com", snippet="Anthropic AI is an AI safety and research company."),
+        ],
+        mock_documents={
+            "https://anthropic.com": _doc("https://anthropic.com", title="Anthropic AI – AI Research and Products", content="Anthropic AI builds reliable, interpretable, and steerable AI systems.", ptype=PageType.HOMEPAGE),
+            "https://anthropic.com/about": _fail_doc("https://anthropic.com/about"),
+            "https://anthropic.com/company/about": _doc("https://anthropic.com/company/about", title="About Anthropic AI", content="About Anthropic AI: Dedicated to building safe foundation models.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="dev_subtoken_negative_control_different_brand",
+        category="NEGATIVE_CONTROL",
+        company="Postmark Logistics",
+        expected_confidence=IdentityConfidence.UNRESOLVED,
+        expected_domain="postmarkexpress.com",
+        expected_relationship=SiteRelationship.UNRELATED,
+        ground_truth_reason="Courier delivery service 'Postmark Express' fails exact entity match for 'Postmark Logistics' -> UNRESOLVED.",
+        search_results=[
+            SearchResult(title="Postmark Express - Same Day Courier", url="https://postmarkexpress.com", snippet="Same day package and parcel logistics."),
+        ],
+        mock_documents={
+            "https://postmarkexpress.com": _doc("https://postmarkexpress.com", title="Postmark Express - Same Day Courier", content="Postmark Express provides global parcel logistics.", ptype=PageType.HOMEPAGE),
+            "https://postmarkexpress.com/about": _doc("https://postmarkexpress.com/about", title="About Postmark Express", content="About Postmark Express courier.", ptype=PageType.ABOUT),
+        },
+    ),
 ]
 
 

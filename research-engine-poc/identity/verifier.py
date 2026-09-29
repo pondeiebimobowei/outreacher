@@ -216,7 +216,7 @@ class WebsiteVerifier:
             # Homepage entity-title match + secondary page name corroboration.
             # Covers cases where the secondary page title isn't perfectly structured
             # (e.g. "Contact Us | Moniepoint") but name presence confirms identity.
-            if domain_signal == "exact":
+            if domain_signal in ("exact", "partial"):
                 return (
                     SiteRelationship.PRIMARY,
                     f"Homepage entity-title match + name corroborated in "
@@ -286,6 +286,18 @@ class WebsiteVerifier:
         if clean_lbl == clean_co:
             return "exact"
         if clean_lbl.startswith(clean_co) or clean_co.startswith(clean_lbl):
+            return "partial"
+        # Distinctive token overlap (e.g. "Postmark Mail" with domain "postmarkapp.com")
+        generic_terms = {
+            "mail", "app", "inc", "corp", "tech", "group", "co", "cloud",
+            "io", "ai", "labs", "software", "technologies", "services",
+            "solutions", "global", "hq", "platform", "online", "official",
+        }
+        words = [
+            w for w in re.findall(r"[a-z0-9]+", company_name.lower())
+            if len(w) >= 4 and w not in generic_terms
+        ]
+        if any(w in clean_lbl for w in words):
             return "partial"
         return "none"
 
@@ -416,10 +428,16 @@ class WebsiteVerifier:
         except SearchProviderError:
             pass
 
-        # Always include /about as direct fallback
-        fallback = website_url.rstrip("/") + "/about"
-        if fallback not in urls:
-            urls.append(fallback)
+        # Multi-candidate conventional route fallback probing
+        conventional_paths = [
+            "/about", "/about-us", "/company", "/company/about",
+            "/who-we-are", "/our-story", "/contact", "/contact-us",
+        ]
+        base_url = website_url.rstrip("/")
+        for path in conventional_paths:
+            cand_url = base_url + path
+            if cand_url not in urls:
+                urls.append(cand_url)
 
         for url in urls:
             ptype    = TwoStageClassifier.stage1_classify_url(url)

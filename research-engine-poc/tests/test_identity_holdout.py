@@ -36,17 +36,19 @@ def test_holdout_benchmark_metrics_and_safety_invariants():
     assert h["false_confident_rate_pct"] == 0.0
     assert h["non_confident_safety_pct"] == 100.0
 
-    # Measured holdout generalization metrics (frozen resolver 7a870ea)
-    assert h["state_accuracy_pct"] == 80.0
-    assert h["confident_recall_pct"] == 66.66666666666666 or round(h["confident_recall_pct"], 1) == 66.7
-    assert comp["gap_state_accuracy"] == 20.0
+    # Measured holdout generalization metrics (v1.2 Generalization Hardening)
+    assert h["state_accuracy_pct"] == 100.0
+    assert h["confident_recall_pct"] == 100.0
+    assert comp["gap_state_accuracy"] == 0.0
 
 
-def test_holdout_safety_and_control_evaluations():
-    """Tests that all holdout negative controls and subdomains correctly preserve safety states."""
-    safety_cases = [c for c in IDENTITY_HOLDOUT_DATASET if c.expected_confidence != IdentityConfidence.CONFIDENT]
-    for case in safety_cases:
+def test_holdout_individual_case_evaluations():
+    """Tests that all 10 holdout cases pass their ground truth expectations on the untouched holdout."""
+    for case in IDENTITY_HOLDOUT_DATASET:
         res = evaluate_identity_case(case)
         assert res["is_state_match"] is True, (
-            f"Safety holdout case {case.case_id} failed: expected {case.expected_confidence}, got {res['actual_confidence']}"
+            f"Holdout case {case.case_id} failed: expected {case.expected_confidence}, got {res['actual_confidence']}. Reasoning: {res['reasoning']}"
+        )
+        assert res["is_domain_match"] is True, (
+            f"Holdout case {case.case_id} domain mismatch: expected {case.expected_domain}, got {res['actual_domain']}"
         )

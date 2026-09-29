@@ -11,8 +11,8 @@ from benchmark_identity_recall import (
 )
 
 def test_identity_recall_benchmark_dataset_integrity():
-    """Verifies that all 24 frozen identity recall cases have valid schema and expected attributes."""
-    assert len(IDENTITY_RECALL_DATASET) == 24
+    """Verifies that all 28 frozen identity recall cases have valid schema and expected attributes."""
+    assert len(IDENTITY_RECALL_DATASET) == 28
     categories = {c.category for c in IDENTITY_RECALL_DATASET}
     assert "SPA_RENDERED" in categories
     assert "UNCONVENTIONAL_PATH" in categories
@@ -26,9 +26,9 @@ def test_identity_recall_benchmark_metrics_calculation():
     metrics = run_identity_recall_benchmark()
 
     # Core Matrix Invariants
-    assert metrics["total_cases"] == 24
-    assert metrics["expected_confident"] == 15
-    assert metrics["expected_non_confident"] == 9
+    assert metrics["total_cases"] == 28
+    assert metrics["expected_confident"] == 18
+    assert metrics["expected_non_confident"] == 10
     assert metrics["false_confident_count"] == 0, f"False CONFIDENT must strictly be 0, got {metrics['false_confident_count']}"
     assert metrics["false_confident_rate_pct"] == 0.0
     assert metrics["confident_recall_pct"] == 100.0, f"CONFIDENT recall should be 100%, got {metrics['confident_recall_pct']}%"
@@ -38,9 +38,9 @@ def test_identity_recall_benchmark_metrics_calculation():
     # Matrix cell counts
     assert metrics["missed_conf_ambiguous_count"] == 0
     assert metrics["missed_id_unresolved_count"] == 0
-    assert metrics["correct_confident_count"] == 15
+    assert metrics["correct_confident_count"] == 18
     assert metrics["correct_ambiguous_count"] == 2
-    assert metrics["correct_unresolved_count"] == 7
+    assert metrics["correct_unresolved_count"] == 8
 
 
 def test_individual_case_evaluations():
