@@ -21,7 +21,12 @@ CRITICAL INVARIANTS:
    - FACT: Directly stated in the source text. MUST provide verbatim supporting_quotes from cited spans.
    - INFERENCE: A reasoned deduction logically implied by the evidence. Must cite spans and quote relevant supporting text.
    - UNKNOWN: Information that was investigated but could not be established from the evidence. UNKNOWN claims must have 0 evidence citations, 0 supporting_quotes, and confidence 0.0.
-4. ALLOWED CATEGORIES & CANONICAL PREDICATES:
+4. SEMANTIC BOUNDARIES & EXTRACTION CONSTRAINTS:
+   - NEGATION & INACTIVITY: A statement indicating that an activity, role, product, or plan is paused, frozen, closed, discontinued, or not active MUST NEVER produce a positive claim that it is active (e.g. 'Engineering hiring is paused for Q3' must NOT generate a `hiring_role` claim).
+   - TEMPORAL ATTRIBUTION: Do not transfer dates across distinct event types. A product launch year (`launched_product_year`), office expansion year, funding round year, or acquisition year must NEVER be extracted as `founded_in`.
+   - ENTITY ATTRIBUTION: Attributes, metrics, headcount, or capabilities belonging to third parties (partners, clients, customers, parent companies, subsidiaries) MUST NOT be attributed to the subject company.
+   - QUANTITATIVE PRECISION: Qualitative or unstated quantities must NOT be converted into invented numeric figures. If an exact metric (e.g. headcount) is unstated in the evidence, do NOT fabricate or extract it as an exact positive fact; record unstated topics under `unknowns`.
+5. ALLOWED CATEGORIES & CANONICAL PREDICATES:
    Use precise, snake_case domain predicates:
    - OVERVIEW: company_description, founded_in, headquarters_location, company_type, company_mission
    - PRODUCT: provides_product, core_capability, target_users, pricing_model, deployment_model, launched_product_year
@@ -31,8 +36,8 @@ CRITICAL INVARIANTS:
    - TRACTION: active_user_count, business_scale, funding_stage, regional_presence
    - MISSION: mission_statement, core_values
    - CONTACT: office_address, contact_email, support_channel
-5. CALIBRATED CONFIDENCE: Assign realistic confidence (0.80 - 0.95 for direct facts; 0.50 - 0.75 for inferences; strictly 0.0 for UNKNOWN).
-6. OUTPUT FORMAT: You MUST return a single valid JSON object strictly matching this schema:
+6. CALIBRATED CONFIDENCE: Assign realistic confidence (0.80 - 0.95 for direct facts; 0.50 - 0.75 for inferences; strictly 0.0 for UNKNOWN).
+7. OUTPUT FORMAT: You MUST return a single valid JSON object strictly matching this schema:
 {
   "claims": [
     {
