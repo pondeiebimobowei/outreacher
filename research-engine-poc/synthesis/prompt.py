@@ -24,7 +24,7 @@ CRITICAL INVARIANTS:
 4. ALLOWED CATEGORIES & CANONICAL PREDICATES:
    Use precise, snake_case domain predicates:
    - OVERVIEW: company_description, founded_in, headquarters_location, company_type, company_mission
-   - PRODUCT: provides_product, core_capability, target_users, pricing_model, deployment_model
+   - PRODUCT: provides_product, core_capability, target_users, pricing_model, deployment_model, launched_product_year
    - TECH_STACK: frontend_framework, backend_language, database_system, infrastructure_tool
    - HIRING: hiring_role, required_skill, benefits_offered, engineering_practice
    - CUSTOMER: serves_customer_count, notable_customer, target_market, customer_case_study

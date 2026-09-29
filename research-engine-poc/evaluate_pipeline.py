@@ -23,7 +23,7 @@ console = Console()
 
 @dataclass(frozen=True)
 class EvaluationBenchmarkCase:
-    category: str  # REAL_WORLD | NEGATIVE_GATING | IDENTITY_SAFETY | CONTRACT_FIXTURE
+    category: str  # REAL_WORLD | NEGATIVE_GATING | IDENTITY_SAFETY | CONTRACT_FIXTURE | SEMANTIC_STRESS
     case_id: str
     company: str
     description: str
@@ -34,14 +34,18 @@ class EvaluationBenchmarkCase:
     ground_truth_notes: str
     snapshot_version: str = "v1.0-frozen"
     retrieval_timestamp: str = "2026-09-29T08:00:00Z"
+    expected_accepted_predicates: Optional[List[str]] = None
+    expected_omitted_predicates: Optional[List[str]] = None
+    prohibited_predicates: Optional[List[str]] = None
 
 
-# ── Benchmark Evaluation Dataset (10 Frozen Snapshot Cases across 4 Dimensions) ──
+# ── Benchmark Evaluation Dataset (14 Frozen Snapshot Cases across 5 Dimensions) ──
 # Deterministic regression dataset with frozen crawled evidence packages:
 # 1. REAL_WORLD: Frozen observed evidence snapshots + human-established ground truth
 # 2. NEGATIVE_GATING: Negative vacancy signals (closed, filled, paused, culture-only)
 # 3. CONTRACT_FIXTURE: Invariant boundary fixtures (stealth, short overview, multi-source)
 # 4. IDENTITY_SAFETY: Disambiguation and domain collision safety scenario
+# 5. SEMANTIC_STRESS: Adversarial semantic entailment tests (negation, unstated metrics, launch vs founded, multi-entity)
 
 EVALUATION_DATASET: List[EvaluationBenchmarkCase] = [
     # ── Category 1: Real-World Cases (Observed Evidence + Expected Result) ─────
@@ -513,7 +517,191 @@ We provide execution, clearing, custody, and digital wealth solutions for hundre
             discovered_at=datetime.now(timezone.utc),
         ),
     ),
+
+    # ── Category 5: Semantic Stress Testing Fixtures ──────────────────────────
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_paused_hiring_negation",
+        company="Nexar Robotics",
+        description="Negated hiring state: company explicitly pauses hiring while restructuring",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests negation comprehension: active hiring_role must NOT be extracted from paused notice.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["hiring_role"],
+        prohibited_predicates=["hiring_role"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="Nexar Robotics",
+                domain="nexarrobotics.com",
+                website_url="https://nexarrobotics.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified robotics engineering company.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://nexarrobotics.com/about",
+                    final_url="https://nexarrobotics.com/about",
+                    page_type=PageType.ABOUT,
+                    title="About Nexar Robotics",
+                    content="""About Nexar Robotics
+Nexar Robotics builds autonomous warehouse sorting robots for supply chain operators.
+Founded in 2021 in Austin, Texas.
+Our core technology automates parcel classification in distribution centers.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://nexarrobotics.com/careers/notice",
+                    final_url="https://nexarrobotics.com/careers/notice",
+                    page_type=PageType.BLOG,
+                    title="Hiring Update - Nexar Robotics",
+                    content="""Careers Notice
+Engineering hiring is currently paused for Q3 and Q4 while we restructure team operations.
+We are not accepting applications for Software Engineer or Robotics Engineer roles at this time.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_unstated_metric_extrapolation",
+        company="AfriPay Cloud",
+        description="Unstated metrics: B2B gateway serving banks without disclosing quantitative customer count",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests anti-hallucination on quantities: customer_count or user numbers must NOT be invented.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["serves_customer_count", "active_user_count"],
+        prohibited_predicates=["serves_customer_count", "active_user_count"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="AfriPay Cloud",
+                domain="afripaycloud.com",
+                website_url="https://afripaycloud.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified payment infrastructure provider.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://afripaycloud.com/overview",
+                    final_url="https://afripaycloud.com/overview",
+                    page_type=PageType.ABOUT,
+                    title="About AfriPay Cloud",
+                    content="""AfriPay Cloud Overview
+AfriPay Cloud provides B2B payment gateway infrastructure and clearing protocols.
+Serving enterprise banks and regulated financial institutions across Nigeria and Ghana with multi-currency settlement.
+Built with resilient Go microservices and Kafka event streaming.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_launch_vs_founded_confusion",
+        company="ReconFlow AI",
+        description="Temporal attribute distinction: product launched in 2024, founding year unstated",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests temporal distinction: product launch year (2024) must NOT be attributed to company founded_in.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["founded_in"],
+        prohibited_predicates=["founded_in"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="ReconFlow AI",
+                domain="reconflow.ai",
+                website_url="https://reconflow.ai",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified financial automation company.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://reconflow.ai/products/platform-x",
+                    final_url="https://reconflow.ai/products/platform-x",
+                    page_type=PageType.PRODUCT,
+                    title="Platform X Announcement - ReconFlow AI",
+                    content="""Platform X Product Launch
+ReconFlow AI launched Platform X in 2024 to automate financial reconciliation for accounting teams.
+Eliminate manual ledger matching with AI-powered invoice reconciliation.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="SEMANTIC_STRESS",
+        case_id="stress_multi_entity_attribute_contamination",
+        company="DataCore Solutions",
+        description="Multi-entity attribution: partner operates 10,000 servers, target builds software plugins",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Tests entity isolation: partner's server infrastructure scale must NOT be attributed to target company.",
+        expected_accepted_predicates=["provides_product"],
+        expected_omitted_predicates=["business_scale", "active_user_count"],
+        prohibited_predicates=["business_scale", "active_user_count"],
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="DataCore Solutions",
+                domain="datacoresolutions.io",
+                website_url="https://datacoresolutions.io",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified database observability vendor.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://datacoresolutions.io/integrations/cloudgrid",
+                    final_url="https://datacoresolutions.io/integrations/cloudgrid",
+                    page_type=PageType.PRODUCT,
+                    title="CloudGrid Integration - DataCore Solutions",
+                    content="""CloudGrid Integration
+DataCore Solutions develops real-time database observability plugins.
+Our cloud partner CloudGrid operates 10,000 bare-metal servers across Europe.
+DataCore connects seamlessly to CloudGrid telemetry pipelines.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
 ]
+
+
+def audit_semantic_claims(graph: ClaimGraph, case: EvaluationBenchmarkCase) -> Dict[str, Any]:
+    """Audits accepted Claim propositions against expected semantic constraints."""
+    accepted_facts = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
+    accepted_predicates = {c.predicate for c in accepted_facts}
+
+    missing_expected = [p for p in (case.expected_accepted_predicates or []) if p not in accepted_predicates]
+    prohibited_found = [p for p in (case.prohibited_predicates or []) if p in accepted_predicates]
+    unwanted_omitted = [p for p in (case.expected_omitted_predicates or []) if p in accepted_predicates]
+
+    has_rules = bool(case.expected_accepted_predicates or case.prohibited_predicates or case.expected_omitted_predicates)
+    passed = (len(missing_expected) == 0 and len(prohibited_found) == 0 and len(unwanted_omitted) == 0) if has_rules else True
+
+    return {
+        "has_rules": has_rules,
+        "passed": passed,
+        "missing_expected": missing_expected,
+        "prohibited_found": prohibited_found,
+        "unwanted_omitted": unwanted_omitted,
+    }
 
 
 def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]:
@@ -524,7 +712,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         f"[bold cyan]Dual-Contract Research Engine — Multi-Dimensional Benchmark[/bold cyan]\n"
         f"Provider: [bold magenta]{provider_label}[/bold magenta] | Model: [bold yellow]{model_name}[/bold yellow]\n"
         f"Timestamp: [dim]{run_timestamp}[/dim]\n"
-        f"Evaluating {len(EVALUATION_DATASET)} benchmark cases across Real-World, Negative Gating, and Identity Fixtures.\n"
+        f"Evaluating {len(EVALUATION_DATASET)} benchmark cases across Real-World, Negative Gating, Identity, and Semantic Stress Fixtures.\n"
         f"Hard Invariant: Grounding Failures must strictly be 0.",
         title="Comprehensive Quality & Accuracy Benchmark"
     ))
@@ -541,6 +729,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     case_table.add_column("Accepted", justify="right", style="green")
     case_table.add_column("Rejected", justify="right", style="red")
     case_table.add_column("GF", justify="right")
+    case_table.add_column("Sem Audit", justify="center")
     case_table.add_column("Latency", justify="right")
     case_table.add_column("Tokens", justify="right", style="dim")
 
@@ -554,6 +743,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     total_accepted_claims = 0
     total_rejected_claims = 0
     grounding_failures = 0
+    semantic_stress_cases_count = 0
+    semantic_stress_clean_count = 0
     total_latency_s = 0.0
     case_latencies: List[float] = []
     total_tokens_consumed = 0
@@ -602,6 +793,16 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                         case_gf += 1
             grounding_failures += case_gf
 
+            # Audit semantic propositions against expected/prohibited rules
+            audit_res = audit_semantic_claims(graph, case)
+            if audit_res["has_rules"]:
+                semantic_stress_cases_count += 1
+                if audit_res["passed"]:
+                    semantic_stress_clean_count += 1
+                sem_label = "[bold green]PASS[/bold green]" if audit_res["passed"] else "[bold red]FAIL[/bold red]"
+            else:
+                sem_label = "[dim]-[/dim]"
+
             opp_match_label = "[bold green]PASS[/bold green]" if is_opp_match else "[bold red]MISMATCH[/bold red]"
             gf_label = "[bold green]0[/bold green]" if case_gf == 0 else f"[bold red]{case_gf}[/bold red]"
             exec_status = "[green]SUCCESS[/green]"
@@ -616,6 +817,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 "accepted_claims": accepted_count,
                 "rejected_claims": rejected_count,
                 "grounding_failures": case_gf,
+                "semantic_audit": audit_res,
                 "latency_s": duration_s,
                 "tokens": tokens,
             }
@@ -631,6 +833,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 str(accepted_count),
                 str(rejected_count),
                 gf_label,
+                sem_label,
                 f"{duration_s:.2f}s",
                 str(tokens) if tokens > 0 else "-",
             )
@@ -643,6 +846,10 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             else:
                 validation_errors += 1
 
+            audit_res = {"has_rules": bool(case.expected_accepted_predicates or case.prohibited_predicates), "passed": False}
+            if audit_res["has_rules"]:
+                semantic_stress_cases_count += 1
+
             case_details[case.case_id] = {
                 "category": case.category,
                 "company": case.company,
@@ -653,6 +860,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 "accepted_claims": 0,
                 "rejected_claims": 0,
                 "grounding_failures": 0,
+                "semantic_audit": audit_res,
                 "latency_s": duration_s,
                 "tokens": 0,
             }
@@ -667,10 +875,12 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 f"[bold red]{err_type}[/bold red]",
                 "0",
                 "0",
-                "-",
+                "[bold red]ERROR[/bold red]",
                 f"{duration_s:.2f}s",
                 "-",
             )
+        finally:
+            time.sleep(1.0)
 
     console.print(case_table)
 
@@ -685,6 +895,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     confirmed_recall_pct = ((expected_confirmed_cases - missed_confirmed) / expected_confirmed_cases * 100.0) if expected_confirmed_cases > 0 else 100.0
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
     acceptance_rate_pct = (total_accepted_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
+    semantic_accuracy_pct = (semantic_stress_clean_count / semantic_stress_cases_count * 100.0) if semantic_stress_cases_count > 0 else 100.0
 
     sorted_latencies = sorted(case_latencies) if case_latencies else [0.0]
     p50_latency = sorted_latencies[len(sorted_latencies) // 2]
@@ -698,6 +909,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     scorecard.add_row("Recall: Confirmed Opening Recall", f"{confirmed_recall_pct:.1f}% ({expected_confirmed_cases - missed_confirmed}/{expected_confirmed_cases})", "100.0% (High Recall)")
     scorecard.add_row("Safety: False CONFIRMED Rate", f"{false_conf_pct:.1f}% ({false_confirmed}/{expected_non_confirmed_cases})", "0.0% (Hard Safety Invariant)")
     scorecard.add_row("Grounding: Provenance Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
+    scorecard.add_row("Semantic: Entailment & Omission Accuracy", f"{semantic_accuracy_pct:.1f}% ({semantic_stress_clean_count}/{semantic_stress_cases_count})", "100.0% (Zero Hallucination / Contamination)")
     scorecard.add_row("Grounding: Candidate Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
     scorecard.add_row("Grounding: Accepted Claim Rate (Diagnostic)", f"{total_accepted_claims}/{total_candidates} ({acceptance_rate_pct:.1f}%)", "Diagnostic Yield")
     scorecard.add_row("Usefulness: Total Grounded Claims Accepted", str(total_accepted_claims), "High useful yield")
@@ -719,6 +931,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "model": model_name,
         "run_timestamp": run_timestamp,
         "total_cases": total_cases,
+        "opp_matches": opp_matches,
         "accuracy_pct": opp_accuracy_pct,
         "false_confirmed_rate": false_conf_pct,
         "false_confirmed_count": false_confirmed,
@@ -727,6 +940,9 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "missed_confirmed": missed_confirmed,
         "expected_confirmed_cases": expected_confirmed_cases,
         "grounding_failures": grounding_failures,
+        "semantic_stress_cases_count": semantic_stress_cases_count,
+        "semantic_stress_clean_count": semantic_stress_clean_count,
+        "semantic_accuracy_pct": semantic_accuracy_pct,
         "total_claims": total_accepted_claims,
         "rejected_claims": total_rejected_claims,
         "acceptance_rate_pct": acceptance_rate_pct,
@@ -751,7 +967,7 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
 
     comp_table.add_row(
         "Opportunity Verdict Accuracy",
-        *[f"{r['accuracy_pct']:.1f}% ({r['total_cases'] - r.get('missed_confirmed', 0)}/{r['total_cases']})" for r in results]
+        *[f"{r['accuracy_pct']:.1f}% ({r.get('opp_matches', r['total_cases'] - r.get('missed_confirmed', 0))}/{r['total_cases']})" for r in results]
     )
     comp_table.add_row(
         "Recall: Confirmed Opening Recall",
@@ -764,6 +980,10 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
     comp_table.add_row(
         "Grounding: Provenance Leakage",
         *[str(r["grounding_failures"]) for r in results]
+    )
+    comp_table.add_row(
+        "Semantic: Entailment & Omission Accuracy",
+        *[f"{r['semantic_accuracy_pct']:.1f}% ({r['semantic_stress_clean_count']}/{r['semantic_stress_cases_count']})" if r.get("semantic_stress_cases_count", 0) > 0 else "N/A" for r in results]
     )
     comp_table.add_row(
         "Total Accepted Claims",
@@ -791,10 +1011,10 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
 
     # 2. Side-by-Side Per-Case Diff Table
     diff_table = Table(title="Per-Case Model Comparison (Gemini vs Mistral)", expand=True, show_lines=True)
-    diff_table.add_column("Case ID", style="cyan", width=20)
+    diff_table.add_column("Case ID", style="cyan", width=24)
     diff_table.add_column("Expected Opp", style="bold", width=12)
     for r in results:
-        diff_table.add_column(f"{r['provider']}\nOpp | Acc / Rej", justify="center")
+        diff_table.add_column(f"{r['provider']}\nOpp | Acc / Rej | Sem", justify="center")
 
     all_case_ids = [c.case_id for c in EVALUATION_DATASET]
     for cid in all_case_ids:
@@ -810,7 +1030,12 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
                 prov_cols.append(f"[bold red]{status}[/bold red]")
             else:
                 match_color = "green" if cd.get("is_match") else "red"
-                prov_cols.append(f"[{match_color}]{actual_opp}[/{match_color}] | [green]{acc}[/green] / [red]{rej}[/red]")
+                sem_audit = cd.get("semantic_audit", {})
+                if sem_audit.get("has_rules"):
+                    sem_str = " | [green]PASS[/green]" if sem_audit.get("passed") else " | [red]FAIL[/red]"
+                else:
+                    sem_str = ""
+                prov_cols.append(f"[{match_color}]{actual_opp}[/{match_color}] | [green]{acc}[/green] / [red]{rej}[/red]{sem_str}")
 
         diff_table.add_row(cid, exp_opp, *prov_cols)
 
