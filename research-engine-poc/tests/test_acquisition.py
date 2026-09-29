@@ -256,12 +256,20 @@ def test_url_canonicalization():
     assert canonicalize_url("https://www.domain.com/careers/") == canonicalize_url("https://domain.com/careers")
     assert canonicalize_url("http://WWW.DOMAIN.COM") == "http://domain.com/"
 
-    # normalize_domain helper tests
+
+def test_normalize_domain():
     from core.urls import normalize_domain
-    assert normalize_domain("https://www.domain.com/about") == "domain.com"
+    assert normalize_domain("domain.com") == "domain.com"
+    assert normalize_domain("www.domain.com") == "domain.com"
+    assert normalize_domain("https://www.domain.com") == "domain.com"
+    assert normalize_domain("HTTPS://DOMAIN.COM/") == "domain.com"
+    assert normalize_domain("https://user:pass@www.domain.com:443/path") == "domain.com"
+    assert normalize_domain("https://www2.domain.com") == "www2.domain.com"
     assert normalize_domain("WWW.Acme.COM:8080") == "acme.com"
     assert normalize_domain("acme.com/") == "acme.com"
     assert normalize_domain("www.stripe.com") == "stripe.com"
+    assert normalize_domain("") == ""
+    assert normalize_domain("   ") == ""
 
 
 def test_url_canonicalization_invalid_inputs():
