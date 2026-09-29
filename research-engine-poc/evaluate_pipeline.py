@@ -94,11 +94,11 @@ Apply now to join our infrastructure team.""",
         category="REAL_WORLD",
         case_id="real_linear_spa",
         company="Linear",
-        description="SPA developer tool with about page and funding announcement, no active opening in scope",
-        expected_opportunity_type=OpportunityType.PROACTIVE,
-        expected_role_title="General Outreach",
+        description="SPA developer tool with about page, funding post, and active Product Manager opening",
+        expected_opportunity_type=OpportunityType.CONFIRMED,
+        expected_role_title="Product Manager",
         expected_identity_confidence=IdentityConfidence.CONFIDENT,
-        ground_truth_notes="No active job posting crawled; must fall back conservatively to PROACTIVE outreach.",
+        ground_truth_notes="Verified active job posting crawled with HTML title; satisfies CONFIRMED gate.",
         package=RawResearchPackage(
             identity=CompanyIdentity(
                 name="Linear",
@@ -130,6 +130,23 @@ More than 40,000 companies including OpenAI, Coinbase, and Ramp build with Linea
 Announcing our $35M Series B funding led by Accel.
 Published on September 14. 4 min read.
 We are scaling our sync engine architecture built with TypeScript and SQLite.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://linear.app/careers/86abcce0-04b2-405c-9a8e-e0ca84813914",
+                    final_url="https://linear.app/careers/86abcce0-04b2-405c-9a8e-e0ca84813914",
+                    page_type=PageType.JOB_LISTING,
+                    title="Product Manager - Linear Careers",
+                    content="""Product Manager
+At Linear, we're building the product development system for teams and agents.
+Responsibilities:
+- Drive core product roadmap for issue tracking and project planning.
+- Work closely with engineering and design to ship high craft user experiences.
+Requirements:
+- 4+ years product management experience building developer tools.
+- Strong technical empathy and deep product craft.
+Apply for this position.""",
                     retrieved_at=datetime.now(timezone.utc),
                     quality=DocumentQuality.VALID,
                 ),
@@ -329,6 +346,52 @@ Apply for this job.""",
         ),
     ),
 
+    EvaluationBenchmarkCase(
+        category="NEGATIVE_GATING",
+        case_id="neg_job_description_with_hiring_freeze",
+        company="TechScale Paused",
+        description="Job requisition with explicit 'hiring paused' status banner",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="Must reject CONFIRMED because posting is paused / no longer accepting applications.",
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="TechScale Paused",
+                domain="techscalepaused.com",
+                website_url="https://techscalepaused.com",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified company identity.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://techscalepaused.com/about",
+                    final_url="https://techscalepaused.com/about",
+                    page_type=PageType.ABOUT,
+                    title="About TechScale",
+                    content="TechScale builds cloud infrastructure tooling.",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://techscalepaused.com/careers/senior-frontend-engineer",
+                    final_url="https://techscalepaused.com/careers/senior-frontend-engineer",
+                    page_type=PageType.JOB_LISTING,
+                    title="Senior Frontend Engineer | TechScale",
+                    content="""Senior Frontend Engineer
+Responsibilities:
+- Build React design systems.
+Requirements:
+- 5+ years TypeScript.
+Status update: We are currently no longer accepting applications for this role due to a hiring pause.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
     # ── Category 3: Contract Fixtures ─────────────────────────────────────────
     EvaluationBenchmarkCase(
         category="CONTRACT_FIXTURE",
@@ -357,6 +420,50 @@ Apply for this job.""",
 We research and build verifiable agent architectures for high-reliability software engineering.
 Our team consists of 8 researchers in Zurich and San Francisco.
 Contact us at research@acmeailabs.io for research collaborations.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+            ],
+            discovered_at=datetime.now(timezone.utc),
+        ),
+    ),
+
+    EvaluationBenchmarkCase(
+        category="CONTRACT_FIXTURE",
+        case_id="fixture_growth_company_no_jobs_in_scope",
+        company="CraftFlow",
+        description="Productivity app with about and changelog pages, zero job listings discovered in scope",
+        expected_opportunity_type=OpportunityType.PROACTIVE,
+        expected_role_title="General Outreach",
+        expected_identity_confidence=IdentityConfidence.CONFIDENT,
+        ground_truth_notes="No job posting in crawled scope; safely demotes to PROACTIVE general outreach.",
+        package=RawResearchPackage(
+            identity=CompanyIdentity(
+                name="CraftFlow",
+                domain="craftflow.io",
+                website_url="https://craftflow.io",
+                confidence=IdentityConfidence.CONFIDENT,
+                reasoning="Verified productivity app domain.",
+            ),
+            documents=[
+                CrawledDocument(
+                    url="https://craftflow.io/about",
+                    final_url="https://craftflow.io/about",
+                    page_type=PageType.ABOUT,
+                    title="About CraftFlow",
+                    content="""About CraftFlow
+CraftFlow is a modern workspace for creative engineering teams.
+Founded in 2022, CraftFlow streamlines document review and issue tracking.""",
+                    retrieved_at=datetime.now(timezone.utc),
+                    quality=DocumentQuality.VALID,
+                ),
+                CrawledDocument(
+                    url="https://craftflow.io/changelog",
+                    final_url="https://craftflow.io/changelog",
+                    page_type=PageType.BLOG,
+                    title="CraftFlow Changelog - v2.4 Release",
+                    content="""Changelog v2.4
+We released real-time canvas collaboration and offline mode support.""",
                     retrieved_at=datetime.now(timezone.utc),
                     quality=DocumentQuality.VALID,
                 ),
@@ -509,7 +616,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     false_conf_pct = (false_confirmed / total_cases) * 100.0
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
 
-    scorecard.add_row("Total Evaluation Cases", str(total_cases), "8 Cases")
+    scorecard.add_row("Total Evaluation Cases", str(total_cases), f"{total_cases} Cases")
     scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0%")
     scorecard.add_row("False CONFIRMED Rate (Critical False Positives)", f"{false_conf_pct:.1f}% ({false_confirmed}/{total_cases})", "0.0%")
     scorecard.add_row("Total Candidate Claims Extracted", str(total_candidates), "-")
