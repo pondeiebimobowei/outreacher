@@ -498,3 +498,54 @@ def test_moniepoint_resolves_confident_via_sentence_id_and_contact():
     )
     chosen = next(c for c in result.candidates if c.domain == result.domain)
     assert chosen.relationship == SiteRelationship.PRIMARY
+
+
+# ── 21. Reciprocal invariant: non-PRIMARY ⇒ not CONFIDENT ────────────────────
+
+def test_non_primary_candidate_never_produces_confident():
+    """
+    Reciprocal of test 19.
+
+    test_confident_result_always_backed_by_primary_relationship (test 19):
+        CONFIDENT ⇒ selected candidate.relationship == PRIMARY
+
+    This test:
+        selected candidate.relationship != PRIMARY ⇒ confidence != CONFIDENT
+
+    Sounds redundant, but protects the decision boundary if another branch
+    gets added later. Uses LEGACY as the relationship — the most plausible
+    misclassification that could slip through.
+    """
+    hp = _doc(
+        "https://atm.monnify.com",
+        title="Moniepoint – ATM Services",
+        content="Moniepoint is a financial services platform.",
+    )
+    about = _doc(
+        "https://atm.monnify.com/about",
+        title="About Moniepoint – ATM Services",
+        content="Moniepoint ATM services helps you bank on the go.",
+        ptype=PageType.ABOUT,
+    )
+    s = _Search([
+        SearchResult(title="Moniepoint – ATM Services", url="https://atm.monnify.com", snippet=""),
+    ])
+    c = _Crawler({
+        "https://atm.monnify.com": hp,
+        "https://atm.monnify.com/about": about,
+    })
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Moniepoint")
+
+    # atm.monnify.com should be LEGACY (self-identifies but domain != "moniepoint")
+    chosen = next(
+        (c for c in result.candidates if c.domain == result.domain), None
+    )
+    assert chosen is not None, "No chosen candidate found."
+
+    if chosen.relationship != SiteRelationship.PRIMARY:
+        assert result.confidence != IdentityConfidence.CONFIDENT, (
+            f"Non-PRIMARY candidate '{chosen.domain}' (rel={chosen.relationship}) "
+            f"must not produce CONFIDENT, but got {result.confidence.name}."
+        )
