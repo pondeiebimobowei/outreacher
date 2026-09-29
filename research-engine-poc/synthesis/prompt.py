@@ -21,8 +21,29 @@ CRITICAL INVARIANTS:
    - FACT: Directly stated in the source text. MUST provide verbatim supporting_quotes from cited spans.
    - INFERENCE: A reasoned deduction logically implied by the evidence. Must cite spans and quote relevant supporting text.
    - UNKNOWN: Information that was investigated but could not be established from the evidence. UNKNOWN claims must have 0 evidence citations, 0 supporting_quotes, and confidence 0.0.
-4. DO NOT INVENT FACTS: If a company's hiring, product, or stack is not present in the spans, mark it as UNKNOWN or omit it.
-5. CALIBRATED CONFIDENCE: Assign realistic confidence (e.g. 0.80 - 0.95 for direct facts; 0.50 - 0.75 for inferences; strictly 0.0 for UNKNOWN).
+4. ALLOWED VALUES:
+   - category MUST be one of: ["OVERVIEW", "PRODUCT", "HIRING", "TECH_STACK", "CUSTOMER", "TRACTION", "MISSION", "CONTACT"]
+   - classification MUST be one of: ["FACT", "INFERENCE", "UNKNOWN"]
+5. CALIBRATED CONFIDENCE: Assign realistic confidence (0.80 - 0.95 for direct facts; 0.50 - 0.75 for inferences; strictly 0.0 for UNKNOWN).
+6. OUTPUT FORMAT: You MUST return a single valid JSON object strictly matching this schema:
+{
+  "claims": [
+    {
+      "subject": "string (entity name)",
+      "predicate": "string (e.g. provides_product, requires_skill, operates_as, uses_tech_stack)",
+      "object_value": "string (concrete proposition value)",
+      "category": "OVERVIEW" | "PRODUCT" | "HIRING" | "TECH_STACK" | "CUSTOMER" | "TRACTION" | "MISSION" | "CONTACT",
+      "classification": "FACT" | "INFERENCE" | "UNKNOWN",
+      "evidence_span_ids": ["span_id_1"],
+      "supporting_quotes": ["verbatim quote from cited span"],
+      "confidence": 0.9,
+      "reasoning": "optional brief reasoning string"
+    }
+  ],
+  "unknowns": [
+    "string (concise open research topic noun phrase, e.g. 'Office locations', 'Pricing tiers')"
+  ]
+}
 """
 
     SUMMARY_SYSTEM_INSTRUCTIONS = """You are a precise corporate research summarizer.
