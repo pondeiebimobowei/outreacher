@@ -1,5 +1,5 @@
 import re
-from typing import Set
+from typing import Set, Any, List
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 # Marketing and analytics tracking parameters to strip
@@ -107,3 +107,16 @@ def deduplicate_documents_by_canonical_url(documents: list) -> list:
         elif not key:
             deduped.append(doc)
     return deduped
+
+def normalize_research_package(package: Any) -> Any:
+    """
+    Creates a canonical, normalized RawResearchPackage:
+      - Deduplicates package.documents by canonical URL.
+      - Preserves first-encountered document order.
+      - Guarantees all downstream consumers (evidence extractor, claim builders, opportunity gates, DTO exporters)
+        operate strictly on the identical canonical document universe.
+    """
+    if not package or not hasattr(package, "documents"):
+        return package
+    deduped_docs = deduplicate_documents_by_canonical_url(package.documents)
+    return package.model_copy(update={"documents": tuple(deduped_docs)})

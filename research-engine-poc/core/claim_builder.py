@@ -11,7 +11,7 @@ from core.dto import (
     ResearchOpportunityDTO, ResearchEvidenceDTO, SourceTier,
     OpportunityType, ResearchStatus,
 )
-from core.urls import deduplicate_documents_by_canonical_url
+from core.urls import normalize_research_package
 from core.opportunities import extract_research_opportunities
 
 class ClaimGraphBuilder:
@@ -28,9 +28,7 @@ class ClaimGraphBuilder:
     def build_from_package(cls, package: RawResearchPackage) -> ClaimGraph:
         """Extracts deterministic evidence spans and builds grounded claims."""
         # 1. Canonicalize and deduplicate documents at package boundary
-        package = package.model_copy(update={
-            "documents": deduplicate_documents_by_canonical_url(package.documents)
-        })
+        package = normalize_research_package(package)
 
         # 2. Extract deterministic EvidenceSpans
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
@@ -186,6 +184,7 @@ class ClaimGraphBuilder:
     @classmethod
     def export_to_dto(cls, graph: ClaimGraph, package: RawResearchPackage) -> CompanyResearchDTO:
         """Transforms a verified ClaimGraph into a CompanyResearchDTO preserving full evidence lineage."""
+        package = normalize_research_package(package)
         span_by_id = {s.id: s for s in graph.evidence_spans}
         company_name = package.identity.name or "Company"
 

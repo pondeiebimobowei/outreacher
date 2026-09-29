@@ -12,7 +12,7 @@ import re
 from typing import List, Optional, Set
 from core.models import CrawledDocument, DocumentQuality, PageType, RawResearchPackage
 from core.dto import ResearchOpportunityDTO, OpportunityType
-from core.urls import canonicalize_url
+from core.urls import canonicalize_url, normalize_research_package
 
 # Signals that establish semantic evidence of an active job opening in document content
 JOB_POSTING_SIGNALS = (
@@ -146,6 +146,7 @@ def extract_research_opportunities(
       - UNCLASSIFIED: Insufficient valid documents collected to classify outreach opportunity.
     """
     name = company_name or (package.identity.name if package.identity else "Company")
+    package = normalize_research_package(package)
     confirmed_docs = [d for d in package.documents if is_confirmed_job_opening(d)]
 
     if confirmed_docs:

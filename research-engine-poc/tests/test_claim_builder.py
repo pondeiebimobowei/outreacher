@@ -185,3 +185,43 @@ def test_export_to_dto_unclassified_when_no_valid_docs():
     dto = ClaimGraphBuilder.export_to_dto(graph, package)
 
     assert dto.opportunities[0].opportunity_type == OpportunityType.UNCLASSIFIED
+
+def test_export_to_dto_uses_normalized_package_documents():
+    """Verifies that export_to_dto normalizes package documents so DTO sources reflect canonical documents."""
+    identity = CompanyIdentity(
+        name="Acme",
+        domain="acme.com",
+        website_url="https://acme.com",
+        confidence=IdentityConfidence.CONFIDENT,
+        reasoning="test",
+    )
+    doc_1 = CrawledDocument(
+        url="https://acme.com/about",
+        final_url="https://acme.com/about",
+        title="About Acme",
+        page_type=PageType.ABOUT,
+        content="About Acme content",
+        retrieved_at=datetime.now(timezone.utc),
+        quality=DocumentQuality.VALID,
+    )
+    doc_2_dup = CrawledDocument(
+        url="https://www.acme.com/about?utm_source=test",
+        final_url="https://www.acme.com/about?utm_source=test",
+        title="About Acme (Dup)",
+        page_type=PageType.ABOUT,
+        content="About Acme content",
+        retrieved_at=datetime.now(timezone.utc),
+        quality=DocumentQuality.VALID,
+    )
+    package = RawResearchPackage(
+        identity=identity,
+        documents=[doc_1, doc_2_dup],
+        discovered_at=datetime.now(timezone.utc),
+    )
+
+    graph = ClaimGraphBuilder.build_from_package(package)
+    dto = ClaimGraphBuilder.export_to_dto(graph, package)
+
+    # Sources in DTO must strictly contain 1 canonical source, not 2
+    assert len(dto.sources) == 1
+    assert dto.sources[0].url == "https://acme.com/about"

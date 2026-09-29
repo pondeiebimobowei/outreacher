@@ -314,6 +314,55 @@ def test_url_canonicalization_invalid_inputs():
     assert canonicalize_url("javascript:alert(1)") == ""
     assert canonicalize_url("ftp://example.com/file") == ""
 
+def test_deduplicate_documents_by_canonical_url():
+    from core.urls import deduplicate_documents_by_canonical_url, normalize_research_package
+    docs = [
+        CrawledDocument(url="https://www.acme.com/about", final_url="https://www.acme.com/about", title="About Acme (www)", page_type=PageType.ABOUT, content="About Acme content", retrieved_at=datetime.now(timezone.utc)),
+        CrawledDocument(url="https://acme.com/about?utm_source=twitter&ref=footer", final_url="https://acme.com/about?utm_source=twitter&ref=footer", title="About Acme (tracking)", page_type=PageType.ABOUT, content="About Acme content", retrieved_at=datetime.now(timezone.utc)),
+        CrawledDocument(url="https://acme.com/careers", final_url="https://acme.com/careers", title="Careers", page_type=PageType.CAREERS_INDEX, content="Join us", retrieved_at=datetime.now(timezone.utc)),
+    ]
+
+    result = deduplicate_documents_by_canonical_url(docs)
+    assert len(result) == 2
+    assert [d.url for d in result] == [
+        "https://www.acme.com/about",
+        "https://acme.com/careers",
+    ]
+
+def test_deduplication_preserves_first_document():
+    from core.urls import deduplicate_documents_by_canonical_url, normalize_research_package
+    first_doc = CrawledDocument(
+        url="https://acme.com/about",
+        final_url="https://acme.com/about",
+        title="First Title",
+        page_type=PageType.ABOUT,
+        content="First content",
+        retrieved_at=datetime.now(timezone.utc),
+    )
+    second_doc = CrawledDocument(
+        url="https://www.acme.com/about?utm_medium=cpc",
+        final_url="https://www.acme.com/about?utm_medium=cpc",
+        title="Second Title",
+        page_type=PageType.ABOUT,
+        content="Second content",
+        retrieved_at=datetime.now(timezone.utc),
+    )
+
+    result = deduplicate_documents_by_canonical_url([first_doc, second_doc])
+    assert len(result) == 1
+    assert result[0].title == "First Title"
+    assert result[0].url == "https://acme.com/about"
+
+    # Test normalize_research_package
+    pkg = RawResearchPackage(
+        identity=CompanyIdentity(name="Acme", domain="acme.com", website_url="https://acme.com", confidence=IdentityConfidence.CONFIDENT, reasoning="test"),
+        documents=[first_doc, second_doc],
+        discovered_at=datetime.now(timezone.utc),
+    )
+    norm_pkg = normalize_research_package(pkg)
+    assert len(norm_pkg.documents) == 1
+    assert norm_pkg.documents[0].title == "First Title"
+
 
 # ── 6. Document Quality Evaluator Tests ───────────────────────────────────────
 

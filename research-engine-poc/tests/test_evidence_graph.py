@@ -383,3 +383,62 @@ def test_claim_graph_rejects_ungrounded_supporting_quote():
             evidence_spans=spans,
             claims=[claim_with_fake_quote],
         )
+
+
+def test_identical_content_across_distinct_canonical_urls_has_defined_span_behavior():
+    """
+    Documents and verifies the span identity and provenance contract:
+    - EvidenceSpan ID is content-based: compute_span_id(document_hash, char_start, char_end).
+    - When two distinct canonical URLs contain identical UTF-8 text content, their extracted spans
+      produce identical EvidenceSpan IDs.
+    - extract_package_spans collapses these duplicate IDs to maintain ClaimGraph uniqueness invariants,
+      attributing the span's provenance (source_url) to the first-encountered canonical document.
+    """
+    content = "About Acme\nAcme builds autonomous agent workflows for high-reliability software."
+    
+    doc_a = CrawledDocument(
+        url="https://acme.com/about",
+        final_url="https://acme.com/about",
+        status_code=200,
+        content=content,
+        retrieved_at=datetime.now(timezone.utc),
+        page_type=PageType.ABOUT,
+        quality=DocumentQuality.VALID,
+    )
+    doc_b = CrawledDocument(
+        url="https://mirror.acme.com/about-us",  # Distinct canonical URL
+        final_url="https://mirror.acme.com/about-us",
+        status_code=200,
+        content=content,  # Identical content
+        retrieved_at=datetime.now(timezone.utc),
+        page_type=PageType.ABOUT,
+        quality=DocumentQuality.VALID,
+    )
+
+    package = RawResearchPackage(
+        identity=CompanyIdentity(
+            name="Acme",
+            domain="acme.com",
+            website_url="https://acme.com",
+            confidence=IdentityConfidence.CONFIDENT,
+            reasoning="test",
+        ),
+        documents=[doc_a, doc_b],
+        discovered_at=datetime.now(timezone.utc),
+    )
+
+    spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+    
+    # Document has 2 non-empty lines, so exactly 2 unique spans are emitted (not 4)
+    assert len(spans) == 2
+    # Provenance belongs to first-encountered document (doc_a)
+    for span in spans:
+        assert span.source_url == "https://acme.com/about"
+    
+    # Verify ClaimGraph builds cleanly without duplicate span ID validation errors
+    graph = ClaimGraph(
+        documents=package.documents,
+        evidence_spans=spans,
+        claims=[],
+    )
+    assert len(graph.evidence_spans) == 2
