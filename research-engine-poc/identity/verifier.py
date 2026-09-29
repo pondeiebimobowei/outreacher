@@ -35,7 +35,8 @@ Important design constraints:
     mention false positives (e.g. "We stock Linear chips" ≠ "Linear is...").
 """
 import re
-from typing import List, Optional, Tuple
+import time
+from typing import List, Optional, Tuple, Dict, Any
 
 from crawling.manager import CrawlManager
 from search.base import ISearchProvider, SearchProviderError
@@ -94,6 +95,12 @@ class WebsiteVerifier:
     def __init__(self, crawl_manager: CrawlManager, search_provider: ISearchProvider):
         self.crawl_manager   = crawl_manager
         self.search_provider = search_provider
+        self.telemetry: Dict[str, Any] = {
+            "secondary_search_requests": 0,
+            "secondary_probe_count": 0,
+            "successful_corroboration_count": 0,
+            "verifier_elapsed_ms": 0.0,
+        }
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -420,6 +427,7 @@ class WebsiteVerifier:
         query = f'site:{domain} "about" OR "company" OR "contact"'
         urls: list = []
         try:
+            self.telemetry["secondary_search_requests"] += 1
             raw   = self.search_provider.search(query, num_results=5)
             clean = SearchResultSanitizer.sanitize(raw)
             for r in clean:
@@ -445,6 +453,7 @@ class WebsiteVerifier:
             if strength is None:
                 continue
 
+            self.telemetry["secondary_probe_count"] += 1
             doc = self.crawl_manager.fetch_with_fallback(url, ptype)
             if doc.quality not in {DocumentQuality.VALID, DocumentQuality.TOO_SHORT}:
                 continue
@@ -466,6 +475,7 @@ class WebsiteVerifier:
             )
 
             if entity_match or name_match:
+                self.telemetry["successful_corroboration_count"] += 1
                 if entity_match:
                     signal   = f"ENTITY_TITLE_IN_{strength.upper()}_PAGE"
                     ev_type  = EvidenceType.SELF_IDENTITY
