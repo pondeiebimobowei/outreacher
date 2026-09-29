@@ -514,25 +514,30 @@ We provide execution, clearing, custody, and digital wealth solutions for hundre
 
 
 def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]:
+    run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    model_name = getattr(synthesizer, "model", getattr(synthesizer, "_model", "default"))
+
     console.print(Panel.fit(
         f"[bold cyan]Dual-Contract Research Engine — Multi-Dimensional Benchmark[/bold cyan]\n"
-        f"Provider: [bold magenta]{provider_label}[/bold magenta] ({getattr(synthesizer, 'model', 'default')})\n"
+        f"Provider: [bold magenta]{provider_label}[/bold magenta] | Model: [bold yellow]{model_name}[/bold yellow]\n"
+        f"Timestamp: [dim]{run_timestamp}[/dim]\n"
         f"Evaluating {len(EVALUATION_DATASET)} benchmark cases across Real-World, Negative Gating, and Identity Fixtures.\n"
         f"Hard Invariant: Grounding Failures must strictly be 0.",
         title="Comprehensive Quality & Accuracy Benchmark"
     ))
 
     # 1. Detailed Per-Case Execution Table
-    case_table = Table(title=f"Per-Case Evaluation Results ({provider_label})", expand=True, show_lines=True)
+    case_table = Table(title=f"Per-Case Evaluation Results ({provider_label} - {model_name})", expand=True, show_lines=True)
     case_table.add_column("Category", style="dim", width=14)
     case_table.add_column("Case ID", style="cyan", width=22)
-    case_table.add_column("Company", style="white", width=16)
+    case_table.add_column("Company", style="white", width=14)
     case_table.add_column("Expected Opp", style="bold")
     case_table.add_column("Actual Opp", style="bold")
     case_table.add_column("Opp Verdict", justify="center")
-    case_table.add_column("Accepted Claims", justify="right", style="green")
+    case_table.add_column("Status", justify="center")
+    case_table.add_column("Accepted", justify="right", style="green")
     case_table.add_column("Rejected", justify="right", style="red")
-    case_table.add_column("Grounding Failures", justify="right")
+    case_table.add_column("GF", justify="right")
     case_table.add_column("Latency", justify="right")
     case_table.add_column("Tokens", justify="right", style="dim")
 
@@ -547,7 +552,10 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     grounding_failures = 0
     total_latency_s = 0.0
     total_tokens_consumed = 0
+    provider_errors = 0
+    validation_errors = 0
     claims_by_category: Dict[str, int] = {}
+    case_details: Dict[str, Dict[str, Any]] = {}
 
     for case in EVALUATION_DATASET:
         start_time = time.perf_counter()
@@ -581,13 +589,30 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 claims_by_category[cat_name] = claims_by_category.get(cat_name, 0) + 1
 
             # Hard invariant check: Every accepted claim in graph must strictly have valid citations and verbatim quotes
+            case_gf = 0
             for c in graph.claims:
                 if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE):
                     if not c.evidence_refs or not c.supporting_quotes:
-                        grounding_failures += 1
+                        case_gf += 1
+            grounding_failures += case_gf
 
             opp_match_label = "[bold green]PASS[/bold green]" if is_opp_match else "[bold red]MISMATCH[/bold red]"
-            gf_label = "[bold green]0[/bold green]" if grounding_failures == 0 else f"[bold red]{grounding_failures}[/bold red]"
+            gf_label = "[bold green]0[/bold green]" if case_gf == 0 else f"[bold red]{case_gf}[/bold red]"
+            exec_status = "[green]SUCCESS[/green]"
+
+            case_details[case.case_id] = {
+                "category": case.category,
+                "company": case.company,
+                "expected_opp": case.expected_opportunity_type.value,
+                "actual_opp": actual_opp.value,
+                "is_match": is_opp_match,
+                "exec_status": "SUCCESS",
+                "accepted_claims": accepted_count,
+                "rejected_claims": rejected_count,
+                "grounding_failures": case_gf,
+                "latency_s": duration_s,
+                "tokens": tokens,
+            }
 
             case_table.add_row(
                 case.category,
@@ -596,6 +621,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 case.expected_opportunity_type.value,
                 actual_opp.value,
                 opp_match_label,
+                exec_status,
                 str(accepted_count),
                 str(rejected_count),
                 gf_label,
@@ -604,6 +630,26 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             )
         except Exception as e:
             duration_s = time.perf_counter() - start_time
+            err_type = "PROVIDER_ERROR" if "API" in type(e).__name__ or "Http" in type(e).__name__ or "timeout" in str(e).lower() else "VALIDATION_ERROR"
+            if err_type == "PROVIDER_ERROR":
+                provider_errors += 1
+            else:
+                validation_errors += 1
+
+            case_details[case.case_id] = {
+                "category": case.category,
+                "company": case.company,
+                "expected_opp": case.expected_opportunity_type.value,
+                "actual_opp": "ERROR",
+                "is_match": False,
+                "exec_status": err_type,
+                "accepted_claims": 0,
+                "rejected_claims": 0,
+                "grounding_failures": 0,
+                "latency_s": duration_s,
+                "tokens": 0,
+            }
+
             case_table.add_row(
                 case.category,
                 case.case_id,
@@ -611,9 +657,10 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 case.expected_opportunity_type.value,
                 "ERROR",
                 "[bold red]ERROR[/bold red]",
+                f"[bold red]{err_type}[/bold red]",
                 "0",
                 "0",
-                "[bold red]1[/bold red]",
+                "-",
                 f"{duration_s:.2f}s",
                 "-",
             )
@@ -621,7 +668,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     console.print(case_table)
 
     # 2. Executive Benchmark Quality Scorecard
-    scorecard = Table(title=f"Benchmark Quality Scorecard ({provider_label})", expand=True)
+    scorecard = Table(title=f"Benchmark Quality Scorecard ({provider_label} - {model_name})", expand=True)
     scorecard.add_column("Metric Dimension", style="cyan")
     scorecard.add_column("Result Value", style="bold")
     scorecard.add_column("Target / Invariant", style="green")
@@ -629,17 +676,24 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     opp_accuracy_pct = (opp_matches / total_cases) * 100.0
     false_conf_pct = (false_confirmed / total_cases) * 100.0
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
+    acceptance_rate_pct = (total_accepted_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
 
-    scorecard.add_row("Total Evaluation Cases", str(total_cases), f"{total_cases} Cases")
+    scorecard.add_row("Model & Timestamp", f"{model_name} @ {run_timestamp}", "Deterministic Model ID")
+    scorecard.add_row("Total Evaluation Cases", f"{total_cases} Cases ({total_cases - provider_errors - validation_errors} SUCCESS, {provider_errors} PROVIDER_ERR, {validation_errors} VAL_ERR)", f"{total_cases} Cases")
     scorecard.add_row("Safety: False CONFIRMED Rate (Critical False Positives)", f"{false_conf_pct:.1f}% ({false_confirmed}/{total_cases})", "0.0% (Safety Invariant)")
     scorecard.add_row("Recall: Missed CONFIRMED Openings", f"{missed_confirmed}/{expected_confirmed_cases} missed", "0 missed (High Recall)")
     scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0%")
     scorecard.add_row("Grounding: Ungrounded Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
+    scorecard.add_row("Grounding: Accepted Claim Rate (Diagnostic)", f"{total_accepted_claims}/{total_candidates} ({acceptance_rate_pct:.1f}%)", "Diagnostic Yield")
     scorecard.add_row("Grounding: Hallucination Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
     scorecard.add_row("Usefulness: Total Grounded Claims Accepted", str(total_accepted_claims), "High useful yield")
     
-    cat_summary = ", ".join(f"{k}: {v}" for k, v in sorted(claims_by_category.items())) if claims_by_category else "None"
-    scorecard.add_row("Usefulness: Claims by Category", cat_summary, "Balanced distribution")
+    # Format categories according to ClaimCategory domain enum
+    cat_order = ["OVERVIEW", "PRODUCT", "HIRING", "TECH_STACK", "CUSTOMER", "TRACTION", "MISSION", "CONTACT"]
+    cat_summary = ", ".join(f"{k}: {claims_by_category.get(k, 0)}" for k in cat_order if claims_by_category.get(k, 0) > 0)
+    if not cat_summary:
+        cat_summary = "None"
+    scorecard.add_row("Usefulness: Claims by Category", cat_summary, "Balanced distribution across domain taxonomy")
     scorecard.add_row("Performance: Average Case Latency", f"{(total_latency_s / total_cases):.2f}s", "< 4.0s")
     scorecard.add_row("Performance: Total Token Consumption", str(total_tokens_consumed), "-")
 
@@ -648,6 +702,8 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
 
     return {
         "provider": provider_label,
+        "model": model_name,
+        "run_timestamp": run_timestamp,
         "total_cases": total_cases,
         "accuracy_pct": opp_accuracy_pct,
         "false_confirmed_rate": false_conf_pct,
@@ -655,10 +711,11 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "grounding_failures": grounding_failures,
         "total_claims": total_accepted_claims,
         "rejected_claims": total_rejected_claims,
+        "acceptance_rate_pct": acceptance_rate_pct,
         "claims_by_category": claims_by_category,
         "avg_latency_s": total_latency_s / total_cases,
         "total_tokens": total_tokens_consumed,
-        "case_details": case_details if 'case_details' in locals() else {},
+        "case_details": case_details,
     }
 
 
@@ -666,10 +723,11 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
     if len(results) < 2:
         return
 
+    # 1. Executive Summary Table
     comp_table = Table(title="Cross-Provider Comparative Benchmark Matrix", expand=True, show_lines=True)
     comp_table.add_column("Evaluation Dimension", style="cyan", width=28)
     for r in results:
-        comp_table.add_column(r["provider"], style="bold", justify="right")
+        comp_table.add_column(f"{r['provider']}\n[dim]({r['model']})[/dim]", style="bold", justify="right")
 
     comp_table.add_row(
         "Opportunity Verdict Accuracy",
@@ -696,6 +754,10 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
         *[str(r["rejected_claims"]) for r in results]
     )
     comp_table.add_row(
+        "Accepted Claim Rate (Diagnostic)",
+        *[f"{r['acceptance_rate_pct']:.1f}%" for r in results]
+    )
+    comp_table.add_row(
         "Average Case Latency",
         *[f"{r['avg_latency_s']:.2f}s" for r in results]
     )
@@ -706,6 +768,34 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
 
     console.print("\n")
     console.print(comp_table)
+
+    # 2. Side-by-Side Per-Case Diff Table
+    diff_table = Table(title="Per-Case Model Comparison (Gemini vs Mistral)", expand=True, show_lines=True)
+    diff_table.add_column("Case ID", style="cyan", width=20)
+    diff_table.add_column("Expected Opp", style="bold", width=12)
+    for r in results:
+        diff_table.add_column(f"{r['provider']}\nOpp / Acc / Rej", justify="center")
+
+    all_case_ids = [c.case_id for c in EVALUATION_DATASET]
+    for cid in all_case_ids:
+        exp_opp = results[0]["case_details"].get(cid, {}).get("expected_opp", "-")
+        prov_cols = []
+        for r in results:
+            cd = r["case_details"].get(cid, {})
+            actual_opp = cd.get("actual_opp", "-")
+            acc = cd.get("accepted_claims", 0)
+            rej = cd.get("rejected_claims", 0)
+            status = cd.get("exec_status", "SUCCESS")
+            if status != "SUCCESS":
+                prov_cols.append(f"[bold red]{status}[/bold red]")
+            else:
+                match_color = "green" if cd.get("is_match") else "red"
+                prov_cols.append(f"[{match_color}]{actual_opp}[/{match_color}] | [green]{acc}[/green] / [red]{rej}[/red]")
+
+        diff_table.add_row(cid, exp_opp, *prov_cols)
+
+    console.print("\n")
+    console.print(diff_table)
 
 
 def main():
@@ -720,12 +810,12 @@ def main():
     results = []
     if gemini_key:
         synth = GeminiLLMSynthesizer(api_key=gemini_key, model="gemini-3.5-flash-lite")
-        res = run_benchmark_evaluation(synth, "Google Gemini 3.5 Flash-Lite")
+        res = run_benchmark_evaluation(synth, "Google Gemini")
         results.append(res)
 
     if mistral_key:
         synth = MistralLLMSynthesizer(api_key=mistral_key, model="mistral-small-latest")
-        res = run_benchmark_evaluation(synth, "Mistral Small")
+        res = run_benchmark_evaluation(synth, "Mistral AI")
         results.append(res)
 
     if len(results) >= 2:
