@@ -79,7 +79,7 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
         model: str = "gemini-3.5-flash-lite",
         fallback_models: Optional[List[str]] = None,
         timeout: float = 30.0,
-        max_retries: int = 5,
+        max_retries: int = 8,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
@@ -162,7 +162,7 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
 
                     # Transient errors: 429 Rate Limit or 503 High Demand
                     if response.status_code in (429, 503):
-                        wait_time = 2.0 * (1.5 ** (attempt - 1))
+                        wait_time = min(15.0, 2.0 * (1.5 ** (attempt - 1)))
                         logger.warning(
                             "Gemini model %s returned status %d on attempt %d/%d. Retrying in %.1fs...",
                             model_name, response.status_code, attempt, self.max_retries, wait_time
