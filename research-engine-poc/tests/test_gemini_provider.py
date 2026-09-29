@@ -76,6 +76,34 @@ def test_gemini_synthesizer_extract_and_synthesize_mocked():
         summary = synth.synthesize_summary(identity, claims)
         assert summary == "Linear builds software tools."
 
+def test_gemini_synthesizer_call_populates_metadata():
+    synth = GeminiLLMSynthesizer(api_key="test_key")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [
+            {"content": {"parts": [{"text": '{"claims": [], "unknowns": []}'}]}}
+        ],
+        "usageMetadata": {
+            "promptTokenCount": 120,
+            "candidatesTokenCount": 35,
+            "totalTokenCount": 155,
+        }
+    }
+
+    with patch("httpx.Client.post", return_value=mock_resp):
+        res = synth._call_gemini(
+            prompt="test",
+            system_instruction="sys",
+            stage="EXTRACTION",
+        )
+        assert res == '{"claims": [], "unknowns": []}'
+        assert synth.last_metadata is not None
+        assert synth.last_metadata.provider == "google"
+        assert synth.last_metadata.prompt_tokens == 120
+        assert synth.last_metadata.candidate_tokens == 35
+        assert synth.last_metadata.total_tokens == 155
+
 @pytest.mark.skipif(
     not os.environ.get("GEMINI_API_KEY"),
     reason="Requires live GEMINI_API_KEY to execute integration test against Gemini API."

@@ -8,7 +8,7 @@ import httpx
 from core.models import CompanyIdentity
 from core.evidence import EvidenceSpan, Claim
 from synthesis.base import ILLMSynthesizer
-from synthesis.models import LLMResearchExtraction, LLMClaimCandidate
+from synthesis.models import LLMResearchExtraction, LLMClaimCandidate, LLMRunMetadata
 from synthesis.prompt import LLMPromptBuilder
 
 logger = logging.getLogger(__name__)
