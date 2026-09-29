@@ -241,7 +241,7 @@ class IdentityResolver:
             # No PRIMARY found — report best candidate's relationship for diagnostics.
             top        = recorded_candidates[0]
             rel_str    = top.relationship.value if top.relationship else "UNKNOWN"
-            confidence = IdentityConfidence.AMBIGUOUS
+            confidence = IdentityConfidence.UNRESOLVED
             reasoning  = (
                 f"No PRIMARY candidates found in top {VERIFY_TOP_N}. "
                 f"Best candidate '{top.domain}' classified as {rel_str}. "

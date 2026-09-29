@@ -101,7 +101,9 @@ def test_homepage_only_never_confident():
                                       title="Widgetco",
                                       content="Welcome.")},
     )
-    assert r.resolve("Widgetco").confidence != IdentityConfidence.CONFIDENT
+    res = r.resolve("Widgetco")
+    assert res.confidence == IdentityConfidence.UNRESOLVED
+    assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_blog_cannot_corroborate():
     _, r = _make(
@@ -116,7 +118,9 @@ def test_blog_cannot_corroborate():
                 title="Blog", content="Widgetco launched.", ptype=PageType.BLOG),
         },
     )
-    assert r.resolve("Widgetco").confidence != IdentityConfidence.CONFIDENT
+    res = r.resolve("Widgetco")
+    assert res.confidence == IdentityConfidence.UNRESOLVED
+    assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_careers_only_insufficient():
     _, r = _make(
@@ -132,7 +136,9 @@ def test_careers_only_insufficient():
             "https://widgetco.com/about": _fail("https://widgetco.com/about"),
         },
     )
-    assert r.resolve("Widgetco").confidence != IdentityConfidence.CONFIDENT
+    res = r.resolve("Widgetco")
+    assert res.confidence == IdentityConfidence.UNRESOLVED
+    assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_two_primary_candidates_is_ambiguous():
     _, r = _make(
