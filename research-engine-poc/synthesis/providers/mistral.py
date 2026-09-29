@@ -65,6 +65,7 @@ class MistralLLMSynthesizer(ILLMSynthesizer):
         stage: str,
         json_mode: bool = True,
         temperature: float = 0.1,
+        max_tokens: int = 4096,
     ) -> str:
         """Invokes Mistral/OpenRouter chat completions API with telemetry and error handling."""
         headers = {
@@ -82,6 +83,7 @@ class MistralLLMSynthesizer(ILLMSynthesizer):
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
+            "max_tokens": max_tokens,
         }
         if json_mode:
             payload["response_format"] = {"type": "json_object"}

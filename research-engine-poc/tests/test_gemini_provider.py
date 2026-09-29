@@ -105,8 +105,8 @@ def test_gemini_synthesizer_call_populates_metadata():
         assert synth.last_metadata.total_tokens == 155
 
 @pytest.mark.skipif(
-    not os.environ.get("GEMINI_API_KEY"),
-    reason="Requires live GEMINI_API_KEY to execute integration test against Gemini API."
+    os.environ.get("RUN_LIVE_LLM_TESTS") != "1" or not os.environ.get("GEMINI_API_KEY"),
+    reason="Requires RUN_LIVE_LLM_TESTS=1 and GEMINI_API_KEY to execute integration test against live Gemini API."
 )
 def test_gemini_synthesizer_live_integration():
     api_key = os.environ.get("GEMINI_API_KEY")

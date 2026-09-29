@@ -75,8 +75,8 @@ def test_mistral_synthesizer_extract_and_synthesize_mocked():
         assert summary == "Linear builds software tools."
 
 @pytest.mark.skipif(
-    not os.environ.get("MISTRAL_API_KEY"),
-    reason="Requires live MISTRAL_API_KEY to execute integration test against Mistral API."
+    os.environ.get("RUN_LIVE_LLM_TESTS") != "1" or not os.environ.get("MISTRAL_API_KEY"),
+    reason="Requires RUN_LIVE_LLM_TESTS=1 and MISTRAL_API_KEY to execute integration test against live Mistral API."
 )
 def test_mistral_synthesizer_live_integration():
     api_key = os.environ.get("MISTRAL_API_KEY")
