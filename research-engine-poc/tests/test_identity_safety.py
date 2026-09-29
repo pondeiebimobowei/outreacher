@@ -558,3 +558,112 @@ def test_non_primary_candidate_never_produces_confident():
             f"Non-PRIMARY candidate '{chosen.domain}' (rel={chosen.relationship}) "
             f"must not produce CONFIDENT, but got {result.confidence.name}."
         )
+        assert result.confidence == IdentityConfidence.UNRESOLVED, (
+            f"Expected UNRESOLVED for non-PRIMARY candidate, got {result.confidence.name}."
+        )
+
+
+# ── 22. State machine matrix: UNRESOLVED vs AMBIGUOUS failure branches ───────
+
+def test_zero_primary_related_candidate_is_unresolved():
+    """0 PRIMARY + RELATED candidate (e.g. product page v0.app for Vercel) -> UNRESOLVED."""
+    v0_hp = _doc(
+        "https://v0.app",
+        title="v0 - Generative UI by Vercel",
+        content="v0 is a generative UI tool. v0 is a product of Vercel.",
+    )
+    v0_about = _doc(
+        "https://v0.app/about",
+        title="About v0",
+        content="v0 is built by Vercel. A product of Vercel.",
+        ptype=PageType.ABOUT,
+    )
+    s = _Search([SearchResult(title="v0 by Vercel", url="https://v0.app", snippet="")])
+    c = _Crawler({"https://v0.app": v0_hp, "https://v0.app/about": v0_about})
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Vercel")
+
+    assert result.confidence == IdentityConfidence.UNRESOLVED
+    assert result.confidence != IdentityConfidence.AMBIGUOUS
+    assert result.confidence != IdentityConfidence.CONFIDENT
+    assert result.domain == "v0.app"
+
+
+def test_zero_primary_legacy_candidate_is_unresolved():
+    """0 PRIMARY + LEGACY candidate (e.g. acquired domain atm.monnify.com for Moniepoint) -> UNRESOLVED."""
+    hp = _doc(
+        "https://atm.monnify.com",
+        title="Moniepoint – ATM Services",
+        content="Moniepoint is a financial services platform.",
+    )
+    about = _doc(
+        "https://atm.monnify.com/about",
+        title="About Moniepoint – ATM Services",
+        content="Moniepoint ATM services helps you bank on the go.",
+        ptype=PageType.ABOUT,
+    )
+    s = _Search([SearchResult(title="Moniepoint – ATM Services", url="https://atm.monnify.com", snippet="")])
+    c = _Crawler({"https://atm.monnify.com": hp, "https://atm.monnify.com/about": about})
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Moniepoint")
+
+    assert result.confidence == IdentityConfidence.UNRESOLVED
+    assert result.confidence != IdentityConfidence.AMBIGUOUS
+    assert result.confidence != IdentityConfidence.CONFIDENT
+    assert result.domain == "atm.monnify.com"
+
+
+def test_zero_primary_unknown_candidate_is_unresolved():
+    """0 PRIMARY + UNKNOWN candidate (uncorroborated homepage only) -> UNRESOLVED."""
+    hp = _doc("https://moove.io", title="Moove", content="Moove is mobility fintech.")
+    s = _Search([SearchResult(title="Moove", url="https://moove.io", snippet="")])
+    c = _Crawler({"https://moove.io": hp, "https://moove.io/about": _fail("https://moove.io/about")})
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Moove")
+
+    assert result.confidence == IdentityConfidence.UNRESOLVED
+    assert result.confidence != IdentityConfidence.AMBIGUOUS
+    assert result.confidence != IdentityConfidence.CONFIDENT
+    assert result.domain == "moove.io"
+
+
+def test_two_primary_candidates_strictly_ambiguous():
+    """2 verified PRIMARY candidates -> strictly AMBIGUOUS (not UNRESOLVED)."""
+    s = _Search([
+        SearchResult(title="Stripe", url="https://stripe.com", snippet=""),
+        SearchResult(title="Stripe", url="https://stripedev.io", snippet=""),
+    ])
+    c = _Crawler({
+        "https://stripe.com": _doc("https://stripe.com", title="Stripe", content="Stripe is payments."),
+        "https://stripe.com/about": _doc("https://stripe.com/about", title="About Stripe", content="About Stripe.", ptype=PageType.ABOUT),
+        "https://stripedev.io": _doc("https://stripedev.io", title="Stripe", content="Stripe is dev platform."),
+        "https://stripedev.io/about": _doc("https://stripedev.io/about", title="About Stripe", content="About Stripe.", ptype=PageType.ABOUT),
+    })
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Stripe")
+
+    assert result.confidence == IdentityConfidence.AMBIGUOUS
+    assert result.confidence != IdentityConfidence.UNRESOLVED
+    assert result.confidence != IdentityConfidence.CONFIDENT
+
+
+def test_single_primary_shape_risk_strictly_ambiguous():
+    """1 verified PRIMARY candidate with generic shape risk name -> strictly AMBIGUOUS (not UNRESOLVED)."""
+    s = _Search([SearchResult(title="Acme Corp", url="https://acme.com", snippet="")])
+    c = _Crawler({
+        "https://acme.com": _doc("https://acme.com", title="Acme Corp", content="Acme Corp is a widget maker."),
+        "https://acme.com/about": _doc("https://acme.com/about", title="About Acme Corp", content="About Acme Corp.", ptype=PageType.ABOUT),
+    })
+    v = WebsiteVerifier(c, s)
+    r = IdentityResolver(s, v)
+    result = r.resolve("Acme Corp")
+
+    assert result.confidence == IdentityConfidence.AMBIGUOUS
+    assert result.confidence != IdentityConfidence.UNRESOLVED
+    assert result.confidence != IdentityConfidence.CONFIDENT
+    assert "shape-risk" in result.reasoning
+

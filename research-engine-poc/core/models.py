@@ -11,8 +11,11 @@ class SearchResult(BaseModel):
     snippet: str
 
 class IdentityConfidence(str, Enum):
+    # Unambiguous single match with verified primary relationship and distinctive name.
     CONFIDENT = "CONFIDENT"
+    # Multiple competing primary candidates or single candidate with high shape-risk.
     AMBIGUOUS = "AMBIGUOUS"
+    # Identity could not be established with available evidence (0 primary candidates).
     UNRESOLVED = "UNRESOLVED"
 
 class SiteRelationship(str, Enum):
