@@ -131,6 +131,8 @@ class CrawledDocument(BaseModel):
     quality: DocumentQuality = DocumentQuality.SUSPECT
     error: Optional[str] = None
     fetch_strategy: str = "STATIC"
+    source_query: Optional[str] = None
+    search_rank: Optional[int] = None
     attempts: List[CrawlAttempt] = Field(default_factory=list)
 
 class RawResearchPackage(BaseModel):

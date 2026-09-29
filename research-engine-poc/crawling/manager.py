@@ -17,7 +17,18 @@ class CrawlManager:
         
         static_attempt = CrawlAttempt(strategy="STATIC", quality=quality, error=doc.error)
         
-        if quality in [DocumentQuality.BLOCKED, DocumentQuality.EXTRACTION_FAILED, DocumentQuality.FETCH_FAILED, DocumentQuality.HTTP_ERROR, DocumentQuality.TOO_SHORT]:
+        # Permanent 404 / 410 client errors will not resolve with a browser; skip expensive fallback.
+        if doc.status_code in [404, 410]:
+            doc.attempts = [static_attempt]
+            return doc
+        
+        # Trigger browser fallback on client-rendered pages, WAF blocks, or network timeouts
+        if quality in [
+            DocumentQuality.BLOCKED,
+            DocumentQuality.EXTRACTION_FAILED,
+            DocumentQuality.FETCH_FAILED,
+            DocumentQuality.TOO_SHORT,
+        ]:
             console.print(f"    [yellow]![/yellow] Static crawl yielded {quality.name}. Falling back to Browser...")
             fallback_doc = self.browser_crawler.fetch(url, page_type)
             fallback_quality = DocumentQualityEvaluator.evaluate(fallback_doc)

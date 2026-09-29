@@ -3,106 +3,113 @@ import os
 import time
 from rich.console import Console
 from rich.table import Table
+
 from search.duckduckgo import DuckDuckGoSearchProvider
 from search.serper import SerperSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
-from pipeline.discovery import URLClassifier, DomainScopeFilter
-from pipeline.acquisition import canonicalize_url
-from search.sanitizer import SearchResultSanitizer
-from core.models import DocumentQuality, PageType
+from identity.verifier import WebsiteVerifier
+from identity.resolver import IdentityResolver
+from pipeline.acquisition import AcquisitionRunner
+from core.models import DocumentQuality, IdentityConfidence, IdentityContext
 
 console = Console()
 
 ACQUISITION_CASES = [
-    {"domain": "linear.app"},
-    {"domain": "stripe.com"},
-    {"domain": "vercel.com"}
+    {
+        "company": "Linear",
+        "context": IdentityContext(
+            industry="software",
+            description="product development software",
+            company_type="software_product",
+        ),
+    },
+    {"company": "Stripe"},
+    {"company": "Vercel"},
+    {"company": "Moniepoint"},
 ]
 
-def run_benchmark(provider_name: str):
-    console.print(f"\n[bold green]Running Acquisition Benchmark with {provider_name} Search[/bold green]\n")
+def run_benchmark(provider_name: str, verbose: bool = False):
+    console.print(f"\n[bold green]Acquisition Pipeline Benchmark — {provider_name}[/bold green]\n")
     
     if provider_name == "Serper":
-        search_provider = SerperSearchProvider()
+        identity_search = SerperSearchProvider()
+        discovery_search = SerperSearchProvider()
     else:
-        search_provider = DuckDuckGoSearchProvider()
+        identity_search = DuckDuckGoSearchProvider()
+        discovery_search = DuckDuckGoSearchProvider()
         
     static_crawler = TrafilaturaCrawlerProvider()
     browser_crawler = PlaywrightCrawlerProvider()
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
     
-    table = Table(title=f"Acquisition Results ({provider_name})")
-    table.add_column("Domain", style="cyan")
-    table.add_column("Discovered", justify="right", style="magenta")
-    table.add_column("Valid Docs", justify="right", style="green")
-    table.add_column("Fallbacks", justify="right", style="yellow")
-    table.add_column("Failed Docs", justify="right", style="red")
-    table.add_column("Latency", justify="right")
+    verifier = WebsiteVerifier(crawl_manager, discovery_search)
+    resolver = IdentityResolver(identity_search, verifier)
+    runner = AcquisitionRunner(resolver, discovery_search, crawl_manager, max_crawl_budget=6)
+    
+    summary_table = Table(title=f"Acquisition Summary ({provider_name})", expand=True)
+    summary_table.add_column("Company", style="cyan", no_wrap=True)
+    summary_table.add_column("Domain", style="magenta")
+    summary_table.add_column("Total Docs", justify="right", style="blue")
+    summary_table.add_column("Valid", justify="right", style="green")
+    summary_table.add_column("Too Short", justify="right", style="yellow")
+    summary_table.add_column("Blocked/Error", justify="right", style="red")
+    summary_table.add_column("Fallbacks", justify="right", style="yellow")
+    summary_table.add_column("Latency", justify="right")
     
     for case in ACQUISITION_CASES:
-        domain = case["domain"]
+        company = case["company"]
+        context = case.get("context")
         start_time = time.time()
         
         try:
-            # Step 1: Mock discovery
-            queries = [
-                (f'site:{domain} "about" OR "company" OR "mission"', 2),
-                (f'site:{domain} "careers" OR "jobs"', 3),
-                (f'site:{domain} "product" OR "solutions"', 2)
-            ]
-            raw_discovered = [f"https://{domain}"]
-            for query, num in queries:
-                try:
-                    raw_results = search_provider.search(query, num_results=num)
-                    clean_results = SearchResultSanitizer.sanitize(raw_results)
-                    raw_discovered.extend([r.url for r in clean_results])
-                except:
-                    pass
-                    
-            discovered_urls = []
-            seen = set()
-            for raw in raw_discovered:
-                canonical = canonicalize_url(raw)
-                if canonical not in seen:
-                    seen.add(canonical)
-                    discovered_urls.append(canonical)
-                    
-            classified_urls = []
-            for url in discovered_urls:
-                if DomainScopeFilter.is_allowed(url, domain):
-                    classified_urls.append((URLClassifier.classify(url), url))
-                    
-            # Step 2: Crawl
-            valid_docs = 0
-            fallbacks = 0
-            failed_docs = 0
-            
-            for ptype, url in classified_urls:
-                doc = crawl_manager.fetch_with_fallback(url, page_type=ptype)
-                if doc.quality == DocumentQuality.VALID:
-                    valid_docs += 1
-                else:
-                    failed_docs += 1
-                    
-                if doc.fetch_strategy == "BROWSER":
-                    fallbacks += 1
-                    
+            package = runner.run(company, context=context)
             latency = f"{time.time() - start_time:.1f}s"
             
-            table.add_row(
-                domain,
-                str(len(classified_urls)),
-                str(valid_docs),
-                str(fallbacks),
-                str(failed_docs),
-                latency
-            )
-        except Exception as e:
-            table.add_row(domain, "ERROR", str(e), "", "", f"{time.time() - start_time:.1f}s")
+            docs = package.documents
+            valid_count = sum(1 for d in docs if d.quality == DocumentQuality.VALID)
+            short_count = sum(1 for d in docs if d.quality == DocumentQuality.TOO_SHORT)
+            err_count = sum(1 for d in docs if d.quality in [DocumentQuality.BLOCKED, DocumentQuality.HTTP_ERROR, DocumentQuality.FETCH_FAILED, DocumentQuality.EXTRACTION_FAILED])
+            fallback_count = sum(1 for d in docs if d.fetch_strategy == "BROWSER")
             
-    console.print(table)
+            summary_table.add_row(
+                company,
+                package.identity.domain or "N/A",
+                str(len(docs)),
+                str(valid_count),
+                str(short_count),
+                str(err_count),
+                str(fallback_count),
+                latency,
+            )
+            
+            if verbose and docs:
+                detail_table = Table(title=f"Documents for {company} ({package.identity.domain})", expand=True)
+                detail_table.add_column("PageType", style="cyan")
+                detail_table.add_column("Quality", style="green")
+                detail_table.add_column("Strategy", style="dim")
+                detail_table.add_column("Words", justify="right")
+                detail_table.add_column("URL", style="dim", ratio=2)
+                
+                for d in docs:
+                    q_col = "green" if d.quality == DocumentQuality.VALID else "yellow" if d.quality == DocumentQuality.TOO_SHORT else "red"
+                    detail_table.add_row(
+                        d.page_type.value,
+                        f"[{q_col}]{d.quality.value}[/{q_col}]",
+                        d.fetch_strategy,
+                        str(d.word_count),
+                        d.url[:70],
+                    )
+                console.print(detail_table)
+                console.print()
+                
+        except Exception as e:
+            summary_table.add_row(company, "ERROR", "0", "0", "0", "1", "0", f"{time.time() - start_time:.1f}s")
+            console.print(f"[red]Error processing {company}: {e}[/red]")
+            
+    console.print(summary_table)
+
 
 def main():
     if "--serper" in sys.argv and not os.environ.get("SERPER_API_KEY"):
@@ -110,7 +117,9 @@ def main():
         sys.exit(1)
         
     provider = "Serper" if "--serper" in sys.argv else "DuckDuckGo"
-    run_benchmark(provider)
+    verbose = "--verbose" in sys.argv
+    run_benchmark(provider, verbose=verbose)
+
 
 if __name__ == "__main__":
     main()
