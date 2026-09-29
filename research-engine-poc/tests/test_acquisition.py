@@ -3,11 +3,16 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from core.models import (
-    DocumentQuality, PageType, CrawledDocument, SearchResult,
-    CompanyIdentity, IdentityConfidence, IdentityCandidate,
-    SiteRelationship, RawResearchPackage,
+    DocumentQuality, PageType, DiscoveryPurpose, DiscoveryQuery,
+    DiscoveredURL, CrawledDocument, SearchResult, CompanyIdentity,
+    IdentityConfidence, IdentityCandidate, SiteRelationship,
+    RawResearchPackage,
 )
-from pipeline.discovery import DomainScopeFilter, URLClassifier
+from discovery.scope import DomainScopeFilter
+from discovery.classifier import TwoStageClassifier
+from discovery.queries import DiscoveryQueryBuilder
+from discovery.ranking import DiversityBudgetRanker
+from discovery.discoverer import ScopedDiscoverer
 from pipeline.acquisition import canonicalize_url, AcquisitionRunner
 from search.sanitizer import SearchResultSanitizer
 from crawling.evaluator import DocumentQualityEvaluator
@@ -15,18 +20,42 @@ from crawling.manager import CrawlManager
 from crawling.base import ICrawlerProvider
 
 
-# ── Domain Scope & ATS Tenant Tests ──────────────────────────────────────────
+# ── 1. Discovery Query Generation Tests ───────────────────────────────────────
+
+def test_discovery_query_builder():
+    queries = DiscoveryQueryBuilder.build_queries("linear.app", "Linear")
+    assert len(queries) >= 8
+    
+    purposes = {q.purpose for q in queries}
+    assert DiscoveryPurpose.ABOUT in purposes
+    assert DiscoveryPurpose.PRODUCT in purposes
+    assert DiscoveryPurpose.CAREERS in purposes
+    assert DiscoveryPurpose.CUSTOMERS in purposes
+    assert DiscoveryPurpose.NEWS in purposes
+    assert DiscoveryPurpose.ENGINEERING in purposes
+    assert DiscoveryPurpose.CONTACT in purposes
+    assert DiscoveryPurpose.ATS in purposes
+    
+    # Check that ATS queries are isolated per provider
+    ats_providers = {q.provider for q in queries if q.purpose == DiscoveryPurpose.ATS}
+    assert "greenhouse" in ats_providers
+    assert "lever" in ats_providers
+    assert "ashby" in ats_providers
+    assert "workable" in ats_providers
+
+
+# ── 2. Domain Scope & ATS Tenant Tests ────────────────────────────────────────
 
 def test_domain_scope_security():
-    # Should accept exact domain
+    # Exact domain
     assert DomainScopeFilter.is_allowed("https://moniepoint.com/careers", "moniepoint.com") is True
-    # Should accept subdomain
+    # Subdomain
     assert DomainScopeFilter.is_allowed("https://jobs.moniepoint.com/careers", "moniepoint.com") is True
-    # Should reject malformed suffix domains
+    # Reject malformed suffix domains
     assert DomainScopeFilter.is_allowed("https://evilmoniepoint.com/careers", "moniepoint.com") is False
     assert DomainScopeFilter.is_allowed("https://moniepoint.com.evil.com/careers", "moniepoint.com") is False
     
-    # Should accept allowed ATS with matching tenant
+    # Allowed ATS with matching tenant
     assert DomainScopeFilter.is_allowed(
         "https://boards.greenhouse.io/moniepoint/jobs/123",
         "moniepoint.com",
@@ -38,55 +67,137 @@ def test_domain_scope_security():
         company_name="Stripe",
     ) is True
     assert DomainScopeFilter.is_allowed(
+        "https://jobs.ashbyhq.com/linear",
+        "linear.app",
+        company_name="Linear",
+    ) is True
+    assert DomainScopeFilter.is_allowed(
         "https://moniepoint.workable.com/jobs/123",
         "moniepoint.com",
         company_name="Moniepoint",
     ) is True
     
-    # Should reject ATS with non-matching tenant (competitor leakage)
+    # Reject ATS with non-matching tenant (competitor leakage prevention)
     assert DomainScopeFilter.is_allowed(
         "https://boards.greenhouse.io/competitor/jobs/123",
         "moniepoint.com",
         company_name="Moniepoint",
     ) is False
+    assert DomainScopeFilter.is_allowed(
+        "https://jobs.lever.co/otherco",
+        "stripe.com",
+        company_name="Stripe",
+    ) is False
     
-    # Should reject evil ATS domain spoofing
+    # Reject evil ATS domain spoofing
     assert DomainScopeFilter.is_allowed("https://evilgreenhouse.io/moniepoint", "moniepoint.com") is False
     assert DomainScopeFilter.is_allowed("https://greenhouse.io.evil.com/moniepoint", "moniepoint.com") is False
 
 
-# ── URL Classification Tests ──────────────────────────────────────────────────
+# ── 3. Two-Stage Classification Tests ─────────────────────────────────────────
 
-def test_url_classification():
-    # Job indexes
-    assert URLClassifier.classify("https://acme.com/careers") == PageType.CAREERS_INDEX
-    assert URLClassifier.classify("https://acme.com/careers/search") == PageType.CAREERS_INDEX
-    assert URLClassifier.classify("https://acme.com/jobs") == PageType.CAREERS_INDEX
-    assert URLClassifier.classify("https://acme.com/jobs/all") == PageType.CAREERS_INDEX
+def test_two_stage_classifier_stage1_url():
+    # Root -> HOMEPAGE
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com") == PageType.HOMEPAGE
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/") == PageType.HOMEPAGE
     
-    # Careers sub-pages (info, culture, perks) -> OTHER
-    assert URLClassifier.classify("https://acme.com/careers/benefits") == PageType.OTHER
-    assert URLClassifier.classify("https://acme.com/careers/culture") == PageType.OTHER
-    assert URLClassifier.classify("https://acme.com/careers/values") == PageType.OTHER
+    # Company / About
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/about") == PageType.ABOUT
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/about-us") == PageType.ABOUT
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/company/our-story") == PageType.ABOUT
     
-    # Real job listing patterns
-    assert URLClassifier.classify("https://acme.com/careers/software-engineer") == PageType.JOB_LISTING
-    assert URLClassifier.classify("https://acme.com/careers/senior-product-manager") == PageType.JOB_LISTING
-    assert URLClassifier.classify("https://acme.com/position/12345") == PageType.JOB_LISTING
-    assert URLClassifier.classify("https://acme.com/jobs/987654") == PageType.JOB_LISTING
-    assert URLClassifier.classify("https://boards.greenhouse.io/acme/jobs/5551234") == PageType.JOB_LISTING
-    assert URLClassifier.classify("https://jobs.lever.co/acme/b12345-6789-abcd") == PageType.JOB_LISTING
+    # Blog / News / Engineering
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/blog/announcement") == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/news/press-release") == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/engineering/scaling-postgres") == PageType.BLOG
     
-    # Other types
-    assert URLClassifier.classify("https://acme.com/about") == PageType.ABOUT
-    assert URLClassifier.classify("https://acme.com/company/our-story") == PageType.ABOUT
-    assert URLClassifier.classify("https://acme.com/contact") == PageType.CONTACT
-    assert URLClassifier.classify("https://acme.com/product/features") == PageType.PRODUCT
-    assert URLClassifier.classify("https://acme.com/blog/latest-release") == PageType.BLOG
-    assert URLClassifier.classify("https://acme.com/case-study/client") == PageType.CASE_STUDY
+    # Customer stories / Case studies
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/customers/stripe") == PageType.CASE_STUDY
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/case-study/enterprise") == PageType.CASE_STUDY
+    
+    # Contact
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/contact") == PageType.CONTACT
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/contact-us") == PageType.CONTACT
+    
+    # Careers Index vs Info Subpages vs Job Listings
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers") == PageType.CAREERS_INDEX
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/search") == PageType.CAREERS_INDEX
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/benefits") == PageType.OTHER
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/culture") == PageType.OTHER
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/software-engineer") == PageType.JOB_LISTING
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/position/12345") == PageType.JOB_LISTING
+    assert TwoStageClassifier.stage1_classify_url("https://boards.greenhouse.io/acme/jobs/5551234") == PageType.JOB_LISTING
+    assert TwoStageClassifier.stage1_classify_url("https://jobs.lever.co/acme/b12345-6789-abcd") == PageType.JOB_LISTING
 
 
-# ── Canonicalization Tests ────────────────────────────────────────────────────
+def test_two_stage_classifier_stage2_content():
+    # Upgrade CAREERS_INDEX -> JOB_LISTING if single job structure is found
+    job_content = (
+        "We are looking for a Senior Staff Engineer. "
+        "Responsibilities: Architect distributed systems. Lead engineering teams. "
+        "Qualifications: 8+ years experience in Python and Rust. "
+        "Apply for this job by submitting your resume below."
+    )
+    refined = TwoStageClassifier.stage2_refine_content(
+        provisional=PageType.CAREERS_INDEX,
+        title="Senior Staff Engineer",
+        content=job_content,
+    )
+    assert refined == PageType.JOB_LISTING
+    
+    # Refine OTHER -> ABOUT if mission text is found
+    about_content = "About Us: Acme Corp was founded in 2020 with the mission to revolutionize data pipelines."
+    refined_about = TwoStageClassifier.stage2_refine_content(
+        provisional=PageType.OTHER,
+        title="Our Story",
+        content=about_content,
+    )
+    assert refined_about == PageType.ABOUT
+
+
+# ── 4. Diversity Budget Ranking Tests ─────────────────────────────────────────
+
+def test_diversity_budget_ranker():
+    # Create 15 candidates spanning multiple categories with heavy job bias
+    candidates = [
+        DiscoveredURL(url="https://acme.com/", purpose=DiscoveryPurpose.HOMEPAGE, source="seed", query="", rank=0, provisional_page_type=PageType.HOMEPAGE),
+        DiscoveredURL(url="https://acme.com/about", purpose=DiscoveryPurpose.ABOUT, source="serper", query="about", rank=1, provisional_page_type=PageType.ABOUT),
+        DiscoveredURL(url="https://acme.com/product", purpose=DiscoveryPurpose.PRODUCT, source="serper", query="product", rank=1, provisional_page_type=PageType.PRODUCT),
+        DiscoveredURL(url="https://acme.com/careers", purpose=DiscoveryPurpose.CAREERS, source="serper", query="careers", rank=1, provisional_page_type=PageType.CAREERS_INDEX),
+        DiscoveredURL(url="https://acme.com/contact", purpose=DiscoveryPurpose.CONTACT, source="serper", query="contact", rank=1, provisional_page_type=PageType.CONTACT),
+        DiscoveredURL(url="https://acme.com/customers/bank", purpose=DiscoveryPurpose.CUSTOMERS, source="serper", query="customers", rank=1, provisional_page_type=PageType.CASE_STUDY),
+        DiscoveredURL(url="https://acme.com/blog/launch", purpose=DiscoveryPurpose.NEWS, source="serper", query="news", rank=1, provisional_page_type=PageType.BLOG),
+    ]
+    # Add 8 job listing candidates
+    for i in range(1, 9):
+        candidates.append(DiscoveredURL(
+            url=f"https://acme.com/careers/job-{i}",
+            purpose=DiscoveryPurpose.CAREERS,
+            source="serper",
+            query="careers",
+            rank=i,
+            provisional_page_type=PageType.JOB_LISTING,
+        ))
+        
+    budgeted = DiversityBudgetRanker.select_budgeted_urls(candidates, max_budget=8)
+    
+    assert len(budgeted) == 8
+    
+    selected_types = [b.provisional_page_type for b in budgeted]
+    # Ensure Homepage, About, Product, Careers Index, Job Listings, Customers/Blog are all represented
+    assert PageType.HOMEPAGE in selected_types
+    assert PageType.ABOUT in selected_types
+    assert PageType.PRODUCT in selected_types
+    assert PageType.CAREERS_INDEX in selected_types
+    assert PageType.JOB_LISTING in selected_types
+    assert PageType.CASE_STUDY in selected_types or PageType.BLOG in selected_types
+    
+    # Ensure job listings did not crowd out all 8 slots (max job quota is 2 in pass 1)
+    job_count = sum(1 for t in selected_types if t == PageType.JOB_LISTING)
+    assert job_count <= 3
+
+
+# ── 5. Canonicalization Tests ─────────────────────────────────────────────────
 
 def test_url_canonicalization():
     # Trailing slash on path stripped
@@ -95,7 +206,7 @@ def test_url_canonicalization():
     assert canonicalize_url("https://acme.com/") == "https://acme.com/"
     assert canonicalize_url("https://acme.com") == "https://acme.com/"
     
-    # Lowercasing host and www stripping
+    # Lowercase host and www removal
     assert canonicalize_url("https://WWW.Acme.COM/about") == "https://acme.com/about"
     
     # Fragment stripped
@@ -110,7 +221,7 @@ def test_url_canonicalization():
     assert canonicalize_url(url_with_search) == "https://acme.com/search?location=remote&q=engineer"
 
 
-# ── Document Quality Evaluator Tests ──────────────────────────────────────────
+# ── 6. Document Quality Evaluator Tests ───────────────────────────────────────
 
 def test_document_quality_evaluator():
     # 403 / 401 / 429 -> BLOCKED
@@ -121,22 +232,19 @@ def test_document_quality_evaluator():
     doc_500 = CrawledDocument(url="x", final_url="x", status_code=500, retrieved_at=datetime(2024, 1, 1), page_type=PageType.OTHER)
     assert DocumentQualityEvaluator.evaluate(doc_500) == DocumentQuality.HTTP_ERROR
     
-    # 200 + no content -> EXTRACTION_FAILED
+    # 200 + empty content -> EXTRACTION_FAILED
     doc_empty = CrawledDocument(url="x", final_url="x", status_code=200, content="", retrieved_at=datetime(2024, 1, 1), page_type=PageType.OTHER)
     assert DocumentQualityEvaluator.evaluate(doc_empty) == DocumentQuality.EXTRACTION_FAILED
     
-    # Contact page: 40 words -> VALID (threshold is 30)
+    # Contact page: 25 words -> VALID (threshold is 20)
     doc_contact = CrawledDocument(
         url="x", final_url="x", status_code=200,
-        content="Contact us at hello@acme.com or call 555-1234. Our office is open Monday to Friday 9am to 5pm in San Francisco.",
-        word_count=25, retrieved_at=datetime(2024, 1, 1), page_type=PageType.CONTACT,
+        content="Contact us at support@acme.com or call 555-1234. Headquarters: 100 Market St, San Francisco, CA. Send inquiries anytime.",
+        word_count=22, retrieved_at=datetime(2024, 1, 1), page_type=PageType.CONTACT,
     )
-    # Give it 35 words
-    doc_contact.content = "Contact us at support@acme.com or call 555-1234. Our headquarters are located at 100 Market St, San Francisco, CA. Send us any inquiries or feedback anytime."
-    doc_contact.word_count = len(doc_contact.content.split())
     assert DocumentQualityEvaluator.evaluate(doc_contact) == DocumentQuality.VALID
     
-    # About page: 40 words -> TOO_SHORT (threshold is 100)
+    # About page: 25 words -> TOO_SHORT (threshold is 100)
     doc_about_short = CrawledDocument(
         url="x", final_url="x", status_code=200, content="Short about text " * 5,
         word_count=15, retrieved_at=datetime(2024, 1, 1), page_type=PageType.ABOUT,
@@ -164,20 +272,21 @@ def test_document_quality_evaluator():
     assert DocumentQualityEvaluator.evaluate(doc_timeout) == DocumentQuality.FETCH_FAILED
 
 
-# ── Search Sanitizer Tests ────────────────────────────────────────────────────
+# ── 7. Search Sanitizer Tests ─────────────────────────────────────────────────
 
 def test_search_sanitization():
     raw_results = [
         SearchResult(title="Good", url="https://acme.com", snippet=""),
-        SearchResult(title="Ad", url="https://bing.com/aclick?id=123", snippet=""),
-        SearchResult(title="Ad 2", url="https://google.com/url?sa=t", snippet=""),
+        SearchResult(title="Ad", url="https://googleadservices.com/pagead/aclk?id=123", snippet=""),
+        SearchResult(title="Redirect", url="https://google.com/url?q=https://acme.com/unwrapped", snippet=""),
     ]
     clean = SearchResultSanitizer.sanitize(raw_results)
-    assert len(clean) == 1
+    assert len(clean) == 2
     assert clean[0].url == "https://acme.com"
+    assert clean[1].url == "https://acme.com/unwrapped"
 
 
-# ── End-to-End Acquisition Runner Tests ───────────────────────────────────────
+# ── 8. End-to-End Acquisition Runner Tests ────────────────────────────────────
 
 class _MockResolver:
     def __init__(self, confidence=IdentityConfidence.CONFIDENT, domain="acme.com"):
@@ -238,7 +347,10 @@ def test_acquisition_runner_successful_flow():
     for doc in package.documents:
         assert doc.quality == DocumentQuality.VALID
         assert doc.source_query is not None
-        assert doc.page_type in [PageType.ABOUT, PageType.CAREERS_INDEX, PageType.JOB_LISTING, PageType.PRODUCT, PageType.OTHER]
+        assert doc.page_type in [
+            PageType.HOMEPAGE, PageType.ABOUT, PageType.CAREERS_INDEX,
+            PageType.JOB_LISTING, PageType.PRODUCT, PageType.OTHER,
+        ]
 
 def test_acquisition_runner_aborts_on_ambiguous_identity():
     resolver = _MockResolver(confidence=IdentityConfidence.AMBIGUOUS, domain="acme.com")

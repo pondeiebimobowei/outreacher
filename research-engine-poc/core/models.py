@@ -95,6 +95,7 @@ class IdentityContext(BaseModel):
     company_type: Optional[str] = None  # "software_product", "vc_firm", "bank"
 
 class PageType(str, Enum):
+    HOMEPAGE = "HOMEPAGE"
     CAREERS_INDEX = "CAREERS_INDEX"
     JOB_LISTING = "JOB_LISTING"
     ABOUT = "ABOUT"
@@ -103,6 +104,31 @@ class PageType(str, Enum):
     BLOG = "BLOG"
     CONTACT = "CONTACT"
     OTHER = "OTHER"
+
+class DiscoveryPurpose(str, Enum):
+    HOMEPAGE = "HOMEPAGE"
+    ABOUT = "ABOUT"
+    PRODUCT = "PRODUCT"
+    CAREERS = "CAREERS"
+    CUSTOMERS = "CUSTOMERS"
+    NEWS = "NEWS"
+    ENGINEERING = "ENGINEERING"
+    CONTACT = "CONTACT"
+    ATS = "ATS"
+
+class DiscoveryQuery(BaseModel):
+    purpose: DiscoveryPurpose
+    query: str
+    max_results: int = 2
+    provider: str = "site"
+
+class DiscoveredURL(BaseModel):
+    url: str
+    purpose: DiscoveryPurpose
+    source: str
+    query: str
+    rank: int
+    provisional_page_type: PageType
 
 class DocumentQuality(str, Enum):
     VALID = "VALID"
@@ -128,6 +154,8 @@ class CrawledDocument(BaseModel):
     retrieved_at: datetime
     word_count: int = 0
     page_type: PageType
+    provisional_page_type: Optional[PageType] = None
+    purpose: Optional[DiscoveryPurpose] = None
     quality: DocumentQuality = DocumentQuality.SUSPECT
     error: Optional[str] = None
     fetch_strategy: str = "STATIC"

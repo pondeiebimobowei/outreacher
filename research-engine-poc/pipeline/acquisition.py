@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict
 from datetime import datetime, timezone
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from rich.console import Console
@@ -10,9 +10,10 @@ from core.models import (
 )
 from identity.resolver import IdentityResolver
 from search.base import ISearchProvider
-from search.sanitizer import SearchResultSanitizer
 from crawling.manager import CrawlManager
-from pipeline.discovery import URLClassifier, DomainScopeFilter
+from discovery.discoverer import ScopedDiscoverer
+from discovery.ranking import DiversityBudgetRanker
+from discovery.classifier import TwoStageClassifier
 
 console = Console()
 
@@ -21,18 +22,6 @@ _TRACKING_PARAMS = {
     'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
     'ref', 'ref_src', 'ref_url', 'source', 'srsltid', 'fbclid', 'gclid',
     'gclsrc', 'dclid', 'zanpid', 'msclkid', 'mc_cid', 'mc_eid',
-}
-
-# Priority ordering for crawled documents
-_PAGE_PRIORITY: Dict[PageType, int] = {
-    PageType.ABOUT: 1,
-    PageType.PRODUCT: 2,
-    PageType.CAREERS_INDEX: 3,
-    PageType.JOB_LISTING: 4,
-    PageType.BLOG: 5,
-    PageType.CASE_STUDY: 6,
-    PageType.CONTACT: 7,
-    PageType.OTHER: 8,
 }
 
 
@@ -81,13 +70,11 @@ def canonicalize_url(url: str) -> str:
 
 class AcquisitionRunner:
     """
-    Orchestrates identity resolution and scoped discovery crawling.
-    
-    Workflow:
+    Orchestrates company research acquisition:
       1. Resolves and verifies primary company identity (aborts if not CONFIDENT).
-      2. Executes scoped discovery queries against the primary domain and known ATS platforms.
-      3. Normalizes, deduplicates, filters domain scope, and classifies candidate URLs.
-      4. Fetches priority-ordered pages within the crawl budget and assesses document quality.
+      2. Executes purposeful, structured discovery queries across primary domain and ATS targets.
+      3. Allocates a diversity-aware crawl budget across research categories.
+      4. Fetches priority pages with fallback and executes Stage 2 content classification.
     """
     def __init__(
         self,
@@ -97,7 +84,7 @@ class AcquisitionRunner:
         max_crawl_budget: int = 8,
     ):
         self.resolver = resolver
-        self.discovery_search_provider = discovery_search_provider
+        self.discoverer = ScopedDiscoverer(discovery_search_provider)
         self.crawl_manager = crawl_manager
         self.max_crawl_budget = max_crawl_budget
 
@@ -121,60 +108,45 @@ class AcquisitionRunner:
             )
 
         console.print(f"\n[bold blue]Step 2: Scoped Discovery Phase[/bold blue]")
-        queries = [
-            (f'site:{identity.domain} "about" OR "company" OR "mission" OR "our story"', 2),
-            (f'site:{identity.domain} "careers" OR "jobs" OR "open positions"', 3),
-            (f'site:{identity.domain} "product" OR "solutions" OR "features" OR "platform"', 2),
-            (f'"{company_name}" site:greenhouse.io OR site:lever.co OR site:ashbyhq.com OR site:workable.com', 2),
-        ]
+        all_discovered = self.discoverer.discover(
+            domain=identity.domain,
+            company_name=company_name,
+            homepage_url=identity.website_url,
+        )
+        console.print(f"  Discovered {len(all_discovered)} in-scope URLs across research categories.")
+
+        console.print(f"\n[bold blue]Step 3: Diversity Budget Allocation[/bold blue]")
+        budgeted_items = DiversityBudgetRanker.select_budgeted_urls(
+            all_discovered,
+            max_budget=self.max_crawl_budget,
+        )
         
-        # Track discovery provenance for each URL: {canonical_url: (source_query, rank)}
-        provenance: Dict[str, Tuple[Optional[str], Optional[int]]] = {}
-        
-        # Seed with canonical homepage
-        homepage_canonical = canonicalize_url(identity.website_url)
-        provenance[homepage_canonical] = ("homepage_seed", 0)
-        
-        for query_str, num in queries:
-            try:
-                raw_results = self.discovery_search_provider.search(query_str, num_results=num)
-                clean_results = SearchResultSanitizer.sanitize(raw_results)
-                for rank, res in enumerate(clean_results, start=1):
-                    can_url = canonicalize_url(res.url)
-                    if can_url and can_url not in provenance:
-                        provenance[can_url] = (query_str, rank)
-            except Exception as e:
-                console.print(f"    [!] Search query failed ('{query_str[:40]}...'): {str(e)}")
-            
-        console.print(f"\n[bold blue]Step 3: URL Classification & Scoping[/bold blue]")
-        classified_urls = []
-        for url, (src_query, rank) in provenance.items():
-            if not DomainScopeFilter.is_allowed(url, identity.domain, company_name=company_name):
-                console.print(f"  [red]REJECTED (Out of scope)[/red]: {url}")
-                continue
-                
-            ptype = URLClassifier.classify(url)
-            classified_urls.append((ptype, url, src_query, rank))
-            
-        # Sort by priority order, then by search rank
-        classified_urls.sort(key=lambda x: (_PAGE_PRIORITY.get(x[0], 10), x[3] or 99))
-        
-        # Enforce crawl budget
-        budgeted_urls = classified_urls[:self.max_crawl_budget]
-        
-        for ptype, url, _, _ in budgeted_urls:
-            console.print(f"  [cyan]{ptype.name}[/cyan]: {url}")
+        for item in budgeted_items:
+            console.print(f"  [cyan]{item.provisional_page_type.name}[/cyan] (purpose={item.purpose.name}, rank={item.rank}): {item.url}")
 
         console.print(f"\n[bold blue]Step 4: Fetching, Fallbacks & Quality Evaluation[/bold blue]")
         documents: List[CrawledDocument] = []
-        for ptype, url, src_query, rank in budgeted_urls:
-            console.print(f"  Fetching {url}...")
-            doc = self.crawl_manager.fetch_with_fallback(url, page_type=ptype)
-            doc.source_query = src_query
-            doc.search_rank = rank
+        for item in budgeted_items:
+            console.print(f"  Fetching {item.url}...")
+            doc = self.crawl_manager.fetch_with_fallback(item.url, page_type=item.provisional_page_type)
+            
+            # Stage 2: Refine PageType based on crawled content
+            final_type = TwoStageClassifier.stage2_refine_content(
+                provisional=item.provisional_page_type,
+                title=doc.title,
+                content=doc.content,
+                url=doc.url,
+            )
+            
+            doc.page_type = final_type
+            doc.provisional_page_type = item.provisional_page_type
+            doc.purpose = item.purpose
+            doc.source_query = item.query
+            doc.search_rank = item.rank
             
             color = "green" if doc.quality == DocumentQuality.VALID else "yellow" if doc.quality == DocumentQuality.TOO_SHORT else "red"
-            console.print(f"    [{color}]{doc.quality.name}[/{color}]: {doc.word_count} words (strategy={doc.fetch_strategy})")
+            type_change = f" -> [magenta]{final_type.name}[/magenta]" if final_type != item.provisional_page_type else ""
+            console.print(f"    [{color}]{doc.quality.name}[/{color}]: {doc.word_count} words (strategy={doc.fetch_strategy}){type_change}")
             documents.append(doc)
             
         return RawResearchPackage(
