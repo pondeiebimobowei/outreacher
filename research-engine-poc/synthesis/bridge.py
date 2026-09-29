@@ -1,6 +1,6 @@
 import hashlib
 from typing import List, Set, Optional, Dict, Tuple
-from core.models import RawResearchPackage, PageType, DocumentQuality
+from core.models import RawResearchPackage, PageType, DocumentQuality, IdentityConfidence
 from core.evidence import (
     EvidenceSpan, Claim, ClaimGraph, ClaimCategory, ClaimClassification,
 )
@@ -42,6 +42,10 @@ class LLMClaimGraphBridge:
             
             lowered = t.lower()
             
+            # Reject placeholder tokens like "UNKNOWN", "N/A", "null", "none"
+            if lowered in ("unknown", "n/a", "none", "not available", "null", "undefined", "unspecified", "na"):
+                continue
+
             # Reject conversational / speculative assertions claiming inability to verify a speculative proposition
             # e.g., "I could not verify that Linear has 50,000 customers"
             if any(lowered.startswith(prefix) for prefix in (
@@ -57,6 +61,9 @@ class LLMClaimGraphBridge:
                 lowered = t.lower()
 
             if not t or len(t) < 3:
+                continue
+
+            if lowered in ("unknown", "n/a", "none", "not available", "null", "undefined", "unspecified", "na"):
                 continue
 
             # Reject conversational assertions that contain speculative clauses ("that X does Y", "whether X has Y")
@@ -82,13 +89,24 @@ class LLMClaimGraphBridge:
 
         # 2. Deterministic Span Extraction
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+
+        # GUARD: If company identity is not CONFIDENT or 0 valid evidence spans exist, do not invoke LLM
+        if (package.identity and package.identity.confidence != IdentityConfidence.CONFIDENT) or not spans:
+            empty_graph = ClaimGraph(
+                documents=package.documents,
+                evidence_spans=[],
+                claims=[],
+            )
+            dto = cls._export_to_dto(empty_graph, package, None, [])
+            return empty_graph, dto, []
+
         valid_span_ids: Set[str] = {s.id for s in spans}
         span_by_id: Dict[str, EvidenceSpan] = {s.id: s for s in spans}
 
-        # 2. Stage 1: LLM Candidate Extraction
+        # 3. Stage 1: LLM Candidate Extraction
         extraction: LLMResearchExtraction = synthesizer.extract_claims(package.identity, spans)
 
-        # 3. Deterministic Validation & Invariant Enforcement
+        # 4. Deterministic Validation & Invariant Enforcement
         verified_claims: List[Claim] = []
         diagnostics: List[ClaimRejectionDiagnostic] = []
         seen_claim_ids: Set[str] = set()

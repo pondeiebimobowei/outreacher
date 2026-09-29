@@ -242,7 +242,13 @@ class ClaimGraphBuilder:
         opportunities = extract_research_opportunities(package, company_name)
 
         # 5. Unknowns
-        unknowns = [c.object_value for c in graph.claims if c.classification == ClaimClassification.UNKNOWN]
+        raw_unknowns = [c.object_value for c in graph.claims if c.classification == ClaimClassification.UNKNOWN]
+        unknowns = [
+            u for u in raw_unknowns
+            if isinstance(u, str) and u.strip().lower() not in (
+                "unknown", "n/a", "none", "not available", "null", "undefined", "unspecified", "na"
+            ) and len(u.strip()) >= 3
+        ]
 
         # 6. Summary
         overview_claims = [c.object_value for c in graph.claims if c.category == ClaimCategory.OVERVIEW and c.classification == ClaimClassification.FACT]

@@ -364,3 +364,66 @@ def test_llm_claim_graph_bridge_verbatim_quote_provenance_boundary():
     assert graph.claims[0].supporting_quotes == ("Linear is the purpose-built tool for planning and building software.",)
     assert dto.evidence[0].source_excerpt == "Linear is the purpose-built tool for planning and building software."
 
+def test_llm_claim_graph_bridge_unconfident_identity_short_circuits():
+    """Verify that when identity confidence is not CONFIDENT, bridge returns an empty graph without calling the LLM."""
+    base_pkg = create_test_package()
+    package = RawResearchPackage(
+        identity=base_pkg.identity.model_copy(update={"confidence": IdentityConfidence.AMBIGUOUS}),
+        documents=base_pkg.documents,
+        discovered_at=base_pkg.discovered_at,
+    )
+
+    class _FailIfCalledSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            raise AssertionError("extract_claims must NOT be called when identity is not CONFIDENT")
+        def synthesize_summary(self, identity, claims):
+            raise AssertionError("synthesize_summary must NOT be called when identity is not CONFIDENT")
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _FailIfCalledSynthesizer())
+    assert len(graph.claims) == 0
+    assert len(graph.evidence_spans) == 0
+    assert len(dto.findings) == 0
+    assert dto.status.value in ("FAILED", "PARTIAL")
+    assert len(diagnostics) == 0
+
+def test_llm_claim_graph_bridge_empty_evidence_short_circuits():
+    """Verify that when a package has no documents/spans, bridge returns an empty graph without calling the LLM."""
+    base_pkg = create_test_package()
+    package = RawResearchPackage(
+        identity=base_pkg.identity,
+        documents=[],
+        discovered_at=base_pkg.discovered_at,
+    )
+
+    class _FailIfCalledSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            raise AssertionError("extract_claims must NOT be called when 0 evidence spans exist")
+        def synthesize_summary(self, identity, claims):
+            raise AssertionError("synthesize_summary must NOT be called when 0 evidence spans exist")
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _FailIfCalledSynthesizer())
+    assert len(graph.claims) == 0
+    assert len(graph.evidence_spans) == 0
+    assert len(dto.findings) == 0
+    assert dto.status.value == "FAILED"
+    assert len(diagnostics) == 0
+
+def test_sanitize_unknowns_filters_placeholders():
+    raw_unknowns = [
+        "UNKNOWN",
+        "N/A",
+        "none",
+        "null",
+        "undefined",
+        "Executive compensation structure",
+        "Unknown: Pricing model for enterprise tier",
+        "na",
+    ]
+    cleaned = LLMClaimGraphBridge._sanitize_unknowns(raw_unknowns)
+    assert "UNKNOWN" not in cleaned
+    assert "N/A" not in cleaned
+    assert "Executive compensation structure" in cleaned
+    assert "Pricing model for enterprise tier" in cleaned
+    assert len(cleaned) == 2
+
+

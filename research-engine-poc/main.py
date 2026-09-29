@@ -13,6 +13,7 @@ from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 from discovery.discoverer import ScopedDiscoverer
 from discovery.ranking import DiversityBudgetRanker
+from core.models import IdentityConfidence
 from pipeline.acquisition import AcquisitionRunner
 from synthesis.bridge import LLMClaimGraphBridge
 from synthesis.providers.gemini import GeminiLLMSynthesizer
@@ -55,6 +56,17 @@ def main():
         console.print(f"[bold cyan]🔍 Running Acquisition Pipeline for: {company_name}...[/bold cyan]")
         package = runner.run(company_name)
         
+        if package.identity.confidence != IdentityConfidence.CONFIDENT:
+            console.print(Panel.fit(
+                f"[bold yellow]Acquisition Aborted / Research Skipped[/bold yellow]\n"
+                f"• Identity Confidence: [bold red]{package.identity.confidence.value}[/bold red]\n"
+                f"• Domain: {package.identity.domain or 'None'}\n"
+                f"• Reason: Identity verification was not confident. Acquisition halted safely without crawling or synthesis.\n"
+                f"• Documents Crawled: {len(package.documents)}",
+                title="Acquisition Aborted"
+            ))
+            return
+
         console.print(Panel.fit(
             f"[bold green]Company Identity Verified[/bold green]\n"
             f"• Name: [bold]{package.identity.name}[/bold]\n"
