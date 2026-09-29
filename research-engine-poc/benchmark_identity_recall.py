@@ -1,23 +1,23 @@
 """
 benchmark_identity_recall.py — Deterministic Identity Recall & State Accuracy Benchmark
 
-Evaluates the Identity Resolution layer against an expanded frozen suite of 24 challenging-but-legitimate
+Evaluates the Identity Resolution layer against an expanded frozen development suite of 28 challenging-but-legitimate
 domains and adversarial negative controls without external network dependencies.
 
-Corpus Snapshot: identity-v1.1-frozen (24 Frozen Snapshot Cases)
+Corpus Snapshot: identity-v1.2-dev (28 Frozen Development Cases)
 
 Metric Suite:
-  1. Identity State Accuracy = correct predicted state / all 24 identity fixtures (Target: >= 95.0%)
-  2. CONFIDENT Recall        = correctly CONFIDENT fixtures / 15 expected CONFIDENT fixtures (Target: >= 90.0%)
-  3. False CONFIDENT Rate    = incorrectly CONFIDENT fixtures / 9 expected non-CONFIDENT fixtures (Target: strictly 0.0%)
+  1. Identity State Accuracy = correct predicted state / all 28 identity fixtures (Target: >= 95.0%)
+  2. CONFIDENT Recall        = correctly CONFIDENT fixtures / 18 expected CONFIDENT fixtures (Target: >= 90.0%)
+  3. False CONFIDENT Rate    = incorrectly CONFIDENT fixtures / 10 expected non-CONFIDENT fixtures (Target: strictly 0.0%)
   4. Non-CONFIDENT Safety    = correctly classified AMBIGUOUS and UNRESOLVED controls (Target: 100.0%)
 
-Failure Families Covered (24 Cases):
+Failure Families Covered (28 Cases):
   - SPA_RENDERED (5 cases): Client-rendered minimal DOMs with Google-indexed title hints
-  - UNCONVENTIONAL_PATH (5 cases): Secondary identity corroboration on non-standard routes
-  - INDIRECT_SELF_ID (5 cases): Active verb phrases and mission statement self-identification
-  - SUBDOMAIN_MULTI_TIER (4 cases): Product subdomains, legacy assets, and hosted blog targets
-  - NEGATIVE_CONTROL (5 cases): Entity collisions, shape-risk names, missing corroboration, and adversarial related secondaries
+  - UNCONVENTIONAL_PATH (6 cases): Secondary identity corroboration on non-standard routes
+  - INDIRECT_SELF_ID (6 cases): Active verb phrases and mission statement self-identification
+  - SUBDOMAIN_MULTI_TIER (5 cases): Product subdomains, legacy assets, and hosted blog targets
+  - NEGATIVE_CONTROL (6 cases): Entity collisions, shape-risk names, missing corroboration, and adversarial related secondaries
 """
 
 import sys
@@ -742,11 +742,14 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(scorecard)
 
     # Confusion Matrix Table
-    matrix_table = Table(title="Identity Outcome Confusion Matrix (24 Cases)", expand=True, show_lines=True)
+    matrix_table = Table(title=f"Identity Outcome Confusion Matrix ({metrics['total_cases']} Cases - identity-v1.2-dev)", expand=True, show_lines=True)
     matrix_table.add_column("Expected State", style="bold cyan", width=18)
     matrix_table.add_column("Predicted CONFIDENT", justify="center")
     matrix_table.add_column("Predicted AMBIGUOUS", justify="center")
     matrix_table.add_column("Predicted UNRESOLVED", justify="center")
+
+    exp_ambiguous = sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.AMBIGUOUS)
+    exp_unresolved = sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.UNRESOLVED)
 
     matrix_table.add_row(
         f"CONFIDENT ({metrics['expected_confident']})",
@@ -755,13 +758,13 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
         f"[red]{metrics['missed_id_unresolved_count']} (Missed ID)[/red]"
     )
     matrix_table.add_row(
-        "AMBIGUOUS (2)",
+        f"AMBIGUOUS ({exp_ambiguous})",
         f"[bold red]{sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.AMBIGUOUS and r['actual_confidence'] == IdentityConfidence.CONFIDENT)} (False Conf)[/bold red]",
         f"[green]{metrics['correct_ambiguous_count']} (Correct Safety)[/green]",
         "0"
     )
     matrix_table.add_row(
-        "UNRESOLVED (7)",
+        f"UNRESOLVED ({exp_unresolved})",
         f"[bold red]{sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.UNRESOLVED and r['actual_confidence'] == IdentityConfidence.CONFIDENT)} (False Conf)[/bold red]",
         "0",
         f"[green]{metrics['correct_unresolved_count']} (Correct Safety)[/green]"
@@ -771,7 +774,7 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(matrix_table)
 
     # Family Breakdown Table
-    fam_table = Table(title="Category & Family Breakdown (identity-v1.1-frozen)", expand=True, show_lines=True)
+    fam_table = Table(title="Category & Family Breakdown (identity-v1.2-dev)", expand=True, show_lines=True)
     fam_table.add_column("Category Family", style="cyan", width=25)
     fam_table.add_column("Total Cases", justify="center", width=12)
     fam_table.add_column("State Accuracy", justify="right", width=18)
