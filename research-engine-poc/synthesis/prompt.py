@@ -23,15 +23,13 @@ CRITICAL INVARIANTS:
    - UNKNOWN: Information that was investigated but could not be established from the evidence. UNKNOWN claims must have 0 evidence citations, 0 supporting_quotes, and confidence 0.0.
 4. SEMANTIC BOUNDARIES & EXTRACTION CONSTRAINTS:
    - NEGATION & INACTIVITY: A statement indicating that an activity, role, product, or plan is paused, frozen, closed, discontinued, or not active MUST NEVER produce a positive claim that it is active (e.g. 'Engineering hiring is paused for Q3' must NOT generate a `hiring_role` claim).
-   - TEMPORAL ATTRIBUTION & EVENT-DATE MAPPING: Map each date strictly to the specific event it modifies in the text. When multiple dates appear for distinct lifecycle events, extract each date under its matching predicate:
-     * Incorporation / founding event -> extract as `founded_in` (e.g. 'Founded in 2018' -> founded_in='2018').
-     * Product release / launch event -> extract as `launched_product_year` (e.g. 'Launched in 2024' -> launched_product_year='2024').
-     * Office opening / regional expansion event -> do NOT extract as `founded_in`.
-     * Acquisition / subsidiary buyout event -> do NOT extract as `founded_in`.
-     * Multi-event texts: If evidence states a company was founded in year X and acquired in year Y, DO extract `founded_in = X` (and do NOT assign Y as founded_in). Do NOT drop valid founding dates merely because other lifecycle events or acquisitions are mentioned.
+   - TEMPORAL ATTRIBUTION & EVENT BINDING: For every dated statement:
+     1. Identify the subject entity and specific event (e.g. founding, product launch, office opening, acquisition).
+     2. Bind each date strictly to its matching predicate (e.g. incorporation -> `founded_in`, product release -> `launched_product_year`). Never substitute one event predicate for another.
+     3. Always extract every independently asserted event/fact in the text (e.g. if text states founded in 2018 and acquired in 2023, extract `founded_in = '2018'`).
    - ENTITY ATTRIBUTION: Attributes, metrics, headcount, or capabilities belonging to third parties (partners, clients, customers, parent companies, subsidiaries) MUST NOT be attributed to the subject company.
-   - QUANTITATIVE PRECISION: Qualitative or unstated quantities must NOT be converted into invented numeric figures. If an exact metric (e.g. headcount) is unstated in the evidence, do NOT fabricate or extract it as an exact positive fact; record unstated topics under `unknowns`.
-   - POSITIVE FACT RETENTION: While suppressing negated, paused, or third-party claims, ALWAYS actively extract genuine positive facts that ARE affirmed in the evidence (e.g., if engineering hiring is paused but the text explicitly states the company is hiring Account Executives, DO extract `hiring_role = 'Account Executive'`; if a product launch date is stated, DO extract `launched_product_year`). Suppressing false interpretations must not lead to discarding validly affirmed facts.
+   - QUANTITATIVE PRECISION: Qualitative or unstated quantities must NOT be converted into invented numeric figures. If an exact metric is unstated, do NOT extract it as a fact; record unstated topics under `unknowns`.
+   - POSITIVE FACT RETENTION: Suppressing false, negated, or third-party interpretations must never lead to discarding validly affirmed facts. Always extract genuine positive facts directly stated in the evidence (e.g. if engineering hiring is paused but an Account Executive opening is affirmed, extract `hiring_role = 'Account Executive'`; always extract valid product descriptions, headquarters, and founding years).
 5. ALLOWED CATEGORIES & CANONICAL PREDICATES:
    Use precise, snake_case domain predicates:
    - OVERVIEW: company_description, founded_in, headquarters_location, company_type, company_mission
