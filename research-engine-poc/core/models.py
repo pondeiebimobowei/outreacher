@@ -69,6 +69,31 @@ class CompanyIdentity(BaseModel):
     # Do not add a separate top-level evidence list — it would drift.
     candidates: List[IdentityCandidate] = Field(default_factory=list)
 
+
+class IdentityContext(BaseModel):
+    """
+    Optional caller-supplied context for entity disambiguation.
+
+    Used when a bare company name resolves to multiple PRIMARY candidates
+    (genuine entity collision). The resolver scores each candidate's search
+    snippet against the provided terms and selects the one that aligns best.
+
+    Context must come from the caller's domain knowledge (user profile, job
+    opportunity metadata, etc.) — NOT from an LLM inferring the user's intent.
+
+    Fields are free-text, not an enum. The resolver tokenises and scores them.
+
+    Example:
+        IdentityContext(
+            industry="software",
+            description="product development software",
+            company_type="software_product",
+        )
+    """
+    industry: Optional[str] = None      # "software", "fintech", "venture capital"
+    description: Optional[str] = None   # "product development software"
+    company_type: Optional[str] = None  # "software_product", "vc_firm", "bank"
+
 class PageType(str, Enum):
     CAREERS_INDEX = "CAREERS_INDEX"
     JOB_LISTING = "JOB_LISTING"

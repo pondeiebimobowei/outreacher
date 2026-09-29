@@ -7,23 +7,27 @@ Run:
     uv run benchmark_identity.py --verbose    # Show full per-candidate evidence
 
 Acceptance criteria (Serper):
-    Linear       → CONFIDENT  (linear.app)
-    Stripe       → CONFIDENT  (stripe.com)
-    Vercel       → CONFIDENT  (vercel.com)
-    Moniepoint   → CONFIDENT  (moniepoint.com)
+
+  Bare-name resolution:
+    Linear       → AMBIGUOUS           (genuine entity collision: linear.app / linear.vc)
+    Stripe       → CONFIDENT (stripe.com)
+    Vercel       → CONFIDENT (vercel.com)
+    Moniepoint   → CONFIDENT (moniepoint.com)
     Kelmond      → ABSTAIN
     Manom        → ABSTAIN
     Outray       → ABSTAIN
     Acme Corp    → ABSTAIN
 
-    FALSE CONFIDENT = 0
+  Context-assisted resolution:
+    Linear (software context) → CONFIDENT (linear.app)
+
+  FALSE CONFIDENT = 0
 """
 import sys
 import os
 
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
 
 from search.duckduckgo import DuckDuckGoSearchProvider
 from search.serper import SerperSearchProvider
@@ -32,12 +36,29 @@ from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
-from core.models import IdentityConfidence
+from core.models import IdentityConfidence, IdentityContext
 
 console = Console()
 
+# ── Benchmark cases ──────────────────────────────────────────────────────────
+# Each case is a dict with:
+#   company:         company name to resolve
+#   expected:        "CONFIDENT" | "AMBIGUOUS" (for ABSTAIN-expected cases)
+#   expected_domain: required when expected=="CONFIDENT"
+#   context:         optional IdentityContext dict for context-assisted cases
+
 BENCHMARK_CASES = [
-    {"company": "Linear",               "expected_domain": "linear.app",     "expected": "CONFIDENT"},
+    # Bare-name resolution ────────────────────────────────────────────────────
+    # "Linear" has a genuine entity collision when both linear.app (PM tool) and
+    # linear.vc (VC firm) appear in the same Serper run. Two acceptable outcomes:
+    #   AMBIGUOUS      — correct when both companies surface (both become PRIMARY)
+    #   CONFIDENT(linear.app) — correct when only linear.app surfaces as PRIMARY
+    # The only false confident would be CONFIDENT(linear.vc) or anything else.
+    {
+        "company": "Linear",
+        "expected": "AMBIGUOUS_OR_CONFIDENT",
+        "acceptable_domains": ["linear.app"],
+    },
     {"company": "Stripe",               "expected_domain": "stripe.com",     "expected": "CONFIDENT"},
     {"company": "Vercel",               "expected_domain": "vercel.com",     "expected": "CONFIDENT"},
     {"company": "Moniepoint",           "expected_domain": "moniepoint.com", "expected": "CONFIDENT"},
@@ -45,6 +66,22 @@ BENCHMARK_CASES = [
     {"company": "Manom Solutions",                                            "expected": "ABSTAIN"},
     {"company": "Outray",                                                     "expected": "ABSTAIN"},
     {"company": "Acme Corp",                                                  "expected": "ABSTAIN"},
+
+    # Context-assisted resolution ─────────────────────────────────────────────
+    # The caller knows this is a software product. That context discriminates
+    # linear.app (product development software) from linear.vc (VC firm).
+    # Context comes from structured product data, not LLM inference.
+    {
+        "company": "Linear",
+        "label":   "Linear (software context)",
+        "context": IdentityContext(
+            industry="software",
+            description="product development software",
+            company_type="software_product",
+        ),
+        "expected_domain": "linear.app",
+        "expected": "CONFIDENT",
+    },
 ]
 
 
@@ -100,7 +137,7 @@ def run_benchmark(provider_name: str, verbose: bool = False):
 
     # Summary table
     table = Table(title=f"Identity Results ({provider_name})", expand=True)
-    table.add_column("Company",         style="cyan",    no_wrap=True)
+    table.add_column("Case",            style="cyan",    no_wrap=True)
     table.add_column("Expected",        style="dim")
     table.add_column("Selected Domain", style="magenta")
     table.add_column("Actual",          style="green")
@@ -111,21 +148,22 @@ def run_benchmark(provider_name: str, verbose: bool = False):
     metrics = {"correct_identity": 0, "false_confident": 0, "correct_abstention": 0}
 
     for case in BENCHMARK_CASES:
-        company        = case["company"]
-        expected_domain = case.get("expected_domain")
+        company          = case["company"]
+        label            = case.get("label", company)
+        expected_domain  = case.get("expected_domain")
         expected_outcome = case["expected"]
+        context          = case.get("context")
 
         try:
-            identity = resolver.resolve(company)
+            identity = resolver.resolve(company, context=context)
         except Exception as exc:
-            table.add_row(company, expected_outcome, "ERROR", str(exc), "", "", "[red]✗[/red]")
+            table.add_row(label, expected_outcome, "ERROR", str(exc), "", "", "[red]✗[/red]")
             continue
 
         actual_outcome = _actual_outcome(identity.confidence)
         domain         = identity.domain or "N/A"
         conf           = identity.confidence.name
 
-        # Verified candidates list (useful to see the second one for Moniepoint-type cases)
         verified_names = ", ".join(
             c.domain for c in identity.candidates if c.is_verified
         ) or "—"
@@ -137,7 +175,29 @@ def run_benchmark(provider_name: str, verbose: bool = False):
                 metrics["correct_identity"] += 1
             else:
                 metrics["false_confident"] += 1 if actual_outcome == "CONFIDENT" else 0
-        else:
+
+        elif expected_outcome == "AMBIGUOUS_OR_CONFIDENT":
+            # Case where both AMBIGUOUS and CONFIDENT(acceptable_domain) are valid.
+            # A false confident occurs only when CONFIDENT is returned for a domain
+            # NOT in the acceptable list (e.g. CONFIDENT(linear.vc) for "Linear").
+            acceptable = case.get("acceptable_domains", [])
+            if identity.confidence == IdentityConfidence.AMBIGUOUS:
+                is_match = True
+                metrics["correct_abstention"] += 1
+            elif actual_outcome == "CONFIDENT" and domain in acceptable:
+                is_match = True
+                metrics["correct_identity"] += 1
+            elif actual_outcome == "CONFIDENT":
+                metrics["false_confident"] += 1   # wrong domain chosen
+
+        elif expected_outcome == "AMBIGUOUS":
+            # Bare-name collision: we expect AMBIGUOUS, not CONFIDENT.
+            if identity.confidence == IdentityConfidence.AMBIGUOUS:
+                is_match = True
+                metrics["correct_abstention"] += 1
+            elif actual_outcome == "CONFIDENT":
+                metrics["false_confident"] += 1
+        else:  # ABSTAIN
             if actual_outcome == "ABSTAIN":
                 is_match = True
                 metrics["correct_abstention"] += 1
@@ -148,7 +208,7 @@ def run_benchmark(provider_name: str, verbose: bool = False):
         reasoning_short = (identity.reasoning[:70] + "…") if len(identity.reasoning) > 70 else identity.reasoning
 
         table.add_row(
-            company,
+            label,
             f"{expected_outcome} ({expected_domain})" if expected_domain else expected_outcome,
             domain,
             conf,

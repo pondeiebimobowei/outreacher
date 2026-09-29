@@ -1,12 +1,12 @@
 import re
 from urllib.parse import urlparse
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
 from search.base import ISearchProvider
 from search.sanitizer import SearchResultSanitizer
 from core.models import (
-    CompanyIdentity, IdentityConfidence,
+    CompanyIdentity, IdentityConfidence, IdentityContext,
     IdentityCandidate, IdentityEvidence, EvidenceType, SiteRelationship,
 )
 from identity.verifier import WebsiteVerifier
@@ -26,6 +26,28 @@ class IdentityResolver:
             .lower()
         )
 
+    # ── Context scoring ─────────────────────────────────────────────────────────
+    @staticmethod
+    def _context_score(text: str, context: IdentityContext) -> int:
+        """
+        Score how well candidate text matches the caller-supplied context.
+
+        Tokenises context field values and counts unique terms found in text.
+        Uses the search result title + snippet (already in memory — no extra fetch).
+
+        Returns an integer ≥ 0. A score of 0 means no context terms were found.
+        Discrimination requires best_score > second_best_score; a tie means
+        context did not resolve the ambiguity and AMBIGUOUS is still returned.
+        """
+        terms: set = set()
+        for val in (context.industry, context.description, context.company_type):
+            if val:
+                for tok in val.lower().split():
+                    if len(tok) > 3:          # ignore stop-word-length tokens
+                        terms.add(tok)
+        text_lower = text.lower()
+        return sum(1 for t in terms if t in text_lower)
+
     # ── Name-shape risk ─────────────────────────────────────────────────────────
     # Measures the *shape* of the name (short / dominated by generic suffixes).
     # Does NOT calculate true collision probability; hence "name_shape_risk".
@@ -40,7 +62,19 @@ class IdentityResolver:
         return len(distinctive) <= 1 and sum(len(w) for w in distinctive) <= 5
 
     # ── Resolution ──────────────────────────────────────────────────────────────
-    def resolve(self, company_name: str) -> CompanyIdentity:
+    def resolve(
+        self,
+        company_name: str,
+        context: Optional[IdentityContext] = None,
+    ) -> CompanyIdentity:
+        """
+        Resolve a company name to a primary identity.
+
+        context: optional caller-supplied IdentityContext.  When provided and
+          multiple PRIMARY candidates are found, context is used to select the
+          most likely candidate.  Context must come from structured product data,
+          NOT from an LLM's guess about the user's intent.
+        """
         query = f'"{company_name}" official website'
         raw_results = self.search_provider.search(query, num_results=10)
         results = SearchResultSanitizer.sanitize(raw_results)
@@ -158,10 +192,49 @@ class IdentityResolver:
             chosen = best
 
         elif len(verified_candidates) > 1:
-            names      = ", ".join(c.domain for c in verified_candidates)
-            confidence = IdentityConfidence.AMBIGUOUS
-            reasoning  = f"Multiple PRIMARY candidates: {names}. Identity is ambiguous."
-            chosen     = verified_candidates[0]
+            if context:
+                # Score each PRIMARY candidate against the caller-supplied context.
+                # Uses the already-fetched search result snippet — no extra network call.
+                scored = [
+                    (
+                        self._context_score(
+                            f"{domain_top_result[c.domain].title} "
+                            f"{domain_top_result[c.domain].snippet}",
+                            context,
+                        ),
+                        c,
+                    )
+                    for c in verified_candidates
+                    if c.domain in domain_top_result
+                ]
+                scored.sort(key=lambda x: x[0], reverse=True)
+                best_score, best_cand  = scored[0]
+                second_score           = scored[1][0] if len(scored) > 1 else -1
+
+                if best_score > second_score:
+                    # Context strictly selects one candidate.
+                    confidence = IdentityConfidence.CONFIDENT
+                    reasoning  = (
+                        f"Context-assisted: '{best_cand.domain}' selected over "
+                        f"{', '.join(c.domain for _, c in scored[1:])} "
+                        f"(context score {best_score} vs {second_score}). "
+                        f"{best_cand.relationship_reasoning}"
+                    )
+                    chosen = best_cand
+                else:
+                    # Context present but does not discriminate — stay AMBIGUOUS.
+                    names      = ", ".join(c.domain for c in verified_candidates)
+                    confidence = IdentityConfidence.AMBIGUOUS
+                    reasoning  = (
+                        f"Multiple PRIMARY candidates: {names}. "
+                        f"Context did not discriminate (scores tied at {best_score})."
+                    )
+                    chosen = verified_candidates[0]
+            else:
+                names      = ", ".join(c.domain for c in verified_candidates)
+                confidence = IdentityConfidence.AMBIGUOUS
+                reasoning  = f"Multiple PRIMARY candidates: {names}. Identity is ambiguous."
+                chosen     = verified_candidates[0]
 
         else:
             # No PRIMARY found — report best candidate's relationship for diagnostics.

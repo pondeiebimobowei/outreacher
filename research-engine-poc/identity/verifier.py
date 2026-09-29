@@ -61,12 +61,18 @@ _RELATIONSHIP_TEMPLATES: list = [
     r"owned\s+by\s+{name}",
     r"acquired\s+by\s+{name}",
     r"built\s+by\s+{name}",
+    r"made\s+by\s+{name}",
+    r"created\s+by\s+{name}",
+    r"developed\s+by\s+{name}",
     r"powered\s+by\s+{name}",
     r"part\s+of\s+(?:the\s+)?{name}",
     r"{name}\s+acquired\b",
     r"{name}\s+owns\b",
     r"subsidiary\s+of\s+{name}",
     r"a\s+(?:brand|division|service)\s+of\s+{name}",
+    # Covers "v0 by Vercel", "v0 — by Vercel.", "tagline by Vercel" etc.
+    # Guard [^a-zA-Z]|$ prevents matching mid-word (e.g. "Vercelian").
+    r"by\s+{name}(?:[^a-zA-Z]|$)",
 ]
 
 # Corroboration strength by page type.
