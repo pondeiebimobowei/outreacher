@@ -113,8 +113,12 @@ class DeterministicEvidenceExtractor:
     def extract_package_spans(cls, package: RawResearchPackage) -> List[EvidenceSpan]:
         """Extracts deterministic evidence spans across all crawled documents in a package."""
         all_spans: List[EvidenceSpan] = []
+        seen_ids = set()
         for doc in package.documents:
-            all_spans.extend(cls.extract_document_spans(doc))
+            for span in cls.extract_document_spans(doc):
+                if span.id not in seen_ids:
+                    seen_ids.add(span.id)
+                    all_spans.append(span)
         return all_spans
 
     @classmethod

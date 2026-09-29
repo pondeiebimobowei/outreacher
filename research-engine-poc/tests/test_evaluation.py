@@ -2,42 +2,50 @@ import pytest
 from core.models import DocumentQuality, IdentityConfidence, PageType
 from core.dto import OpportunityType, ResearchStatus
 from core.claim_builder import ClaimGraphBuilder
-from evaluate_pipeline import ARCHETYPE_PACKAGES
+from evaluate_pipeline import EVALUATION_DATASET
 
-def test_archetype_packages_deterministic_processing():
-    """Verifies that all 5 archetype packages process cleanly through ClaimGraphBuilder."""
-    assert len(ARCHETYPE_PACKAGES) == 5
+def test_evaluation_dataset_categories_and_ground_truth():
+    """Verifies that all 8 benchmark cases execute deterministically and meet ground truth contracts."""
+    assert len(EVALUATION_DATASET) == 8
 
-    for case in ARCHETYPE_PACKAGES:
-        pkg = case["package"]
-        graph = ClaimGraphBuilder.build_from_package(pkg)
-        dto = ClaimGraphBuilder.export_to_dto(graph, pkg)
+    category_counts = {}
+    for case in EVALUATION_DATASET:
+        category_counts[case.category] = category_counts.get(case.category, 0) + 1
+        
+        # Test baseline deterministic graph builder and DTO export
+        graph = ClaimGraphBuilder.build_from_package(case.package)
+        dto = ClaimGraphBuilder.export_to_dto(graph, case.package)
 
         assert dto.status in (ResearchStatus.COMPLETED, ResearchStatus.PARTIAL)
         assert len(dto.findings) >= 1
         assert len(dto.sources) >= 1
         assert len(dto.opportunities) >= 1
 
-    # Verify Archetype 1 (Moniepoint) has CONFIRMED opportunity (has valid job listing with requirements)
-    moniepoint_dto = ClaimGraphBuilder.export_to_dto(
-        ClaimGraphBuilder.build_from_package(ARCHETYPE_PACKAGES[0]["package"]),
-        ARCHETYPE_PACKAGES[0]["package"],
-    )
-    assert moniepoint_dto.opportunities[0].opportunity_type == OpportunityType.CONFIRMED
-    assert moniepoint_dto.opportunities[0].role_title == "Lead Infrastructure Engineer"
+        # Match opportunity verdict to ground truth expectation
+        actual_opp = dto.opportunities[0]
+        assert actual_opp.opportunity_type == case.expected_opportunity_type
 
-    # Verify Archetype 3 (Vercel ATS) has CONFIRMED opportunity (Ashby job listing with requirements)
-    vercel_dto = ClaimGraphBuilder.export_to_dto(
-        ClaimGraphBuilder.build_from_package(ARCHETYPE_PACKAGES[2]["package"]),
-        ARCHETYPE_PACKAGES[2]["package"],
-    )
-    assert vercel_dto.opportunities[0].opportunity_type == OpportunityType.CONFIRMED
-    assert vercel_dto.opportunities[0].role_title == "Senior Solutions Architect"
+        if case.expected_role_title:
+            assert actual_opp.role_title == case.expected_role_title
 
-    # Verify Archetype 4 (Acme AI Labs - No Careers) falls back safely to PROACTIVE
-    acme_dto = ClaimGraphBuilder.export_to_dto(
-        ClaimGraphBuilder.build_from_package(ARCHETYPE_PACKAGES[3]["package"]),
-        ARCHETYPE_PACKAGES[3]["package"],
-    )
-    assert acme_dto.opportunities[0].opportunity_type == OpportunityType.PROACTIVE
-    assert acme_dto.opportunities[0].role_title == "General Outreach"
+    # Category breakdown assertions
+    assert category_counts["REAL_WORLD"] == 3
+    assert category_counts["NEGATIVE_GATING"] == 3
+    assert category_counts["CONTRACT_FIXTURE"] == 1
+    assert category_counts["IDENTITY_SAFETY"] == 1
+
+def test_negative_gating_never_produces_false_confirmed():
+    """Explicitly verifies that negative cases reject CONFIRMED openings and demote to PROACTIVE."""
+    neg_cases = [c for c in EVALUATION_DATASET if c.category == "NEGATIVE_GATING"]
+    assert len(neg_cases) == 3
+
+    for case in neg_cases:
+        graph = ClaimGraphBuilder.build_from_package(case.package)
+        dto = ClaimGraphBuilder.export_to_dto(graph, case.package)
+
+        if case.case_id in ("neg_closed_filled_posting", "neg_culture_article_incidental_word"):
+            assert dto.opportunities[0].opportunity_type == OpportunityType.PROACTIVE
+        elif case.case_id == "neg_canonical_url_deduplication":
+            # Must deduplicate to exactly 1 confirmed opening
+            assert len(dto.opportunities) == 1
+            assert dto.opportunities[0].opportunity_type == OpportunityType.CONFIRMED
