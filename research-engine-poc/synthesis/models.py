@@ -35,6 +35,19 @@ class ClaimRejectionDiagnostic(BaseModel):
     reason: str
     invalid_evidence_refs: tuple[str, ...] = Field(default_factory=tuple)
 
+class LLMRunMetadata(BaseModel):
+    """
+    Observable telemetry and metadata recorded for an LLM execution stage.
+    Ensures model identity, latency, and token consumption are tracked explicitly for benchmarking.
+    """
+    provider: str
+    model: str
+    stage: str  # "EXTRACTION" | "SUMMARY"
+    latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    candidate_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
+
 class LLMResearchExtraction(BaseModel):
     """
     Structured JSON output contract expected from the LLM extraction model (Stage 1).
@@ -42,3 +55,5 @@ class LLMResearchExtraction(BaseModel):
     summary: Optional[str] = None
     claims: List[LLMClaimCandidate] = Field(default_factory=list)
     unknowns: List[str] = Field(default_factory=list)
+    metadata: Optional[LLMRunMetadata] = None
+

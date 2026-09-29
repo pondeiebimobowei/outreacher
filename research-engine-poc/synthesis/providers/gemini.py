@@ -17,11 +17,58 @@ class GeminiAPIError(Exception):
     """Raised when the Gemini API returns an unrecoverable error."""
     pass
 
+EXTRACTION_RESPONSE_SCHEMA: Dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {
+        "claims": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "subject": {"type": "STRING"},
+                    "predicate": {"type": "STRING"},
+                    "object_value": {"type": "STRING"},
+                    "category": {
+                        "type": "STRING",
+                        "enum": [
+                            "OVERVIEW", "PRODUCT", "HIRING", "TECH_STACK",
+                            "CUSTOMER", "TRACTION", "MISSION", "CONTACT"
+                        ],
+                    },
+                    "classification": {
+                        "type": "STRING",
+                        "enum": ["FACT", "INFERENCE", "UNKNOWN"],
+                    },
+                    "evidence_span_ids": {
+                        "type": "ARRAY",
+                        "items": {"type": "STRING"},
+                    },
+                    "supporting_quotes": {
+                        "type": "ARRAY",
+                        "items": {"type": "STRING"},
+                    },
+                    "confidence": {"type": "NUMBER"},
+                    "reasoning": {"type": "STRING"},
+                },
+                "required": [
+                    "subject", "predicate", "object_value",
+                    "category", "classification",
+                ],
+            },
+        },
+        "unknowns": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+        },
+    },
+    "required": ["claims", "unknowns"],
+}
+
 class GeminiLLMSynthesizer(ILLMSynthesizer):
     """
     Google Gemini API provider implementing ILLMSynthesizer.
-    Supports structured JSON generation, automatic retry on transient errors (503/429),
-    and model fallbacks.
+    Supports OpenAPI responseSchema structured generation, observable LLMRunMetadata telemetry,
+    and automatic retry on transient rate limits (429/503).
     """
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -38,22 +85,21 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
         if not self.api_key:
             raise ValueError("Gemini API key must be provided or set in GEMINI_API_KEY environment variable.")
         self.model = model
-        self.fallback_models = fallback_models if fallback_models is not None else [
-            "gemini-3.1-flash-lite",
-            "gemini-3.8-flash",
-            "gemini-flash-lite-latest",
-        ]
+        self.fallback_models = list(fallback_models) if fallback_models is not None else []
         self.timeout = timeout
         self.max_retries = max_retries
+        self.last_metadata: Optional[LLMRunMetadata] = None
 
     def _call_gemini(
         self,
         prompt: str,
         system_instruction: str,
+        stage: str,
         response_mime_type: str = "application/json",
-        temperature: float = 0.2,
+        response_schema: Optional[Dict[str, Any]] = None,
+        temperature: float = 0.1,
     ) -> str:
-        """Invokes Gemini generateContent API with exponential backoff and model fallbacks."""
+        """Invokes Gemini generateContent API with explicit schema and observable metadata."""
         candidate_models = [self.model] + [m for m in self.fallback_models if m != self.model]
         last_error = None
 
@@ -61,6 +107,13 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
             "Content-Type": "application/json",
             "X-goog-api-key": self.api_key,
         }
+
+        generation_config: Dict[str, Any] = {
+            "temperature": temperature,
+            "responseMimeType": response_mime_type,
+        }
+        if response_schema is not None:
+            generation_config["responseSchema"] = response_schema
 
         payload: Dict[str, Any] = {
             "contents": [
@@ -71,20 +124,20 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
             "systemInstruction": {
                 "parts": [{"text": system_instruction}]
             },
-            "generationConfig": {
-                "temperature": temperature,
-                "responseMimeType": response_mime_type,
-            },
+            "generationConfig": generation_config,
         }
 
         for model_name in candidate_models:
             endpoint = f"{self.BASE_URL}/{model_name}:generateContent"
 
             for attempt in range(1, self.max_retries + 1):
+                start_time = time.perf_counter()
                 try:
                     with httpx.Client(timeout=self.timeout) as client:
                         response = client.post(endpoint, headers=headers, json=payload)
                     
+                    latency_ms = (time.perf_counter() - start_time) * 1000.0
+
                     if response.status_code == 200:
                         data = response.json()
                         candidates = data.get("candidates", [])
@@ -93,6 +146,18 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
                         parts = candidates[0].get("content", {}).get("parts", [])
                         if not parts:
                             raise GeminiAPIError(f"No parts returned in candidate content: {data}")
+
+                        # Extract token telemetry
+                        usage = data.get("usageMetadata", {})
+                        self.last_metadata = LLMRunMetadata(
+                            provider="google",
+                            model=model_name,
+                            stage=stage,
+                            latency_ms=round(latency_ms, 2),
+                            prompt_tokens=usage.get("promptTokenCount"),
+                            candidate_tokens=usage.get("candidatesTokenCount"),
+                            total_tokens=usage.get("totalTokenCount"),
+                        )
                         return parts[0].get("text", "")
 
                     # Transient errors: 429 Rate Limit or 503 High Demand
@@ -105,10 +170,12 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
                         time.sleep(wait_time)
                         continue
 
-                    # Deprecated / Not found model (404) -> switch to next model immediately
+                    # Explicit 404 error handling: do not silently mask invalid configured model unless fallbacks configured
                     if response.status_code == 404:
-                        logger.warning("Gemini model %s returned 404 (unavailable). Trying fallback model...", model_name)
-                        break
+                        if self.fallback_models and model_name != candidate_models[-1]:
+                            logger.warning("Gemini model %s returned 404. Attempting configured fallback...", model_name)
+                            break
+                        raise GeminiAPIError(f"Configured Gemini model '{model_name}' was not found or is unavailable (HTTP 404).")
 
                     # Other client/server errors
                     err_json = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
@@ -121,21 +188,23 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
                     logger.warning("Network error contacting Gemini (%s). Retrying in %.1fs...", e, wait_time)
                     time.sleep(wait_time)
 
-        raise GeminiAPIError(f"All Gemini models and retries failed. Last error: {last_error}")
+        raise GeminiAPIError(f"Gemini model execution failed. Last error: {last_error}")
 
     def extract_claims(
         self,
         identity: CompanyIdentity,
         spans: List[EvidenceSpan],
     ) -> LLMResearchExtraction:
-        """Stage 1: Extracts candidate claims and unknowns from numbered evidence spans."""
+        """Stage 1: Extracts candidate claims and unknowns with OpenAPI responseSchema constraint."""
         prompt = LLMPromptBuilder.build_extraction_prompt(identity, spans)
         system_instruction = LLMPromptBuilder.SYSTEM_INSTRUCTIONS
 
         raw_json = self._call_gemini(
             prompt=prompt,
             system_instruction=system_instruction,
+            stage="EXTRACTION",
             response_mime_type="application/json",
+            response_schema=EXTRACTION_RESPONSE_SCHEMA,
             temperature=0.1,
         )
 
@@ -154,14 +223,12 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
             for item in raw_claims:
                 if not isinstance(item, dict):
                     continue
-                # Normalize field aliases if present
                 subj = item.get("subject") or identity.name
                 pred = item.get("predicate") or "operates_as"
                 obj = item.get("object_value") or item.get("claim") or item.get("value") or ""
                 cat = item.get("category") or "OVERVIEW"
                 classification = item.get("classification")
                 
-                # Normalize if category and classification were inverted
                 if cat in ("FACT", "INFERENCE", "UNKNOWN"):
                     classification = cat
                     cat = "OVERVIEW"
@@ -190,10 +257,11 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
             return LLMResearchExtraction(
                 claims=parsed_candidates,
                 unknowns=[str(u) for u in raw_unknowns if u],
+                metadata=self.last_metadata,
             )
         except Exception as e:
             logger.error("Failed to parse Gemini extraction JSON: %s\nRaw output:\n%s", e, raw_json)
-            return LLMResearchExtraction(claims=[], unknowns=[])
+            return LLMResearchExtraction(claims=[], unknowns=[], metadata=self.last_metadata)
 
     def synthesize_summary(
         self,
@@ -210,7 +278,9 @@ class GeminiLLMSynthesizer(ILLMSynthesizer):
         summary_text = self._call_gemini(
             prompt=prompt,
             system_instruction=system_instruction,
+            stage="SUMMARY",
             response_mime_type="text/plain",
+            response_schema=None,
             temperature=0.2,
         )
 
