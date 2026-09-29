@@ -102,6 +102,7 @@ class _MockSynthesizer(ILLMSynthesizer):
                         category=ClaimCategory.PRODUCT,
                         classification=ClaimClassification.FACT,
                         evidence_span_ids=["span_hallucinated_12345678"],
+                        supporting_quotes=["Operates quantum computing centers"],
                         confidence=0.9,
                     )
                 ],
@@ -121,6 +122,7 @@ class _MockSynthesizer(ILLMSynthesizer):
                     category=ClaimCategory.PRODUCT,
                     classification=ClaimClassification.FACT,
                     evidence_span_ids=[span_overview.id],
+                    supporting_quotes=["Linear is the purpose-built tool for planning and building software."],
                     confidence=0.9,
                 ),
                 LLMClaimCandidate(
@@ -130,6 +132,7 @@ class _MockSynthesizer(ILLMSynthesizer):
                     category=ClaimCategory.TECH_STACK,
                     classification=ClaimClassification.FACT,
                     evidence_span_ids=[span_hiring.id],
+                    supporting_quotes=["Build delightful UI interactions with React and TypeScript."],
                     confidence=0.85,
                 ),
                 LLMClaimCandidate(
@@ -139,12 +142,14 @@ class _MockSynthesizer(ILLMSynthesizer):
                     category=ClaimCategory.CONTACT,
                     classification=ClaimClassification.UNKNOWN,
                     evidence_span_ids=[],
+                    supporting_quotes=[],
                     confidence=0.0,
                 ),
             ],
             unknowns=[
                 "Specific physical office locations",
-                "I could not find information about: Executive team compensation",
+                "I could not verify that Linear has 50,000 customers",  # speculative unknown, must be rejected
+                "Unknown: Executive team compensation",
                 "  - Pricing tiers  ",
                 "",  # empty should be filtered
                 "x" * 150,  # too long should be filtered
@@ -178,11 +183,13 @@ def test_llm_claim_graph_bridge_valid_flow():
     assert dto.findings[0].claim_id is not None
     assert len(dto.findings[0].evidence_refs) == 1
     assert dto.evidence[0].evidence_ref.startswith("span_")
+    assert "Linear is the purpose-built" in dto.evidence[0].source_excerpt
 
-    # Unknowns are sanitized
-    assert "Specific physical office addresses" in dto.unknowns
+    # Unknowns are sanitized and speculative assertions are rejected
+    assert "Specific physical office locations" in dto.unknowns
     assert "Executive team compensation" in dto.unknowns
     assert "Pricing tiers" in dto.unknowns
+    assert "50,000 customers" not in " ".join(dto.unknowns)
     assert "" not in dto.unknowns
     assert "x" * 150 not in dto.unknowns
 
@@ -207,13 +214,48 @@ def test_llm_claim_graph_bridge_rejects_hallucinated_citations_and_guards_summar
     assert "quantum data centers" not in dto.summary
     assert dto.status.value == "PARTIAL"
 
-def test_llm_claim_graph_bridge_deduplicates_candidate_claims():
+def test_llm_claim_graph_bridge_rejects_valid_citation_with_ungrounded_quote():
     package = create_test_package()
     from core.evidence_extraction import DeterministicEvidenceExtractor
     spans = DeterministicEvidenceExtractor.extract_package_spans(package)
-    span_1 = spans[0]
+    span_about = [s for s in spans if "purpose-built" in s.text][0]
 
-    class _DuplicateSynthesizer(ILLMSynthesizer):
+    class _UngroundedQuoteSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            return LLMResearchExtraction(
+                claims=[
+                    LLMClaimCandidate(
+                        subject="Linear",
+                        predicate="has_customers",
+                        object_value="50,000 enterprise customers",
+                        category=ClaimCategory.TRACTION,
+                        classification=ClaimClassification.FACT,
+                        evidence_span_ids=[span_about.id],
+                        supporting_quotes=["Linear serves 50,000 enterprise customers."],  # fake quote not in span
+                        confidence=0.9,
+                    )
+                ],
+                unknowns=[],
+            )
+
+        def synthesize_summary(self, identity, claims):
+            return f"Summary with {len(claims)} claims."
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _UngroundedQuoteSynthesizer())
+    
+    # Must reject because quote does not exist in cited span
+    assert len(graph.claims) == 0
+    assert len(dto.findings) == 0
+    assert len(diagnostics) == 1
+    assert "Supporting quote not found" in diagnostics[0].reason
+
+def test_llm_claim_graph_bridge_rejects_fact_claim_without_supporting_quotes():
+    package = create_test_package()
+    from core.evidence_extraction import DeterministicEvidenceExtractor
+    spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+    span_about = [s for s in spans if "purpose-built" in s.text][0]
+
+    class _MissingQuoteSynthesizer(ILLMSynthesizer):
         def extract_claims(self, identity, spans):
             return LLMResearchExtraction(
                 claims=[
@@ -223,16 +265,50 @@ def test_llm_claim_graph_bridge_deduplicates_candidate_claims():
                         object_value="Software planning tool",
                         category=ClaimCategory.PRODUCT,
                         classification=ClaimClassification.FACT,
+                        evidence_span_ids=[span_about.id],
+                        supporting_quotes=[],  # missing required quote for FACT
+                        confidence=0.9,
+                    )
+                ],
+                unknowns=[],
+            )
+
+        def synthesize_summary(self, identity, claims):
+            return f"Summary with {len(claims)} claims."
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _MissingQuoteSynthesizer())
+    assert len(graph.claims) == 0
+    assert len(diagnostics) == 1
+    assert "FACT claim requires verbatim supporting_quotes" in diagnostics[0].reason
+
+def test_llm_claim_graph_bridge_deduplicates_candidate_claims():
+    package = create_test_package()
+    from core.evidence_extraction import DeterministicEvidenceExtractor
+    spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+    span_1 = [s for s in spans if "purpose-built" in s.text][0]
+
+    class _DuplicateSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            return LLMResearchExtraction(
+                claims=[
+                    LLMClaimCandidate(
+                        subject="Linear",
+                        predicate="provides_product",
+                        object_value="Purpose-built tool for planning and building software",
+                        category=ClaimCategory.PRODUCT,
+                        classification=ClaimClassification.FACT,
                         evidence_span_ids=[span_1.id],
+                        supporting_quotes=["Linear is the purpose-built tool for planning and building software."],
                         confidence=0.9,
                     ),
                     LLMClaimCandidate(
                         subject="Linear",
                         predicate="provides_product",
-                        object_value="Software planning tool",
+                        object_value="Purpose-built tool for planning and building software",
                         category=ClaimCategory.PRODUCT,
                         classification=ClaimClassification.FACT,
                         evidence_span_ids=[span_1.id],
+                        supporting_quotes=["Linear is the purpose-built tool for planning and building software."],
                         confidence=0.9,
                     ),
                 ],

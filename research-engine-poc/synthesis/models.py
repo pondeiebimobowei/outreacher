@@ -13,6 +13,7 @@ class LLMClaimCandidate(BaseModel):
     category: ClaimCategory
     classification: ClaimClassification
     evidence_span_ids: List[str] = Field(default_factory=list)
+    supporting_quotes: List[str] = Field(default_factory=list)
     confidence: float = 0.85
     reasoning: Optional[str] = None
 

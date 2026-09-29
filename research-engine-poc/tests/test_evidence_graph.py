@@ -342,3 +342,38 @@ def test_claim_graph_rejects_out_of_bounds_range():
             evidence_spans=[oob_span],
             claims=[],
         )
+
+
+def test_claim_graph_rejects_ungrounded_supporting_quote():
+    content = "Linear is the system for modern software development."
+    doc = CrawledDocument(
+        url="https://linear.app",
+        final_url="https://linear.app",
+        status_code=200,
+        content=content,
+        retrieved_at=datetime.now(timezone.utc),
+        page_type=PageType.HOMEPAGE,
+        quality=DocumentQuality.VALID,
+    )
+    spans = DeterministicEvidenceExtractor.extract_document_spans(doc)
+    span = spans[0]
+
+    # Claim has a valid evidence ref, but supporting_quote is NOT a substring of the span
+    claim_with_fake_quote = Claim(
+        id="claim_unsupported_quote",
+        subject="Linear",
+        predicate="customer_count",
+        object_value="50,000 enterprise customers",
+        category=ClaimCategory.TRACTION,
+        classification=ClaimClassification.FACT,
+        evidence_refs=[span.id],
+        supporting_quotes=["Linear has 50,000 paying enterprise teams across 100 countries"],
+        confidence=0.85,
+    )
+
+    with pytest.raises(ClaimGraphValidationError, match="supporting quote.*is not a substring"):
+        ClaimGraph(
+            documents=[doc],
+            evidence_spans=spans,
+            claims=[claim_with_fake_quote],
+        )

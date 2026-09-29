@@ -43,6 +43,7 @@ class ClaimGraphBuilder:
             evidence_refs: tuple[str, ...],
             confidence: float,
             reasoning: Optional[str] = None,
+            supporting_quotes: tuple[str, ...] = (),
         ) -> None:
             raw_key = f"{subject}:{predicate}:{object_value}:{category.value}:{classification.value}"
             if raw_key in seen_claim_keys:
@@ -57,6 +58,7 @@ class ClaimGraphBuilder:
                 category=category,
                 classification=classification,
                 evidence_refs=evidence_refs,
+                supporting_quotes=supporting_quotes,
                 confidence=confidence,
                 reasoning=reasoning,
             ))
@@ -78,6 +80,7 @@ class ClaimGraphBuilder:
                 category=ClaimCategory.OVERVIEW,
                 classification=ClaimClassification.FACT,
                 evidence_refs=(primary_overview.id,),
+                supporting_quotes=(primary_overview.text.strip(),),
                 confidence=0.85,
             )
 
@@ -90,6 +93,7 @@ class ClaimGraphBuilder:
                 category=ClaimCategory.PRODUCT,
                 classification=ClaimClassification.FACT,
                 evidence_refs=(p_span.id,),
+                supporting_quotes=(p_span.text.strip(),),
                 confidence=0.85,
             )
 
@@ -102,6 +106,7 @@ class ClaimGraphBuilder:
                 category=ClaimCategory.MISSION,
                 classification=ClaimClassification.FACT,
                 evidence_refs=(m_span.id,),
+                supporting_quotes=(m_span.text.strip(),),
                 confidence=0.85,
             )
 
@@ -119,6 +124,7 @@ class ClaimGraphBuilder:
                     category=ClaimCategory.HIRING,
                     classification=ClaimClassification.FACT,
                     evidence_refs=(j_span.id,),
+                    supporting_quotes=(j_span.text.strip(),),
                     confidence=0.85,
                 )
         elif not valid_job_docs:
@@ -130,6 +136,7 @@ class ClaimGraphBuilder:
                 category=ClaimCategory.HIRING,
                 classification=ClaimClassification.UNKNOWN,
                 evidence_refs=(),
+                supporting_quotes=(),
                 confidence=0.0,
                 reasoning="Careers page could not be located during scoped discovery",
             )
@@ -144,6 +151,7 @@ class ClaimGraphBuilder:
                 category=ClaimCategory.CONTACT,
                 classification=ClaimClassification.FACT,
                 evidence_refs=(c_span.id,),
+                supporting_quotes=(c_span.text.strip(),),
                 confidence=0.85,
             )
 

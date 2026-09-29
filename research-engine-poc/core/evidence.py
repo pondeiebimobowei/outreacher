@@ -88,12 +88,13 @@ class Claim(BaseModel):
     category: ClaimCategory
     classification: ClaimClassification
     evidence_refs: tuple[str, ...] = Field(default_factory=tuple)
+    supporting_quotes: tuple[str, ...] = Field(default_factory=tuple)
     confidence: float = 1.0
     reasoning: Optional[str] = None
 
-    @field_validator("evidence_refs", mode="before")
+    @field_validator("evidence_refs", "supporting_quotes", mode="before")
     @classmethod
-    def coerce_evidence_refs(cls, v: Any) -> tuple[str, ...]:
+    def coerce_to_immutable_tuple(cls, v: Any) -> tuple:
         if isinstance(v, (list, set)):
             return tuple(v)
         if isinstance(v, tuple):
@@ -112,6 +113,8 @@ class Claim(BaseModel):
         if self.classification == ClaimClassification.UNKNOWN:
             if self.evidence_refs:
                 raise ValueError("UNKNOWN claims must have 0 evidence_refs.")
+            if self.supporting_quotes:
+                raise ValueError("UNKNOWN claims must have 0 supporting_quotes.")
             if self.confidence != 0.0:
                 raise ValueError(f"UNKNOWN claims must have confidence 0.0, got {self.confidence}")
         elif self.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE):
@@ -161,6 +164,7 @@ class ClaimGraph(BaseModel):
           5. Span IDs are unique across the graph.
           6. Claim IDs are unique across the graph.
           7. Every evidence_ref in every claim resolves to a verified EvidenceSpan in this graph.
+          8. Every supporting_quote in every claim is a verified substring of at least one cited EvidenceSpan.
         """
         doc_by_hash: Dict[str, CrawledDocument] = {}
         for doc in self.documents:
@@ -171,10 +175,12 @@ class ClaimGraph(BaseModel):
 
         # 1-5: Validate EvidenceSpans
         seen_span_ids: Set[str] = set()
+        span_by_id: Dict[str, EvidenceSpan] = {}
         for span in self.evidence_spans:
             if span.id in seen_span_ids:
                 raise ClaimGraphValidationError(f"Duplicate EvidenceSpan ID: '{span.id}'")
             seen_span_ids.add(span.id)
+            span_by_id[span.id] = span
 
             expected_id = compute_span_id(span.document_hash, span.char_start, span.char_end)
             if span.id != expected_id:
@@ -201,7 +207,7 @@ class ClaimGraph(BaseModel):
                     f"Expected slice {actual_slice!r}, got span text {span.text!r}"
                 )
 
-        # 6-7: Validate Claims
+        # 6-8: Validate Claims
         seen_claim_ids: Set[str] = set()
         for claim in self.claims:
             if claim.id in seen_claim_ids:
@@ -213,3 +219,14 @@ class ClaimGraph(BaseModel):
                     raise ClaimGraphValidationError(
                         f"Claim '{claim.id}' references non-existent EvidenceSpan '{ref}'"
                     )
+
+            # Validate supporting_quotes against cited spans
+            if claim.supporting_quotes:
+                for quote in claim.supporting_quotes:
+                    cleaned_quote = quote.strip()
+                    if not cleaned_quote:
+                        continue
+                    if not any(cleaned_quote in span_by_id[ref].text for ref in claim.evidence_refs if ref in span_by_id):
+                        raise ClaimGraphValidationError(
+                            f"Claim '{claim.id}' supporting quote '{cleaned_quote[:40]}' is not a substring of any cited EvidenceSpan."
+                        )

@@ -37,13 +37,30 @@ class LLMClaimGraphBridge:
             t = item.strip().strip("-*• \t\r\n\"'")
             if not t or len(t) < 3 or len(t) > 120:
                 continue
-            # Strip conversational preamble if present
+            
             lowered = t.lower()
-            if lowered.startswith(("i could not find", "there is no evidence", "we cannot determine", "unknown:")):
+            
+            # Reject conversational / speculative assertions claiming inability to verify a speculative proposition
+            # e.g., "I could not verify that Linear has 50,000 customers"
+            if any(lowered.startswith(prefix) for prefix in (
+                "i could not verify", "unable to verify", "cannot confirm", "i could not find evidence that",
+                "not verified that", "unknown whether", "unverified whether", "could not determine if",
+            )):
+                continue
+
+            # Strip non-speculative structural labels (e.g., "Unknown: Pricing model")
+            if lowered.startswith(("unknown:", "not found:", "missing:", "unspecified:")):
                 parts = t.split(":", 1)
                 t = parts[-1].strip() if len(parts) > 1 else t
+                lowered = t.lower()
+
             if not t or len(t) < 3:
                 continue
+
+            # Reject conversational assertions that contain speculative clauses ("that X does Y", "whether X has Y")
+            if any(lowered.startswith(p) for p in ("that ", "whether ", "if ", "about whether ")):
+                continue
+
             key = t.lower()
             if key in seen:
                 continue
@@ -61,6 +78,7 @@ class LLMClaimGraphBridge:
         # 1. Deterministic Span Extraction
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
         valid_span_ids: Set[str] = {s.id for s in spans}
+        span_by_id: Dict[str, EvidenceSpan] = {s.id: s for s in spans}
 
         # 2. Stage 1: LLM Candidate Extraction
         extraction: LLMResearchExtraction = synthesizer.extract_claims(package.identity, spans)
@@ -74,15 +92,16 @@ class LLMClaimGraphBridge:
             classification = cand.classification
             confidence = cand.confidence
 
-            # UNKNOWN invariant: 0 evidence refs, 0.0 confidence
+            # UNKNOWN invariant: 0 evidence refs, 0 quotes, 0.0 confidence
             if classification == ClaimClassification.UNKNOWN:
                 valid_refs: Tuple[str, ...] = ()
+                valid_quotes: Tuple[str, ...] = ()
                 confidence = 0.0
             elif classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE):
                 # Filter evidence references to only span IDs that genuinely exist in this package
                 resolved_refs = tuple(ref for ref in cand.evidence_span_ids if ref in valid_span_ids)
                 
-                # REJECTION GATE: If required evidence is missing or hallucinated, reject candidate
+                # REJECTION GATE 1: If required evidence is missing or hallucinated, reject candidate
                 if not resolved_refs:
                     diagnostics.append(ClaimRejectionDiagnostic(
                         candidate_index=idx,
@@ -92,7 +111,52 @@ class LLMClaimGraphBridge:
                         invalid_evidence_refs=tuple(cand.evidence_span_ids),
                     ))
                     continue
+
+                # REJECTION GATE 2: Supporting Quotes verification against cited EvidenceSpans
+                cleaned_quotes = [q.strip() for q in cand.supporting_quotes if isinstance(q, str) and q.strip()]
                 
+                if classification == ClaimClassification.FACT:
+                    if not cleaned_quotes:
+                        diagnostics.append(ClaimRejectionDiagnostic(
+                            candidate_index=idx,
+                            subject=cand.subject,
+                            predicate=cand.predicate,
+                            reason="Rejected: FACT claim requires verbatim supporting_quotes from cited spans.",
+                            invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                        ))
+                        continue
+                    
+                    # Verify each quote is a substring of at least one of the resolved spans
+                    unverified_quotes = [
+                        q for q in cleaned_quotes
+                        if not any(q in span_by_id[ref].text for ref in resolved_refs)
+                    ]
+                    if unverified_quotes:
+                        diagnostics.append(ClaimRejectionDiagnostic(
+                            candidate_index=idx,
+                            subject=cand.subject,
+                            predicate=cand.predicate,
+                            reason=f"Rejected: Supporting quote not found in cited evidence span(s): '{unverified_quotes[0][:40]}...'",
+                            invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                        ))
+                        continue
+                    valid_quotes = tuple(cleaned_quotes)
+                else:  # INFERENCE
+                    unverified_quotes = [
+                        q for q in cleaned_quotes
+                        if not any(q in span_by_id[ref].text for ref in resolved_refs)
+                    ]
+                    if unverified_quotes:
+                        diagnostics.append(ClaimRejectionDiagnostic(
+                            candidate_index=idx,
+                            subject=cand.subject,
+                            predicate=cand.predicate,
+                            reason=f"Rejected: Supporting quote not found in cited evidence span(s): '{unverified_quotes[0][:40]}...'",
+                            invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                        ))
+                        continue
+                    valid_quotes = tuple(cleaned_quotes)
+
                 valid_refs = resolved_refs
                 if confidence <= 0.0:
                     confidence = 0.85 if classification == ClaimClassification.FACT else 0.65
@@ -106,9 +170,10 @@ class LLMClaimGraphBridge:
                 ))
                 continue
 
-            # Deterministic Claim ID derived from proposition and sorted citations
+            # Deterministic Claim ID derived from proposition, sorted citations, and sorted quotes
             refs_key = ":".join(sorted(valid_refs))
-            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value.strip().lower()}:{cand.category.value}:{classification.value}:{refs_key}"
+            quotes_key = ":".join(sorted(valid_quotes))
+            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value.strip().lower()}:{cand.category.value}:{classification.value}:{refs_key}:{quotes_key}"
             claim_id = f"claim_{hashlib.sha256(raw_key.encode('utf-8')).hexdigest()[:16]}"
 
             if claim_id in seen_claim_ids:
@@ -123,6 +188,7 @@ class LLMClaimGraphBridge:
                 category=cand.category,
                 classification=classification,
                 evidence_refs=valid_refs,
+                supporting_quotes=valid_quotes,
                 confidence=confidence,
                 reasoning=cand.reasoning,
             ))
@@ -195,7 +261,7 @@ class LLMClaimGraphBridge:
             first_span = span_by_id.get(claim.evidence_refs[0]) if claim.evidence_refs else None
             source_name = f"{company_name} ({first_span.page_type.value})" if first_span else None
             source_url = first_span.source_url if first_span else None
-            source_excerpt = first_span.text if first_span else None
+            source_excerpt = claim.supporting_quotes[0] if claim.supporting_quotes else (first_span.text if first_span else None)
             evidence_ref = first_span.id if first_span else None
             evidence_items.append(ResearchEvidenceDTO(
                 claim=f"{claim.subject} {claim.predicate.replace('_', ' ')}: {claim.object_value}",
