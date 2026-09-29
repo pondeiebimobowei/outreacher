@@ -539,12 +539,15 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     total_cases = len(EVALUATION_DATASET)
     opp_matches = 0
     false_confirmed = 0
+    missed_confirmed = 0
+    expected_confirmed_cases = sum(1 for c in EVALUATION_DATASET if c.expected_opportunity_type == OpportunityType.CONFIRMED)
     total_candidates = 0
     total_accepted_claims = 0
     total_rejected_claims = 0
     grounding_failures = 0
     total_latency_s = 0.0
     total_tokens_consumed = 0
+    claims_by_category: Dict[str, int] = {}
 
     for case in EVALUATION_DATASET:
         start_time = time.perf_counter()
@@ -563,12 +566,19 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
                 opp_matches += 1
             elif actual_opp == OpportunityType.CONFIRMED and case.expected_opportunity_type != OpportunityType.CONFIRMED:
                 false_confirmed += 1
+            elif actual_opp != OpportunityType.CONFIRMED and case.expected_opportunity_type == OpportunityType.CONFIRMED:
+                missed_confirmed += 1
 
-            accepted_count = len([c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)])
+            accepted_claims_list = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
+            accepted_count = len(accepted_claims_list)
             rejected_count = len(diagnostics)
             total_candidates += (accepted_count + rejected_count)
             total_accepted_claims += accepted_count
             total_rejected_claims += rejected_count
+
+            for c in accepted_claims_list:
+                cat_name = c.category.value
+                claims_by_category[cat_name] = claims_by_category.get(cat_name, 0) + 1
 
             # Hard invariant check: Every accepted claim in graph must strictly have valid citations and verbatim quotes
             for c in graph.claims:
@@ -621,14 +631,17 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
 
     scorecard.add_row("Total Evaluation Cases", str(total_cases), f"{total_cases} Cases")
+    scorecard.add_row("Safety: False CONFIRMED Rate (Critical False Positives)", f"{false_conf_pct:.1f}% ({false_confirmed}/{total_cases})", "0.0% (Safety Invariant)")
+    scorecard.add_row("Recall: Missed CONFIRMED Openings", f"{missed_confirmed}/{expected_confirmed_cases} missed", "0 missed (High Recall)")
     scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0%")
-    scorecard.add_row("False CONFIRMED Rate (Critical False Positives)", f"{false_conf_pct:.1f}% ({false_confirmed}/{total_cases})", "0.0%")
-    scorecard.add_row("Total Candidate Claims Extracted", str(total_candidates), "-")
-    scorecard.add_row("Grounded Claims Accepted in ClaimGraph", str(total_accepted_claims), "-")
-    scorecard.add_row("Ungrounded Candidates Rejected", f"{total_rejected_claims} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
-    scorecard.add_row("Grounding Failures (Hallucination Leakage)", str(grounding_failures), "Strictly 0 (Hard Invariant)")
-    scorecard.add_row("Average Case Latency", f"{(total_latency_s / total_cases):.2f}s", "< 4.0s")
-    scorecard.add_row("Total Token Consumption", str(total_tokens_consumed), "-")
+    scorecard.add_row("Grounding: Ungrounded Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
+    scorecard.add_row("Grounding: Hallucination Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
+    scorecard.add_row("Usefulness: Total Grounded Claims Accepted", str(total_accepted_claims), "High useful yield")
+    
+    cat_summary = ", ".join(f"{k}: {v}" for k, v in sorted(claims_by_category.items())) if claims_by_category else "None"
+    scorecard.add_row("Usefulness: Claims by Category", cat_summary, "Balanced distribution")
+    scorecard.add_row("Performance: Average Case Latency", f"{(total_latency_s / total_cases):.2f}s", "< 4.0s")
+    scorecard.add_row("Performance: Total Token Consumption", str(total_tokens_consumed), "-")
 
     console.print()
     console.print(scorecard)
@@ -638,9 +651,11 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "total_cases": total_cases,
         "accuracy_pct": opp_accuracy_pct,
         "false_confirmed_rate": false_conf_pct,
+        "missed_confirmed": missed_confirmed,
         "grounding_failures": grounding_failures,
         "total_claims": total_accepted_claims,
         "rejected_claims": total_rejected_claims,
+        "claims_by_category": claims_by_category,
         "avg_latency_s": total_latency_s / total_cases,
         "total_tokens": total_tokens_consumed,
     }
