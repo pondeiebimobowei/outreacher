@@ -1,9 +1,11 @@
 """
 Opportunity Engine & Verification Gates.
 
-Invariant:
-  CONFIRMED should mean evidence supports an active-looking opening at retrieval time,
-  not merely that the URL looks like a job page.
+Invariants:
+  1. CONFIRMED means evidence supports an active-looking opening at retrieval time,
+     not merely that the URL looks like a job page.
+  2. Confirmed opportunities are deduplicated by canonical URL. Different URLs that
+     represent the same underlying opening across sources/ATS are not yet reconciled.
 """
 
 import re

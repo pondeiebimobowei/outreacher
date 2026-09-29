@@ -84,6 +84,20 @@ class ClaimGraphBuilder:
                 supporting_quotes=(primary_overview.text.strip(),),
                 confidence=0.85,
             )
+        elif spans:
+            candidate_spans = [s for s in spans if s.evidence_type != ResearchEvidenceType.HEADING]
+            if candidate_spans:
+                first_span = candidate_spans[0]
+                add_claim(
+                    subject=company_name,
+                    predicate="operates_as",
+                    object_value=first_span.text.strip(),
+                    category=ClaimCategory.OVERVIEW,
+                    classification=ClaimClassification.FACT,
+                    evidence_refs=(first_span.id,),
+                    supporting_quotes=(first_span.text.strip(),),
+                    confidence=0.85,
+                )
 
         # Product Claims
         for p_span in product_spans[:3]:
