@@ -1355,7 +1355,12 @@ def run_benchmark_evaluation(
     p95_inf = sorted_inf[p95_index_inf]
     avg_inf = sum(case_inference_latencies) / len(case_inference_latencies) if case_inference_latencies else 0.0
 
+    prompt_commit = get_git_commit()
+    corpus_version = "v1.1-frozen"
+
     scorecard.add_row("Model & Timestamp", f"{model_name} @ {run_timestamp}", "Deterministic Model ID")
+    scorecard.add_row("Prompt Version", f"Commit: {prompt_commit}", "Tracked Git Commit")
+    scorecard.add_row("Corpus Snapshot", f"Snapshot: {corpus_version}", f"{total_cases} Frozen Cases")
     scorecard.add_row("Execution Completion Rate", f"{successful_cases}/{total_cases} ({completion_rate_pct:.1f}%) [Errors: {provider_errors} API, {validation_errors} VAL]", "100.0% Complete Syntheses")
     scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0% Invariant (Deterministic)")
     scorecard.add_row("Recall: Confirmed Opening Recall", f"{confirmed_recall_pct:.1f}% ({expected_confirmed_cases - missed_confirmed}/{expected_confirmed_cases})", "100.0% (High Recall)")
@@ -1385,6 +1390,8 @@ def run_benchmark_evaluation(
     return {
         "provider": provider_label,
         "model": model_name,
+        "prompt_commit": prompt_commit,
+        "corpus_version": corpus_version,
         "run_timestamp": run_timestamp,
         "total_cases": total_cases,
         "successful_cases": successful_cases,
