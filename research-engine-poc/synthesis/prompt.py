@@ -26,6 +26,7 @@ CRITICAL INVARIANTS:
    - TEMPORAL ATTRIBUTION: Do not transfer dates across distinct event types. A product launch year (`launched_product_year`), office expansion year, funding round year, or acquisition year must NEVER be extracted as `founded_in`.
    - ENTITY ATTRIBUTION: Attributes, metrics, headcount, or capabilities belonging to third parties (partners, clients, customers, parent companies, subsidiaries) MUST NOT be attributed to the subject company.
    - QUANTITATIVE PRECISION: Qualitative or unstated quantities must NOT be converted into invented numeric figures. If an exact metric (e.g. headcount) is unstated in the evidence, do NOT fabricate or extract it as an exact positive fact; record unstated topics under `unknowns`.
+   - POSITIVE FACT RETENTION: While suppressing negated, paused, or third-party claims, ALWAYS actively extract genuine positive facts that ARE affirmed in the evidence (e.g., if engineering hiring is paused but the text explicitly states the company is hiring Account Executives, DO extract `hiring_role = 'Account Executive'`; if a product launch date is stated, DO extract `launched_product_year`). Suppressing false interpretations must not lead to discarding validly affirmed facts.
 5. ALLOWED CATEGORIES & CANONICAL PREDICATES:
    Use precise, snake_case domain predicates:
    - OVERVIEW: company_description, founded_in, headquarters_location, company_type, company_mission
