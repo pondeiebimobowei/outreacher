@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class SourceTier(str, Enum):
     TIER_1 = "TIER_1"
@@ -15,12 +15,24 @@ class ResearchStatus(str, Enum):
 class OpportunityType(str, Enum):
     CONFIRMED = "CONFIRMED"
     PROACTIVE = "PROACTIVE"
+    UNCLASSIFIED = "UNCLASSIFIED"
 
 class ResearchFindingDTO(BaseModel):
     title: str
     detail: str
     why_it_matters: Optional[str] = None
     source_url: Optional[str] = None
+    claim_id: Optional[str] = None
+    evidence_refs: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("evidence_refs", mode="before")
+    @classmethod
+    def coerce_refs(cls, v: Any) -> tuple[str, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
 
     def to_nest_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -31,6 +43,10 @@ class ResearchFindingDTO(BaseModel):
             d["whyItMatters"] = self.why_it_matters
         if self.source_url is not None:
             d["sourceUrl"] = self.source_url
+        if self.claim_id is not None:
+            d["claimId"] = self.claim_id
+        if self.evidence_refs:
+            d["evidenceRefs"] = list(self.evidence_refs)
         return d
 
 class ResearchSourceDTO(BaseModel):
@@ -70,9 +86,11 @@ class ResearchEvidenceDTO(BaseModel):
     source_url: Optional[str] = None
     source_excerpt: Optional[str] = None
     confidence: Optional[str] = None
+    claim_id: Optional[str] = None
+    evidence_ref: Optional[str] = None
 
     def to_nest_dict(self) -> Dict[str, Any]:
-        return {
+        d: Dict[str, Any] = {
             "claim": self.claim,
             "classification": self.classification,
             "sourceName": self.source_name,
@@ -80,6 +98,11 @@ class ResearchEvidenceDTO(BaseModel):
             "sourceExcerpt": self.source_excerpt,
             "confidence": self.confidence,
         }
+        if self.claim_id is not None:
+            d["claimId"] = self.claim_id
+        if self.evidence_ref is not None:
+            d["evidenceRef"] = self.evidence_ref
+        return d
 
 class CompanyResearchDTO(BaseModel):
     summary: str

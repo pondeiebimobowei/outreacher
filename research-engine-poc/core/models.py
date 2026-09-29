@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional, Any
 from datetime import datetime
 from enum import Enum
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class SearchResult(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     title: str
     url: str
     snippet: str
@@ -40,6 +42,8 @@ class EvidenceType(str, Enum):
     PAGE_IDENTITY  = "PAGE_IDENTITY"
 
 class IdentityEvidence(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     type: EvidenceType
     source: str
     url: str
@@ -49,6 +53,8 @@ class IdentityEvidence(BaseModel):
     title: Optional[str] = None
 
 class IdentityCandidate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     domain: str
     is_verified: bool = False
     # Relationship between this domain and the target company
@@ -56,9 +62,20 @@ class IdentityCandidate(BaseModel):
     relationship_reasoning: str = ""
     # kept for backward-compat; mirrors relationship_reasoning
     verification_msg: str = ""
-    evidence: List[IdentityEvidence] = Field(default_factory=list)
+    evidence: tuple[IdentityEvidence, ...] = Field(default_factory=tuple)
+
+    @field_validator("evidence", mode="before")
+    @classmethod
+    def coerce_evidence(cls, v: Any) -> tuple[IdentityEvidence, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
 
 class CompanyIdentity(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     name: str
     domain: str
     website_url: str
@@ -67,8 +84,16 @@ class CompanyIdentity(BaseModel):
     # candidates[] is the single authoritative evidence container.
     # Each candidate carries its own search + verification evidence.
     # Do not add a separate top-level evidence list — it would drift.
-    candidates: List[IdentityCandidate] = Field(default_factory=list)
+    candidates: tuple[IdentityCandidate, ...] = Field(default_factory=tuple)
 
+    @field_validator("candidates", mode="before")
+    @classmethod
+    def coerce_candidates(cls, v: Any) -> tuple[IdentityCandidate, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
 
 class IdentityContext(BaseModel):
     """
@@ -90,6 +115,8 @@ class IdentityContext(BaseModel):
             company_type="software_product",
         )
     """
+    model_config = ConfigDict(frozen=True)
+
     industry: Optional[str] = None      # "software", "fintech", "venture capital"
     description: Optional[str] = None   # "product development software"
     company_type: Optional[str] = None  # "software_product", "vc_firm", "bank"
@@ -117,12 +144,16 @@ class DiscoveryPurpose(str, Enum):
     ATS = "ATS"
 
 class DiscoveryQuery(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     purpose: DiscoveryPurpose
     query: str
     max_results: int = 2
     provider: str = "site"
 
 class DiscoveredURL(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     url: str
     purpose: DiscoveryPurpose
     source: str
@@ -145,6 +176,7 @@ class CrawlAttempt(BaseModel):
     error: Optional[str] = None
 
 class CrawledDocument(BaseModel):
+
     url: str
     final_url: str
     status_code: Optional[int] = None
@@ -161,9 +193,33 @@ class CrawledDocument(BaseModel):
     fetch_strategy: str = "STATIC"
     source_query: Optional[str] = None
     search_rank: Optional[int] = None
-    attempts: List[CrawlAttempt] = Field(default_factory=list)
+    attempts: tuple[CrawlAttempt, ...] = Field(default_factory=tuple)
+
+    @field_validator("attempts", mode="before")
+    @classmethod
+    def coerce_attempts(cls, v: Any) -> tuple[CrawlAttempt, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
 
 class RawResearchPackage(BaseModel):
+    """
+    Immutable container of verified identity and crawled documents.
+    Serves as the raw, un-tampered input to evidence extraction and claim generation.
+    """
+    model_config = ConfigDict(frozen=True)
+
     identity: CompanyIdentity
-    documents: List[CrawledDocument]
+    documents: tuple[CrawledDocument, ...] = Field(default_factory=tuple)
     discovered_at: datetime
+
+    @field_validator("documents", mode="before")
+    @classmethod
+    def coerce_documents(cls, v: Any) -> tuple[CrawledDocument, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()

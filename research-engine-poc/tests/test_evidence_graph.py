@@ -24,7 +24,9 @@ def test_document_hash_reproducibility():
     assert compute_document_hash(raw_text) == expected_hash
     # Exact bytes rule: trailing newline or whitespace changes hash
     assert compute_document_hash(raw_text + " ") != expected_hash
-    assert compute_document_hash("") == ""
+    # Empty string produces valid SHA-256 hex digest
+    empty_hash = hashlib.sha256(b"").hexdigest()
+    assert compute_document_hash("") == empty_hash
 
 
 def test_span_id_determinism():
@@ -38,7 +40,7 @@ def test_span_id_determinism():
     assert id1.startswith("span_")
 
 
-# ── 2. Model Immutability Tests ───────────────────────────────────────────────
+# ── 2. Model Deep Immutability Tests ──────────────────────────────────────────
 
 def test_evidence_span_immutability():
     now = datetime.now(timezone.utc)
@@ -59,7 +61,7 @@ def test_evidence_span_immutability():
         span.text = "Modified text"
 
 
-def test_claim_immutability_and_evidence_invariants():
+def test_claim_deep_immutability_and_invariants():
     # FACT without evidence_refs must fail
     with pytest.raises(ValidationError, match="require at least one evidence_ref"):
         Claim(
@@ -72,7 +74,33 @@ def test_claim_immutability_and_evidence_invariants():
             evidence_refs=[],
         )
 
-    # UNKNOWN with empty evidence_refs is valid
+    # UNKNOWN with non-zero confidence must fail
+    with pytest.raises(ValidationError, match="UNKNOWN claims must have confidence 0.0"):
+        Claim(
+            id="claim-unknown-invalid",
+            subject="Stripe",
+            predicate="has_active_opening",
+            object_value="Rust Engineer",
+            category=ClaimCategory.HIRING,
+            classification=ClaimClassification.UNKNOWN,
+            evidence_refs=[],
+            confidence=0.5,
+        )
+
+    # UNKNOWN with evidence_refs must fail
+    with pytest.raises(ValidationError, match="UNKNOWN claims must have 0 evidence_refs"):
+        Claim(
+            id="claim-unknown-refs",
+            subject="Stripe",
+            predicate="has_active_opening",
+            object_value="Rust Engineer",
+            category=ClaimCategory.HIRING,
+            classification=ClaimClassification.UNKNOWN,
+            evidence_refs=["span_123"],
+            confidence=0.0,
+        )
+
+    # Valid UNKNOWN claim: empty tuple refs and 0.0 confidence
     unknown_claim = Claim(
         id="claim-unknown",
         subject="Stripe",
@@ -81,10 +109,11 @@ def test_claim_immutability_and_evidence_invariants():
         category=ClaimCategory.HIRING,
         classification=ClaimClassification.UNKNOWN,
         evidence_refs=[],
-        confidence=0.5,
+        confidence=0.0,
     )
     assert unknown_claim.classification == ClaimClassification.UNKNOWN
-    assert unknown_claim.evidence_refs == []
+    assert unknown_claim.evidence_refs == ()
+    assert isinstance(unknown_claim.evidence_refs, tuple)
 
     # Valid FACT claim
     valid_claim = Claim(
@@ -95,8 +124,11 @@ def test_claim_immutability_and_evidence_invariants():
         category=ClaimCategory.PRODUCT,
         classification=ClaimClassification.FACT,
         evidence_refs=["span_123"],
-        confidence=1.0,
+        confidence=0.85,
     )
+    assert isinstance(valid_claim.evidence_refs, tuple)
+
+    # Field reassignment fails
     with pytest.raises(ValidationError):
         valid_claim.confidence = 0.5
 
@@ -149,7 +181,7 @@ def test_deterministic_evidence_extractor_offsets():
     assert [s.char_end for s in spans] == [s.char_end for s in spans2]
 
 
-# ── 4. ClaimGraph Validation Invariants Tests ─────────────────────────────────
+# ── 4. ClaimGraph Auto-Validation Invariants Tests ────────────────────────────
 
 def test_claim_graph_valid_lifecycle():
     content = "Linear is the system for product development."
@@ -175,17 +207,18 @@ def test_claim_graph_valid_lifecycle():
         category=ClaimCategory.OVERVIEW,
         classification=ClaimClassification.FACT,
         evidence_refs=[span.id],
-        confidence=1.0,
+        confidence=0.85,
     )
 
+    # Instantiation auto-validates without error
     graph = ClaimGraph(
         documents=[doc],
         evidence_spans=spans,
         claims=[claim],
     )
-
-    # Valid graph passes without exception
-    graph.validate_graph()
+    assert isinstance(graph.documents, tuple)
+    assert isinstance(graph.evidence_spans, tuple)
+    assert isinstance(graph.claims, tuple)
 
 
 def test_claim_graph_rejects_unresolved_evidence_ref():
@@ -210,16 +243,16 @@ def test_claim_graph_rejects_unresolved_evidence_ref():
         category=ClaimCategory.PRODUCT,
         classification=ClaimClassification.FACT,
         evidence_refs=["span_hallucinated_id"],
+        confidence=0.85,
     )
 
-    graph = ClaimGraph(
-        documents=[doc],
-        evidence_spans=spans,
-        claims=[invalid_claim],
-    )
-
+    # Auto-validation fails upon constructor call
     with pytest.raises(ClaimGraphValidationError, match="references non-existent EvidenceSpan"):
-        graph.validate_graph()
+        ClaimGraph(
+            documents=[doc],
+            evidence_spans=spans,
+            claims=[invalid_claim],
+        )
 
 
 def test_claim_graph_rejects_corrupted_span_text():
@@ -248,14 +281,12 @@ def test_claim_graph_rejects_corrupted_span_text():
         retrieved_at=datetime.now(timezone.utc),
     )
 
-    graph = ClaimGraph(
-        documents=[doc],
-        evidence_spans=[corrupted_span],
-        claims=[],
-    )
-
     with pytest.raises(ClaimGraphValidationError, match="text mismatch"):
-        graph.validate_graph()
+        ClaimGraph(
+            documents=[doc],
+            evidence_spans=[corrupted_span],
+            claims=[],
+        )
 
 
 def test_claim_graph_rejects_out_of_bounds_range():
@@ -283,11 +314,9 @@ def test_claim_graph_rejects_out_of_bounds_range():
         retrieved_at=datetime.now(timezone.utc),
     )
 
-    graph = ClaimGraph(
-        documents=[doc],
-        evidence_spans=[oob_span],
-        claims=[],
-    )
-
     with pytest.raises(ClaimGraphValidationError, match="exceeds doc content length"):
-        graph.validate_graph()
+        ClaimGraph(
+            documents=[doc],
+            evidence_spans=[oob_span],
+            claims=[],
+        )

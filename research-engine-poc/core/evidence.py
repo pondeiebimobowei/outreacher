@@ -1,8 +1,8 @@
 import hashlib
-from typing import List, Optional, Dict, Set
+from typing import Optional, Dict, Set, Any
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from core.models import PageType, CrawledDocument
 
 class ResearchEvidenceType(str, Enum):
@@ -39,8 +39,6 @@ class ClaimClassification(str, Enum):
 
 def compute_document_hash(content: str) -> str:
     """Computes exact SHA-256 hex digest of raw UTF-8 content bytes without normalization."""
-    if not content:
-        return ""
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 def compute_span_id(document_hash: str, char_start: int, char_end: int) -> str:
@@ -79,6 +77,7 @@ class Claim(BaseModel):
     """
     An interpreted fact, inference, or unknown state.
     Must be backed by at least one EvidenceSpan reference if FACT or INFERENCE.
+    UNKNOWN claims must have zero evidence references and 0.0 confidence.
     """
     model_config = ConfigDict(frozen=True)
 
@@ -88,17 +87,18 @@ class Claim(BaseModel):
     object_value: str
     category: ClaimCategory
     classification: ClaimClassification
-    evidence_refs: List[str] = Field(default_factory=list)
+    evidence_refs: tuple[str, ...] = Field(default_factory=tuple)
     confidence: float = 1.0
     reasoning: Optional[str] = None
 
-    @field_validator("evidence_refs")
+    @field_validator("evidence_refs", mode="before")
     @classmethod
-    def validate_evidence_binding(cls, v: List[str], info) -> List[str]:
-        classification = info.data.get("classification")
-        if classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE) and not v:
-            raise ValueError(f"Claims with classification '{classification.value}' require at least one evidence_ref.")
-        return v
+    def coerce_evidence_refs(cls, v: Any) -> tuple[str, ...]:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
 
     @field_validator("confidence")
     @classmethod
@@ -106,6 +106,20 @@ class Claim(BaseModel):
         if not (0.0 <= v <= 1.0):
             raise ValueError(f"Claim confidence must be between 0.0 and 1.0, got {v}")
         return v
+
+    @model_validator(mode="after")
+    def validate_classification_invariants(self) -> "Claim":
+        if self.classification == ClaimClassification.UNKNOWN:
+            if self.evidence_refs:
+                raise ValueError("UNKNOWN claims must have 0 evidence_refs.")
+            if self.confidence != 0.0:
+                raise ValueError(f"UNKNOWN claims must have confidence 0.0, got {self.confidence}")
+        elif self.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE):
+            if not self.evidence_refs:
+                raise ValueError(f"Claims with classification '{self.classification.value}' require at least one evidence_ref.")
+            if self.confidence <= 0.0:
+                raise ValueError(f"Claims with classification '{self.classification.value}' must have confidence > 0.0, got {self.confidence}")
+        return self
 
 class ClaimGraphValidationError(Exception):
     """Raised when cross-object invariants fail within a ClaimGraph."""
@@ -115,12 +129,27 @@ class ClaimGraph(BaseModel):
     """
     Enclosing container that binds documents, evidence spans, and claims.
     Enforces relational invariants, document content matching, and citation integrity.
+    Strictly deeply immutable and self-validating upon instantiation.
     """
     model_config = ConfigDict(frozen=True)
 
-    documents: List[CrawledDocument] = Field(default_factory=list)
-    evidence_spans: List[EvidenceSpan] = Field(default_factory=list)
-    claims: List[Claim] = Field(default_factory=list)
+    documents: tuple[CrawledDocument, ...] = Field(default_factory=tuple)
+    evidence_spans: tuple[EvidenceSpan, ...] = Field(default_factory=tuple)
+    claims: tuple[Claim, ...] = Field(default_factory=tuple)
+
+    @field_validator("documents", "evidence_spans", "claims", mode="before")
+    @classmethod
+    def coerce_to_tuple(cls, v: Any) -> tuple:
+        if isinstance(v, (list, set)):
+            return tuple(v)
+        if isinstance(v, tuple):
+            return v
+        return tuple(v) if v else ()
+
+    @model_validator(mode="after")
+    def validate_graph_auto(self) -> "ClaimGraph":
+        self.validate_graph()
+        return self
 
     def validate_graph(self) -> None:
         """
@@ -135,7 +164,7 @@ class ClaimGraph(BaseModel):
         """
         doc_by_hash: Dict[str, CrawledDocument] = {}
         for doc in self.documents:
-            if not doc.content:
+            if doc.content is None:
                 continue
             doc_hash = compute_document_hash(doc.content)
             doc_by_hash[doc_hash] = doc
@@ -154,7 +183,7 @@ class ClaimGraph(BaseModel):
                 )
 
             parent_doc = doc_by_hash.get(span.document_hash)
-            if not parent_doc or not parent_doc.content:
+            if not parent_doc or parent_doc.content is None:
                 raise ClaimGraphValidationError(
                     f"EvidenceSpan '{span.id}' references unknown document_hash '{span.document_hash}'"
                 )

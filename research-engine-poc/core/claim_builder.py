@@ -1,6 +1,6 @@
 import hashlib
 from typing import List, Optional, Set
-from core.models import RawResearchPackage, PageType, CrawledDocument
+from core.models import RawResearchPackage, PageType, CrawledDocument, DocumentQuality
 from core.evidence import (
     EvidenceSpan, Claim, ClaimGraph, ClaimCategory, ClaimClassification,
     ResearchEvidenceType,
@@ -14,11 +14,12 @@ from core.dto import (
 
 class ClaimGraphBuilder:
     """
-    Builds and validates a deterministic ClaimGraph from a RawResearchPackage.
-    Guarantees that:
-      - All EvidenceSpans have exact character offsets into package documents.
-      - All FACT/INFERENCE claims reference valid, verified EvidenceSpan IDs.
-      - Graph invariants are validated before return.
+    Baseline builder for grounded ClaimGraphs from a RawResearchPackage.
+    Acts as a deterministic pipeline scaffold and baseline for testing:
+      - Extracts line-level EvidenceSpans with exact document character offsets.
+      - Assembles grounded claims referencing verified EvidenceSpan IDs.
+      - Self-validates graph integrity via ClaimGraph constructor.
+      - Exports to lineage-preserving CompanyResearchDTO for NestJS consumption.
     """
 
     @classmethod
@@ -27,7 +28,7 @@ class ClaimGraphBuilder:
         # 1. Extract deterministic EvidenceSpans
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
         
-        # 2. Derive deterministic Claims
+        # 2. Derive grounded Claims
         claims: List[Claim] = []
         company_name = package.identity.name or "Company"
 
@@ -39,8 +40,8 @@ class ClaimGraphBuilder:
             object_value: str,
             category: ClaimCategory,
             classification: ClaimClassification,
-            evidence_refs: List[str],
-            confidence: float = 1.0,
+            evidence_refs: tuple[str, ...],
+            confidence: float,
             reasoning: Optional[str] = None,
         ) -> None:
             raw_key = f"{subject}:{predicate}:{object_value}:{category.value}:{classification.value}"
@@ -67,7 +68,7 @@ class ClaimGraphBuilder:
         job_req_spans = [s for s in spans if s.evidence_type in (ResearchEvidenceType.JOB_REQUIREMENT, ResearchEvidenceType.JOB_RESPONSIBILITY)]
         contact_spans = [s for s in spans if s.evidence_type == ResearchEvidenceType.CONTACT_INFO]
 
-        # Overview Claims
+        # Overview Claims (Calibrated confidence: 0.85 for direct source grounding)
         if overview_spans:
             primary_overview = overview_spans[0]
             add_claim(
@@ -76,8 +77,8 @@ class ClaimGraphBuilder:
                 object_value=primary_overview.text.strip(),
                 category=ClaimCategory.OVERVIEW,
                 classification=ClaimClassification.FACT,
-                evidence_refs=[primary_overview.id],
-                confidence=1.0,
+                evidence_refs=(primary_overview.id,),
+                confidence=0.85,
             )
 
         # Product Claims
@@ -88,8 +89,8 @@ class ClaimGraphBuilder:
                 object_value=p_span.text.strip(),
                 category=ClaimCategory.PRODUCT,
                 classification=ClaimClassification.FACT,
-                evidence_refs=[p_span.id],
-                confidence=1.0,
+                evidence_refs=(p_span.id,),
+                confidence=0.85,
             )
 
         # Mission Claims
@@ -100,13 +101,16 @@ class ClaimGraphBuilder:
                 object_value=m_span.text.strip(),
                 category=ClaimCategory.MISSION,
                 classification=ClaimClassification.FACT,
-                evidence_refs=[m_span.id],
-                confidence=1.0,
+                evidence_refs=(m_span.id,),
+                confidence=0.85,
             )
 
         # Hiring Claims
-        hiring_docs = [d for d in package.documents if d.page_type in (PageType.CAREERS_INDEX, PageType.JOB_LISTING)]
-        if hiring_docs and job_req_spans:
+        valid_job_docs = [
+            d for d in package.documents
+            if d.page_type in (PageType.CAREERS_INDEX, PageType.JOB_LISTING) and d.quality == DocumentQuality.VALID
+        ]
+        if valid_job_docs and job_req_spans:
             for j_span in job_req_spans[:5]:
                 add_claim(
                     subject=company_name,
@@ -114,17 +118,18 @@ class ClaimGraphBuilder:
                     object_value=j_span.text.strip(),
                     category=ClaimCategory.HIRING,
                     classification=ClaimClassification.FACT,
-                    evidence_refs=[j_span.id],
-                    confidence=1.0,
+                    evidence_refs=(j_span.id,),
+                    confidence=0.85,
                 )
-        elif not hiring_docs:
+        elif not valid_job_docs:
+            # Explicit UNKNOWN claim: 0 evidence refs, confidence 0.0
             add_claim(
                 subject=company_name,
                 predicate="hiring_status",
                 object_value="No active hiring or careers page confirmed in verified scope",
                 category=ClaimCategory.HIRING,
                 classification=ClaimClassification.UNKNOWN,
-                evidence_refs=[],
+                evidence_refs=(),
                 confidence=0.0,
                 reasoning="Careers page could not be located during scoped discovery",
             )
@@ -138,22 +143,20 @@ class ClaimGraphBuilder:
                 object_value=c_span.text.strip(),
                 category=ClaimCategory.CONTACT,
                 classification=ClaimClassification.FACT,
-                evidence_refs=[c_span.id],
-                confidence=1.0,
+                evidence_refs=(c_span.id,),
+                confidence=0.85,
             )
 
-        # Build and validate ClaimGraph
-        graph = ClaimGraph(
+        # Instantiating ClaimGraph automatically triggers .validate_graph()
+        return ClaimGraph(
             documents=package.documents,
             evidence_spans=spans,
             claims=claims,
         )
-        graph.validate_graph()
-        return graph
 
     @classmethod
     def export_to_dto(cls, graph: ClaimGraph, package: RawResearchPackage) -> CompanyResearchDTO:
-        """Transforms a verified ClaimGraph into a CompanyResearchDTO matching the NestJS schema."""
+        """Transforms a verified ClaimGraph into a CompanyResearchDTO preserving full evidence lineage."""
         span_by_id = {s.id: s for s in graph.evidence_spans}
         company_name = package.identity.name or "Company"
 
@@ -172,7 +175,7 @@ class ClaimGraphBuilder:
                 tier=tier,
             ))
 
-        # 2. Findings
+        # 2. Findings (with full claim_id and evidence_refs lineage)
         findings: List[ResearchFindingDTO] = []
         for claim in graph.claims:
             if claim.classification == ClaimClassification.UNKNOWN:
@@ -184,44 +187,59 @@ class ClaimGraphBuilder:
                 detail=claim.object_value,
                 why_it_matters=f"Directly verified from {claim.category.value.lower()} sources.",
                 source_url=source_url,
+                claim_id=claim.id,
+                evidence_refs=claim.evidence_refs,
             ))
 
-        # 3. Evidence
+        # 3. Evidence (with full claim_id and evidence_ref lineage)
         evidence_items: List[ResearchEvidenceDTO] = []
         for claim in graph.claims:
             first_span = span_by_id.get(claim.evidence_refs[0]) if claim.evidence_refs else None
             source_name = f"{company_name} ({first_span.page_type.value})" if first_span else None
             source_url = first_span.source_url if first_span else None
             source_excerpt = first_span.text if first_span else None
+            evidence_ref = first_span.id if first_span else None
             evidence_items.append(ResearchEvidenceDTO(
                 claim=f"{claim.subject} {claim.predicate.replace('_', ' ')}: {claim.object_value}",
                 classification=claim.classification.value,
                 source_name=source_name,
                 source_url=source_url,
                 source_excerpt=source_excerpt,
-                confidence="HIGH" if claim.confidence >= 0.8 else "MEDIUM",
+                confidence="HIGH" if claim.confidence >= 0.8 else ("MEDIUM" if claim.confidence > 0.0 else "UNKNOWN"),
+                claim_id=claim.id,
+                evidence_ref=evidence_ref,
             ))
 
-        # 4. Opportunities
+        # 4. Opportunities (Strict verification: only CONFIRMED when valid doc with non-empty title exists)
         opportunities: List[ResearchOpportunityDTO] = []
-        job_docs = [d for d in package.documents if d.page_type == PageType.JOB_LISTING]
-        if job_docs:
-            for jd in job_docs:
-                role_title = jd.title or "Software Engineer"
+        valid_job_docs = [
+            d for d in package.documents
+            if d.page_type == PageType.JOB_LISTING and d.quality == DocumentQuality.VALID and d.title and d.title.strip()
+        ]
+        if valid_job_docs:
+            for jd in valid_job_docs:
                 opportunities.append(ResearchOpportunityDTO(
-                    role_title=role_title,
+                    role_title=jd.title.strip(),
                     opening_source_url=jd.url,
                     role_url=jd.url,
                     role_description=jd.content[:200] if jd.content else None,
                     opportunity_type=OpportunityType.CONFIRMED,
                 ))
-        else:
+        elif package.documents and any(d.quality == DocumentQuality.VALID for d in package.documents):
             opportunities.append(ResearchOpportunityDTO(
                 role_title="General Outreach",
                 opening_source_url=package.identity.website_url,
                 role_url=package.identity.website_url,
                 role_description="Proactive outreach based on verified company overview and signals.",
                 opportunity_type=OpportunityType.PROACTIVE,
+            ))
+        else:
+            opportunities.append(ResearchOpportunityDTO(
+                role_title="Unclassified Target",
+                opening_source_url=package.identity.website_url,
+                role_url=package.identity.website_url,
+                role_description="Insufficient evidence collected to classify opportunity.",
+                opportunity_type=OpportunityType.UNCLASSIFIED,
             ))
 
         # 5. Unknowns

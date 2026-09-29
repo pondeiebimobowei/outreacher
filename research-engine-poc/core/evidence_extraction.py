@@ -8,12 +8,12 @@ from core.evidence import (
 
 class DeterministicEvidenceExtractor:
     """
-    Deterministic chunker and evidence span extractor:
-      - Operates on exact, un-normalized UTF-8 document content.
-      - Finds structural boundaries (lines, paragraphs, headings).
-      - Computes exact character offsets `[char_start:char_end]`.
-      - Derives semantic section titles deterministically from heading patterns.
-      - Produces immutable, reproducible `EvidenceSpan` instances.
+    Deterministic line-level evidence span extractor:
+      - Operates on exact, un-normalized UTF-8 document content bytes.
+      - Scans non-empty lines with regex `([^\\r\\n]+)` and computes exact character offsets `[char_start:char_end]`.
+      - Detects structural heading patterns and updates current semantic section context.
+      - Assigns locatable `ResearchEvidenceType` based on structural section and keyword heuristics.
+      - Emits deterministic, addressable, and immutable `EvidenceSpan` instances.
     """
     _HEADING_PATTERN = re.compile(
         r'^(?:#{1,6}\s+)?([A-Z][A-Za-z0-9\s,\-\&/]{1,50}):?$',
@@ -48,7 +48,7 @@ class DeterministicEvidenceExtractor:
 
     @classmethod
     def extract_document_spans(cls, doc: CrawledDocument) -> List[EvidenceSpan]:
-        """Extracts deterministic evidence spans from a single CrawledDocument."""
+        """Extracts deterministic line-level evidence spans from a single CrawledDocument."""
         if not doc.content or not doc.content.strip():
             return []
 
