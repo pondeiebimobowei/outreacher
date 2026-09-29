@@ -1,6 +1,6 @@
-from typing import Protocol
+from typing import Protocol, List, Optional
 from core.models import CompanyIdentity
-from core.evidence import EvidenceSpan
+from core.evidence import EvidenceSpan, Claim
 from .models import LLMResearchExtraction
 
 class ILLMSynthesizer(Protocol):
@@ -8,7 +8,15 @@ class ILLMSynthesizer(Protocol):
     def extract_claims(
         self,
         identity: CompanyIdentity,
-        spans: list[EvidenceSpan],
+        spans: List[EvidenceSpan],
     ) -> LLMResearchExtraction:
-        """Invokes LLM model with prompt context and returns structured extraction."""
+        """Stage 1: Invokes LLM model with prompt context to extract candidate claims and unknowns."""
+        ...
+
+    def synthesize_summary(
+        self,
+        identity: CompanyIdentity,
+        claims: List[Claim],
+    ) -> str:
+        """Stage 2: Invokes LLM model with verified claims to synthesize a grounded summary."""
         ...

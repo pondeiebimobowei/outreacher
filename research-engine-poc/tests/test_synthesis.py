@@ -60,6 +60,31 @@ def test_prompt_builder_format_and_security_fence():
     assert "CRITICAL INVARIANTS" in LLMPromptBuilder.SYSTEM_INSTRUCTIONS
     assert "UNTRUSTED DATA BOUNDARY" in LLMPromptBuilder.SYSTEM_INSTRUCTIONS
 
+def test_prompt_builder_stage2_summary_prompt():
+    package = create_test_package()
+    from core.evidence import Claim, ClaimCategory, ClaimClassification
+
+    claims = [
+        Claim(
+            id="claim_1",
+            subject="Linear",
+            predicate="provides_product",
+            object_value="Tool for software teams",
+            category=ClaimCategory.PRODUCT,
+            classification=ClaimClassification.FACT,
+            evidence_refs=("span_1",),
+            confidence=0.9,
+        )
+    ]
+    summary_prompt = LLMPromptBuilder.build_summary_prompt(package.identity, claims)
+
+    assert "<COMPANY_CONTEXT>" in summary_prompt
+    assert "<GROUNDED_CLAIMS count=\"1\">" in summary_prompt
+    assert "[CLAIM_1]" in summary_prompt
+    assert "Tool for software teams" in summary_prompt
+    assert "STRICT GROUNDING" in LLMPromptBuilder.SUMMARY_SYSTEM_INSTRUCTIONS
+    assert "NO EXTERNAL KNOWLEDGE" in LLMPromptBuilder.SUMMARY_SYSTEM_INSTRUCTIONS
+
 class _MockSynthesizer(ILLMSynthesizer):
     def __init__(self, claims=None, hallucinate=False):
         self.claims = claims or []
@@ -117,8 +142,22 @@ class _MockSynthesizer(ILLMSynthesizer):
                     confidence=0.0,
                 ),
             ],
-            unknowns=["Specific physical office locations"],
+            unknowns=[
+                "Specific physical office locations",
+                "I could not find information about: Executive team compensation",
+                "  - Pricing tiers  ",
+                "",  # empty should be filtered
+                "x" * 150,  # too long should be filtered
+            ],
         )
+
+    def synthesize_summary(self, identity, claims):
+        if not claims:
+            return ""
+        product_claims = [c.object_value for c in claims if c.category == ClaimCategory.PRODUCT]
+        if product_claims:
+            return f"{identity.name} is a {product_claims[0]}."
+        return f"Verified research profile for {identity.name} with {len(claims)} grounded claims."
 
 def test_llm_claim_graph_bridge_valid_flow():
     package = create_test_package()
@@ -133,12 +172,19 @@ def test_llm_claim_graph_bridge_valid_flow():
     assert len(dto.evidence) == 3
     assert dto.opportunities[0].opportunity_type.value == "CONFIRMED"
     assert dto.opportunities[0].role_title == "Product Engineer"
-    assert dto.summary == "Linear is a purpose-built system for software teams."
+    assert dto.summary == "Linear is a Purpose-built tool for planning and building software."
 
     # Lineage is preserved
     assert dto.findings[0].claim_id is not None
     assert len(dto.findings[0].evidence_refs) == 1
     assert dto.evidence[0].evidence_ref.startswith("span_")
+
+    # Unknowns are sanitized
+    assert "Specific physical office addresses" in dto.unknowns
+    assert "Executive team compensation" in dto.unknowns
+    assert "Pricing tiers" in dto.unknowns
+    assert "" not in dto.unknowns
+    assert "x" * 150 not in dto.unknowns
 
 def test_llm_claim_graph_bridge_rejects_hallucinated_citations_and_guards_summary():
     package = create_test_package()
@@ -160,3 +206,43 @@ def test_llm_claim_graph_bridge_rejects_hallucinated_citations_and_guards_summar
     assert "no valid evidence-grounded claims could be verified" in dto.summary
     assert "quantum data centers" not in dto.summary
     assert dto.status.value == "PARTIAL"
+
+def test_llm_claim_graph_bridge_deduplicates_candidate_claims():
+    package = create_test_package()
+    from core.evidence_extraction import DeterministicEvidenceExtractor
+    spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+    span_1 = spans[0]
+
+    class _DuplicateSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            return LLMResearchExtraction(
+                claims=[
+                    LLMClaimCandidate(
+                        subject="Linear",
+                        predicate="provides_product",
+                        object_value="Software planning tool",
+                        category=ClaimCategory.PRODUCT,
+                        classification=ClaimClassification.FACT,
+                        evidence_span_ids=[span_1.id],
+                        confidence=0.9,
+                    ),
+                    LLMClaimCandidate(
+                        subject="Linear",
+                        predicate="provides_product",
+                        object_value="Software planning tool",
+                        category=ClaimCategory.PRODUCT,
+                        classification=ClaimClassification.FACT,
+                        evidence_span_ids=[span_1.id],
+                        confidence=0.9,
+                    ),
+                ],
+                unknowns=[],
+            )
+
+        def synthesize_summary(self, identity, claims):
+            return f"Summary with {len(claims)} claims."
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _DuplicateSynthesizer())
+    assert len(graph.claims) == 1
+    assert len(dto.findings) == 1
+    assert len(diagnostics) == 0

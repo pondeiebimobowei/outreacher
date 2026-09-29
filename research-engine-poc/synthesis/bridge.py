@@ -18,12 +18,38 @@ class LLMClaimGraphBridge:
     Deterministic validation and assembly bridge between LLM claim extraction and ClaimGraph:
       1. Deterministically extracts immutable EvidenceSpans from RawResearchPackage.
       2. Assembles prompt context with Company Context and Numbered EvidenceSpans.
-      3. Invokes ILLMSynthesizer to obtain structured LLMResearchExtraction.
+      3. Invokes ILLMSynthesizer (Stage 1) to obtain candidate claims and unknowns.
       4. Deterministically validates all candidate claims against actual extracted span IDs.
       5. Rejects candidate claims with invalid/missing citations, recording ClaimRejectionDiagnostics.
-      6. Synthesizes a grounded summary constrained by accepted claims.
-      7. Constructs self-validating ClaimGraph and emits lineage-preserving CompanyResearchDTO.
+      6. Invokes Stage 2 grounded summary synthesis taking strictly accepted Claim[] objects.
+      7. Sanitizes and deduplicates epistemic unknowns.
+      8. Constructs self-validating ClaimGraph and emits lineage-preserving CompanyResearchDTO.
     """
+
+    @staticmethod
+    def _sanitize_unknowns(raw_unknowns: List[str]) -> List[str]:
+        """Sanitizes and normalizes epistemic unknowns into concise topic strings."""
+        cleaned: List[str] = []
+        seen: Set[str] = set()
+        for item in raw_unknowns:
+            if not isinstance(item, str):
+                continue
+            t = item.strip().strip("-*• \t\r\n\"'")
+            if not t or len(t) < 3 or len(t) > 120:
+                continue
+            # Strip conversational preamble if present
+            lowered = t.lower()
+            if lowered.startswith(("i could not find", "there is no evidence", "we cannot determine", "unknown:")):
+                parts = t.split(":", 1)
+                t = parts[-1].strip() if len(parts) > 1 else t
+            if not t or len(t) < 3:
+                continue
+            key = t.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(t)
+        return cleaned
 
     @classmethod
     def process(
@@ -36,7 +62,7 @@ class LLMClaimGraphBridge:
         spans = DeterministicEvidenceExtractor.extract_package_spans(package)
         valid_span_ids: Set[str] = {s.id for s in spans}
 
-        # 2. Invoke LLM Synthesizer
+        # 2. Stage 1: LLM Candidate Extraction
         extraction: LLMResearchExtraction = synthesizer.extract_claims(package.identity, spans)
 
         # 3. Deterministic Validation & Invariant Enforcement
@@ -82,7 +108,7 @@ class LLMClaimGraphBridge:
 
             # Deterministic Claim ID derived from proposition and sorted citations
             refs_key = ":".join(sorted(valid_refs))
-            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value}:{cand.category.value}:{classification.value}:{refs_key}"
+            raw_key = f"{cand.subject}:{cand.predicate}:{cand.object_value.strip().lower()}:{cand.category.value}:{classification.value}:{refs_key}"
             claim_id = f"claim_{hashlib.sha256(raw_key.encode('utf-8')).hexdigest()[:16]}"
 
             if claim_id in seen_claim_ids:
@@ -108,8 +134,17 @@ class LLMClaimGraphBridge:
             claims=verified_claims,
         )
 
-        # 5. Grounded Summary Synthesis & Export to NestJS DTO
-        dto = cls._export_to_dto(graph, package, extraction.summary, extraction.unknowns)
+        # 5. Stage 2: Grounded Summary Synthesis (strictly taking accepted claims)
+        accepted_facts = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
+        stage2_summary: Optional[str] = None
+        if accepted_facts and hasattr(synthesizer, "synthesize_summary") and callable(getattr(synthesizer, "synthesize_summary")):
+            try:
+                stage2_summary = synthesizer.synthesize_summary(package.identity, accepted_facts)
+            except Exception:
+                stage2_summary = None
+
+        # 6. Export to NestJS DTO
+        dto = cls._export_to_dto(graph, package, stage2_summary, extraction.unknowns)
         return graph, dto, diagnostics
 
     @classmethod
@@ -117,7 +152,7 @@ class LLMClaimGraphBridge:
         cls,
         graph: ClaimGraph,
         package: RawResearchPackage,
-        raw_summary: Optional[str],
+        stage2_summary: Optional[str],
         additional_unknowns: List[str],
     ) -> CompanyResearchDTO:
         span_by_id = {s.id: s for s in graph.evidence_spans}
@@ -205,20 +240,23 @@ class LLMClaimGraphBridge:
                 opportunity_type=OpportunityType.UNCLASSIFIED,
             ))
 
-        # 5. Unknowns
+        # 5. Sanitized Unknowns
         graph_unknowns = [c.object_value for c in graph.claims if c.classification == ClaimClassification.UNKNOWN]
-        all_unknowns = list(dict.fromkeys(graph_unknowns + additional_unknowns))
+        all_unknowns = cls._sanitize_unknowns(graph_unknowns + additional_unknowns)
 
         # 6. Constrained Summary (Grounding Invariant: Summary cannot fabricate ungrounded claims)
         accepted_facts = [c for c in graph.claims if c.classification in (ClaimClassification.FACT, ClaimClassification.INFERENCE)]
         if not accepted_facts:
             final_summary = f"Research completed for {company_name} with {len(package.documents)} crawled documents, but no valid evidence-grounded claims could be verified."
-        elif raw_summary and raw_summary.strip():
-            final_summary = raw_summary.strip()
+        elif stage2_summary and stage2_summary.strip():
+            final_summary = stage2_summary.strip()
         else:
             overview_facts = [c.object_value for c in accepted_facts if c.category == ClaimCategory.OVERVIEW]
+            product_facts = [c.object_value for c in accepted_facts if c.category == ClaimCategory.PRODUCT]
             if overview_facts:
                 final_summary = f"{company_name}: {overview_facts[0]}"
+            elif product_facts:
+                final_summary = f"{company_name}: {product_facts[0]}"
             else:
                 final_summary = f"Verified research profile for {company_name} with {len(accepted_facts)} grounded claims."
 
@@ -233,3 +271,4 @@ class LLMClaimGraphBridge:
             unknowns=all_unknowns,
             status=status,
         )
+

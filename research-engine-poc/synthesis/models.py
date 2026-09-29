@@ -36,8 +36,8 @@ class ClaimRejectionDiagnostic(BaseModel):
 
 class LLMResearchExtraction(BaseModel):
     """
-    Structured JSON output contract expected from the LLM synthesis model.
+    Structured JSON output contract expected from the LLM extraction model (Stage 1).
     """
-    summary: str
+    summary: Optional[str] = None
     claims: List[LLMClaimCandidate] = Field(default_factory=list)
     unknowns: List[str] = Field(default_factory=list)
