@@ -1,4 +1,4 @@
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 from core.models import DiscoveredURL, PageType
 
 class DiversityBudgetRanker:
@@ -11,8 +11,8 @@ class DiversityBudgetRanker:
     """
     DEFAULT_BUDGET = 8
 
-    # Category quota priority
-    _CATEGORY_QUOTAS: Dict[PageType, int] = {
+    # Default category quota priority
+    CATEGORY_QUOTAS: Dict[PageType, int] = {
         PageType.HOMEPAGE: 1,
         PageType.ABOUT: 1,
         PageType.PRODUCT: 1,
@@ -24,13 +24,15 @@ class DiversityBudgetRanker:
         PageType.OTHER: 1,
     }
 
-    @classmethod
+    def __init__(self, category_quotas: Optional[Dict[PageType, int]] = None):
+        self.category_quotas = category_quotas if category_quotas is not None else dict(self.CATEGORY_QUOTAS)
+
     def select_budgeted_urls(
-        cls,
+        self,
         discovered: List[DiscoveredURL],
         max_budget: int = DEFAULT_BUDGET,
     ) -> List[DiscoveredURL]:
-        if not discovered:
+        if not discovered or max_budget <= 0:
             return []
 
         # Deduplicate by URL while preserving best rank
@@ -67,7 +69,7 @@ class DiversityBudgetRanker:
         ]
 
         for ptype in quota_order:
-            quota = cls._CATEGORY_QUOTAS.get(ptype, 1)
+            quota = self.category_quotas.get(ptype, 1)
             candidates = by_type.get(ptype, [])
             for cand in candidates[:quota]:
                 if len(selected) >= max_budget:

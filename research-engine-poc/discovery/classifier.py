@@ -37,7 +37,7 @@ class TwoStageClassifier:
         """Stage 1: Determine provisional PageType purely from URL path and search intent."""
         try:
             parsed = urlparse(url.strip())
-            host = parsed.netloc.lower()
+            host = (parsed.hostname or "").lower().removeprefix("www.")
             path = parsed.path.lower().rstrip('/')
             segments = [s for s in path.strip('/').split('/') if s]
             
@@ -73,25 +73,38 @@ class TwoStageClassifier:
 
             # Paths under /careers/
             if first == 'careers':
-                # Check career info subpages -> OTHER
-                if len(segments) >= 2 and segments[1] in cls._CAREER_INFO_SUBPATHS:
+                if len(segments) == 1:
+                    return PageType.CAREERS_INDEX
+
+                # Check info subpaths on any segment (e.g. /careers/benefits, /careers/culture)
+                if any(seg in cls._CAREER_INFO_SUBPATHS for seg in segments[1:]):
                     return PageType.OTHER
                     
                 # Explicit search/index subpages -> CAREERS_INDEX
-                if len(segments) >= 2 and segments[1] in ['search', 'all', 'openings', 'departments', 'teams', 'explore']:
+                if segments[1] in ['search', 'all', 'openings', 'departments', 'teams', 'explore']:
                     return PageType.CAREERS_INDEX
                     
-                # Job role keyword or ID in slug -> JOB_LISTING
-                if any(kw in path for kw in cls._JOB_ROLE_KEYWORDS) or re.search(r'/\d+|/[a-f0-9-]{8,}', path):
+                # Leaf segment token-level inspection
+                leaf = segments[-1]
+                leaf_tokens = set(re.split(r'[-_]', leaf))
+                
+                # Check if leaf represents non-job career subcontent
+                if any(t in leaf_tokens for t in {'blog', 'news', 'press', 'articles', 'article'}):
+                    return PageType.BLOG
+                if any(t in leaf_tokens for t in {'resources', 'resource', 'faq', 'faqs'} | cls._CAREER_INFO_SUBPATHS):
+                    return PageType.OTHER
+                    
+                # Role keyword tokens or numeric/uuid job IDs in leaf
+                has_role_token = bool(leaf_tokens & cls._JOB_ROLE_KEYWORDS)
+                has_job_id = bool(re.search(r'\b\d{4,}\b|^[a-f0-9-]{8,}$', leaf)) or leaf.isdigit()
+                
+                if has_role_token or has_job_id:
                     return PageType.JOB_LISTING
-                    
-                if len(segments) == 1:
-                    return PageType.CAREERS_INDEX
                     
                 return PageType.OTHER
 
             # ATS domain paths (e.g. boards.greenhouse.io/acme/jobs/123, jobs.lever.co/acme/uuid)
-            if any(ats in host for ats in cls._ATS_DOMAINS):
+            if any(host == ats or host.endswith('.' + ats) for ats in cls._ATS_DOMAINS):
                 if len(segments) >= 2 and segments[1] not in ['all', 'search', 'teams', 'departments']:
                     return PageType.JOB_LISTING
                 return PageType.CAREERS_INDEX

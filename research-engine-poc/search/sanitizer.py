@@ -53,10 +53,11 @@ class SearchResultSanitizer:
                 parsed = urlparse(raw_url)
                 if parsed.scheme.lower() not in ('http', 'https'):
                     continue
-                if not parsed.netloc:
+                hostname = parsed.hostname
+                if not hostname:
                     continue
                     
-                host = parsed.netloc.lower().replace('www.', '')
+                host = hostname.lower().removeprefix('www.')
                 path = parsed.path.lower()
                 
                 # Check banned ad tracker hosts

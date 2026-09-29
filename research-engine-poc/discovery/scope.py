@@ -67,11 +67,19 @@ class DomainScopeFilter:
             
         try:
             parsed = urlparse(url.strip())
-            host = parsed.netloc.lower().replace('www.', '')
+            hostname = parsed.hostname
+            if not hostname:
+                return False
+                
+            host = hostname.lower().removeprefix('www.')
             if not host:
                 return False
                 
-            verified_host = verified_domain.lower().replace('www.', '')
+            # Normalize verified domain to pure hostname
+            verified_clean = verified_domain.strip()
+            if "//" not in verified_clean:
+                verified_clean = f"https://{verified_clean}"
+            verified_host = (urlparse(verified_clean).hostname or verified_domain.strip()).lower().removeprefix('www.')
             
             # 1. Primary domain or subdomain match
             if host == verified_host or host.endswith('.' + verified_host):
@@ -82,7 +90,7 @@ class DomainScopeFilter:
             if not is_ats:
                 return False
                 
-            valid_slugs = cls._extract_valid_slugs(verified_domain, company_name)
+            valid_slugs = cls._extract_valid_slugs(verified_host, company_name)
             
             # Check tenant in subdomain (e.g. moniepoint.workable.com, acme.breezy.hr)
             subdomains = host.split('.')

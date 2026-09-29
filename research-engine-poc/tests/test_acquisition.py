@@ -53,6 +53,9 @@ def test_domain_scope_security():
     assert DomainScopeFilter.is_allowed("https://moniepoint.com/careers", "moniepoint.com") is True
     # Subdomain
     assert DomainScopeFilter.is_allowed("https://jobs.moniepoint.com/careers", "moniepoint.com") is True
+    # URL with explicit port and userinfo
+    assert DomainScopeFilter.is_allowed("https://user:pass@moniepoint.com:8080/careers", "moniepoint.com") is True
+    assert DomainScopeFilter.is_allowed("https://user:pass@evil.com:8080/careers", "moniepoint.com") is False
     # Reject malformed suffix domains
     assert DomainScopeFilter.is_allowed("https://evilmoniepoint.com/careers", "moniepoint.com") is False
     assert DomainScopeFilter.is_allowed("https://moniepoint.com.evil.com/careers", "moniepoint.com") is False
@@ -135,9 +138,15 @@ def test_two_stage_classifier_stage1_url():
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/benefits") == PageType.OTHER
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/culture") == PageType.OTHER
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/software-engineer") == PageType.JOB_LISTING
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/senior-backend-engineer") == PageType.JOB_LISTING
     assert TwoStageClassifier.stage1_classify_url("https://acme.com/position/12345") == PageType.JOB_LISTING
     assert TwoStageClassifier.stage1_classify_url("https://boards.greenhouse.io/acme/jobs/5551234") == PageType.JOB_LISTING
     assert TwoStageClassifier.stage1_classify_url("https://jobs.lever.co/acme/b12345-6789-abcd") == PageType.JOB_LISTING
+    
+    # Conservative leaf segment classification (avoiding false-positive job listing classification)
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/engineering-blog") == PageType.BLOG
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/marketing-resources") == PageType.OTHER
+    assert TwoStageClassifier.stage1_classify_url("https://acme.com/careers/software-news") == PageType.BLOG
 
 
 def test_two_stage_classifier_stage2_content():
@@ -189,7 +198,8 @@ def test_diversity_budget_ranker():
             provisional_page_type=PageType.JOB_LISTING,
         ))
         
-    budgeted = DiversityBudgetRanker.select_budgeted_urls(candidates, max_budget=8)
+    ranker = DiversityBudgetRanker()
+    budgeted = ranker.select_budgeted_urls(candidates, max_budget=8)
     
     assert len(budgeted) == 8
     
@@ -208,8 +218,9 @@ def test_diversity_budget_ranker():
 
 
 def test_diversity_budget_empty():
-    assert DiversityBudgetRanker.select_budgeted_urls([]) == []
-    assert DiversityBudgetRanker.select_budgeted_urls([], max_budget=0) == []
+    ranker = DiversityBudgetRanker()
+    assert ranker.select_budgeted_urls([]) == []
+    assert ranker.select_budgeted_urls([], max_budget=0) == []
 
 
 # ── 5. Canonicalization Tests ─────────────────────────────────────────────────
@@ -444,3 +455,61 @@ def test_acquisition_runner_aborts_on_ambiguous_identity():
     
     assert package.identity.confidence == IdentityConfidence.AMBIGUOUS
     assert len(package.documents) == 0
+
+
+def test_scoped_discoverer_catches_search_provider_error():
+    class _FailingSearch(ISearchProvider):
+        @property
+        def name(self) -> str:
+            return "failing_search"
+        def search(self, query: str, num_results: int = 5):
+            raise SearchProviderError("API rate limit exceeded")
+
+    discoverer = ScopedDiscoverer(_FailingSearch())
+    # Should catch SearchProviderError gracefully and return seed homepage
+    results = discoverer.discover("acme.com", "Acme")
+    assert len(results) == 1
+    assert results[0].url == "https://acme.com/"
+
+
+def test_scoped_discoverer_propagates_unexpected_exceptions():
+    class _BuggySearch(ISearchProvider):
+        @property
+        def name(self) -> str:
+            return "buggy_search"
+        def search(self, query: str, num_results: int = 5):
+            raise TypeError("Unexpected programming error inside search provider")
+
+    discoverer = ScopedDiscoverer(_BuggySearch())
+    # Unexpected TypeError must not be swallowed
+    with pytest.raises(TypeError, match="Unexpected programming error"):
+        discoverer.discover("acme.com", "Acme")
+
+
+def test_verifier_catches_search_provider_error_in_corroboration():
+    from identity.verifier import WebsiteVerifier
+    
+    class _FailingSearch(ISearchProvider):
+        @property
+        def name(self) -> str:
+            return "failing_search"
+        def search(self, query: str, num_results: int = 5):
+            raise SearchProviderError("Secondary search query failed")
+
+    class _MockCrawler(ICrawlerProvider):
+        def fetch(self, url: str, page_type: PageType = PageType.OTHER) -> CrawledDocument:
+            return CrawledDocument(
+                url=url, final_url=url, status_code=200,
+                title="Acme Corporation | Homepage",
+                content="Welcome to Acme Corporation. We make everything.",
+                word_count=100, page_type=page_type, quality=DocumentQuality.VALID,
+                retrieved_at=datetime.now(timezone.utc),
+            )
+
+    crawler = _MockCrawler()
+    crawl_mgr = CrawlManager(crawler, crawler)
+    verifier = WebsiteVerifier(crawl_mgr, _FailingSearch())
+    
+    # Even if secondary search raises SearchProviderError, fallback /about check runs safely
+    rel, msg, ev = verifier.classify_relationship("Acme Corporation", "https://acme.com")
+    assert rel in [SiteRelationship.PRIMARY, SiteRelationship.UNKNOWN]

@@ -38,7 +38,7 @@ import re
 from typing import List, Optional, Tuple
 
 from crawling.manager import CrawlManager
-from search.base import ISearchProvider
+from search.base import ISearchProvider, SearchProviderError
 from search.sanitizer import SearchResultSanitizer
 from core.models import (
     DocumentQuality, EvidenceType, IdentityEvidence, PageType, SiteRelationship,
@@ -397,7 +397,7 @@ class WebsiteVerifier:
             for r in clean:
                 if r.url.rstrip("/") != website_url.rstrip("/"):
                     urls.append(r.url)
-        except Exception:
+        except SearchProviderError:
             pass
 
         # Always include /about as direct fallback

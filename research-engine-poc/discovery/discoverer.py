@@ -72,7 +72,7 @@ class ScopedDiscoverer:
                         rank=rank,
                         provisional_page_type=provisional_type,
                     ))
-            except Exception as exc:
+            except SearchProviderError as exc:
                 console.print(f"    [!] Discovery query failed ('{q.query[:35]}...'): {exc}")
                 
         return discovered

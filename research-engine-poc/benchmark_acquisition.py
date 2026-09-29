@@ -54,12 +54,13 @@ def run_benchmark(provider_name: str, verbose: bool = False):
     
     summary_table = Table(title=f"Acquisition Summary ({provider_name})", expand=True)
     summary_table.add_column("Company", style="cyan", no_wrap=True)
+    summary_table.add_column("Identity", style="bold")
     summary_table.add_column("Domain", style="magenta")
-    summary_table.add_column("Total Docs", justify="right", style="blue")
+    summary_table.add_column("Crawled", justify="right", style="blue")
     summary_table.add_column("Valid", justify="right", style="green")
-    summary_table.add_column("Too Short", justify="right", style="yellow")
-    summary_table.add_column("Blocked/Error", justify="right", style="red")
-    summary_table.add_column("Fallbacks", justify="right", style="yellow")
+    summary_table.add_column("Short", justify="right", style="yellow")
+    summary_table.add_column("Errors", justify="right", style="red")
+    summary_table.add_column("Fallbacks", justify="right", style="dim")
     summary_table.add_column("Latency", justify="right")
     
     for case in ACQUISITION_CASES:
@@ -77,8 +78,12 @@ def run_benchmark(provider_name: str, verbose: bool = False):
             err_count = sum(1 for d in docs if d.quality in [DocumentQuality.BLOCKED, DocumentQuality.HTTP_ERROR, DocumentQuality.FETCH_FAILED, DocumentQuality.EXTRACTION_FAILED])
             fallback_count = sum(1 for d in docs if d.fetch_strategy == "BROWSER")
             
+            id_col = "green" if package.identity.confidence == IdentityConfidence.CONFIDENT else "yellow" if package.identity.confidence == IdentityConfidence.AMBIGUOUS else "red"
+            id_label = f"[{id_col}]{package.identity.confidence.value}[/{id_col}]"
+            
             summary_table.add_row(
                 company,
+                id_label,
                 package.identity.domain or "N/A",
                 str(len(docs)),
                 str(valid_count),
@@ -88,28 +93,30 @@ def run_benchmark(provider_name: str, verbose: bool = False):
                 latency,
             )
             
-            if verbose and docs:
-                detail_table = Table(title=f"Documents for {company} ({package.identity.domain})", expand=True)
-                detail_table.add_column("PageType", style="cyan")
-                detail_table.add_column("Quality", style="green")
-                detail_table.add_column("Strategy", style="dim")
-                detail_table.add_column("Words", justify="right")
-                detail_table.add_column("URL", style="dim", ratio=2)
-                
-                for d in docs:
-                    q_col = "green" if d.quality == DocumentQuality.VALID else "yellow" if d.quality == DocumentQuality.TOO_SHORT else "red"
-                    detail_table.add_row(
-                        d.page_type.value,
-                        f"[{q_col}]{d.quality.value}[/{q_col}]",
-                        d.fetch_strategy,
-                        str(d.word_count),
-                        d.url[:70],
-                    )
-                console.print(detail_table)
-                console.print()
+            if verbose:
+                console.print(f"[dim]Identity reasoning for {company}: {package.identity.reasoning}[/dim]")
+                if docs:
+                    detail_table = Table(title=f"Documents for {company} ({package.identity.domain})", expand=True)
+                    detail_table.add_column("PageType", style="cyan")
+                    detail_table.add_column("Quality", style="green")
+                    detail_table.add_column("Strategy", style="dim")
+                    detail_table.add_column("Words", justify="right")
+                    detail_table.add_column("URL", style="dim", ratio=2)
+                    
+                    for d in docs:
+                        q_col = "green" if d.quality == DocumentQuality.VALID else "yellow" if d.quality == DocumentQuality.TOO_SHORT else "red"
+                        detail_table.add_row(
+                            d.page_type.value,
+                            f"[{q_col}]{d.quality.value}[/{q_col}]",
+                            d.fetch_strategy,
+                            str(d.word_count),
+                            d.url[:70],
+                        )
+                    console.print(detail_table)
+                    console.print()
                 
         except Exception as e:
-            summary_table.add_row(company, "ERROR", "0", "0", "0", "1", "0", f"{time.time() - start_time:.1f}s")
+            summary_table.add_row(company, "[red]ERROR[/red]", "N/A", "0", "0", "0", "1", "0", f"{time.time() - start_time:.1f}s")
             console.print(f"[red]Error processing {company}: {e}[/red]")
             
     console.print(summary_table)
