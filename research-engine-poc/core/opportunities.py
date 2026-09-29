@@ -1,7 +1,8 @@
 import re
-from typing import List, Optional
+from typing import List, Optional, Set
 from core.models import CrawledDocument, DocumentQuality, PageType, RawResearchPackage
 from core.dto import ResearchOpportunityDTO, OpportunityType
+from core.urls import canonicalize_url
 
 # Signals that establish semantic evidence of an active job opening in document content
 JOB_POSTING_SIGNALS = (
@@ -26,24 +27,67 @@ JOB_POSTING_SIGNALS = (
     "job description",
 )
 
+# Negative/Closed vacancy signals that disqualify a document from being an active opening
+CLOSED_JOB_SIGNALS = (
+    "no longer accepting applications",
+    "position has been filled",
+    "position filled",
+    "this role is no longer available",
+    "job closed",
+    "applications are closed",
+    "this opening has been closed",
+    "this job has expired",
+    "position is no longer open",
+    "role is filled",
+    "this posting has expired",
+    "this job is no longer active",
+    "this position is closed",
+    "applications closed",
+)
+
 def clean_job_title(title: str, company_name: Optional[str] = None) -> str:
     """
     Cleans raw HTML page title into a canonical job role title by stripping
-    brand/company separators (e.g. 'Senior Frontend Engineer | Linear' -> 'Senior Frontend Engineer').
+    trailing brand/company suffixes (e.g. 'Senior Frontend Engineer | Linear' -> 'Senior Frontend Engineer',
+    'Director of Engineering at Scale | Linear' -> 'Director of Engineering at Scale').
     """
     if not title:
         return ""
-    cleaned = title.strip()
-    for sep in [" | ", " - ", " – ", " — ", " at "]:
+    cleaned = re.sub(r'\s+', ' ', title).strip()
+    if not cleaned:
+        return ""
+
+    # 1. Remove company specific trailing patterns
+    if company_name and company_name.strip():
+        escaped_company = re.escape(company_name.strip())
+        company_patterns = [
+            rf"\s*\|\s*{escaped_company}.*$",
+            rf"\s*-\s*{escaped_company}.*$",
+            rf"\s*–\s*{escaped_company}.*$",
+            rf"\s*—\s*{escaped_company}.*$",
+            rf"\s+at\s+{escaped_company}.*$",
+            rf"\s+@\s+{escaped_company}.*$",
+        ]
+        for pat in company_patterns:
+            cleaned = re.sub(pat, "", cleaned, flags=re.IGNORECASE).strip()
+
+    # 2. Remove generic trailing portal/careers suffixes
+    generic_trailing = [
+        r"\s*\|\s*(careers|jobs|open positions|join us).*$",
+        r"\s*-\s*(careers|jobs|open positions|join us).*$",
+        r"\s*–\s*(careers|jobs|open positions|join us).*$",
+        r"\s*—\s*(careers|jobs|open positions|join us).*$",
+    ]
+    for pat in generic_trailing:
+        cleaned = re.sub(pat, "", cleaned, flags=re.IGNORECASE).strip()
+
+    # 3. Fallback separator strip if trailing brand wasn't named
+    for sep in [" | ", " – ", " — "]:
         if sep in cleaned:
-            if company_name and (company_name.lower() in cleaned.lower() or "careers" in cleaned.lower() or "jobs" in cleaned.lower()):
-                parts = cleaned.split(sep)
-                if len(parts) >= 2 and len(parts[0].strip()) >= 3:
-                    cleaned = parts[0].strip()
-            elif not company_name:
-                parts = cleaned.split(sep)
-                if len(parts) >= 2 and len(parts[0].strip()) >= 3:
-                    cleaned = parts[0].strip()
+            parts = cleaned.split(sep)
+            if len(parts) >= 2 and len(parts[0].strip()) >= 3:
+                cleaned = parts[0].strip()
+
     return cleaned or title.strip()
 
 def has_job_posting_content_signal(doc: CrawledDocument) -> bool:
@@ -54,8 +98,15 @@ def has_job_posting_content_signal(doc: CrawledDocument) -> bool:
     if not doc.content or len(doc.content.strip()) < 50:
         return False
     
-    text_sample = doc.content[:2000].lower()
+    text_sample = doc.content[:3000].lower()
     return any(signal in text_sample for signal in JOB_POSTING_SIGNALS)
+
+def has_closed_job_signal(doc: CrawledDocument) -> bool:
+    """Detects explicit closed, filled, or archived job status indicators in text."""
+    if not doc.content:
+        return False
+    text_sample = doc.content[:3000].lower()
+    return any(signal in text_sample for signal in CLOSED_JOB_SIGNALS)
 
 def is_confirmed_job_opening(doc: CrawledDocument) -> bool:
     """
@@ -64,12 +115,14 @@ def is_confirmed_job_opening(doc: CrawledDocument) -> bool:
       2. Document quality is VALID
       3. Non-empty title is present
       4. Substantive job posting content signals exist in text
+      5. NO closed/archived/filled signals present in text
     """
     return (
         doc.page_type == PageType.JOB_LISTING
         and doc.quality == DocumentQuality.VALID
         and bool(doc.title and doc.title.strip())
         and has_job_posting_content_signal(doc)
+        and not has_closed_job_signal(doc)
     )
 
 def extract_research_opportunities(
@@ -78,7 +131,7 @@ def extract_research_opportunities(
 ) -> List[ResearchOpportunityDTO]:
     """
     Extracts opportunity DTOs strictly adhering to the CONFIRMED vs PROACTIVE vs UNCLASSIFIED contract:
-      - CONFIRMED: Verified active job opening with title and content evidence.
+      - CONFIRMED: Verified active job opening with title and content evidence (deduplicated by canonical URL).
       - PROACTIVE: Valid company research exists, but no verified active opening found.
       - UNCLASSIFIED: Insufficient valid documents collected to classify outreach opportunity.
     """
@@ -87,7 +140,12 @@ def extract_research_opportunities(
 
     if confirmed_docs:
         opportunities = []
+        seen_canonical_urls: Set[str] = set()
         for jd in confirmed_docs:
+            c_url = canonicalize_url(jd.url) or jd.url
+            if c_url in seen_canonical_urls:
+                continue
+            seen_canonical_urls.add(c_url)
             clean_title = clean_job_title(jd.title or "", name)
             opportunities.append(ResearchOpportunityDTO(
                 role_title=clean_title,
@@ -96,7 +154,8 @@ def extract_research_opportunities(
                 role_description=jd.content[:200] if jd.content else None,
                 opportunity_type=OpportunityType.CONFIRMED,
             ))
-        return opportunities
+        if opportunities:
+            return opportunities
 
     if package.documents and any(d.quality == DocumentQuality.VALID for d in package.documents):
         target_url = package.identity.website_url if package.identity else ""
