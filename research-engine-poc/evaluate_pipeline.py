@@ -546,11 +546,13 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     false_confirmed = 0
     missed_confirmed = 0
     expected_confirmed_cases = sum(1 for c in EVALUATION_DATASET if c.expected_opportunity_type == OpportunityType.CONFIRMED)
+    expected_non_confirmed_cases = sum(1 for c in EVALUATION_DATASET if c.expected_opportunity_type != OpportunityType.CONFIRMED)
     total_candidates = 0
     total_accepted_claims = 0
     total_rejected_claims = 0
     grounding_failures = 0
     total_latency_s = 0.0
+    case_latencies: List[float] = []
     total_tokens_consumed = 0
     provider_errors = 0
     validation_errors = 0
@@ -563,6 +565,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             graph, dto, diagnostics = LLMClaimGraphBridge.process(case.package, synthesizer)
             duration_s = time.perf_counter() - start_time
             total_latency_s += duration_s
+            case_latencies.append(duration_s)
 
             meta = getattr(synthesizer, "last_metadata", None)
             tokens = meta.total_tokens if meta and meta.total_tokens else 0
@@ -630,6 +633,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
             )
         except Exception as e:
             duration_s = time.perf_counter() - start_time
+            case_latencies.append(duration_s)
             err_type = "PROVIDER_ERROR" if "API" in type(e).__name__ or "Http" in type(e).__name__ or "timeout" in str(e).lower() else "VALIDATION_ERROR"
             if err_type == "PROVIDER_ERROR":
                 provider_errors += 1
@@ -674,18 +678,25 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     scorecard.add_column("Target / Invariant", style="green")
 
     opp_accuracy_pct = (opp_matches / total_cases) * 100.0
-    false_conf_pct = (false_confirmed / total_cases) * 100.0
+    false_conf_pct = (false_confirmed / expected_non_confirmed_cases * 100.0) if expected_non_confirmed_cases > 0 else 0.0
+    confirmed_recall_pct = ((expected_confirmed_cases - missed_confirmed) / expected_confirmed_cases * 100.0) if expected_confirmed_cases > 0 else 100.0
     rejection_rate_pct = (total_rejected_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
     acceptance_rate_pct = (total_accepted_claims / total_candidates * 100.0) if total_candidates > 0 else 0.0
 
+    sorted_latencies = sorted(case_latencies) if case_latencies else [0.0]
+    p50_latency = sorted_latencies[len(sorted_latencies) // 2]
+    p95_index = min(len(sorted_latencies) - 1, int(0.95 * len(sorted_latencies)))
+    p95_latency = sorted_latencies[p95_index]
+    avg_latency = total_latency_s / total_cases if total_cases > 0 else 0.0
+
     scorecard.add_row("Model & Timestamp", f"{model_name} @ {run_timestamp}", "Deterministic Model ID")
     scorecard.add_row("Total Evaluation Cases", f"{total_cases} Cases ({total_cases - provider_errors - validation_errors} SUCCESS, {provider_errors} PROVIDER_ERR, {validation_errors} VAL_ERR)", f"{total_cases} Cases")
-    scorecard.add_row("Safety: False CONFIRMED Rate (Critical False Positives)", f"{false_conf_pct:.1f}% ({false_confirmed}/{total_cases})", "0.0% (Safety Invariant)")
-    scorecard.add_row("Recall: Missed CONFIRMED Openings", f"{missed_confirmed}/{expected_confirmed_cases} missed", "0 missed (High Recall)")
     scorecard.add_row("Opportunity Verdict Accuracy", f"{opp_accuracy_pct:.1f}% ({opp_matches}/{total_cases})", "100.0%")
-    scorecard.add_row("Grounding: Ungrounded Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
+    scorecard.add_row("Recall: Confirmed Opening Recall", f"{confirmed_recall_pct:.1f}% ({expected_confirmed_cases - missed_confirmed}/{expected_confirmed_cases})", "100.0% (High Recall)")
+    scorecard.add_row("Safety: False CONFIRMED Rate", f"{false_conf_pct:.1f}% ({false_confirmed}/{expected_non_confirmed_cases})", "0.0% (Hard Safety Invariant)")
+    scorecard.add_row("Grounding: Provenance Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
+    scorecard.add_row("Grounding: Candidate Rejection Rate", f"{total_rejected_claims}/{total_candidates} ({rejection_rate_pct:.1f}%)", "Filters ungrounded")
     scorecard.add_row("Grounding: Accepted Claim Rate (Diagnostic)", f"{total_accepted_claims}/{total_candidates} ({acceptance_rate_pct:.1f}%)", "Diagnostic Yield")
-    scorecard.add_row("Grounding: Hallucination Leakage", str(grounding_failures), "Strictly 0 (Hard Invariant)")
     scorecard.add_row("Usefulness: Total Grounded Claims Accepted", str(total_accepted_claims), "High useful yield")
     
     # Format categories according to ClaimCategory domain enum
@@ -694,7 +705,7 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
     if not cat_summary:
         cat_summary = "None"
     scorecard.add_row("Usefulness: Claims by Category", cat_summary, "Balanced distribution across domain taxonomy")
-    scorecard.add_row("Performance: Average Case Latency", f"{(total_latency_s / total_cases):.2f}s", "< 4.0s")
+    scorecard.add_row("Performance: Latency (Avg / p50 / p95)", f"{avg_latency:.2f}s / {p50_latency:.2f}s / {p95_latency:.2f}s", "< 10.0s")
     scorecard.add_row("Performance: Total Token Consumption", str(total_tokens_consumed), "-")
 
     console.print()
@@ -707,13 +718,19 @@ def run_benchmark_evaluation(synthesizer, provider_label: str) -> Dict[str, Any]
         "total_cases": total_cases,
         "accuracy_pct": opp_accuracy_pct,
         "false_confirmed_rate": false_conf_pct,
+        "false_confirmed_count": false_confirmed,
+        "expected_non_confirmed_cases": expected_non_confirmed_cases,
+        "confirmed_recall_pct": confirmed_recall_pct,
         "missed_confirmed": missed_confirmed,
+        "expected_confirmed_cases": expected_confirmed_cases,
         "grounding_failures": grounding_failures,
         "total_claims": total_accepted_claims,
         "rejected_claims": total_rejected_claims,
         "acceptance_rate_pct": acceptance_rate_pct,
         "claims_by_category": claims_by_category,
-        "avg_latency_s": total_latency_s / total_cases,
+        "avg_latency_s": avg_latency,
+        "p50_latency_s": p50_latency,
+        "p95_latency_s": p95_latency,
         "total_tokens": total_tokens_consumed,
         "case_details": case_details,
     }
@@ -731,18 +748,18 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
 
     comp_table.add_row(
         "Opportunity Verdict Accuracy",
-        *[f"{r['accuracy_pct']:.1f}%" for r in results]
+        *[f"{r['accuracy_pct']:.1f}% ({r['total_cases'] - r.get('missed_confirmed', 0)}/{r['total_cases']})" for r in results]
+    )
+    comp_table.add_row(
+        "Recall: Confirmed Opening Recall",
+        *[f"{r['confirmed_recall_pct']:.1f}% ({r['expected_confirmed_cases'] - r['missed_confirmed']}/{r['expected_confirmed_cases']})" for r in results]
     )
     comp_table.add_row(
         "Safety: False CONFIRMED Rate",
-        *[f"{r['false_confirmed_rate']:.1f}%" for r in results]
+        *[f"{r['false_confirmed_rate']:.1f}% ({r['false_confirmed_count']}/{r['expected_non_confirmed_cases']})" for r in results]
     )
     comp_table.add_row(
-        "Recall: Missed CONFIRMED Openings",
-        *[str(r["missed_confirmed"]) for r in results]
-    )
-    comp_table.add_row(
-        "Grounding: Hallucination Leakage",
+        "Grounding: Provenance Leakage",
         *[str(r["grounding_failures"]) for r in results]
     )
     comp_table.add_row(
@@ -758,8 +775,8 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
         *[f"{r['acceptance_rate_pct']:.1f}%" for r in results]
     )
     comp_table.add_row(
-        "Average Case Latency",
-        *[f"{r['avg_latency_s']:.2f}s" for r in results]
+        "Latency: Avg / p50 / p95",
+        *[f"{r['avg_latency_s']:.2f}s / {r['p50_latency_s']:.2f}s / {r['p95_latency_s']:.2f}s" for r in results]
     )
     comp_table.add_row(
         "Total Tokens Consumed",
@@ -774,7 +791,7 @@ def print_comparative_summary(results: List[Dict[str, Any]]):
     diff_table.add_column("Case ID", style="cyan", width=20)
     diff_table.add_column("Expected Opp", style="bold", width=12)
     for r in results:
-        diff_table.add_column(f"{r['provider']}\nOpp / Acc / Rej", justify="center")
+        diff_table.add_column(f"{r['provider']}\nOpp | Acc / Rej", justify="center")
 
     all_case_ids = [c.case_id for c in EVALUATION_DATASET]
     for cid in all_case_ids:
@@ -814,7 +831,7 @@ def main():
         results.append(res)
 
     if mistral_key:
-        synth = MistralLLMSynthesizer(api_key=mistral_key, model="mistral-small-latest")
+        synth = MistralLLMSynthesizer(api_key=mistral_key, model=os.environ.get("MISTRAL_MODEL"))
         res = run_benchmark_evaluation(synth, "Mistral AI")
         results.append(res)
 

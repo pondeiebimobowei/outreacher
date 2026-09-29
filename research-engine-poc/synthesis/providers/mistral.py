@@ -24,19 +24,36 @@ class MistralLLMSynthesizer(ILLMSynthesizer):
     and automatic exponential backoff retry on rate limits (429/503).
     """
 
-    BASE_URL = "https://api.mistral.ai/v1/chat/completions"
+    DEFAULT_BASE_URL = "https://api.mistral.ai/v1/chat/completions"
+    OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "mistral-small-latest",
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
         timeout: float = 35.0,
         max_retries: int = 3,
     ):
         self.api_key = api_key or os.environ.get("MISTRAL_API_KEY")
         if not self.api_key:
             raise ValueError("Mistral API key must be provided or set in MISTRAL_API_KEY environment variable.")
-        self.model = model
+        
+        is_openrouter = self.api_key.startswith("sk-or-")
+        if base_url:
+            self.base_url = base_url
+        elif is_openrouter:
+            self.base_url = self.OPENROUTER_BASE_URL
+        else:
+            self.base_url = os.environ.get("MISTRAL_BASE_URL", self.DEFAULT_BASE_URL)
+
+        if model:
+            self.model = model
+        elif is_openrouter:
+            self.model = os.environ.get("MISTRAL_MODEL", "mistralai/mistral-small-3.2-24b-instruct")
+        else:
+            self.model = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
+
         self.timeout = timeout
         self.max_retries = max_retries
         self.last_metadata: Optional[LLMRunMetadata] = None
@@ -49,11 +66,14 @@ class MistralLLMSynthesizer(ILLMSynthesizer):
         json_mode: bool = True,
         temperature: float = 0.1,
     ) -> str:
-        """Invokes Mistral chat completions API with telemetry and error handling."""
+        """Invokes Mistral/OpenRouter chat completions API with telemetry and error handling."""
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
+        if "openrouter.ai" in self.base_url:
+            headers["HTTP-Referer"] = "https://github.com/pondeiebimobowei/outreacher"
+            headers["X-Title"] = "Outreacher POC"
 
         payload: Dict[str, Any] = {
             "model": self.model,
@@ -71,7 +91,7 @@ class MistralLLMSynthesizer(ILLMSynthesizer):
             start_time = time.perf_counter()
             try:
                 with httpx.Client(timeout=self.timeout) as client:
-                    response = client.post(self.BASE_URL, headers=headers, json=payload)
+                    response = client.post(self.base_url, headers=headers, json=payload)
 
                 latency_ms = (time.perf_counter() - start_time) * 1000.0
 
