@@ -32,12 +32,15 @@ class EvaluationBenchmarkCase:
     expected_role_title: Optional[str]
     expected_identity_confidence: IdentityConfidence
     ground_truth_notes: str
+    snapshot_version: str = "v1.0-frozen"
+    retrieval_timestamp: str = "2026-09-29T08:00:00Z"
 
 
-# ── Benchmark Evaluation Dataset (10 Cases across 4 Dimensions) ────────────────
-# 1. REAL_WORLD: Observed evidence + human-established expected outcome
-# 2. NEGATIVE_GATING: Negative vacancy signal & false-positive reduction
-# 3. CONTRACT_FIXTURE: Invariant test case constructed to verify boundary behavior
+# ── Benchmark Evaluation Dataset (10 Frozen Snapshot Cases across 4 Dimensions) ──
+# Deterministic regression dataset with frozen crawled evidence packages:
+# 1. REAL_WORLD: Frozen observed evidence snapshots + human-established ground truth
+# 2. NEGATIVE_GATING: Negative vacancy signals (closed, filled, paused, culture-only)
+# 3. CONTRACT_FIXTURE: Invariant boundary fixtures (stealth, short overview, multi-source)
 # 4. IDENTITY_SAFETY: Disambiguation and domain collision safety scenario
 
 EVALUATION_DATASET: List[EvaluationBenchmarkCase] = [
