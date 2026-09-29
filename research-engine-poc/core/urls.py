@@ -1,6 +1,9 @@
 import re
-from typing import Set, Any, List
+from typing import Set, Any, List, TYPE_CHECKING
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+
+if TYPE_CHECKING:
+    from core.models import CrawledDocument, RawResearchPackage
 
 # Marketing and analytics tracking parameters to strip
 _TRACKING_PARAMS: Set[str] = {
@@ -88,7 +91,7 @@ def canonicalize_url(url: str) -> str:
     except Exception:
         return ""
 
-def deduplicate_documents_by_canonical_url(documents: list) -> list:
+def deduplicate_documents_by_canonical_url(documents: List["CrawledDocument"]) -> List["CrawledDocument"]:
     """
     Deduplicates a list of CrawledDocument instances by canonical URL:
       - Normalizes doc.final_url or doc.url using canonicalize_url.
@@ -108,7 +111,7 @@ def deduplicate_documents_by_canonical_url(documents: list) -> list:
             deduped.append(doc)
     return deduped
 
-def normalize_research_package(package: Any) -> Any:
+def normalize_research_package(package: "RawResearchPackage") -> "RawResearchPackage":
     """
     Creates a canonical, normalized RawResearchPackage:
       - Deduplicates package.documents by canonical URL.
@@ -118,5 +121,5 @@ def normalize_research_package(package: Any) -> Any:
     """
     if not package or not hasattr(package, "documents"):
         return package
-    deduped_docs = deduplicate_documents_by_canonical_url(package.documents)
+    deduped_docs = deduplicate_documents_by_canonical_url(list(package.documents))
     return package.model_copy(update={"documents": tuple(deduped_docs)})
