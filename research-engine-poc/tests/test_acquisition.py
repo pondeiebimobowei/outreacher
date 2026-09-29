@@ -51,6 +51,11 @@ def test_discovery_query_builder():
 def test_domain_scope_security():
     # Exact domain
     assert DomainScopeFilter.is_allowed("https://moniepoint.com/careers", "moniepoint.com") is True
+    # www and non-www interoperability on primary domain
+    assert DomainScopeFilter.is_allowed("https://www.moniepoint.com/careers", "moniepoint.com") is True
+    assert DomainScopeFilter.is_allowed("https://moniepoint.com/careers", "www.moniepoint.com") is True
+    assert DomainScopeFilter.is_allowed("https://www.moniepoint.com/careers", "https://www.moniepoint.com") is True
+    assert DomainScopeFilter.is_allowed("https://moniepoint.com/careers", "https://moniepoint.com") is True
     # Subdomain
     assert DomainScopeFilter.is_allowed("https://jobs.moniepoint.com/careers", "moniepoint.com") is True
     # URL with explicit port and userinfo
@@ -245,6 +250,18 @@ def test_url_canonicalization():
     # Substantive query params preserved
     url_with_search = "https://acme.com/search?q=engineer&location=remote"
     assert canonicalize_url(url_with_search) == "https://acme.com/search?location=remote&q=engineer"
+
+    # www vs non-www equivalence
+    assert canonicalize_url("https://www.domain.com") == canonicalize_url("https://domain.com")
+    assert canonicalize_url("https://www.domain.com/careers/") == canonicalize_url("https://domain.com/careers")
+    assert canonicalize_url("http://WWW.DOMAIN.COM") == "http://domain.com/"
+
+    # normalize_domain helper tests
+    from core.urls import normalize_domain
+    assert normalize_domain("https://www.domain.com/about") == "domain.com"
+    assert normalize_domain("WWW.Acme.COM:8080") == "acme.com"
+    assert normalize_domain("acme.com/") == "acme.com"
+    assert normalize_domain("www.stripe.com") == "stripe.com"
 
 
 def test_url_canonicalization_invalid_inputs():

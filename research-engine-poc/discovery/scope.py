@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlparse
 from typing import Optional, Set
+from core.urls import normalize_domain
 
 class DomainScopeFilter:
     """
@@ -26,7 +27,7 @@ class DomainScopeFilter:
         slugs = set()
         
         # Domain stem (e.g. 'moniepoint' from 'moniepoint.com')
-        domain_clean = verified_domain.lower().replace('www.', '')
+        domain_clean = normalize_domain(verified_domain)
         domain_stem = domain_clean.split('.')[0]
         if domain_stem and len(domain_stem) >= 2:
             slugs.add(domain_stem)
@@ -67,19 +68,13 @@ class DomainScopeFilter:
             
         try:
             parsed = urlparse(url.strip())
-            hostname = parsed.hostname
-            if not hostname:
-                return False
-                
-            host = hostname.lower().removeprefix('www.')
+            host = normalize_domain(url)
             if not host:
                 return False
                 
-            # Normalize verified domain to pure hostname
-            verified_clean = verified_domain.strip()
-            if "//" not in verified_clean:
-                verified_clean = f"https://{verified_clean}"
-            verified_host = (urlparse(verified_clean).hostname or verified_domain.strip()).lower().removeprefix('www.')
+            verified_host = normalize_domain(verified_domain)
+            if not verified_host:
+                return False
             
             # 1. Primary domain or subdomain match
             if host == verified_host or host.endswith('.' + verified_host):

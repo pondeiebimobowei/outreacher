@@ -9,6 +9,34 @@ _TRACKING_PARAMS: Set[str] = {
     'gclsrc', 'dclid', 'zanpid', 'msclkid', 'mc_cid', 'mc_eid',
 }
 
+def normalize_domain(domain_or_url: str) -> str:
+    """
+    Normalizes a domain or URL to its canonical hostname:
+      - Extracts hostname if a full URL or path is provided.
+      - Lowercases characters.
+      - Strips port numbers if present.
+      - Strips leading 'www.' prefix.
+      - Strips leading/trailing dots and slashes.
+    """
+    if not domain_or_url or not isinstance(domain_or_url, str):
+        return ""
+    raw = domain_or_url.strip()
+    if not raw:
+        return ""
+    if "://" not in raw:
+        raw = f"http://{raw}"
+    try:
+        parsed = urlparse(raw)
+        hostname = parsed.hostname or parsed.netloc.split(":")[0]
+        if not hostname:
+            return ""
+        host = hostname.lower()
+        if host.startswith("www."):
+            host = host[4:]
+        return host.strip(".")
+    except Exception:
+        return ""
+
 def canonicalize_url(url: str) -> str:
     """
     Normalizes a URL to prevent duplicate crawls of identical pages:
@@ -32,12 +60,9 @@ def canonicalize_url(url: str) -> str:
         if scheme not in ("http", "https"):
             return ""
             
-        netloc = parsed.netloc.lower()
+        netloc = normalize_domain(parsed.netloc or parsed.path)
         if not netloc:
             return ""
-            
-        if netloc.startswith("www."):
-            netloc = netloc[4:]
             
         # Normalize path
         path = parsed.path

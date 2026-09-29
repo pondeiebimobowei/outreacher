@@ -1,6 +1,7 @@
 from typing import List
 from urllib.parse import urlparse, parse_qs, unquote
 from core.models import SearchResult
+from core.urls import normalize_domain
 
 class SearchResultSanitizer:
     """
@@ -51,13 +52,10 @@ class SearchResultSanitizer:
             raw_url = cls._unwrap_redirect(r.url.strip())
             try:
                 parsed = urlparse(raw_url)
-                if parsed.scheme.lower() not in ('http', 'https'):
-                    continue
-                hostname = parsed.hostname
-                if not hostname:
+                host = normalize_domain(raw_url)
+                if not host:
                     continue
                     
-                host = hostname.lower().removeprefix('www.')
                 path = parsed.path.lower()
                 
                 # Check banned ad tracker hosts

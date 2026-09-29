@@ -9,6 +9,7 @@ from core.models import (
     CompanyIdentity, IdentityConfidence, IdentityContext,
     IdentityCandidate, IdentityEvidence, EvidenceType, SiteRelationship,
 )
+from core.urls import normalize_domain
 from identity.verifier import WebsiteVerifier
 
 # How many top candidates to run through the verifier.
@@ -97,8 +98,8 @@ class IdentityResolver:
         clean_name = re.sub(r'[^a-z0-9]', '', name_lower)
 
         for idx, r in enumerate(results):
-            domain = urlparse(r.url).netloc.replace('www.', '').lower()
-            if any(domain == ex or domain.endswith("." + ex) for ex in excluded_domains):
+            domain = normalize_domain(r.url)
+            if not domain or any(domain == ex or domain.endswith("." + ex) for ex in excluded_domains):
                 continue
             if domain not in domain_top_result:
                 domain_top_result[domain] = r
