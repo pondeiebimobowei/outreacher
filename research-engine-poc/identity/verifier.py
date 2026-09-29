@@ -57,6 +57,12 @@ _ABOUT_TITLE_PREFIXES: tuple = (
 # Relationship signal templates — indicate a NON-PRIMARY relationship.
 # {name} is replaced with re.escape(company_name.lower()).
 _RELATIONSHIP_TEMPLATES: list = [
+    # Subordinate relationship templates (entity is a brand/product/subsidiary of another)
+    r"{name}\s+(?:is|was)\s+a\s+(?:brand|product|division|subsidiary|service)\s+of\b",
+    r"{name}\s+(?:is|was)\s+(?:owned|acquired|built|made|created|developed|powered)\s+by\b",
+    r"{name}\s+operates\s+as\s+a\s+(?:subsidiary|division)\s+of\b",
+    r"{name}\s+(?:is|was)\s+part\s+of\b",
+    # Parent/creator relationship templates
     r"a\s+product\s+of\s+{name}",
     r"owned\s+by\s+{name}",
     r"acquired\s+by\s+{name}",
@@ -119,7 +125,7 @@ class WebsiteVerifier:
         # live crawler returns no title — common for JS-rendered SPAs.
         hp_title   = (hp_doc.title or hint_title or "").strip()
         hp_content = (hp_doc.content or "")
-        hp_sample  = (hp_title + " " + hp_content[:3000]).lower()
+        hp_sample  = (hp_title + ". " + hp_content[:3000]).lower()
 
         hp_title_match  = self._title_matches_entity(hp_title, company_name)
         hp_sentence_id  = self._detect_self_identity(hp_sample, company_name)
@@ -173,10 +179,17 @@ class WebsiteVerifier:
             )
 
         # ── 3. Secondary identity corroboration ───────────────────────────────
-        corr_entity_match, corr_name_match, corr_strength, corr_ev = (
+        corr_entity_match, corr_name_match, corr_strength, corr_rel, corr_ev = (
             self._find_corroboration(company_name, company_lower, website_url, domain)
         )
         evidence.extend(corr_ev)
+
+        if corr_rel:
+            return (
+                SiteRelationship.RELATED,
+                f"Secondary page references {company_name} in a structural relationship (product/brand/subsidiary/acquired).",
+                evidence,
+            )
 
         # ── 4. Decision ───────────────────────────────────────────────────────
         # STRONG evidence: secondary page title also matches the entity.
@@ -329,6 +342,8 @@ class WebsiteVerifier:
         for prefix in _ABOUT_TITLE_PREFIXES:
             if t.startswith(prefix):
                 remainder = t[len(prefix):].strip()
+                if remainder.startswith(("|", "-", "–", "—", ":", "•", "/")):
+                    remainder = remainder.lstrip("|-–—:•/ ").strip()
                 if remainder == n:
                     return True
                 if remainder.startswith(n):
@@ -379,7 +394,7 @@ class WebsiteVerifier:
         company_lower: str,
         website_url: str,
         domain: str,
-    ) -> Tuple[bool, bool, Optional[str], List[IdentityEvidence]]:
+    ) -> Tuple[bool, bool, Optional[str], bool, List[IdentityEvidence]]:
         """
         Search for and evaluate a secondary identity page (ABOUT / CONTACT).
 
@@ -387,6 +402,7 @@ class WebsiteVerifier:
           entity_title_match — secondary page title entity-matched the company name.
           name_match         — company name was present on the secondary page.
           strength           — 'strong' | 'medium' | 'supplemental' | None.
+          rel_match          — structural relationship (product/brand/subsidiary) detected.
           evidence           — list of IdentityEvidence items.
         """
         query = f'site:{domain} "about" OR "company" OR "contact"'
@@ -417,6 +433,13 @@ class WebsiteVerifier:
 
             doc_title   = (doc.title   or "").strip()
             doc_content = (doc.content or "")
+            doc_sample  = (doc_title + ". " + doc_content[:3000]).lower()
+
+            rel_match = self._detect_relationship(doc_sample, company_name)
+            if rel_match:
+                return False, False, None, True, [IdentityEvidence(
+                    type=EvidenceType.RELATIONSHIP, source="secondary_page", url=url, signal="RELATIONSHIP_MENTION",
+                )]
 
             entity_match = self._secondary_title_matches_entity(doc_title, company_name)
             name_match   = (
@@ -431,8 +454,8 @@ class WebsiteVerifier:
                 else:
                     signal   = f"NAME_IN_{strength.upper()}_PAGE"
                     ev_type  = EvidenceType.PAGE_IDENTITY
-                return entity_match, name_match, strength, [IdentityEvidence(
+                return entity_match, name_match, strength, False, [IdentityEvidence(
                     type=ev_type, source="secondary_page", url=url, signal=signal,
                 )]
 
-        return False, False, None, []
+        return False, False, None, False, []

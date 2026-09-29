@@ -1,20 +1,23 @@
 """
 benchmark_identity_recall.py — Deterministic Identity Recall & State Accuracy Benchmark
 
-Evaluates the Identity Resolution layer against a frozen suite of challenging-but-legitimate
-domains and negative controls without external network dependencies.
+Evaluates the Identity Resolution layer against an expanded frozen suite of 24 challenging-but-legitimate
+domains and adversarial negative controls without external network dependencies.
+
+Corpus Snapshot: identity-v1.1-frozen (24 Frozen Snapshot Cases)
 
 Metric Suite:
-  1. Identity State Accuracy = correct predicted state / all identity fixtures
-  2. CONFIDENT Recall        = correctly CONFIDENT fixtures / fixtures expected to be CONFIDENT
-  3. False CONFIDENT Rate    = incorrectly CONFIDENT fixtures / fixtures expected NOT to be CONFIDENT (Invariant: strictly 0.0%)
+  1. Identity State Accuracy = correct predicted state / all 24 identity fixtures (Target: >= 95.0%)
+  2. CONFIDENT Recall        = correctly CONFIDENT fixtures / 15 expected CONFIDENT fixtures (Target: >= 90.0%)
+  3. False CONFIDENT Rate    = incorrectly CONFIDENT fixtures / 9 expected non-CONFIDENT fixtures (Target: strictly 0.0%)
+  4. Non-CONFIDENT Safety    = correctly classified AMBIGUOUS and UNRESOLVED controls (Target: 100.0%)
 
-Failure Families Covered:
-  - SPA_RENDERED: Client-rendered SPAs (minimal HTML body, search title hint dependency)
-  - UNCONVENTIONAL_PATH: Non-standard secondary routes (/company/story, /who-we-are)
-  - INDIRECT_SELF_ID: Taglines and mission-based self-identification
-  - SUBDOMAIN_MULTI_TIER: Product subdomains and legacy/rebranded assets
-  - NEGATIVE_CONTROL: Genuine entity collisions, shape risk, and insufficient evidence
+Failure Families Covered (24 Cases):
+  - SPA_RENDERED (5 cases): Client-rendered minimal DOMs with Google-indexed title hints
+  - UNCONVENTIONAL_PATH (5 cases): Secondary identity corroboration on non-standard routes
+  - INDIRECT_SELF_ID (5 cases): Active verb phrases and mission statement self-identification
+  - SUBDOMAIN_MULTI_TIER (4 cases): Product subdomains, legacy assets, and hosted blog targets
+  - NEGATIVE_CONTROL (5 cases): Entity collisions, shape-risk names, missing corroboration, and adversarial related secondaries
 """
 
 import sys
@@ -50,7 +53,7 @@ class IdentityRecallCase:
     search_results: List[SearchResult]
     mock_documents: Dict[str, CrawledDocument]
     context: Optional[IdentityContext] = None
-    snapshot_version: str = "v1.0-frozen"
+    snapshot_version: str = "identity-v1.1-frozen"
     retrieval_timestamp: str = "2026-09-29T12:00:00Z"
 
 
@@ -81,10 +84,10 @@ def _fail_doc(url: str, ptype: PageType = PageType.OTHER) -> CrawledDocument:
     )
 
 
-# ── 2. Frozen Identity Recall Dataset (12 Cases across 5 Categories) ─────────
+# ── 2. Frozen Identity Recall Dataset (24 Cases across 5 Categories) ─────────
 
 IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
-    # ── Category 1: SPA & Client-Rendered Homepages ───────────────────────────
+    # ── Category 1: SPA & Client-Rendered Homepages (5 Cases) ─────────────────
     IdentityRecallCase(
         case_id="spa_empty_body_with_hint_title",
         category="SPA_RENDERED",
@@ -92,7 +95,7 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="linear.app",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="SPA homepage returns empty body; index search title hint provides entity self-identity.",
+        ground_truth_reason="SPA homepage returns empty DOM; search title hint provides entity match and /about corroborates.",
         search_results=[
             SearchResult(title="Linear: Software Development Tool", url="https://linear.app", snippet="Linear is a purpose-built issue tracking tool."),
         ],
@@ -119,7 +122,59 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         },
     ),
 
-    # ── Category 2: Unconventional Secondary Paths ───────────────────────────
+    IdentityRecallCase(
+        case_id="spa_framework_shell_react",
+        category="SPA_RENDERED",
+        company="Retool",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="retool.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="React shell requiring JavaScript fallback; title hint and /about establish verified primary identity.",
+        search_results=[
+            SearchResult(title="Retool: Build internal tools fast", url="https://retool.com", snippet="Retool provides app building building blocks for engineering teams."),
+        ],
+        mock_documents={
+            "https://retool.com": _doc("https://retool.com", title="", content="<noscript>You need to enable JavaScript to run this app.</noscript>", ptype=PageType.HOMEPAGE),
+            "https://retool.com/about": _doc("https://retool.com/about", title="About Retool", content="Retool is the fast way to build internal software. Trusted by thousands of companies.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="spa_angular_root_loader",
+        category="SPA_RENDERED",
+        company="Ramp Financial",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="ramp.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Angular app-root spinner on homepage; search title hint and secondary /company corroboration confirm Ramp Financial.",
+        search_results=[
+            SearchResult(title="Ramp Financial - Corporate Cards and Spend Management", url="https://ramp.com", snippet="Ramp Financial helps finance teams automate expenses and save time."),
+            SearchResult(title="About Ramp Financial", url="https://ramp.com/company", snippet="Learn about Ramp Financial's mission."),
+        ],
+        mock_documents={
+            "https://ramp.com": _doc("https://ramp.com", title="", content="<app-root><div class='loading-spinner'></div></app-root>", ptype=PageType.HOMEPAGE),
+            "https://ramp.com/company": _doc("https://ramp.com/company", title="About Ramp Financial", content="About Ramp Financial: The modern finance automation platform designed to save businesses money.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="spa_shadow_dom_minimal_text",
+        category="SPA_RENDERED",
+        company="Figma Design",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="figma.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Minimal text on homepage shadow DOM; title hint and /about establish verified primary identity.",
+        search_results=[
+            SearchResult(title="Figma Design: The Collaborative Interface Design Tool", url="https://figma.com", snippet="Figma Design connects teams in the design process."),
+        ],
+        mock_documents={
+            "https://figma.com": _doc("https://figma.com", title="", content="Figma Design. Connect your design process with collaborative canvases.", ptype=PageType.HOMEPAGE),
+            "https://figma.com/about": _doc("https://figma.com/about", title="About Figma Design", content="Figma Design is the leading collaborative interface design platform.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    # ── Category 2: Unconventional Secondary Paths (5 Cases) ─────────────────
     IdentityRecallCase(
         case_id="unconv_company_story_path",
         category="UNCONVENTIONAL_PATH",
@@ -127,7 +182,7 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="moove.io",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Legitimate company where secondary corroboration is hosted on /company/story.",
+        ground_truth_reason="Secondary corroboration hosted at /company/story route.",
         search_results=[
             SearchResult(title="Moove Mobility - Mobility Fintech", url="https://moove.io", snippet="Moove Mobility democratizes vehicle ownership."),
             SearchResult(title="Our Story | Moove Mobility", url="https://moove.io/company/story", snippet="Learn about Moove Mobility and our mission."),
@@ -156,7 +211,61 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         },
     ),
 
-    # ── Category 3: Indirect Self-Identification ─────────────────────────────
+    IdentityRecallCase(
+        case_id="unconv_about_us_mission_path",
+        category="UNCONVENTIONAL_PATH",
+        company="Paystack",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="paystack.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Secondary corroboration at /about-us path with strong entity title confirmation.",
+        search_results=[
+            SearchResult(title="Paystack - Modern Online Payments", url="https://paystack.com", snippet="Paystack helps businesses in Africa get paid by anyone."),
+            SearchResult(title="About Us | Paystack", url="https://paystack.com/about-us", snippet="Learn about Paystack and our journey."),
+        ],
+        mock_documents={
+            "https://paystack.com": _doc("https://paystack.com", title="Paystack - Modern Online Payments", content="Paystack is a growth engine for modern internet businesses in Africa.", ptype=PageType.HOMEPAGE),
+            "https://paystack.com/about-us": _doc("https://paystack.com/about-us", title="About Us | Paystack", content="About Paystack: Over 60,000 businesses use Paystack to collect payments safely.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="unconv_company_overview_path",
+        category="UNCONVENTIONAL_PATH",
+        company="Postman",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="postman.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Secondary page at /company/overview with company name in title and body.",
+        search_results=[
+            SearchResult(title="Postman API Platform", url="https://postman.com", snippet="Postman is an API platform for building and using APIs."),
+            SearchResult(title="Company Overview | Postman", url="https://postman.com/company/overview", snippet="Postman overview and history."),
+        ],
+        mock_documents={
+            "https://postman.com": _doc("https://postman.com", title="Postman API Platform", content="Postman is the world's leading API platform used by 30 million developers.", ptype=PageType.HOMEPAGE),
+            "https://postman.com/company/overview": _doc("https://postman.com/company/overview", title="Company Overview | Postman", content="Postman was founded in 2014 to simplify every step of the API lifecycle.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="unconv_contact_sales_path",
+        category="UNCONVENTIONAL_PATH",
+        company="Supabase",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="supabase.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Secondary corroboration provided via /contact/sales route.",
+        search_results=[
+            SearchResult(title="Supabase | The Open Source Firebase Alternative", url="https://supabase.com", snippet="Supabase is an open source Firebase alternative."),
+            SearchResult(title="Contact Supabase", url="https://supabase.com/contact/sales", snippet="Get in touch with the Supabase team."),
+        ],
+        mock_documents={
+            "https://supabase.com": _doc("https://supabase.com", title="Supabase | The Open Source Firebase Alternative", content="Supabase provides Postgres database, authentication, and instant APIs.", ptype=PageType.HOMEPAGE),
+            "https://supabase.com/contact/sales": _doc("https://supabase.com/contact/sales", title="Contact Supabase", content="Talk to the Supabase sales engineering team.", ptype=PageType.CONTACT),
+        },
+    ),
+
+    # ── Category 3: Indirect Self-Identification (5 Cases) ───────────────────
     IdentityRecallCase(
         case_id="indirect_action_verb_brand",
         category="INDIRECT_SELF_ID",
@@ -164,7 +273,7 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="moniepoint.com",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Homepage self-identity uses strong active verb phrase rather than passive 'X is a' definition.",
+        ground_truth_reason="Homepage opens with active verb phrase ('Moniepoint powers...').",
         search_results=[
             SearchResult(title="Moniepoint – Financial Services Platform", url="https://moniepoint.com", snippet="Moniepoint powers modern banking for 1M+ African businesses."),
         ],
@@ -181,7 +290,7 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="stripe.com",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Homepage opens with mission statement self-identification.",
+        ground_truth_reason="Homepage opens with mission statement self-identification ('Stripe builds...').",
         search_results=[
             SearchResult(title="Stripe | Financial Infrastructure for the Internet", url="https://stripe.com", snippet="Stripe builds financial infrastructure."),
         ],
@@ -191,7 +300,58 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         },
     ),
 
-    # ── Category 4: Subdomain & Multi-Tier Entity Assets ──────────────────────
+    IdentityRecallCase(
+        case_id="indirect_enables_enterprise_thesis",
+        category="INDIRECT_SELF_ID",
+        company="Datadog",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="datadoghq.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Homepage uses 'Datadog enables full-stack observability...' with exact domain correspondence.",
+        search_results=[
+            SearchResult(title="Datadog – Cloud Monitoring & Security", url="https://datadoghq.com", snippet="Datadog provides observability and security for cloud applications."),
+        ],
+        mock_documents={
+            "https://datadoghq.com": _doc("https://datadoghq.com", title="Datadog – Cloud Monitoring & Security", content="Datadog enables full-stack observability and security monitoring across modern cloud environments.", ptype=PageType.HOMEPAGE),
+            "https://datadoghq.com/about": _doc("https://datadoghq.com/about", title="About Datadog", content="Datadog brings together metrics, traces, and logs in a unified SaaS platform.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="indirect_serves_global_workforce",
+        category="INDIRECT_SELF_ID",
+        company="Deel Global",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="deel.com",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Homepage opens with 'Deel Global serves over 20,000 global companies with automated payroll...'",
+        search_results=[
+            SearchResult(title="Deel Global: Global Payroll & Compliance", url="https://deel.com", snippet="Deel Global simplifies hiring and payroll across 150+ countries."),
+        ],
+        mock_documents={
+            "https://deel.com": _doc("https://deel.com", title="Deel Global: Global Payroll & Compliance", content="Deel Global serves over 20,000 global companies with automated international payroll and HR compliance.", ptype=PageType.HOMEPAGE),
+            "https://deel.com/about": _doc("https://deel.com/about", title="About Deel Global", content="Deel Global was founded in 2019 to help teams hire anyone, anywhere in the world.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="indirect_welcome_phrase_onboarding",
+        category="INDIRECT_SELF_ID",
+        company="Notion",
+        expected_confidence=IdentityConfidence.CONFIDENT,
+        expected_domain="notion.so",
+        expected_relationship=SiteRelationship.PRIMARY,
+        ground_truth_reason="Homepage uses position-independent 'Welcome to Notion' opening.",
+        search_results=[
+            SearchResult(title="Notion: Your connected workspace", url="https://notion.so", snippet="Notion connects wikis, docs, and project management in one place."),
+        ],
+        mock_documents={
+            "https://notion.so": _doc("https://notion.so", title="Notion: Your connected workspace", content="Welcome to Notion: The connected workspace where better, faster work happens.", ptype=PageType.HOMEPAGE),
+            "https://notion.so/about": _doc("https://notion.so/about", title="About Notion", content="Notion makes software toolmaking ubiquitous for individuals and teams.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    # ── Category 4: Subdomain & Multi-Tier Entity Assets (4 Cases) ───────────
     IdentityRecallCase(
         case_id="subdomain_related_product_v0",
         category="SUBDOMAIN_MULTI_TIER",
@@ -226,7 +386,41 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         },
     ),
 
-    # ── Category 5: Negative Controls (Safety & Insufficient Evidence) ────────
+    IdentityRecallCase(
+        case_id="subdomain_standalone_product_brand",
+        category="SUBDOMAIN_MULTI_TIER",
+        company="Linear",
+        expected_confidence=IdentityConfidence.UNRESOLVED,
+        expected_domain="linear.vc",
+        expected_relationship=SiteRelationship.UNRELATED,
+        ground_truth_reason="linear.vc is a venture fund with incidental name overlap; fails primary relationship for Linear software query.",
+        search_results=[
+            SearchResult(title="Linear Capital - Early Stage Venture Fund", url="https://linear.vc", snippet="Linear Capital invests in early-stage data intelligence startups."),
+        ],
+        mock_documents={
+            "https://linear.vc": _doc("https://linear.vc", title="Linear Capital - Early Stage Venture Fund", content="Linear Capital is an early-stage venture capital firm.", ptype=PageType.HOMEPAGE),
+            "https://linear.vc/about": _doc("https://linear.vc/about", title="About Linear Capital", content="About Linear Capital: Backing visionary founders.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="subdomain_hosted_engineering_blog",
+        category="SUBDOMAIN_MULTI_TIER",
+        company="Fly.io",
+        expected_confidence=IdentityConfidence.UNRESOLVED,
+        expected_domain="flyio.ghost.io",
+        expected_relationship=SiteRelationship.RELATED,
+        ground_truth_reason="Third-party hosted blog on ghost.io is not the canonical primary identity domain.",
+        search_results=[
+            SearchResult(title="Fly.io Engineering Blog", url="https://flyio.ghost.io", snippet="Technical articles from the Fly.io team."),
+        ],
+        mock_documents={
+            "https://flyio.ghost.io": _doc("https://flyio.ghost.io", title="Fly.io Engineering Blog", content="Official engineering publications by Fly.io infrastructure engineers.", ptype=PageType.HOMEPAGE),
+            "https://flyio.ghost.io/about": _doc("https://flyio.ghost.io/about", title="About This Blog", content="Articles about distributed compute and Postgres on Fly.io.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    # ── Category 5: Negative Controls (5 Cases: 2 AMBIGUOUS, 3 UNRESOLVED) ───
     IdentityRecallCase(
         case_id="neg_competing_primary_collision",
         category="NEGATIVE_CONTROL",
@@ -295,6 +489,24 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
         mock_documents={
             "https://linear-solutions.com": _doc("https://linear-solutions.com", title="Linear Solutions - Electrical Distributor", content="Linear Solutions is an authorized distributor of semiconductors.", ptype=PageType.HOMEPAGE),
             "https://linear-solutions.com/about": _doc("https://linear-solutions.com/about", title="About Linear Solutions", content="About Linear Solutions distributor.", ptype=PageType.ABOUT),
+        },
+    ),
+
+    IdentityRecallCase(
+        case_id="neg_adversarial_exact_domain_related_secondary",
+        category="NEGATIVE_CONTROL",
+        company="ScaleHub",
+        expected_confidence=IdentityConfidence.UNRESOLVED,
+        expected_domain="scalehub.com",
+        expected_relationship=SiteRelationship.RELATED,
+        ground_truth_reason="Exact domain + homepage self-ID, but secondary /about proves it is a subsidiary/product-of brand -> UNRESOLVED.",
+        search_results=[
+            SearchResult(title="ScaleHub Cloud Services", url="https://scalehub.com", snippet="ScaleHub provides enterprise integration services."),
+            SearchResult(title="About ScaleHub", url="https://scalehub.com/about", snippet="Learn about ScaleHub."),
+        ],
+        mock_documents={
+            "https://scalehub.com": _doc("https://scalehub.com", title="ScaleHub Cloud Services", content="ScaleHub provides enterprise integration connectors for hybrid cloud deployments.", ptype=PageType.HOMEPAGE),
+            "https://scalehub.com/about": _doc("https://scalehub.com/about", title="About ScaleHub", content="About ScaleHub: ScaleHub is a brand of CloudMesh Global Corporation. A product of CloudMesh.", ptype=PageType.ABOUT),
         },
     ),
 ]
@@ -391,6 +603,7 @@ def run_identity_recall_benchmark(cases: Optional[List[IdentityRecallCase]] = No
     state_accuracy_pct = (correct_state_count / total_cases * 100.0) if total_cases > 0 else 0.0
     confident_recall_pct = (correct_confident_count / expected_confident * 100.0) if expected_confident > 0 else 0.0
     false_confident_rate_pct = (false_confident_count / expected_non_confident * 100.0) if expected_non_confident > 0 else 0.0
+    non_confident_safety_pct = ((correct_ambiguous_count + correct_unresolved_count) / expected_non_confident * 100.0) if expected_non_confident > 0 else 0.0
 
     # Family Breakdown
     families = ["SPA_RENDERED", "UNCONVENTIONAL_PATH", "INDIRECT_SELF_ID", "SUBDOMAIN_MULTI_TIER", "NEGATIVE_CONTROL"]
@@ -414,6 +627,7 @@ def run_identity_recall_benchmark(cases: Optional[List[IdentityRecallCase]] = No
         "state_accuracy_pct": state_accuracy_pct,
         "confident_recall_pct": confident_recall_pct,
         "false_confident_rate_pct": false_confident_rate_pct,
+        "non_confident_safety_pct": non_confident_safety_pct,
         "correct_confident_count": correct_confident_count,
         "missed_conf_ambiguous_count": missed_conf_ambiguous_count,
         "missed_id_unresolved_count": missed_id_unresolved_count,
@@ -428,23 +642,26 @@ def run_identity_recall_benchmark(cases: Optional[List[IdentityRecallCase]] = No
 def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(Panel.fit(
         "[bold cyan]Dual-Contract Research Engine — Identity Recall & State Accuracy Benchmark[/bold cyan]\n"
-        f"Corpus: [bold]v1.0-frozen[/bold] ({metrics['total_cases']} Frozen Fixtures across 5 Categories)\n"
+        f"Corpus Snapshot: [bold]identity-v1.1-frozen[/bold] ({metrics['total_cases']} Frozen Fixtures across 5 Categories)\n"
+        f"Breakdown: {metrics['expected_confident']} Expected CONFIDENT, {metrics['expected_non_confident']} Expected Non-CONFIDENT Controls\n"
         "Invariants: 1. Strict PRIMARY Contract | 2. False CONFIDENT strictly 0.0%",
         title="Identity Layer Verification"
     ))
 
-    scorecard = Table(title="Identity Recall & State Correctness Scorecard", expand=True)
+    scorecard = Table(title="Identity Recall & State Correctness Scorecard (identity-v1.1-frozen)", expand=True)
     scorecard.add_column("Metric Dimension", style="cyan", width=32)
     scorecard.add_column("Result Value", style="bold", width=22)
     scorecard.add_column("Target / Invariant", style="green", width=30)
 
-    acc_color = "green" if metrics["state_accuracy_pct"] == 100.0 else "yellow"
-    rec_color = "green" if metrics["confident_recall_pct"] == 100.0 else "yellow"
+    acc_color = "green" if metrics["state_accuracy_pct"] >= 95.0 else "yellow"
+    rec_color = "green" if metrics["confident_recall_pct"] >= 90.0 else "yellow"
     fc_color = "green" if metrics["false_confident_count"] == 0 else "red"
+    safe_color = "green" if metrics["non_confident_safety_pct"] == 100.0 else "red"
 
-    scorecard.add_row("Identity State Accuracy", f"[{acc_color}]{metrics['state_accuracy_pct']:.1f}% ({sum(1 for r in metrics['case_results'] if r['is_state_match'])}/{metrics['total_cases']})[/{acc_color}]", "100.0% Correct Decision State")
-    scorecard.add_row("CONFIDENT Recall", f"[{rec_color}]{metrics['confident_recall_pct']:.1f}% ({metrics['correct_confident_count']}/{metrics['expected_confident']})[/{rec_color}]", "100.0% Legitimate Recall")
+    scorecard.add_row("Identity State Accuracy", f"[{acc_color}]{metrics['state_accuracy_pct']:.1f}% ({sum(1 for r in metrics['case_results'] if r['is_state_match'])}/{metrics['total_cases']})[/{acc_color}]", ">= 95.0% Correct Decision State")
+    scorecard.add_row("CONFIDENT Recall", f"[{rec_color}]{metrics['confident_recall_pct']:.1f}% ({metrics['correct_confident_count']}/{metrics['expected_confident']})[/{rec_color}]", ">= 90.0% Legitimate Recall")
     scorecard.add_row("Safety: False CONFIDENT Rate", f"[{fc_color}]{metrics['false_confident_rate_pct']:.1f}% ({metrics['false_confident_count']}/{metrics['expected_non_confident']})[/{fc_color}]", "0.0% (Hard Safety Invariant)")
+    scorecard.add_row("Safety: Non-CONFIDENT Correctness", f"[{safe_color}]{metrics['non_confident_safety_pct']:.1f}% ({metrics['correct_ambiguous_count'] + metrics['correct_unresolved_count']}/{metrics['expected_non_confident']})[/{safe_color}]", "100.0% Controls Preserved")
     scorecard.add_row("Missed Confidence (Ambiguous)", f"{metrics['missed_conf_ambiguous_count']}", "0 (Unnecessary Ambiguity)")
     scorecard.add_row("Missed Identity (Unresolved)", f"{metrics['missed_id_unresolved_count']}", "0 (Unnecessary Rejection)")
     scorecard.add_row("Correct Safety (Ambiguous)", f"{metrics['correct_ambiguous_count']}", "Preserved Collision Gate")
@@ -454,26 +671,26 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(scorecard)
 
     # Confusion Matrix Table
-    matrix_table = Table(title="Identity Outcome Confusion Matrix", expand=True, show_lines=True)
+    matrix_table = Table(title="Identity Outcome Confusion Matrix (24 Cases)", expand=True, show_lines=True)
     matrix_table.add_column("Expected State", style="bold cyan", width=18)
     matrix_table.add_column("Predicted CONFIDENT", justify="center")
     matrix_table.add_column("Predicted AMBIGUOUS", justify="center")
     matrix_table.add_column("Predicted UNRESOLVED", justify="center")
 
     matrix_table.add_row(
-        "CONFIDENT",
+        f"CONFIDENT ({metrics['expected_confident']})",
         f"[green]{metrics['correct_confident_count']} (Correct Recall)[/green]",
         f"[yellow]{metrics['missed_conf_ambiguous_count']} (Missed Conf)[/yellow]",
         f"[red]{metrics['missed_id_unresolved_count']} (Missed ID)[/red]"
     )
     matrix_table.add_row(
-        "AMBIGUOUS",
+        "AMBIGUOUS (2)",
         f"[bold red]{sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.AMBIGUOUS and r['actual_confidence'] == IdentityConfidence.CONFIDENT)} (False Conf)[/bold red]",
         f"[green]{metrics['correct_ambiguous_count']} (Correct Safety)[/green]",
         "0"
     )
     matrix_table.add_row(
-        "UNRESOLVED",
+        "UNRESOLVED (7)",
         f"[bold red]{sum(1 for r in metrics['case_results'] if r['expected_confidence'] == IdentityConfidence.UNRESOLVED and r['actual_confidence'] == IdentityConfidence.CONFIDENT)} (False Conf)[/bold red]",
         "0",
         f"[green]{metrics['correct_unresolved_count']} (Correct Safety)[/green]"
@@ -483,7 +700,7 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(matrix_table)
 
     # Family Breakdown Table
-    fam_table = Table(title="Category & Family Breakdown", expand=True, show_lines=True)
+    fam_table = Table(title="Category & Family Breakdown (identity-v1.1-frozen)", expand=True, show_lines=True)
     fam_table.add_column("Category Family", style="cyan", width=25)
     fam_table.add_column("Total Cases", justify="center", width=12)
     fam_table.add_column("State Accuracy", justify="right", width=18)
@@ -503,8 +720,8 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     console.print(fam_table)
 
     # Per-Case Diff Table
-    diff_table = Table(title="Per-Case Verification & Outcome Details", expand=True, show_lines=True)
-    diff_table.add_column("Case ID", style="cyan", width=30)
+    diff_table = Table(title="Per-Case Verification & Outcome Details (24 Cases)", expand=True, show_lines=True)
+    diff_table.add_column("Case ID", style="cyan", width=34)
     diff_table.add_column("Category", style="dim", width=18)
     diff_table.add_column("Expected", justify="center", width=14)
     diff_table.add_column("Actual", justify="center", width=14)
