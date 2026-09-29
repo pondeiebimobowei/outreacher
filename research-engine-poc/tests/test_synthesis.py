@@ -322,3 +322,45 @@ def test_llm_claim_graph_bridge_deduplicates_candidate_claims():
     assert len(graph.claims) == 1
     assert len(dto.findings) == 1
     assert len(diagnostics) == 0
+
+def test_llm_claim_graph_bridge_verbatim_quote_provenance_boundary():
+    """
+    Explicitly documents the contract boundary:
+    Deterministic validation guarantees source provenance and verbatim substring existence;
+    the extraction model is responsible for semantic entailment between proposition and quote.
+    """
+    package = create_test_package()
+    from core.evidence_extraction import DeterministicEvidenceExtractor
+    spans = DeterministicEvidenceExtractor.extract_package_spans(package)
+    span_about = [s for s in spans if "purpose-built" in s.text][0]
+
+    # Model pairs a real quote with a semantically distinct proposition
+    class _VerbatimProvenanceSynthesizer(ILLMSynthesizer):
+        def extract_claims(self, identity, spans):
+            return LLMResearchExtraction(
+                claims=[
+                    LLMClaimCandidate(
+                        subject="Linear",
+                        predicate="has_customers",
+                        object_value="50,000 enterprise customers",
+                        category=ClaimCategory.TRACTION,
+                        classification=ClaimClassification.FACT,
+                        evidence_span_ids=[span_about.id],
+                        supporting_quotes=["Linear is the purpose-built tool for planning and building software."],
+                        confidence=0.85,
+                    )
+                ],
+                unknowns=[],
+            )
+
+        def synthesize_summary(self, identity, claims):
+            return f"Summary with {len(claims)} claims."
+
+    graph, dto, diagnostics = LLMClaimGraphBridge.process(package, _VerbatimProvenanceSynthesizer())
+
+    # Verbatim provenance gate passes because the quote genuinely exists in the cited span
+    assert len(diagnostics) == 0
+    assert len(graph.claims) == 1
+    assert graph.claims[0].supporting_quotes == ("Linear is the purpose-built tool for planning and building software.",)
+    assert dto.evidence[0].source_excerpt == "Linear is the purpose-built tool for planning and building software."
+

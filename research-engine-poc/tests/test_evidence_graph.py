@@ -146,13 +146,19 @@ def test_claim_deep_immutability_and_invariants():
         category=ClaimCategory.PRODUCT,
         classification=ClaimClassification.FACT,
         evidence_refs=["span_123"],
+        supporting_quotes=["Payments for the internet"],
         confidence=0.85,
     )
     assert isinstance(valid_claim.evidence_refs, tuple)
+    assert isinstance(valid_claim.supporting_quotes, tuple)
+    assert valid_claim.supporting_quotes == ("Payments for the internet",)
 
     # Field reassignment fails
     with pytest.raises(ValidationError):
         valid_claim.confidence = 0.5
+
+    with pytest.raises(ValidationError):
+        valid_claim.supporting_quotes = ("tampered",)
 
 
 # ── 3. Deterministic Extraction Tests ─────────────────────────────────────────
