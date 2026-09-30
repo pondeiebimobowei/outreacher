@@ -1,27 +1,41 @@
 {
-  "benchmark_suite": "live-identity-probe-v1.1-strict",
-  "timestamp": "2026-09-30T00:42:02.410102+00:00",
-  "search_provider": "serper",
-  "total_cases": 20,
-  "expected_confident_count": 12,
-  "expected_non_confident_count": 8,
-  "cases_with_target_domain_count": 12,
-  "target_domain_matches": 12,
-  "canonical_target_id_rate_pct": 100.0,
-  "state_matches": 18,
-  "state_accuracy_pct": 90.0,
-  "correct_confident_count": 11,
-  "confident_recall_pct": 91.66666666666666,
-  "correct_conf_given_target": 11,
-  "correct_conf_given_target_pct": 91.66666666666666,
-  "target_misidentified_count": 0,
-  "target_misidentified_pct": 0.0,
-  "false_confident_count": 0,
-  "false_confident_rate_pct": 0.0,
-  "correct_safety_count": 8,
-  "non_confident_safety_pct": 100.0,
-  "avg_resolver_latency_ms": 19069.797754153842,
-  "case_results": [
+  "analysis_version": "live-identity-baseline-v1.2-analysis",
+  "source_raw_snapshot": "live_identity_baseline_snapshot_v1.2.json",
+  "source_snapshot_timestamp": "2026-09-30T00:42:02.410102+00:00",
+  "resolver_version": "identity-v1.2 (frozen)",
+  "benchmark_definition_commit": "1dadd84",
+  "baseline_execution_commit": "b310daf",
+  "metrics_summary": {
+    "total_cases": 20,
+    "canonical_target_identification_rate_pct": 100.0,
+    "canonical_target_matches": 12,
+    "cases_with_target_domain": 12,
+    "identity_state_accuracy_pct": 90.0,
+    "state_matches": 18,
+    "live_confident_recall_pct": 91.66666666666666,
+    "correct_confident_count": 11,
+    "expected_confident_count": 12,
+    "correct_confidence_given_target_pct": 91.66666666666666,
+    "correct_confidence_given_target_count": 11,
+    "target_misidentification_rate_pct": 0.0,
+    "target_misidentified_count": 0,
+    "false_confident_rate_pct": 0.0,
+    "false_confident_count": 0,
+    "non_confident_safety_pct": 100.0,
+    "correct_safety_count": 8,
+    "expected_non_confident_count": 8,
+    "avg_resolver_latency_ms": 19069.797754153842
+  },
+  "stage_attribution_summary": {
+    "RESOLVED_TARGET_CONFIDENT": 11,
+    "RESOLVED_AMBIGUOUS_SAFETY": 2,
+    "RESOLVED_UNRESOLVED_SAFETY": 5,
+    "FAIL_SECONDARY_CORROBORATION": 1,
+    "FAIL_HOMEPAGE_ACQUISITION": 1,
+    "FAIL_TARGET_MISIDENTIFICATION": 0,
+    "FAIL_FALSE_CONFIDENT_LEAK": 0
+  },
+  "case_evaluations": [
     {
       "case_id": "live_stripe_payments",
       "query_name": "Stripe",
@@ -65,7 +79,10 @@
       "unknown_candidate_count": 3,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 39867.90962499799,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_vercel_cloud",
@@ -111,7 +128,10 @@
       "unknown_candidate_count": 1,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 17639.931375015294,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_postmark_email",
@@ -158,7 +178,10 @@
       "unknown_candidate_count": 6,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 13135.035749990493,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_resend_email",
@@ -205,7 +228,10 @@
       "unknown_candidate_count": 5,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 21766.08137501171,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_clickup_productivity",
@@ -249,7 +275,10 @@
       "unknown_candidate_count": 3,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 32118.883124989225,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_flyio_infrastructure",
@@ -298,7 +327,10 @@
       "unknown_candidate_count": 8,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 32202.67937501194,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_supabase_database",
@@ -344,7 +376,10 @@
       "unknown_candidate_count": 4,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 23084.197332995245,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_gitlab_devops",
@@ -395,7 +430,10 @@
       "unknown_candidate_count": 2,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 47625.19333299133,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_moniepoint_fintech",
@@ -442,7 +480,10 @@
       "unknown_candidate_count": 4,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 26252.156625007046,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_interswitch_payments",
@@ -487,7 +528,10 @@
       "unknown_candidate_count": 3,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 33018.64745901548,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_piggyvest_savings",
@@ -534,7 +578,10 @@
       "unknown_candidate_count": 5,
       "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
       "resolver_elapsed_ms": 14621.755208005197,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "FAIL_SECONDARY_CORROBORATION",
+      "diagnostic_cause": "SECONDARY_ROUTE_CLASSIFICATION",
+      "diagnostic_notes": "Homepage self-ID verified (TITLE_ENTITY_MATCH, SELF_IDENTITY_STATEMENT), but secondary page surfaced was classified as SUPPLEMENTAL rather than accepted identity route (ABOUT/CONTACT)."
     },
     {
       "case_id": "live_termii_communications",
@@ -582,7 +629,10 @@
       "unknown_candidate_count": 5,
       "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
       "resolver_elapsed_ms": 13957.742625003448,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_ambig_linear_bare_name",
@@ -632,7 +682,10 @@
       "unknown_candidate_count": 5,
       "final_stage_attribution": "RESOLVED_AMBIGUOUS_SAFETY",
       "resolver_elapsed_ms": 20318.409208004596,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_AMBIGUOUS_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_ambig_mercury_bare_name",
@@ -681,7 +734,10 @@
       "unknown_candidate_count": 9,
       "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
       "resolver_elapsed_ms": 14032.126000005519,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+      "diagnostic_cause": "WAF_BOT_BLOCK",
+      "diagnostic_notes": "Cloudflare WAF blocked static crawl on candidate domains (mercury.com, mercurymarine.com); browser fallback yielded insufficient clean text, preventing candidate verification and safely resulting in 0 PRIMARY -> UNRESOLVED."
     },
     {
       "case_id": "live_ambig_atlas_bare_name",
@@ -734,7 +790,10 @@
       "unknown_candidate_count": 9,
       "final_stage_attribution": "RESOLVED_AMBIGUOUS_SAFETY",
       "resolver_elapsed_ms": 13832.13291701395,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_AMBIGUOUS_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_neg_kelmond_robotics_fictitious",
@@ -765,7 +824,10 @@
       "unknown_candidate_count": 0,
       "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
       "resolver_elapsed_ms": 3330.3343750012573,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_neg_manom_cloud_fictitious",
@@ -796,7 +858,10 @@
       "unknown_candidate_count": 0,
       "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
       "resolver_elapsed_ms": 4012.90954099386,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_neg_outray_microfinance",
@@ -827,7 +892,10 @@
       "unknown_candidate_count": 0,
       "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
       "resolver_elapsed_ms": 3765.994125016732,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_neg_acme_general_manufacturing",
@@ -858,7 +926,10 @@
       "unknown_candidate_count": 0,
       "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
       "resolver_elapsed_ms": 3089.5891250111163,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     },
     {
       "case_id": "live_neg_distributor_reseller_hub",
@@ -889,7 +960,10 @@
       "unknown_candidate_count": 0,
       "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
       "resolver_elapsed_ms": 3724.2465839954093,
-      "error_message": null
+      "error_message": null,
+      "normalized_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+      "diagnostic_cause": "NORMAL_RESOLUTION",
+      "diagnostic_notes": "Exact expected state and domain resolved."
     }
   ]
 }
