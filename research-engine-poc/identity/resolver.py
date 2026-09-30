@@ -8,6 +8,7 @@ from search.sanitizer import SearchResultSanitizer
 from core.models import (
     CompanyIdentity, IdentityConfidence, IdentityContext,
     IdentityCandidate, IdentityEvidence, EvidenceType, SiteRelationship,
+    IdentityDiagnosticTrace,
 )
 from core.urls import normalize_domain, get_registrable_domain
 from identity.verifier import WebsiteVerifier
@@ -62,6 +63,7 @@ class IdentityResolver:
         "interactive", "labs", "lab", "app", "apps", "healthcare",
         "health", "insurance", "payments", "payment", "bank", "banking",
         "finance", "industries", "resources", "properties", "investments",
+        "analytics", "engineering", "mobility", "communications",
     }
 
     GENERIC_MODIFIERS = {
@@ -266,11 +268,28 @@ class IdentityResolver:
             ))
 
         if not domain_evidence:
+            diag_trace = IdentityDiagnosticTrace(
+                query=company_name,
+                tokens=tuple(re.findall(r'\b[a-z0-9]+\b', company_name.lower())),
+                common_word_hits=tuple(t for t in re.findall(r'\b[a-z0-9]+\b', company_name.lower()) if is_dictionary_word(t)),
+                generic_term_hits=tuple(t for t in re.findall(r'\b[a-z0-9]+\b', company_name.lower()) if t in self.GENERIC_TERMS or t in self.GENERIC_MODIFIERS or t in self.GENERIC_CATEGORY_NOUNS),
+                domain_slug=self.canonical_brand_slug(company_name),
+                domain_correspondence="no_candidate",
+                candidate_count=0,
+                competitor_count=0,
+                self_id_strength="NONE",
+                corroboration_strength="none",
+                indexed_only=False,
+                relationship_status="UNKNOWN",
+                shape_risk_result=self.name_shape_risk(company_name),
+                final_decision_rule="NO_CANDIDATES_UNRESOLVED",
+            )
             return CompanyIdentity(
                 name=company_name, domain="", website_url="",
                 confidence=IdentityConfidence.UNRESOLVED,
                 reasoning="No candidates passed the domain exclusion filter.",
                 candidates=[],
+                diagnostic_trace=diag_trace,
             )
 
         # Sort by heuristic generation score (rank + name-match bonus)
@@ -327,6 +346,9 @@ class IdentityResolver:
             )
 
         # ── Decision policy ──────────────────────────────────────────────────────
+        decision_rule = "UNKNOWN"
+        competing_count = 0
+
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
             is_indexed_only = best.is_indexed_only
@@ -334,6 +356,8 @@ class IdentityResolver:
                 company_name, best, recorded_candidates
             )
             if has_competing:
+                decision_rule = "COMPETING_BRAND_DOMAINS_AMBIGUOUS"
+                competing_count = len(competing_str.split(","))
                 confidence = IdentityConfidence.AMBIGUOUS
                 reasoning = (
                     f"Single PRIMARY candidate '{best.domain}', but conflicting brand domains "
@@ -341,6 +365,7 @@ class IdentityResolver:
                     f"{best.relationship_reasoning}"
                 )
             elif is_indexed_only:
+                decision_rule = "INDEXED_ONLY_EPISTEMIC_CAP_AMBIGUOUS"
                 confidence = IdentityConfidence.AMBIGUOUS
                 reasoning = (
                     f"Single PRIMARY candidate '{best.domain}' established via search-indexed fallback (bot-blocked homepage). "
@@ -351,12 +376,14 @@ class IdentityResolver:
                     company_name, best, recorded_candidates
                 )
                 if can_discount:
+                    decision_rule = "SHAPE_RISK_DISCOUNTED_CONFIDENT"
                     confidence = IdentityConfidence.CONFIDENT
                     reasoning = (
                         f"Uniquely verified PRIMARY candidate with exact domain correspondence "
                         f"and uncontested corroboration discounting shape-risk. {best.relationship_reasoning}"
                     )
                 else:
+                    decision_rule = "SHAPE_RISK_RETAINED_AMBIGUOUS"
                     confidence = IdentityConfidence.AMBIGUOUS
                     reasoning = (
                         f"Single PRIMARY candidate '{best.domain}', but name has high "
@@ -364,6 +391,7 @@ class IdentityResolver:
                         f"Manual disambiguation required. {best.relationship_reasoning}"
                     )
             else:
+                decision_rule = "DISTINCTIVE_PRIMARY_CONFIDENT"
                 confidence = IdentityConfidence.CONFIDENT
                 reasoning  = (
                     f"Uniquely verified PRIMARY candidate. {best.relationship_reasoning}"
@@ -371,6 +399,7 @@ class IdentityResolver:
             chosen = best
 
         elif len(verified_candidates) > 1:
+            decision_rule = "MULTIPLE_PRIMARY_AMBIGUOUS"
             names = ", ".join(c.domain for c in verified_candidates)
             confidence = IdentityConfidence.AMBIGUOUS
             reasoning = (
@@ -380,6 +409,7 @@ class IdentityResolver:
             chosen = verified_candidates[0]
 
         else:
+            decision_rule = "NO_PRIMARY_UNRESOLVED"
             # No PRIMARY found — report best candidate's relationship for diagnostics.
             top        = recorded_candidates[0]
             rel_str    = top.relationship.value if top.relationship else "UNKNOWN"
@@ -400,6 +430,61 @@ class IdentityResolver:
             final_domain = ""
             final_url = ""
 
+        # Build diagnostic trace
+        tokens = tuple(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
+        common_hits = tuple(t for t in tokens if is_dictionary_word(t))
+        generic_hits = tuple(t for t in tokens if t in self.GENERIC_TERMS or t in self.GENERIC_MODIFIERS or t in self.GENERIC_CATEGORY_NOUNS)
+        domain_slug = self.canonical_brand_slug(company_name)
+
+        best_cand = chosen if chosen else (recorded_candidates[0] if recorded_candidates else None)
+        domain_corr = "no_candidate"
+        self_id_str = "NONE"
+        corr_str = "none"
+        is_idx_only = False
+        rel_status = "UNKNOWN"
+
+        if best_cand:
+            domain_corr = self.verifier._domain_name_signal(company_name, best_cand.domain) if best_cand.domain else "none"
+            is_idx_only = best_cand.is_indexed_only
+            rel_status = best_cand.relationship.value if best_cand.relationship else "UNKNOWN"
+
+            # Check self-ID
+            for ev in best_cand.evidence:
+                if ev.signal == "TITLE_ENTITY_MATCH":
+                    self_id_str = "TITLE_MATCH"
+                    break
+                elif ev.signal == "SELF_IDENTITY_STATEMENT" and self_id_str == "NONE":
+                    self_id_str = "SENTENCE_ID"
+
+            # Check corroboration
+            for ev in best_cand.evidence:
+                if ev.signal in ("CORROBORATED_ABOUT_TITLE", "CORROBORATED_CONTACT_TITLE"):
+                    corr_str = "strong"
+                    break
+                elif ev.signal in ("CORROBORATED_ABOUT_NAME", "CORROBORATED_CONTACT_NAME") and corr_str != "strong":
+                    corr_str = "medium"
+                elif ev.signal == "CORROBORATED_CAREERS_NAME" and corr_str not in ("strong", "medium"):
+                    corr_str = "supplemental"
+                elif ev.type == EvidenceType.FALLBACK_INDEXED and corr_str == "none":
+                    corr_str = "indexed_fallback"
+
+        diag_trace = IdentityDiagnosticTrace(
+            query=company_name,
+            tokens=tokens,
+            common_word_hits=common_hits,
+            generic_term_hits=generic_hits,
+            domain_slug=domain_slug,
+            domain_correspondence=domain_corr,
+            candidate_count=len(recorded_candidates),
+            competitor_count=competing_count,
+            self_id_strength=self_id_str,
+            corroboration_strength=corr_str,
+            indexed_only=is_idx_only,
+            relationship_status=rel_status,
+            shape_risk_result=is_shape_risk,
+            final_decision_rule=decision_rule,
+        )
+
         return CompanyIdentity(
             name=company_name,
             domain=final_domain,
@@ -407,4 +492,5 @@ class IdentityResolver:
             confidence=confidence,
             reasoning=reasoning,
             candidates=recorded_candidates,
+            diagnostic_trace=diag_trace,
         )

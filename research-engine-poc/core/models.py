@@ -88,6 +88,24 @@ class IdentityCandidate(BaseModel):
         """
         return any(ev.type == EvidenceType.FALLBACK_INDEXED for ev in self.evidence)
 
+class IdentityDiagnosticTrace(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    query: str
+    tokens: tuple[str, ...]
+    common_word_hits: tuple[str, ...]
+    generic_term_hits: tuple[str, ...]
+    domain_slug: str
+    domain_correspondence: str
+    candidate_count: int
+    competitor_count: int
+    self_id_strength: str
+    corroboration_strength: str
+    indexed_only: bool
+    relationship_status: str
+    shape_risk_result: bool
+    final_decision_rule: str
+
 class CompanyIdentity(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -100,6 +118,7 @@ class CompanyIdentity(BaseModel):
     # Each candidate carries its own search + verification evidence.
     # Do not add a separate top-level evidence list — it would drift.
     candidates: tuple[IdentityCandidate, ...] = Field(default_factory=tuple)
+    diagnostic_trace: Optional[IdentityDiagnosticTrace] = None
 
     @field_validator("candidates", mode="before")
     @classmethod
