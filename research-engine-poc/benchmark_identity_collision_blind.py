@@ -524,3 +524,19 @@ def run_collision_blind_benchmark() -> Dict[str, Any]:
         "target_misidentification_rate_pct": (target_misidentified_count / len(expected_conf) * 100.0) if expected_conf else 0.0,
         "case_results": results,
     }
+
+
+if __name__ == "__main__":
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
+    m = run_collision_blind_benchmark()
+    table = Table(title=f"Collision-Focused Blind Benchmark (v1.3.2) — {m['total_cases']} Cases")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green")
+    table.add_row("Total Cases", str(m["total_cases"]))
+    table.add_row("State Accuracy", f"{m['state_accuracy_pct']:.1f}%")
+    table.add_row("CONFIDENT Recall", f"{m['confident_recall_pct']:.1f}% ({m['expected_confident']} expected)")
+    table.add_row("False CONFIDENT Count", f"{m['false_confident_count']} ({m['false_confident_rate_pct']:.1f}%)")
+    table.add_row("Target Misidentified Count", f"{m['target_misidentified_count']} ({m['target_misidentification_rate_pct']:.1f}%)")
+    console.print(table)

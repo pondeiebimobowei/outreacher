@@ -29,21 +29,6 @@ class IdentityResolver:
             .lower()
         )
 
-    # ── Context scoring & Discrimination ────────────────────────────────────────
-    GENERIC_INDUSTRY_WORDS = {
-        "software", "platform", "platforms", "solutions", "services", "service",
-        "technology", "technologies", "tech", "management", "logistics",
-        "financial", "finance", "banking", "bank", "capital", "ventures",
-        "systems", "system", "data", "digital", "cloud", "network", "networks",
-        "security", "enterprise", "corporate", "corporation", "global",
-        "analytics", "consulting", "operations", "records", "storage",
-        "information", "group", "holdings", "industry", "industries",
-        "company", "business", "tool", "tools", "app", "apps", "media",
-        "labs", "lab", "interactive", "direct", "total", "core", "premier",
-        "advanced", "integrated", "strategic", "applied", "first", "national",
-        "international", "universal", "standard", "central", "united",
-    }
-
     COMMON_GEOS = {
         "toronto": "canada", "vancouver": "canada", "montreal": "canada", "canada": "canada", "ontario": "canada",
         "berlin": "germany", "munich": "germany", "frankfurt": "germany", "germany": "germany",
@@ -53,20 +38,27 @@ class IdentityResolver:
         "paris": "france", "france": "france",
         "tokyo": "japan", "japan": "japan",
         "rotterdam": "netherlands", "amsterdam": "netherlands", "netherlands": "netherlands",
-        "boston": "usa", "san francisco": "usa", "new york": "usa", "chicago": "usa",
+        "boston": "usa", "san francisco": "usa", "new york": "usa", "chicago": "usa", "menlo park": "usa",
         "delaware": "usa", "united states": "usa", "usa": "usa", "california": "usa",
         "stockholm": "sweden", "sweden": "sweden", "sydney": "australia", "australia": "australia",
     }
 
     @classmethod
-    def _extract_specific_discriminators(cls, context: IdentityContext) -> Tuple[List[str], List[str], List[str]]:
+    def _extract_structural_discriminators(cls, context: IdentityContext) -> Tuple[List[str], List[str], List[str], List[str]]:
         """
         Extracts structured discriminators:
-        1. locations (e.g. Toronto, Berlin, Germany, Delaware)
-        2. legals (e.g. Trade Republic Bank GmbH, S.p.A., HRB 7349102)
-        3. specific_keywords (non-generic descriptive tokens from description/industry/type)
+        1. hq_geos: (headquarters, headquarters_country)
+        2. general_geos: (location, country, jurisdiction)
+        3. legals: (legal_name, registration_number, company_type)
+        4. product_or_registry_ids: (product_id, trusted_registry_id)
+
+        Note: Description and industry fields are informational and do NOT act as entity discriminators.
         """
-        locations = [
+        hq_geos = [
+            x.strip().lower() for x in (context.headquarters, context.headquarters_country)
+            if x and x.strip()
+        ]
+        general_geos = [
             x.strip().lower() for x in (context.location, context.country, context.jurisdiction)
             if x and x.strip()
         ]
@@ -74,25 +66,11 @@ class IdentityResolver:
             x.strip().lower() for x in (context.legal_name, context.registration_number, context.company_type)
             if x and x.strip()
         ]
-
-        specific_keywords = []
-        for val in (context.description, context.industry, context.company_type):
-            if not val:
-                continue
-            for tok in re.findall(r'\b[a-z0-9]+\b', val.lower()):
-                if len(tok) <= 3:
-                    continue
-                if (
-                    tok in cls.GENERIC_INDUSTRY_WORDS
-                    or tok in cls.GENERIC_TERMS
-                    or tok in cls.GENERIC_MODIFIERS
-                    or tok in cls.GENERIC_CATEGORY_NOUNS
-                ):
-                    continue
-                if tok not in specific_keywords:
-                    specific_keywords.append(tok)
-
-        return locations, legals, specific_keywords
+        product_or_registry_ids = [
+            x.strip().lower() for x in (context.product_id, context.trusted_registry_id)
+            if x and x.strip()
+        ]
+        return hq_geos, general_geos, legals, product_or_registry_ids
 
     def _evaluate_context_discrimination(
         self,
@@ -100,17 +78,18 @@ class IdentityResolver:
         context: IdentityContext,
     ) -> Tuple[bool, str, str]:
         """
-        Evaluates caller-supplied context against first-party crawled evidence.
-        Invariant A:
-          - Generic industry overlap fails.
-          - Specific discriminator matched against live crawled first-party evidence succeeds.
-          - Contradiction between caller context and candidate first-party evidence blocks.
+        Evaluates caller-supplied structured context against first-party crawled evidence.
+        - Free-text industry / description overlap is rejected as a discriminator.
+        - Specific structural discriminators (HQ, location, legal identity, product/registry ID)
+          matched against live crawled first-party evidence succeed.
+        - Explicit contradiction between caller context and candidate first-party evidence blocks.
+        - Multi-location operations are compatible with location queries.
         """
-        locations, legals, specific_keywords = self._extract_specific_discriminators(context)
+        hq_geos, general_geos, legals, ids = self._extract_structural_discriminators(context)
 
-        # Check if context contains any specific discriminators at all
-        if not locations and not legals and not specific_keywords:
-            return False, "Caller context contains only generic industry terms without specific discriminators.", "GENERIC_CONTEXT_REJECTED"
+        # Check if context contains any structural discriminators at all
+        if not hq_geos and not general_geos and not legals and not ids:
+            return False, "Caller context contains only general industry/description text without structural discriminators.", "GENERIC_CONTEXT_REJECTED"
 
         # First-party live crawled evidence (NOT search index snippets)
         first_party_ev = [
@@ -125,16 +104,17 @@ class IdentityResolver:
             f"{ev.title or ''} {ev.snippet or ''}" for ev in first_party_ev
         ).lower()
 
-        # Contradiction check for geographic attributes
-        if locations:
+        # 1. Contradiction check for geographic attributes
+        all_geos = hq_geos + general_geos
+        if all_geos:
             ctx_regions = set()
-            for loc in locations:
+            for loc in all_geos:
                 for word in re.findall(r'\b[a-z0-9]+\b', loc):
                     if word in self.COMMON_GEOS:
                         ctx_regions.add(self.COMMON_GEOS[word])
 
             if ctx_regions:
-                has_loc_match = any(loc in fp_text for loc in locations) or any(
+                has_loc_match = any(loc in fp_text for loc in all_geos) or any(
                     any(w in fp_text for w, r in self.COMMON_GEOS.items() if r == reg)
                     for reg in ctx_regions
                 )
@@ -144,25 +124,38 @@ class IdentityResolver:
                         if region not in ctx_regions and re.search(rf'\b{re.escape(word)}\b', fp_text):
                             found_conflicting_regions.add(region)
                     if found_conflicting_regions:
-                        return False, f"Explicit geographic contradiction: caller specified {locations}, candidate claims {sorted(found_conflicting_regions)}.", "CONTRADICTION_BLOCKED"
+                        return False, f"Explicit geographic contradiction: caller specified {all_geos}, candidate claims {sorted(found_conflicting_regions)}.", "CONTRADICTION_BLOCKED"
 
-        # Matching check
+        # 2. Check for explicit HQ Contradiction when caller specified headquarters
+        if hq_geos:
+            hq_match = re.search(r'\b(?:headquartered|based|hq)\s+(?:in|at)\s+([a-z\s,]+)', fp_text)
+            if hq_match:
+                claimed_hq_text = hq_match.group(1)[:50]
+                claimed_regions = {self.COMMON_GEOS[w] for w in re.findall(r'\b[a-z0-9]+\b', claimed_hq_text) if w in self.COMMON_GEOS}
+                caller_hq_regions = {self.COMMON_GEOS[w] for loc in hq_geos for w in re.findall(r'\b[a-z0-9]+\b', loc) if w in self.COMMON_GEOS}
+                if claimed_regions and caller_hq_regions and not (claimed_regions & caller_hq_regions):
+                    return False, f"Explicit headquarters contradiction: caller specified HQ {hq_geos}, candidate states '{claimed_hq_text.strip()}'.", "CONTRADICTION_BLOCKED"
+
+        # 3. Matching check against first-party text
         matches = []
-        for loc in locations:
+        for hq in hq_geos:
+            if hq in fp_text:
+                matches.append(f"headquarters '{hq}'")
+        for loc in general_geos:
             if loc in fp_text:
                 matches.append(f"location '{loc}'")
         for leg in legals:
             if leg in fp_text:
                 matches.append(f"legal '{leg}'")
-        for kw in specific_keywords:
-            if kw in fp_text:
-                matches.append(f"keyword '{kw}'")
+        for id_val in ids:
+            if id_val in fp_text:
+                matches.append(f"identifier '{id_val}'")
 
         if matches:
             matched_str = ", ".join(matches[:3])
             return True, f"Caller context matched first-party evidence ({matched_str}).", "USER_CONTEXT"
 
-        return False, "Specific caller context attributes were not corroborated in candidate first-party evidence.", "NO_FIRST_PARTY_MATCH"
+        return False, "Specific caller context structural attributes were not corroborated in candidate first-party evidence.", "NO_FIRST_PARTY_MATCH"
 
     @staticmethod
     def _context_score(text: str, context: IdentityContext) -> int:
@@ -274,6 +267,8 @@ class IdentityResolver:
         for ev in candidate.evidence:
             if ev.type == EvidenceType.FALLBACK_INDEXED or ev.source == "indexed_search":
                 sources.add("SEARCH_INDEX_FALLBACK")
+            elif ev.type == EvidenceType.EXTERNAL_REGISTRY:
+                sources.add("EXTERNAL_REGISTRY")
             elif ev.type == EvidenceType.SEARCH_RESULT or ev.source in ("serper", "mock_search", "mocksearchprovider", "search"):
                 sources.add("SEARCH_INDEX")
             elif ev.source.startswith("homepage") or ev.source.startswith("secondary_"):
@@ -328,7 +323,21 @@ class IdentityResolver:
             if has_competing:
                 return False, f"Multiple distinct brand domains ({competing_str}) observed in search results.", "NONE"
 
-        # 3. Check for Entity Discrimination Basis:
+        # 3. Check for External Registry Match
+        ext_registry_ev = [
+            ev for ev in best_candidate.evidence
+            if ev.type == EvidenceType.EXTERNAL_REGISTRY
+        ]
+        if ext_registry_ev:
+            has_conflict = any(
+                "CONFLICT" in (ev.signal or "") or "MISMATCH" in (ev.signal or "") or "CONTRADICTION" in (ev.signal or "")
+                for ev in ext_registry_ev
+            )
+            if has_conflict:
+                return False, "Conflicting external registry record detected.", "CONTRADICTION_BLOCKED"
+            return True, "Entity identity verified via independent external registry record.", "EXTERNAL_ENTITY_MATCH"
+
+        # 4. Check for Entity Discrimination Basis:
         # Basis 0: Distinctive coined brand token (non-dictionary)
         if any(not is_dictionary_word(t) for t in distinctive):
             return True, "Entity collision risk discounted via distinctive coined brand token.", "COINED_BRAND_TOKEN"
@@ -343,7 +352,7 @@ class IdentityResolver:
 
         # Invariant B: First-party legal entity registration on candidate's site alone is self-corroboration,
         # NOT cross-entity discrimination. It remains AMBIGUOUS without caller context or external registry match.
-        return False, "Common-word entity requires explicit entity-discriminating evidence (caller context matching first-party crawled evidence).", "NONE"
+        return False, "Common-word entity requires explicit entity-discriminating evidence (caller context matching first-party crawled evidence or external registry).", "NONE"
 
     def _check_competing_brand_domains(
         self,
@@ -357,6 +366,7 @@ class IdentityResolver:
         """
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
         clean_dist = self.canonical_brand_slug(company_name)
+        distinctive = self.extract_distinctive_tokens(company_name)
 
         best_reg = get_registrable_domain(best_candidate.domain)
         competing_brand_domains = set()
@@ -368,7 +378,13 @@ class IdentityResolver:
             if c_reg == best_reg:
                 continue
             c_root = c_reg.split('.')[0]
-            if (clean_dist and clean_dist in c_reg) or c_root == clean_dist or c_root == clean_co:
+            if (
+                (clean_dist and clean_dist in c_reg)
+                or c_root == clean_dist
+                or c_root == clean_co
+                or (distinctive and c_root == distinctive[0])
+                or (distinctive and len(distinctive[0]) > 4 and distinctive[0] in c_root)
+            ):
                 competing_brand_domains.add(c_domain)
 
         if competing_brand_domains:

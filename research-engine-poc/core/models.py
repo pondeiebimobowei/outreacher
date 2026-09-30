@@ -45,6 +45,8 @@ class EvidenceType(str, Enum):
     PAGE_IDENTITY  = "PAGE_IDENTITY"
     # Search-indexed acquisition fallback evidence (Track 2)
     FALLBACK_INDEXED = "FALLBACK_INDEXED"
+    # Independent trusted external registry record (e.g. SEC, BaFin, Companies House)
+    EXTERNAL_REGISTRY = "EXTERNAL_REGISTRY"
 
 class IdentityEvidence(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -134,37 +136,28 @@ class CompanyIdentity(BaseModel):
 
 class IdentityContext(BaseModel):
     """
-    Optional caller-supplied context for entity disambiguation.
+    Structured caller-supplied context for entity disambiguation.
 
-    Used when a bare company name resolves to multiple PRIMARY candidates
-    (genuine entity collision) or has shape risk. The resolver scores
-    specific discriminators strictly against live crawled first-party evidence.
+    Only explicit structural discriminators (location, jurisdiction, country,
+    headquarters, headquarters_country, legal_name, registration_number,
+    product_id, trusted_registry_id) can serve as entity discriminators.
 
-    Context must come from the caller's domain knowledge (user profile, job
-    opportunity metadata, etc.) — NOT from an LLM inferring the user's intent.
-
-    Fields are structured and free-text.
-
-    Example:
-        IdentityContext(
-            industry="fintech",
-            description="neobroker and investment platform",
-            location="Berlin",
-            country="Germany",
-            company_type="GmbH",
-            legal_name="Trade Republic Bank GmbH",
-        )
+    General free-text descriptions or industry categories do NOT act as entity discriminators.
     """
     model_config = ConfigDict(frozen=True)
 
-    industry: Optional[str] = None            # "software", "fintech", "venture capital"
-    description: Optional[str] = None         # "product development software"
-    company_type: Optional[str] = None        # "software_product", "GmbH", "bank"
-    location: Optional[str] = None            # "Toronto", "Berlin", "Lagos", "San Francisco"
     country: Optional[str] = None             # "Canada", "Germany", "Nigeria", "United States"
     jurisdiction: Optional[str] = None        # "Germany", "Delaware", "Ontario", "UK"
+    location: Optional[str] = None            # "Toronto", "Berlin", "Lagos", "Boston"
+    headquarters: Optional[str] = None        # "Toronto", "Berlin", "Milan", "San Francisco"
+    headquarters_country: Optional[str] = None# "Canada", "Germany", "Italy", "United States"
     legal_name: Optional[str] = None          # "Trade Republic Bank GmbH", "Iron Mountain Inc."
     registration_number: Optional[str] = None # "HRB 12345", "7349102"
+    product_id: Optional[str] = None          # "specific product / service identifier"
+    trusted_registry_id: Optional[str] = None # "verified registry entity ID"
+    company_type: Optional[str] = None        # "GmbH", "S.p.A.", "LLC", "Inc"
+    industry: Optional[str] = None            # Informational only — not a discriminator
+    description: Optional[str] = None         # Informational only — not a discriminator
 
 class PageType(str, Enum):
     HOMEPAGE = "HOMEPAGE"

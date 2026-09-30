@@ -1,0 +1,10 @@
+Collision-Focused Blind Benchmark (v1.3.2) — 22 Cases
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric                     ┃ Value                ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ Total Cases                │ 22                   │
+│ State Accuracy             │ 100.0%               │
+│ CONFIDENT Recall           │ 100.0% (10 expected) │
+│ False CONFIDENT Count      │ 0 (0.0%)             │
+│ Target Misidentified Count │ 0 (0.0%)             │
+└────────────────────────────┴──────────────────────┘
