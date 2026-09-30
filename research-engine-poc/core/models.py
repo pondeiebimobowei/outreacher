@@ -188,6 +188,7 @@ class CrawledDocument(BaseModel):
     status_code: Optional[int] = None
     title: Optional[str] = None
     content: Optional[str] = None
+    raw_html: Optional[str] = None
     content_type: Optional[str] = None
     retrieved_at: datetime
     word_count: int = 0

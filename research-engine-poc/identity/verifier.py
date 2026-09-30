@@ -39,6 +39,7 @@ import time
 from typing import List, Optional, Tuple, Dict, Any
 
 from crawling.manager import CrawlManager
+from crawling.link_extractor import extract_identity_candidates, SecondaryRouteCandidate, classify_route_kind
 from search.base import ISearchProvider, SearchProviderError
 from search.sanitizer import SearchResultSanitizer
 from core.models import (
@@ -186,8 +187,9 @@ class WebsiteVerifier:
             )
 
         # ── 3. Secondary identity corroboration ───────────────────────────────
+        dynamic_candidates = extract_identity_candidates(hp_doc.raw_html or hp_doc.content or "", website_url)
         corr_entity_match, corr_name_match, corr_strength, corr_rel, corr_ev = (
-            self._find_corroboration(company_name, company_lower, website_url, domain)
+            self._find_corroboration(company_name, company_lower, website_url, domain, dynamic_candidates=dynamic_candidates)
         )
         evidence.extend(corr_ev)
 
@@ -413,9 +415,10 @@ class WebsiteVerifier:
         company_lower: str,
         website_url: str,
         domain: str,
+        dynamic_candidates: Optional[List[SecondaryRouteCandidate]] = None,
     ) -> Tuple[bool, bool, Optional[str], bool, List[IdentityEvidence]]:
         """
-        Search for and evaluate a secondary identity page (ABOUT / CONTACT).
+        Search for and evaluate a secondary identity page (ABOUT / CONTACT / LEGAL / COMPANY).
 
         Returns:
           entity_title_match — secondary page title entity-matched the company name.
@@ -424,32 +427,73 @@ class WebsiteVerifier:
           rel_match          — structural relationship (product/brand/subsidiary) detected.
           evidence           — list of IdentityEvidence items.
         """
+        candidate_routes: Dict[str, Tuple[str, str, PageType]] = {}
+
+        # 1. Dynamic first-party candidate routes from homepage HTML & JSON-LD
+        if dynamic_candidates:
+            for dc in dynamic_candidates:
+                if dc.url.rstrip("/") != website_url.rstrip("/"):
+                    ptype = PageType.ABOUT if dc.route_kind in ("ABOUT", "COMPANY") else (
+                        PageType.CONTACT if dc.route_kind == "CONTACT" else PageType.OTHER
+                    )
+                    candidate_routes[dc.url] = (dc.route_kind, dc.source, ptype)
+
+        # 2. Search-discovered URLs
         query = f'site:{domain} "about" OR "company" OR "contact"'
-        urls: list = []
         try:
             self.telemetry["secondary_search_requests"] += 1
             raw   = self.search_provider.search(query, num_results=5)
             clean = SearchResultSanitizer.sanitize(raw)
             for r in clean:
-                if r.url.rstrip("/") != website_url.rstrip("/"):
-                    urls.append(r.url)
+                u = r.url.rstrip("/")
+                if u != website_url.rstrip("/") and u not in candidate_routes:
+                    ptype = TwoStageClassifier.stage1_classify_url(r.url)
+                    if ptype == PageType.BLOG:
+                        continue
+                    kind, score = classify_route_kind(r.url)
+                    if kind == "EXCLUDED":
+                        continue
+                    if kind == "UNKNOWN":
+                        if ptype == PageType.ABOUT:
+                            kind = "ABOUT"
+                        elif ptype == PageType.CONTACT:
+                            kind = "CONTACT"
+                        elif ptype == PageType.CAREERS_INDEX:
+                            kind = "CAREERS"
+                        else:
+                            kind = "COMPANY"
+                    candidate_routes[r.url] = (kind, "SEARCH_DISCOVERY", ptype)
         except SearchProviderError:
             pass
 
-        # Multi-candidate conventional route fallback probing
+        # 3. Multi-candidate conventional route fallback probing
         conventional_paths = [
             "/about", "/about-us", "/company", "/company/about",
             "/who-we-are", "/our-story", "/contact", "/contact-us",
+            "/impressum", "/legal", "/mentions-legales", "/aviso-legal",
         ]
         base_url = website_url.rstrip("/")
         for path in conventional_paths:
             cand_url = base_url + path
-            if cand_url not in urls:
-                urls.append(cand_url)
+            if cand_url not in candidate_routes:
+                ptype = TwoStageClassifier.stage1_classify_url(cand_url)
+                kind, _ = classify_route_kind(cand_url)
+                if kind == "UNKNOWN":
+                    kind = "ABOUT" if ptype == PageType.ABOUT else ("CONTACT" if ptype == PageType.CONTACT else "COMPANY")
+                candidate_routes[cand_url] = (kind, "CONVENTIONAL_PATH", ptype)
 
-        for url in urls:
-            ptype    = TwoStageClassifier.stage1_classify_url(url)
-            strength = _CORROBORATION_STRENGTH.get(ptype)
+        for url, (route_kind, source, ptype) in candidate_routes.items():
+            if route_kind == "EXCLUDED" or ptype in (PageType.BLOG, PageType.JOB_LISTING):
+                continue
+            if route_kind in ("ABOUT", "LEGAL", "COMPANY"):
+                strength = "strong"
+            elif route_kind == "CONTACT":
+                strength = "medium"
+            elif route_kind == "CAREERS" or ptype == PageType.CAREERS_INDEX:
+                strength = "supplemental"
+            else:
+                strength = _CORROBORATION_STRENGTH.get(ptype)
+
             if strength is None:
                 continue
 
@@ -465,7 +509,7 @@ class WebsiteVerifier:
             rel_match = self._detect_relationship(doc_sample, company_name)
             if rel_match:
                 return False, False, None, True, [IdentityEvidence(
-                    type=EvidenceType.RELATIONSHIP, source="secondary_page", url=url, signal="RELATIONSHIP_MENTION",
+                    type=EvidenceType.RELATIONSHIP, source=f"secondary_{source.lower()}", url=url, signal="RELATIONSHIP_MENTION",
                 )]
 
             entity_match = self._secondary_title_matches_entity(doc_title, company_name)
@@ -483,7 +527,7 @@ class WebsiteVerifier:
                     signal   = f"NAME_IN_{strength.upper()}_PAGE"
                     ev_type  = EvidenceType.PAGE_IDENTITY
                 return entity_match, name_match, strength, False, [IdentityEvidence(
-                    type=ev_type, source="secondary_page", url=url, signal=signal,
+                    type=ev_type, source=f"secondary_{source.lower()}", url=url, signal=signal,
                 )]
 
         return False, False, None, False, []

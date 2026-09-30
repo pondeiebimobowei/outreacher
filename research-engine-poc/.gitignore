@@ -19,7 +19,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-
+docs/*
 # Secrets & Environment Variables
 .env
 .env.*

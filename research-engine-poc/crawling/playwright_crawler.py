@@ -32,7 +32,7 @@ class PlaywrightCrawlerProvider(ICrawlerProvider):
                     word_count = len(text.split())
                     return CrawledDocument(
                         url=url, final_url=final_url, status_code=status, title=title,
-                        content=text, content_type="text/plain", retrieved_at=now,
+                        content=text, raw_html=html, content_type="text/plain", retrieved_at=now,
                         word_count=word_count, page_type=page_type, error=None
                     )
                 finally:

@@ -56,6 +56,7 @@ class TrafilaturaCrawlerProvider(ICrawlerProvider):
                 status_code=status_code,
                 title=title,
                 content=extracted,
+                raw_html=html,
                 content_type=content_type,
                 retrieved_at=now,
                 word_count=word_count,
