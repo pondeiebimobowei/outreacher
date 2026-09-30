@@ -152,6 +152,10 @@ class WebsiteVerifier:
             hp_sample, company_name, domain_signal=domain_signal, has_exact_title_match=hp_title_match
         )
         hp_name_present = company_lower in hp_content.lower()
+        hp_legal_match  = bool(re.search(
+            r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|registered\s+in|registration\s+no|company\s+no|licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b',
+            hp_sample
+        ))
 
         # Record typed evidence signals
         if hp_title_match:
@@ -163,6 +167,11 @@ class WebsiteVerifier:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="SELF_IDENTITY_STATEMENT",
+            ))
+        if hp_legal_match:
+            evidence.append(IdentityEvidence(
+                type=EvidenceType.SELF_IDENTITY, source="homepage",
+                url=website_url, signal="LEGAL_ENTITY_REGISTRATION",
             ))
         if hp_relationship:
             evidence.append(IdentityEvidence(
@@ -579,9 +588,15 @@ class WebsiteVerifier:
                 else:
                     signal   = f"NAME_IN_{strength.upper()}_PAGE"
                     ev_type  = EvidenceType.PAGE_IDENTITY
-                return entity_match, name_match, strength, False, [IdentityEvidence(
+                
+                ev_list = [IdentityEvidence(
                     type=ev_type, source=f"secondary_{source.lower()}", url=url, signal=signal,
                 )]
+                if re.search(r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|registered\s+in|registration\s+no|company\s+no|licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b', doc_sample):
+                    ev_list.append(IdentityEvidence(
+                        type=EvidenceType.SELF_IDENTITY, source=f"secondary_{source.lower()}", url=url, signal="LEGAL_ENTITY_REGISTRATION",
+                    ))
+                return entity_match, name_match, strength, False, ev_list
 
         return False, False, None, False, []
 

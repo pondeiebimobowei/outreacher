@@ -56,6 +56,7 @@ class IdentityEvidence(BaseModel):
     rank: Optional[int] = None
     query: Optional[str] = None
     title: Optional[str] = None
+    snippet: Optional[str] = None
 
 class IdentityCandidate(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -104,6 +105,7 @@ class IdentityDiagnosticTrace(BaseModel):
     indexed_only: bool
     relationship_status: str
     shape_risk_result: bool
+    entity_discrimination_basis: str
     final_decision_rule: str
 
 class CompanyIdentity(BaseModel):

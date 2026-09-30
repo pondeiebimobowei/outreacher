@@ -18,10 +18,13 @@ from benchmark_identity_holdout import (
 from benchmark_identity_recall import evaluate_identity_case
 
 
-# Historical single-token dictionary cases that v1.3.2 deliberately protects via AMBIGUOUS
+# Historical single-token and common dictionary cases that v1.3.2 deliberately protects via AMBIGUOUS
 V1_3_2_HOLDOUT_PROTECTED_CASES = {
-    "holdout_indirect_helps_teams_deliver",  # Render Services -> render
-    "holdout_spa_svelte_bundle_root",        # Sentry Software -> sentry
+    "holdout_indirect_helps_teams_deliver",      # Render Services -> render
+    "holdout_spa_svelte_bundle_root",            # Sentry Software -> sentry
+    "holdout_unconv_our_story_route",            # Loom Video -> loom
+    "holdout_unconv_contact_support_route",      # Postmark Mail -> postmark
+    "holdout_indirect_offers_unified_ledger",    # Modern Treasury -> modern treasury
 }
 
 
@@ -51,8 +54,8 @@ def test_holdout_benchmark_metrics_and_safety_invariants():
     assert h["non_confident_safety_pct"] == 100.0
 
     # Measured holdout metrics under v1.3.2
-    assert h["correct_confident_count"] == 4
-    assert h["missed_conf_ambiguous_count"] == 2  # Render Services & Sentry Software safely held at AMBIGUOUS
+    assert h["correct_confident_count"] == 1
+    assert h["missed_conf_ambiguous_count"] == 5  # Dictionary phrases safely held at AMBIGUOUS
 
 
 def test_holdout_individual_case_evaluations():

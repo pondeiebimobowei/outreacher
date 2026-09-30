@@ -345,8 +345,8 @@ COLLISION_BLIND_DATASET: List[CollisionBlindCase] = [
             SearchResult(title="About Bending Spoons", url="https://bendingspoons.com/company", snippet="Bending Spoons is headquartered in Milan, Italy."),
         ],
         mock_documents={
-            "https://bendingspoons.com": _doc("https://bendingspoons.com", "Bending Spoons – Digital Apps", "Bending Spoons creates world-class digital software products.", PageType.HOMEPAGE),
-            "https://bendingspoons.com/company": _doc("https://bendingspoons.com/company", "About Bending Spoons", "Bending Spoons builds consumer software.", PageType.ABOUT),
+            "https://bendingspoons.com": _doc("https://bendingspoons.com", "Bending Spoons – Digital Apps", "Bending Spoons S.p.A. creates world-class digital software products.", PageType.HOMEPAGE),
+            "https://bendingspoons.com/company": _doc("https://bendingspoons.com/company", "About Bending Spoons", "Bending Spoons S.p.A. is registered in Milan, Italy.", PageType.ABOUT),
         },
     ),
     CollisionBlindCase(

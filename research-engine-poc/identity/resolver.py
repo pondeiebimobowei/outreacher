@@ -122,41 +122,45 @@ class IdentityResolver:
         """Backward-compatible alias for has_entity_collision_risk."""
         return self.has_entity_collision_risk(company_name)
 
+    def _detect_legal_entity_registration(self, company_name: str, candidate: IdentityCandidate) -> bool:
+        """
+        Detects if first-party candidate evidence contains explicit corporate registration,
+        jurisdictional authority, or recognized corporate entity forms (e.g. GmbH, S.p.A., AG,
+        B.V., Pty Ltd, LLC, Inc., Registration No., licensed/regulated by authority).
+        """
+        if any(ev.signal == "LEGAL_ENTITY_REGISTRATION" for ev in candidate.evidence):
+            return True
+        legal_pattern = re.compile(
+            r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|registered\s+in|registration\s+no|company\s+no|licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b',
+            re.IGNORECASE
+        )
+        combined_text = candidate.relationship_reasoning + " " + candidate.verification_msg
+        for ev in candidate.evidence:
+            combined_text += " " + (ev.title or "") + " " + (ev.signal or "") + " " + (ev.query or "")
+        return bool(legal_pattern.search(combined_text))
+
     def _should_discount_shape_risk(
         self,
         company_name: str,
         best_candidate: IdentityCandidate,
         all_candidates: Optional[List[IdentityCandidate]] = None,
-    ) -> Tuple[bool, str]:
+        context: Optional[IdentityContext] = None,
+    ) -> Tuple[bool, str, str]:
         """
         Evaluates whether shape risk on a uniquely verified PRIMARY candidate
-        should be discounted due to strong coined-brand distinctiveness,
-        exact domain correspondence, and uncontested search distribution (Track 3).
+        should be discounted due to genuine entity-discriminating positive evidence.
 
-        Returns (can_discount, reason).
+        Returns (can_discount, reason, entity_discrimination_basis).
         """
         # 0. Candidate provenance: indexed-only evidence cannot discount shape risk
         if best_candidate.is_indexed_only:
-            return False, "Candidate established via search-indexed fallback (bot-blocked homepage) carries epistemic cap."
+            return False, "Candidate established via search-indexed fallback (bot-blocked homepage) carries epistemic cap.", "NONE"
 
         distinctive = self.extract_distinctive_tokens(company_name)
         if not distinctive:
-            return False, "Query contains only generic corporate suffixes without a distinctive brand token."
+            return False, "Query contains only generic corporate suffixes without a distinctive brand token.", "NONE"
 
-        # 1. Single-token dictionary words carry unmitigated entity collision risk
-        if len(distinctive) == 1:
-            tok = distinctive[0]
-            if is_dictionary_word(tok):
-                return False, f"Single-token dictionary word '{tok}' carries high entity collision risk."
-
-        # 2. Multi-token generic combinations (e.g. 'General Logistics Services', 'First National Security')
-        if len(distinctive) >= 2:
-            if distinctive[0] in self.GENERIC_MODIFIERS and all(
-                t in (self.GENERIC_CATEGORY_NOUNS | self.GENERIC_TERMS | self.GENERIC_MODIFIERS) for t in distinctive[1:]
-            ):
-                return False, f"Multi-token generic combination ({' '.join(distinctive)}) without distinctive brand token."
-
-        # 3. Domain correspondence
+        # 1. Domain correspondence check
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
         clean_dist = self.canonical_brand_slug(company_name)
         clean_lbl = best_candidate.domain.split('.')[0].lower()
@@ -171,17 +175,36 @@ class IdentityResolver:
             or (clean_tok0 and clean_tok0.startswith(clean_lbl))
         )
         if not is_exact_domain:
-            return False, f"Domain '{best_candidate.domain}' does not match distinctive brand name."
+            return False, f"Domain '{best_candidate.domain}' does not match brand name.", "NONE"
 
-        # 4. Search Result Collision / Competing Entity Detection
+        # 2. Competing Brand Domains Check
         if all_candidates:
             has_competing, competing_str = self._check_competing_brand_domains(
                 company_name, best_candidate, all_candidates
             )
             if has_competing:
-                return False, f"Multiple distinct brand domains ({competing_str}) observed in search results."
+                return False, f"Multiple distinct brand domains ({competing_str}) observed in search results.", "NONE"
 
-        return True, "Distinctive brand with exact domain correspondence, uncontested search dominance, and verified corroboration."
+        # 3. Check for Entity Discrimination Basis:
+        # Basis 0: Distinctive coined brand token (non-dictionary)
+        if any(not is_dictionary_word(t) for t in distinctive):
+            return True, "Entity collision risk discounted via distinctive coined brand token.", "COINED_BRAND_TOKEN"
+
+        # Basis A: Caller-supplied structured context
+        if context:
+            cand_text = best_candidate.relationship_reasoning + " " + best_candidate.verification_msg + " " + " ".join(
+                f"{ev.title or ''} {ev.snippet or ''} {ev.signal or ''}" for ev in best_candidate.evidence
+            )
+            c_score = self._context_score(cand_text, context)
+            if c_score > 0:
+                return True, f"Entity collision risk discounted via matching caller context (score={c_score}).", "USER_CONTEXT"
+
+        # Basis B: First-party legal entity registration / regulatory attribution
+        if self._detect_legal_entity_registration(company_name, best_candidate):
+            return True, "Entity collision risk discounted via first-party legal entity registration.", "LEGAL_ENTITY_MATCH"
+
+        # If no discriminator is present for a common dictionary word/compound:
+        return False, "Common-word entity requires explicit entity-discriminating evidence (caller context or legal registration).", "NONE"
 
     def _check_competing_brand_domains(
         self,
@@ -265,6 +288,7 @@ class IdentityResolver:
                 rank=idx + 1,
                 query=query,
                 title=r.title,
+                snippet=r.snippet,
             ))
 
         if not domain_evidence:
@@ -282,6 +306,7 @@ class IdentityResolver:
                 indexed_only=False,
                 relationship_status="UNKNOWN",
                 shape_risk_result=self.name_shape_risk(company_name),
+                entity_discrimination_basis="NONE",
                 final_decision_rule="NO_CANDIDATES_UNRESOLVED",
             )
             return CompanyIdentity(
@@ -348,6 +373,7 @@ class IdentityResolver:
         # ── Decision policy ──────────────────────────────────────────────────────
         decision_rule = "UNKNOWN"
         competing_count = 0
+        entity_discrimination_basis = "COINED_BRAND_TOKEN" if not is_shape_risk else "NONE"
 
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
@@ -372,15 +398,16 @@ class IdentityResolver:
                     f"Manual confirmation required. {best.relationship_reasoning}"
                 )
             elif is_shape_risk:
-                can_discount, discount_reason = self._should_discount_shape_risk(
-                    company_name, best, recorded_candidates
+                can_discount, discount_reason, disc_basis = self._should_discount_shape_risk(
+                    company_name, best, recorded_candidates, context=context
                 )
+                entity_discrimination_basis = disc_basis
                 if can_discount:
                     decision_rule = "SHAPE_RISK_DISCOUNTED_CONFIDENT"
                     confidence = IdentityConfidence.CONFIDENT
                     reasoning = (
                         f"Uniquely verified PRIMARY candidate with exact domain correspondence "
-                        f"and uncontested corroboration discounting shape-risk. {best.relationship_reasoning}"
+                        f"and {disc_basis} evidence discounting shape-risk. {best.relationship_reasoning}"
                     )
                 else:
                     decision_rule = "SHAPE_RISK_RETAINED_AMBIGUOUS"
@@ -482,6 +509,7 @@ class IdentityResolver:
             indexed_only=is_idx_only,
             relationship_status=rel_status,
             shape_risk_result=is_shape_risk,
+            entity_discrimination_basis=entity_discrimination_basis,
             final_decision_rule=decision_rule,
         )
 

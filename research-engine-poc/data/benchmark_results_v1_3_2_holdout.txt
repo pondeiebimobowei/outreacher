@@ -12,13 +12,13 @@
 ┃                      ┃  Dev Corpus  ┃ Corpus (10  ┃ Generaliz… ┃ Safety      ┃
 ┃ Metric Dimension     ┃  (28 cases)  ┃   cases)    ┃    Gap     ┃ Target      ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ Identity State       │    82.1%     │    80.0%    │   +2.1%    │ >= 90.0% on │
-│ Accuracy             │   (23/28)    │   (8/10)    │            │ Holdout     │
+│ Identity State       │    82.1%     │    50.0%    │   +32.1%   │ >= 90.0% on │
+│ Accuracy             │   (23/28)    │   (5/10)    │            │ Holdout     │
 ├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
-│ CONFIDENT Recall     │    72.2%     │ 66.7% (4/6) │   +5.6%    │ >= 85.0% on │
+│ CONFIDENT Recall     │    72.2%     │ 16.7% (1/6) │   +55.6%   │ >= 85.0% on │
 │                      │   (13/18)    │             │            │ Holdout     │
 ├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
-│ Primary Safety:      │ 0.0% (0/13)  │ 0.0% (0/4)  │ 0.0% (Zero │ 0.0%        │
+│ Primary Safety:      │ 0.0% (0/13)  │ 0.0% (0/1)  │ 0.0% (Zero │ 0.0%        │
 │ Unsafe Loss          │              │             │    Gap)    │ (UNSAFE/Pr… │
 ├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
 │ Safety: False        │ 0.0% (0/10)  │ 0.0% (0/4)  │ 0.0% (Zero │ Strictly    │
@@ -35,7 +35,7 @@
 ┃                    ┃    Predicted     ┃     Predicted     ┃    Predicted     ┃
 ┃ Expected State     ┃    CONFIDENT     ┃     AMBIGUOUS     ┃    UNRESOLVED    ┃
 ┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
-│ CONFIDENT (6)      │    4 (Correct    │  2 (Missed Conf)  │  0 (Missed ID)   │
+│ CONFIDENT (6)      │    1 (Correct    │  5 (Missed Conf)  │  0 (Missed ID)   │
 │                    │     Recall)      │                   │                  │
 ├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
 │ AMBIGUOUS (1)      │  0 (False Conf)  │    1 (Correct     │        0         │
@@ -54,13 +54,13 @@
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
 │ holdout_spa_svelte_bundle_ro… │ SPA_REND… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
-│ holdout_unconv_our_story_rou… │ UNCONVEN… │ CONF… │ CONF… │ loom.com     │ … │
+│ holdout_unconv_our_story_rou… │ UNCONVEN… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
-│ holdout_unconv_contact_suppo… │ UNCONVEN… │ CONF… │ CONF… │ postmarkapp… │ … │
+│ holdout_unconv_contact_suppo… │ UNCONVEN… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
 │ holdout_indirect_helps_teams… │ INDIRECT… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
-│ holdout_indirect_offers_unif… │ INDIRECT… │ CONF… │ CONF… │ moderntreas… │ … │
+│ holdout_indirect_offers_unif… │ INDIRECT… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
 │ holdout_subdomain_doc_portal  │ SUBDOMAI… │ UNRE… │ UNRE… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤

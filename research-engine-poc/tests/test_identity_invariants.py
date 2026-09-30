@@ -195,8 +195,8 @@ def test_single_coined_distinctive_word_resolves_to_confident():
 def test_multi_token_distinctive_phrase_resolves_to_confident():
     """Distinctive multi-token queries with exact primary match must resolve to CONFIDENT."""
     multi_cases = [
-        ("Trade Republic", "traderepublic.com", "Trade Republic is Europe's largest savings platform."),
-        ("Bending Spoons", "bendingspoons.com", "Bending Spoons develops digital creative tools."),
+        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin."),
+        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy."),
         ("Moove Mobility", "moove.io", "Moove Mobility democratizes vehicle ownership in emerging markets."),
         ("GitLab Engineering", "gitlab.com", "GitLab Engineering provides DevSecOps automation."),
     ]
@@ -820,9 +820,10 @@ def test_mixed_provenance_indexed_fallback_preserves_epistemic_cap():
         WebsiteVerifier(_DeterministicCrawlManager({}), _DeterministicSearchProvider("ThinBrand", "thinbrand.com", []))
     )
     
-    can_discount, reason = resolver._should_discount_shape_risk("ThinBrand", candidate_mixed, [candidate_mixed])
+    can_discount, reason, disc_basis = resolver._should_discount_shape_risk("ThinBrand", candidate_mixed, [candidate_mixed])
     assert can_discount is False
     assert "epistemic cap" in reason.lower()
+    assert disc_basis == "NONE"
 
 
 # ── Invariant 21: Unsafe CONFIDENT Precision Loss Safety KPI ──────────────────

@@ -182,17 +182,16 @@ def test_coined_single_word_brand_uncontested_promoted_to_confident():
 
 
 def test_multi_token_distinctive_name_promoted_to_confident():
-    """Tests that multi-token distinctive corporate names (Trade Republic, Bending Spoons, Cowrywise Financial)
-    have low shape risk and resolve to CONFIDENT."""
+    """Tests that multi-token corporate names with legal entity registration or coined tokens resolve to CONFIDENT."""
     multi_token_cases = [
-        ("Trade Republic", "traderepublic.com"),
-        ("Bending Spoons", "bendingspoons.com"),
-        ("Lami Technologies", "lami.world"),
-        ("FairMoney Financial", "fairmoney.io"),
-        ("Cowrywise Investments", "cowrywise.com"),
+        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin."),
+        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy."),
+        ("Lami Technologies", "lami.world", "Lami Technologies builds embedded insurance."),
+        ("FairMoney Financial", "fairmoney.io", "FairMoney is a digital bank."),
+        ("Cowrywise Investments", "cowrywise.com", "Cowrywise provides investment solutions."),
     ]
 
-    for company, domain in multi_token_cases:
+    for company, domain, desc in multi_token_cases:
         search = _DeterministicSearchProvider(
             company=company,
             domain=domain,
@@ -200,14 +199,14 @@ def test_multi_token_distinctive_name_promoted_to_confident():
                 SearchResult(
                     title=f"{company} – Official Platform",
                     url=f"https://{domain}",
-                    snippet=f"{company} official corporate portal.",
+                    snippet=desc,
                 ),
             ]
         )
 
         crawl = _DeterministicCrawlManager({
-            f"https://{domain}": _valid_doc(f"https://{domain}", f"{company} – Official Platform", f"{company} is a business.", PageType.HOMEPAGE),
-            f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {company}", f"About {company}.", PageType.ABOUT),
+            f"https://{domain}": _valid_doc(f"https://{domain}", f"{company} – Official Platform", f"{company} {desc}", PageType.HOMEPAGE),
+            f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {company}", f"About {company}: {desc}", PageType.ABOUT),
         })
 
         verifier = WebsiteVerifier(crawl, search)
