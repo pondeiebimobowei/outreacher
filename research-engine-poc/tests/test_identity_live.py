@@ -40,7 +40,7 @@ def test_instrumented_runner_stage_attribution_success():
         expected_relationship=SiteRelationship.PRIMARY,
         category="GLOBAL_FINTECH",
         ground_truth_source="Registry Test",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Unit test case for live runner.",
     )
 
@@ -83,7 +83,7 @@ def test_instrumented_runner_stage_attribution_search_dropoff():
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEV_TEST",
         ground_truth_source="Test Registry",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Simulated search dropoff.",
     )
 

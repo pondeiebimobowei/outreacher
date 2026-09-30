@@ -94,7 +94,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="GLOBAL_FINTECH",
         ground_truth_source="SEC Form D / Delaware Registry / Crunchbase",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Global infrastructure payments platform. Canonical primary domain is stripe.com.",
     ),
     LiveIdentityCase(
@@ -105,7 +105,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_CLOUD",
         ground_truth_source="Crunchbase / Next.js Parent Organization",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Frontend cloud and creator of Next.js. Canonical primary domain is vercel.com.",
     ),
     LiveIdentityCase(
@@ -116,7 +116,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_API",
         ground_truth_source="ActiveCampaign Subsidiary Registry / Official Website",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Transactional email service. Uses brand-divergent domain postmarkapp.com.",
     ),
     LiveIdentityCase(
@@ -127,7 +127,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_API",
         ground_truth_source="Y Combinator Directory / Official Brand Registry",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Modern email API for developers. Canonical primary domain is resend.com.",
     ),
     LiveIdentityCase(
@@ -138,7 +138,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="WORKPLACE_SAAS",
         ground_truth_source="Delaware Division of Corporations / Crunchbase",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Workplace productivity platform. Canonical primary domain is clickup.com.",
     ),
     LiveIdentityCase(
@@ -149,7 +149,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_CLOUD",
         ground_truth_source="Y Combinator Directory / Crunchbase",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Application delivery and physical computing platform. Canonical domain is fly.io.",
     ),
     LiveIdentityCase(
@@ -160,7 +160,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_DATABASE",
         ground_truth_source="Y Combinator Directory / GitHub Organization",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Open-source Firebase alternative. Canonical primary domain is supabase.com.",
     ),
     LiveIdentityCase(
@@ -171,7 +171,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_FINTECH",
         ground_truth_source="Central Bank of Nigeria Licensed MFB / Crunchbase Unicorn List",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="All-in-one financial services platform for African businesses. Canonical domain is moniepoint.com.",
     ),
     LiveIdentityCase(
@@ -182,7 +182,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_FINTECH",
         ground_truth_source="Stripe Subsidiary Acquisition Records / Y Combinator Directory",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="African payments platform operating under Stripe. Canonical domain is paystack.com.",
     ),
     LiveIdentityCase(
@@ -193,7 +193,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_TOOL",
         ground_truth_source="NASDAQ: GTLB / SEC Filings",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Publicly traded DevOps platform. Canonical primary domain is gitlab.com.",
     ),
 
@@ -206,7 +206,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="ENTITY_COLLISION",
         ground_truth_source="Disambiguation Conflict: Linear App (linear.app) vs Linear Capital (linear.vc)",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Bare name 'Linear' surfaces multiple prominent independent entities without context.",
     ),
     LiveIdentityCase(
@@ -217,7 +217,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="ENTITY_COLLISION",
         ground_truth_source="Disambiguation Conflict: Mercury Technologies (mercury.com) vs Mercury Marine vs Mercury Insurance",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Bare name 'Mercury' surfaces fintech banking, marine propulsion, and insurance companies.",
     ),
 
@@ -230,7 +230,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
         ground_truth_source="Non-existent Fictitious Entity Synthetic Control",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Synthetically generated non-existent company name; verifier must safely abstain.",
     ),
     LiveIdentityCase(
@@ -241,7 +241,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
         ground_truth_source="Non-existent Fictitious Entity Synthetic Control",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Synthetically generated non-existent entity; verifier must not hallucinate a primary domain.",
     ),
     LiveIdentityCase(
@@ -252,7 +252,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
         ground_truth_source="Non-existent Fictitious Entity Synthetic Control",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Fictitious brand; verifier must reject partial search matches.",
     ),
     LiveIdentityCase(
@@ -263,7 +263,7 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_relationship=SiteRelationship.UNKNOWN,
         category="SHAPE_RISK_NEGATIVE",
         ground_truth_source="Hyper-generic Archetype Control",
-        ground_truth_timestamp="2026-09-30T00:00:00Z",
+        ground_truth_timestamp="2026-09-29T18:00:00Z",
         rationale="Generic shape risk archetype with no single canonical primary owner.",
     ),
 ]
