@@ -45,20 +45,31 @@
   },
   "root_cause_categorization": {
     "SHAPE_RISK_CONSERVATISM": {
+      "count": 2,
       "cases": ["geo_eu_adyen_netherlands", "geo_eu_pleo_denmark"],
       "mechanism": "5-letter and 4-letter brand names trigger name_shape_risk <= 5 threshold, safely forcing verified PRIMARY domains adyen.com and pleo.io into AMBIGUOUS."
     },
     "BOT_DEFENSE_AND_WAF_BLOCKS": {
-      "cases": ["geo_afr_wave_senegal", "geo_afr_julaya_ivorycoast", "geo_afr_mpharma_ghana", "geo_eu_personio_germany", "geo_eu_fortnox_sweden", "geo_col_mercury_bare_name"],
+      "count": 5,
+      "cases": ["geo_afr_wave_senegal", "geo_afr_julaya_ivorycoast", "geo_afr_mpharma_ghana", "geo_eu_personio_germany", "geo_eu_fortnox_sweden"],
       "mechanism": "Cloudflare challenge, cookie consent walls, or bot protection blocked homepage DOM extraction before self-ID statements could be evaluated."
     },
     "SECONDARY_ROUTE_DISCOVERY_ABSENCE": {
+      "count": 6,
       "cases": ["geo_afr_fawry_egypt", "geo_afr_yoco_southafrica", "geo_afr_kasha_rwanda", "geo_afr_numida_uganda", "geo_eu_qonto_france", "geo_eu_pipedrive_estonia"],
       "mechanism": "Target homepage verified with self-ID, but secondary routes (/about, /legal, /contact) either returned 404, lacked explicit entity statements, or used localized paths not in static candidate table."
     },
     "SEARCH_QUERY_LOCALIZATION_DROPOFF": {
+      "count": 1,
       "cases": ["geo_afr_chari_morocco"],
       "mechanism": "Global search query for Moroccan entity without country/ccTLD biasing surfaced third-party portfolio domain chari.myportfolio.com rather than chari.ma."
     }
+  },
+  "accounting_reconciliation": {
+    "expected_confident_total": 18,
+    "successful_confident": 4,
+    "failed_confident_total": 14,
+    "failure_breakdown_sum": 14,
+    "formula_check": "4 (Success) + 2 (Shape Risk) + 5 (WAF/Blocks) + 6 (Secondary Routes) + 1 (Search Dropoff) == 18 (Expected Confident)"
   }
 }
