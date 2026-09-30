@@ -548,10 +548,8 @@ def test_non_primary_candidate_never_produces_confident():
     result = r.resolve("Moniepoint")
 
     # atm.monnify.com should be LEGACY (self-identifies but domain != "moniepoint")
-    chosen = next(
-        (c for c in result.candidates if c.domain == result.domain), None
-    )
-    assert chosen is not None, "No chosen candidate found."
+    chosen = result.candidates[0] if result.candidates else None
+    assert chosen is not None, "No candidate recorded."
 
     if chosen.relationship != SiteRelationship.PRIMARY:
         assert result.confidence != IdentityConfidence.CONFIDENT, (
@@ -587,7 +585,7 @@ def test_zero_primary_related_candidate_is_unresolved():
     assert result.confidence == IdentityConfidence.UNRESOLVED
     assert result.confidence != IdentityConfidence.AMBIGUOUS
     assert result.confidence != IdentityConfidence.CONFIDENT
-    assert result.domain == "v0.app"
+    assert result.domain == ""
 
 
 def test_zero_primary_legacy_candidate_is_unresolved():
@@ -612,7 +610,7 @@ def test_zero_primary_legacy_candidate_is_unresolved():
     assert result.confidence == IdentityConfidence.UNRESOLVED
     assert result.confidence != IdentityConfidence.AMBIGUOUS
     assert result.confidence != IdentityConfidence.CONFIDENT
-    assert result.domain == "atm.monnify.com"
+    assert result.domain == ""
 
 
 def test_zero_primary_unknown_candidate_is_unresolved():
@@ -627,7 +625,7 @@ def test_zero_primary_unknown_candidate_is_unresolved():
     assert result.confidence == IdentityConfidence.UNRESOLVED
     assert result.confidence != IdentityConfidence.AMBIGUOUS
     assert result.confidence != IdentityConfidence.CONFIDENT
-    assert result.domain == "moove.io"
+    assert result.domain == ""
 
 
 def test_two_primary_candidates_strictly_ambiguous():

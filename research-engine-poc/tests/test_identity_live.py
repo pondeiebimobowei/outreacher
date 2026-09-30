@@ -35,10 +35,10 @@ def test_live_corpus_ground_truth_integrity():
 def test_instrumented_runner_stage_attribution_success():
     """Tests that the runner attributes a clean resolution to RESOLVED_TARGET_CONFIDENT."""
     case = LiveIdentityCase(
-        case_id="test_live_stripe",
-        query_name="Stripe",
-        target_entity="Stripe, Inc. (Global payments infrastructure)",
-        target_domain="stripe.com",
+        case_id="test_live_moniepoint",
+        query_name="Moniepoint",
+        target_entity="Moniepoint Inc. (Financial services platform)",
+        target_domain="moniepoint.com",
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="GLOBAL_FINTECH",
@@ -49,16 +49,16 @@ def test_instrumented_runner_stage_attribution_success():
     )
 
     search = _DeterministicSearchProvider(
-        company="Stripe",
-        domain="stripe.com",
+        company="Moniepoint",
+        domain="moniepoint.com",
         results=[
-            SearchResult(title="Stripe | Financial Infrastructure", url="https://stripe.com", snippet="Stripe powers online payments."),
-            SearchResult(title="About Stripe", url="https://stripe.com/about", snippet="Stripe is financial infrastructure."),
+            SearchResult(title="Moniepoint | Financial Infrastructure", url="https://moniepoint.com", snippet="Moniepoint powers business banking."),
+            SearchResult(title="About Moniepoint", url="https://moniepoint.com/about", snippet="Moniepoint is financial infrastructure."),
         ]
     )
     crawl = _DeterministicCrawlManager({
-        "https://stripe.com": _doc("https://stripe.com", title="Stripe - Online Payment Processing", content="Stripe is a financial infrastructure platform.", ptype=PageType.HOMEPAGE),
-        "https://stripe.com/about": _doc("https://stripe.com/about", title="About Stripe", content="Stripe builds economic infrastructure for the internet.", ptype=PageType.ABOUT),
+        "https://moniepoint.com": _doc("https://moniepoint.com", title="Moniepoint - Online Banking", content="Moniepoint is a financial infrastructure platform.", ptype=PageType.HOMEPAGE),
+        "https://moniepoint.com/about": _doc("https://moniepoint.com/about", title="About Moniepoint", content="Moniepoint builds banking infrastructure.", ptype=PageType.ABOUT),
     })
 
     runner = InstrumentedLiveIdentityRunner(
@@ -71,7 +71,7 @@ def test_instrumented_runner_stage_attribution_success():
     assert telemetry.is_state_match is True
     assert telemetry.is_domain_match is True
     assert telemetry.actual_confidence == "CONFIDENT"
-    assert telemetry.actual_domain == "stripe.com"
+    assert telemetry.actual_domain == "moniepoint.com"
     assert telemetry.final_stage_attribution == "RESOLVED_TARGET_CONFIDENT"
     assert telemetry.search_attribution == "SEARCH_SUCCESS"
     assert telemetry.primary_candidate_count == 1

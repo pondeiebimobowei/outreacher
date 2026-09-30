@@ -55,16 +55,48 @@ class IdentityResolver:
         "corp", "corporation", "inc", "company", "llc", "ltd",
         "solutions", "media", "group", "holdings", "services",
         "agency", "technologies", "tech", "global", "capital",
-        "partners", "ventures", "enterprises", "consulting",
+        "partners", "ventures", "enterprises", "consulting", "financial",
     }
 
+    @classmethod
+    def extract_distinctive_tokens(cls, company_name: str) -> List[str]:
+        """Extracts distinctive brand tokens in order, stripping common corporate suffixes."""
+        words = re.findall(r'\b[a-z0-9]+\b', company_name.lower())
+        return [w for w in words if w not in cls.GENERIC_TERMS]
+
+    @classmethod
+    def canonical_brand_slug(cls, company_name: str) -> str:
+        """
+        Normalizes brand name to canonical slug preserving token order (v1.3.2-6).
+        e.g. 'Trade Republic' -> 'traderepublic' (not 'republictrade').
+        """
+        tokens = cls.extract_distinctive_tokens(company_name)
+        if tokens:
+            return "".join(tokens)
+        return re.sub(r'[^a-z0-9]', '', company_name.lower())
+
+    def has_entity_collision_risk(self, company_name: str) -> bool:
+        """
+        Evaluates whether the company name has inherent entity collision risk (v1.3.2-2).
+        Any bare single-token dictionary word of arbitrary length (e.g. Pillar, Beacon,
+        Monolith, Compass, Stream, Signal, Vanguard, Pinnacle, Catalyst, Horizon, Spectrum)
+        or any short name (<= 5 chars) carries high collision risk and cannot be CONFIDENT
+        on search dominance alone.
+        """
+        tokens = self.extract_distinctive_tokens(company_name)
+        if not tokens:
+            return True
+        if len(tokens) == 1:
+            tok = tokens[0]
+            if len(tok) <= 5 or is_dictionary_word(tok):
+                return True
+        elif sum(len(t) for t in tokens) <= 5:
+            return True
+        return False
+
     def name_shape_risk(self, company_name: str) -> bool:
-        """
-        Measures the *shape* of the name (short <= 5 chars or generic-suffix dominated).
-        """
-        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
-        distinctive = words - self.GENERIC_TERMS
-        return len(distinctive) <= 1 and sum(len(w) for w in distinctive) <= 5
+        """Backward-compatible alias for has_entity_collision_risk."""
+        return self.has_entity_collision_risk(company_name)
 
     def _should_discount_shape_risk(
         self,
@@ -79,9 +111,7 @@ class IdentityResolver:
 
         Returns (can_discount, reason).
         """
-        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
-        distinctive = words - self.GENERIC_TERMS
-
+        distinctive = self.extract_distinctive_tokens(company_name)
         if not distinctive:
             return False, "Query contains only generic corporate suffixes without a distinctive brand token."
 
@@ -92,7 +122,7 @@ class IdentityResolver:
 
         # 2. Strict domain correspondence
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
-        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(sorted(distinctive)))
+        clean_dist = self.canonical_brand_slug(company_name)
         clean_lbl = best_candidate.domain.split('.')[0].lower()
 
         is_exact_domain = (clean_lbl == clean_dist) or (clean_lbl == clean_co) or best_candidate.domain.startswith(clean_dist + ".")
@@ -130,10 +160,8 @@ class IdentityResolver:
         Checks if search candidates contain multiple distinct root domains
         claiming the same brand name (e.g. pennylane.ai vs pennylane.org).
         """
-        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
-        distinctive = words - self.GENERIC_TERMS
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
-        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(sorted(distinctive)))
+        clean_dist = self.canonical_brand_slug(company_name)
 
         best_root = best_candidate.domain.lower()
         competing_brand_domains = set()
@@ -304,49 +332,13 @@ class IdentityResolver:
             chosen = best
 
         elif len(verified_candidates) > 1:
-            if context:
-                # Score each PRIMARY candidate against the caller-supplied context.
-                # Uses the already-fetched search result snippet — no extra network call.
-                scored = [
-                    (
-                        self._context_score(
-                            f"{domain_top_result[c.domain].title} "
-                            f"{domain_top_result[c.domain].snippet}",
-                            context,
-                        ),
-                        c,
-                    )
-                    for c in verified_candidates
-                    if c.domain in domain_top_result
-                ]
-                scored.sort(key=lambda x: x[0], reverse=True)
-                best_score, best_cand  = scored[0]
-                second_score           = scored[1][0] if len(scored) > 1 else -1
-
-                if best_score > second_score:
-                    # Context strictly selects one candidate.
-                    confidence = IdentityConfidence.CONFIDENT
-                    reasoning  = (
-                        f"Context-assisted: '{best_cand.domain}' selected over "
-                        f"{', '.join(c.domain for _, c in scored[1:])} "
-                        f"(context score {best_score} vs {second_score}). "
-                        f"{best_cand.relationship_reasoning}"
-                    )
-                    chosen = best_cand
-                else:
-                    # Context present but does not discriminate — stay AMBIGUOUS.
-                    names      = ", ".join(c.domain for c in verified_candidates)
-                    confidence = IdentityConfidence.AMBIGUOUS
-                    reasoning  = (
-                        f"Multiple PRIMARY candidates: {names}. "
-                        f"Context did not discriminate (scores tied at {best_score})."
-                    )
-                    chosen = verified_candidates[0]
-            else:
-                names      = ", ".join(c.domain for c in verified_candidates)
-                confidence = IdentityConfidence.AMBIGUOUS
-                reasoning  = f"Multiple PRIMARY candidates: {names}. Identity is ambiguous."
-                chosen     = verified_candidates[0]
+            names = ", ".join(c.domain for c in verified_candidates)
+            confidence = IdentityConfidence.AMBIGUOUS
+            reasoning = (
+                f"Multiple PRIMARY candidates: {names}. "
+                f"Identity is ambiguous and requires domain-level disambiguation."
+            )
+            chosen = verified_candidates[0]
 
         else:
             # No PRIMARY found — report best candidate's relationship for diagnostics.
@@ -360,14 +352,19 @@ class IdentityResolver:
             )
             chosen = top
 
-        first_result = domain_top_result.get(chosen.domain)
-        scheme       = (urlparse(first_result.url).scheme if first_result else None) or "https"
-        website_url  = f"{scheme}://{chosen.domain}"
+        if confidence == IdentityConfidence.CONFIDENT:
+            final_domain = chosen.domain
+            first_result = domain_top_result.get(chosen.domain)
+            scheme = (urlparse(first_result.url).scheme if first_result else None) or "https"
+            final_url = f"{scheme}://{chosen.domain}"
+        else:
+            final_domain = ""
+            final_url = ""
 
         return CompanyIdentity(
             name=company_name,
-            domain=chosen.domain,
-            website_url=website_url,
+            domain=final_domain,
+            website_url=final_url,
             confidence=confidence,
             reasoning=reasoning,
             candidates=recorded_candidates,

@@ -74,8 +74,6 @@ _RELATIONSHIP_TEMPLATES: list = [
     r"developed\s+by\s+{name}",
     r"powered\s+by\s+{name}",
     r"part\s+of\s+(?:the\s+)?{name}",
-    r"{name}\s+acquired\b",
-    r"{name}\s+owns\b",
     r"subsidiary\s+of\s+{name}",
     r"a\s+(?:brand|division|service)\s+of\s+{name}",
     # Covers "v0 by Vercel", "v0 — by Vercel.", "tagline by Vercel" etc.
@@ -170,19 +168,20 @@ class WebsiteVerifier:
             ))
 
         # ── 2. Early exits ────────────────────────────────────────────────────
+        # Relationship signal has absolute precedence: a subordinate/product/owned relationship
+        # cannot be PRIMARY even if a sentence-initial pattern was matched.
+        if hp_relationship:
+            return (
+                SiteRelationship.RELATED,
+                f"Homepage references {company_name} in a structural relationship "
+                f"(product/brand/acquired/owned/subsidiary).",
+                evidence,
+            )
+
         has_self_id = hp_title_match or hp_sentence_id
 
         if not hp_name_present and not has_self_id:
             return SiteRelationship.UNKNOWN, "Company name absent from homepage.", evidence
-
-        # Relationship signal present but no self-identity → RELATED
-        if hp_relationship and not has_self_id:
-            return (
-                SiteRelationship.RELATED,
-                f"Homepage references {company_name} as a structural relationship "
-                f"(product/acquired/owned) without self-identifying as {company_name}.",
-                evidence,
-            )
 
         if not has_self_id:
             # Name is present but no self-identity signal (e.g. footer or third-party mention)
@@ -196,7 +195,7 @@ class WebsiteVerifier:
         # ── 3. Secondary identity corroboration ───────────────────────────────
         dynamic_candidates = extract_identity_candidates(hp_doc.raw_html or hp_doc.content or "", website_url)
         corr_entity_match, corr_name_match, corr_strength, corr_rel, corr_ev = (
-            self._find_corroboration(company_name, company_lower, website_url, domain, dynamic_candidates=dynamic_candidates)
+            self._find_corroboration(company_name, company_lower, website_url, domain, dynamic_candidates=dynamic_candidates, hp_doc=hp_doc)
         )
         evidence.extend(corr_ev)
 
@@ -423,6 +422,7 @@ class WebsiteVerifier:
         website_url: str,
         domain: str,
         dynamic_candidates: Optional[List[SecondaryRouteCandidate]] = None,
+        hp_doc: Optional[CrawledDocument] = None,
     ) -> Tuple[bool, bool, Optional[str], bool, List[IdentityEvidence]]:
         """
         Search for and evaluate a secondary identity page (ABOUT / CONTACT / LEGAL / COMPANY).
@@ -489,6 +489,8 @@ class WebsiteVerifier:
                     kind = "ABOUT" if ptype == PageType.ABOUT else ("CONTACT" if ptype == PageType.CONTACT else "COMPANY")
                 candidate_routes[cand_url] = (kind, "CONVENTIONAL_PATH", ptype)
 
+        hp_clean_content = (hp_doc.content or "").strip() if hp_doc else ""
+
         for url, (route_kind, source, ptype) in candidate_routes.items():
             if route_kind == "EXCLUDED" or ptype in (PageType.BLOG, PageType.JOB_LISTING):
                 continue
@@ -509,9 +511,22 @@ class WebsiteVerifier:
             if doc.quality not in {DocumentQuality.VALID, DocumentQuality.TOO_SHORT}:
                 continue
 
+            # Invariant: Discovered route redirecting back to homepage is not independent
+            if doc.final_url and doc.final_url.rstrip("/") == website_url.rstrip("/"):
+                continue
+
             doc_title   = (doc.title   or "").strip()
             doc_content = (doc.content or "")
             doc_sample  = (doc_title + ". " + doc_content[:3000]).lower()
+
+            # Invariant: Catch-all SPA duplicate content check
+            if hp_clean_content and len(hp_clean_content) > 30 and doc_content.strip() == hp_clean_content:
+                continue
+
+            # Invariant: Soft-404 error page check
+            soft_404_markers = ["404 not found", "page not found", "page cannot be found", "error 404", "does not exist", "page does not exist"]
+            if any(marker in doc_sample for marker in soft_404_markers) and len(doc_content.split()) < 50:
+                continue
 
             rel_match = self._detect_relationship(doc_sample, company_name)
             if rel_match:

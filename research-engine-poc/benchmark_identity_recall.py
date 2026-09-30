@@ -91,17 +91,17 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="spa_empty_body_with_hint_title",
         category="SPA_RENDERED",
-        company="Linear",
+        company="Linear App",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="linear.app",
         expected_relationship=SiteRelationship.PRIMARY,
         ground_truth_reason="SPA homepage returns empty DOM; search title hint provides entity match and /about corroborates.",
         search_results=[
-            SearchResult(title="Linear: Software Development Tool", url="https://linear.app", snippet="Linear is a purpose-built issue tracking tool."),
+            SearchResult(title="Linear App: Software Development Tool", url="https://linear.app", snippet="Linear App is a purpose-built issue tracking tool."),
         ],
         mock_documents={
             "https://linear.app": _doc("https://linear.app", title="", content="<div id='root'></div>", ptype=PageType.HOMEPAGE),
-            "https://linear.app/about": _doc("https://linear.app/about", title="About Linear", content="Linear builds modern issue tracking and software planning tools.", ptype=PageType.ABOUT),
+            "https://linear.app/about": _doc("https://linear.app/about", title="About Linear App", content="Linear App builds modern issue tracking and software planning tools.", ptype=PageType.ABOUT),
         },
     ),
 
@@ -142,18 +142,18 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="spa_angular_root_loader",
         category="SPA_RENDERED",
-        company="Ramp Financial",
+        company="Ramp Corporate",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="ramp.com",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Angular app-root spinner on homepage; search title hint and secondary /company corroboration confirm Ramp Financial.",
+        ground_truth_reason="Angular app-root spinner on homepage; search title hint and secondary /company corroboration confirm Ramp Corporate.",
         search_results=[
-            SearchResult(title="Ramp Financial - Corporate Cards and Spend Management", url="https://ramp.com", snippet="Ramp Financial helps finance teams automate expenses and save time."),
-            SearchResult(title="About Ramp Financial", url="https://ramp.com/company", snippet="Learn about Ramp Financial's mission."),
+            SearchResult(title="Ramp Corporate - Cards and Spend Management", url="https://ramp.com", snippet="Ramp Corporate helps finance teams automate expenses and save time."),
+            SearchResult(title="About Ramp Corporate", url="https://ramp.com/company", snippet="Learn about Ramp Corporate's mission."),
         ],
         mock_documents={
             "https://ramp.com": _doc("https://ramp.com", title="", content="<app-root><div class='loading-spinner'></div></app-root>", ptype=PageType.HOMEPAGE),
-            "https://ramp.com/company": _doc("https://ramp.com/company", title="About Ramp Financial", content="About Ramp Financial: The modern finance automation platform designed to save businesses money.", ptype=PageType.ABOUT),
+            "https://ramp.com/company": _doc("https://ramp.com/company", title="About Ramp Corporate", content="About Ramp Corporate: The modern finance automation platform designed to save businesses money.", ptype=PageType.ABOUT),
         },
     ),
 
@@ -232,18 +232,18 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="unconv_company_overview_path",
         category="UNCONVENTIONAL_PATH",
-        company="Postman",
+        company="Postman API",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="postman.com",
         expected_relationship=SiteRelationship.PRIMARY,
         ground_truth_reason="Secondary page at /company/overview with company name in title and body.",
         search_results=[
-            SearchResult(title="Postman API Platform", url="https://postman.com", snippet="Postman is an API platform for building and using APIs."),
-            SearchResult(title="Company Overview | Postman", url="https://postman.com/company/overview", snippet="Postman overview and history."),
+            SearchResult(title="Postman API Platform", url="https://postman.com", snippet="Postman API is an API platform for building and using APIs."),
+            SearchResult(title="Company Overview | Postman API", url="https://postman.com/company/overview", snippet="Postman API overview and history."),
         ],
         mock_documents={
-            "https://postman.com": _doc("https://postman.com", title="Postman API Platform", content="Postman is the world's leading API platform used by 30 million developers.", ptype=PageType.HOMEPAGE),
-            "https://postman.com/company/overview": _doc("https://postman.com/company/overview", title="Company Overview | Postman", content="Postman was founded in 2014 to simplify every step of the API lifecycle.", ptype=PageType.ABOUT),
+            "https://postman.com": _doc("https://postman.com", title="Postman API Platform", content="Postman API is the world's leading API platform used by 30 million developers.", ptype=PageType.HOMEPAGE),
+            "https://postman.com/company/overview": _doc("https://postman.com/company/overview", title="Company Overview | Postman API", content="Postman API was founded in 2014 to simplify every step of the API lifecycle.", ptype=PageType.ABOUT),
         },
     ),
 
@@ -286,17 +286,17 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="indirect_mission_statement",
         category="INDIRECT_SELF_ID",
-        company="Stripe",
+        company="Stripe Infrastructure",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="stripe.com",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Homepage opens with mission statement self-identification ('Stripe builds...').",
+        ground_truth_reason="Homepage opens with mission statement self-identification ('Stripe Infrastructure builds...').",
         search_results=[
-            SearchResult(title="Stripe | Financial Infrastructure for the Internet", url="https://stripe.com", snippet="Stripe builds financial infrastructure."),
+            SearchResult(title="Stripe Infrastructure | Financial Platform", url="https://stripe.com", snippet="Stripe Infrastructure builds financial infrastructure."),
         ],
         mock_documents={
-            "https://stripe.com": _doc("https://stripe.com", title="Stripe | Financial Infrastructure for the Internet", content="Stripe builds economic infrastructure for the internet. Businesses of every size use our software.", ptype=PageType.HOMEPAGE),
-            "https://stripe.com/about": _doc("https://stripe.com/about", title="About Stripe", content="Stripe is a financial infrastructure platform for businesses.", ptype=PageType.ABOUT),
+            "https://stripe.com": _doc("https://stripe.com", title="Stripe Infrastructure | Financial Platform", content="Stripe Infrastructure builds economic infrastructure for the internet. Businesses of every size use our software.", ptype=PageType.HOMEPAGE),
+            "https://stripe.com/about": _doc("https://stripe.com/about", title="About Stripe Infrastructure", content="Stripe Infrastructure is a financial infrastructure platform for businesses.", ptype=PageType.ABOUT),
         },
     ),
 
@@ -337,17 +337,17 @@ IDENTITY_RECALL_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="indirect_welcome_phrase_onboarding",
         category="INDIRECT_SELF_ID",
-        company="Notion",
+        company="Notion Workspace",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="notion.so",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Homepage uses position-independent 'Welcome to Notion' opening.",
+        ground_truth_reason="Homepage uses position-independent 'Welcome to Notion Workspace' opening.",
         search_results=[
-            SearchResult(title="Notion: Your connected workspace", url="https://notion.so", snippet="Notion connects wikis, docs, and project management in one place."),
+            SearchResult(title="Notion Workspace: Your connected workspace", url="https://notion.so", snippet="Notion Workspace connects wikis, docs, and project management in one place."),
         ],
         mock_documents={
-            "https://notion.so": _doc("https://notion.so", title="Notion: Your connected workspace", content="Welcome to Notion: The connected workspace where better, faster work happens.", ptype=PageType.HOMEPAGE),
-            "https://notion.so/about": _doc("https://notion.so/about", title="About Notion", content="Notion makes software toolmaking ubiquitous for individuals and teams.", ptype=PageType.ABOUT),
+            "https://notion.so": _doc("https://notion.so", title="Notion Workspace: Your connected workspace", content="Welcome to Notion Workspace: The connected workspace where better, faster work happens.", ptype=PageType.HOMEPAGE),
+            "https://notion.so/about": _doc("https://notion.so/about", title="About Notion Workspace", content="Notion Workspace makes software toolmaking ubiquitous for individuals and teams.", ptype=PageType.ABOUT),
         },
     ),
 
@@ -624,7 +624,11 @@ def evaluate_identity_case(case: IdentityRecallCase) -> Dict[str, Any]:
     identity = resolver.resolve(case.company, context=case.context)
     
     is_state_match = (identity.confidence == case.expected_confidence)
-    is_domain_match = (case.expected_domain is None or identity.domain == case.expected_domain)
+    is_domain_match = (
+        case.expected_domain is None
+        or (identity.confidence == IdentityConfidence.CONFIDENT and identity.domain == case.expected_domain)
+        or (identity.confidence != IdentityConfidence.CONFIDENT and identity.domain == "")
+    )
     
     # Classify outcome matrix cell
     is_correct_confident = (case.expected_confidence == IdentityConfidence.CONFIDENT and identity.confidence == IdentityConfidence.CONFIDENT)

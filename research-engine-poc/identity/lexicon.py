@@ -54,15 +54,24 @@ def _get_dictionary() -> Set[str]:
 
 
 def is_dictionary_word(token: str) -> bool:
-    """Returns True if the token is a standard dictionary word."""
+    """Returns True if the token is a standard dictionary / frequency word."""
     if not token:
         return False
     norm = token.lower().strip()
     return norm in _get_dictionary()
 
 
-def is_coined_brand(token: str) -> bool:
-    """Returns True if the token is a coined neologism (not a common dictionary word)."""
+def has_low_lexical_collision_risk(token: str) -> bool:
+    """
+    Returns True if the token is not a common dictionary word (low English lexical collision risk).
+    Note: English frequency absence is a risk reduction signal, not a universal proof of uniqueness.
+    """
     if not token or len(token) < 3:
         return False
     return not is_dictionary_word(token)
+
+
+def is_coined_brand(token: str) -> bool:
+    """Backward-compatible alias for has_low_lexical_collision_risk."""
+    return has_low_lexical_collision_risk(token)
+

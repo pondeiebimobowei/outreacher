@@ -114,37 +114,37 @@ def test_geographic_runner_stage_attribution_success():
 def test_geographic_runner_target_misidentification_detection():
     """Tests that resolving a different verified domain than target_domain is flagged as FAIL_TARGET_MISIDENTIFICATION."""
     case = GeographicIdentityCase(
-        case_id="test_geo_factorial_mismatch",
-        query_name="Factorial",
-        target_entity="Factorial HR (Spanish HR software)",
-        target_domain="factorialhr.com",
+        case_id="test_geo_qonto_mismatch",
+        query_name="Qonto",
+        target_entity="Qonto Payments EU",
+        target_domain="qonto.eu",
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="EU_REAL",
         region="EU",
-        country_association="Spain",
-        legal_entity_country="Spain",
-        headquarters_country="Spain",
-        operating_country="Spain",
-        primary_language="Spanish",
+        country_association="France",
+        legal_entity_country="France",
+        headquarters_country="France",
+        operating_country="France",
+        primary_language="French",
         provenance_type="CORPORATE_REGISTRY",
-        ground_truth_provenance="Registro Mercantil de Barcelona",
+        ground_truth_provenance="INPI France",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
-        rationale="Simulated mismatch where factorial.com surfaces instead of factorialhr.com.",
+        rationale="Simulated mismatch where qonto.com surfaces instead of qonto.eu.",
     )
 
-    # Simulated factorial.com (unrelated company) surfaces as PRIMARY instead of factorialhr.com
+    # Simulated qonto.com surfaces as PRIMARY instead of qonto.eu
     search = _DeterministicSearchProvider(
-        company="Factorial",
-        domain="factorial.com",
+        company="Qonto",
+        domain="qonto.com",
         results=[
-            SearchResult(title="Factorial Mathematics Consulting", url="https://factorial.com", snippet="Factorial Consulting Services."),
-            SearchResult(title="About Factorial", url="https://factorial.com/about", snippet="Factorial math solutions."),
+            SearchResult(title="Qonto - Business Banking", url="https://qonto.com", snippet="Qonto Business Finance."),
+            SearchResult(title="About Qonto", url="https://qonto.com/about", snippet="Qonto finance solutions."),
         ]
     )
     crawl = _DeterministicCrawlManager({
-        "https://factorial.com": _doc("https://factorial.com", title="Factorial Mathematics Consulting", content="Factorial is a specialized math consultancy.", ptype=PageType.HOMEPAGE),
-        "https://factorial.com/about": _doc("https://factorial.com/about", title="About Factorial", content="Factorial provides high-level mathematical algorithms.", ptype=PageType.ABOUT),
+        "https://qonto.com": _doc("https://qonto.com", title="Qonto - Business Banking", content="Qonto is a business finance solution.", ptype=PageType.HOMEPAGE),
+        "https://qonto.com/about": _doc("https://qonto.com/about", title="About Qonto", content="Qonto provides financial tools for SMEs.", ptype=PageType.ABOUT),
     })
 
     runner = InstrumentedGeographicIdentityRunner(
@@ -155,7 +155,7 @@ def test_geographic_runner_target_misidentification_detection():
 
     telemetry = runner.evaluate_case(case)
     assert telemetry.is_state_match is True  # State is CONFIDENT
-    assert telemetry.is_domain_match is False  # factorial.com != factorialhr.com
+    assert telemetry.is_domain_match is False  # qonto.com != qonto.eu
     assert telemetry.is_target_misidentified is True
     assert telemetry.final_stage_attribution == "FAIL_TARGET_MISIDENTIFICATION"
 

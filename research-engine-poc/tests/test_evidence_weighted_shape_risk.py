@@ -119,7 +119,7 @@ def test_generic_dictionary_shape_risk_stays_ambiguous():
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
-    assert identity.domain == domain
+    assert identity.domain == ""
     assert "generic" in identity.reasoning.lower() or "shape-risk" in identity.reasoning.lower()
 
 
