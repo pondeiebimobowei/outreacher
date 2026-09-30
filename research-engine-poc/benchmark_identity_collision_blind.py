@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
 from core.models import (
-    IdentityConfidence, IdentityContext, SiteRelationship, SearchResult,
+    IdentityConfidence, SiteRelationship, SearchResult,
     CrawledDocument, PageType, DocumentQuality,
 )
 from identity.verifier import WebsiteVerifier
@@ -30,7 +30,6 @@ class CollisionBlindCase:
     rationale: str
     search_results: List[SearchResult]
     mock_documents: Dict[str, CrawledDocument]
-    context: Optional[IdentityContext] = None
 
 
 def _doc(url: str, title: str, content: str, ptype: PageType = PageType.OTHER) -> CrawledDocument:
@@ -322,16 +321,15 @@ COLLISION_BLIND_DATASET: List[CollisionBlindCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="MULTI_TOKEN",
-        rationale="Multi-token distinctive corporate name with low intrinsic shape risk and matching caller context.",
+        rationale="Multi-token distinctive corporate name with low intrinsic shape risk.",
         search_results=[
             SearchResult(title="Trade Republic: Invest, Save, Trade", url="https://traderepublic.com", snippet="Trade Republic is a European digital bank and investment platform with 4M+ customers."),
             SearchResult(title="About Trade Republic", url="https://traderepublic.com/about", snippet="Trade Republic is a German full-service banking institution supervised by BaFin."),
         ],
         mock_documents={
             "https://traderepublic.com": _doc("https://traderepublic.com", "Trade Republic: Invest, Save, Trade", "Trade Republic makes wealth creation accessible for everyone.", PageType.HOMEPAGE),
-            "https://traderepublic.com/about": _doc("https://traderepublic.com/about", "About Trade Republic", "Trade Republic Bank GmbH is regulated by BaFin in Germany.", PageType.ABOUT),
+            "https://traderepublic.com/about": _doc("https://traderepublic.com/about", "About Trade Republic", "Trade Republic Bank GmbH is regulated by BaFin.", PageType.ABOUT),
         },
-        context=IdentityContext(country="Germany", legal_name="Trade Republic Bank GmbH", company_type="GmbH"),
     ),
     CollisionBlindCase(
         case_id="col_blind_bendingspoons",
@@ -341,16 +339,15 @@ COLLISION_BLIND_DATASET: List[CollisionBlindCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="MULTI_TOKEN",
-        rationale="Multi-token distinctive compound brand with exact domain and matching caller context.",
+        rationale="Multi-token distinctive compound brand with exact domain and uncontested corroboration.",
         search_results=[
             SearchResult(title="Bending Spoons – Leading Digital Software Apps", url="https://bendingspoons.com", snippet="Bending Spoons is an Italian technology company creating globally popular mobile apps."),
             SearchResult(title="About Bending Spoons", url="https://bendingspoons.com/company", snippet="Bending Spoons is headquartered in Milan, Italy."),
         ],
         mock_documents={
-            "https://bendingspoons.com": _doc("https://bendingspoons.com", "Bending Spoons – Digital Apps", "Bending Spoons S.p.A. creates world-class digital software products.", PageType.HOMEPAGE),
-            "https://bendingspoons.com/company": _doc("https://bendingspoons.com/company", "About Bending Spoons", "Bending Spoons S.p.A. is registered in Milan, Italy.", PageType.ABOUT),
+            "https://bendingspoons.com": _doc("https://bendingspoons.com", "Bending Spoons – Digital Apps", "Bending Spoons creates world-class digital software products.", PageType.HOMEPAGE),
+            "https://bendingspoons.com/company": _doc("https://bendingspoons.com/company", "About Bending Spoons", "Bending Spoons builds consumer software.", PageType.ABOUT),
         },
-        context=IdentityContext(country="Italy", location="Milan", company_type="S.p.A."),
     ),
     CollisionBlindCase(
         case_id="col_blind_lamitech",
@@ -467,7 +464,7 @@ def evaluate_collision_blind_case(case: CollisionBlindCase) -> Dict[str, Any]:
     verifier = WebsiteVerifier(crawl, search)
     resolver = IdentityResolver(search, verifier)
 
-    identity = resolver.resolve(case.query_name, context=case.context)
+    identity = resolver.resolve(case.query_name)
 
     is_state_match = identity.confidence == case.expected_state
     is_domain_match = (
@@ -524,19 +521,3 @@ def run_collision_blind_benchmark() -> Dict[str, Any]:
         "target_misidentification_rate_pct": (target_misidentified_count / len(expected_conf) * 100.0) if expected_conf else 0.0,
         "case_results": results,
     }
-
-
-if __name__ == "__main__":
-    from rich.console import Console
-    from rich.table import Table
-    console = Console()
-    m = run_collision_blind_benchmark()
-    table = Table(title=f"Collision-Focused Blind Benchmark (v1.3.2) — {m['total_cases']} Cases")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
-    table.add_row("Total Cases", str(m["total_cases"]))
-    table.add_row("State Accuracy", f"{m['state_accuracy_pct']:.1f}%")
-    table.add_row("CONFIDENT Recall", f"{m['confident_recall_pct']:.1f}% ({m['expected_confident']} expected)")
-    table.add_row("False CONFIDENT Count", f"{m['false_confident_count']} ({m['false_confident_rate_pct']:.1f}%)")
-    table.add_row("Target Misidentified Count", f"{m['target_misidentified_count']} ({m['target_misidentification_rate_pct']:.1f}%)")
-    console.print(table)
