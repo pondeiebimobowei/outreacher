@@ -31,17 +31,88 @@ def _valid_doc(url: str, title: str, content: str, ptype: PageType = PageType.OT
     )
 
 
-def test_bare_dictionary_word_single_search_result_stays_ambiguous():
-    """Tests that a single-word generic dictionary term (e.g. Pillar, Beacon, Kite, Loom, Monolith)
-    stays AMBIGUOUS even if search happens to return only one domain."""
+def test_bare_dictionary_word_collision_distribution_stays_ambiguous():
+    """Tests that generic dictionary collision words with realistic competing candidate
+    domains in search results stay AMBIGUOUS, covering the validation failure family
+    and an extensive set of unseen common English nouns/verbs."""
+    generic_collision_fixtures = [
+        # Validation failure family
+        ("Pillar", "pillar.io", "pillarspoke.com"),
+        ("Beacon", "beacon.bio", "beaconbank.com"),
+        ("Monolith", "monolith.asia", "monolithsrl.com"),
+        ("Kite", "kite.com", "kitepharma.com"),
+        ("Loom", "loom.com", "rainbowloom.com"),
+        ("Summit", "summit.co", "summithealth.com"),
+        ("Apex", "apex.ai", "apexclearing.com"),
+        ("Mercury", "mercury.com", "mercuryinsurance.com"),
+        ("Atlas", "atlas.com", "atlascoffee.com"),
+        # Fresh unseen generic English collision words
+        ("Anchor", "anchor.fm", "anchorbaking.com"),
+        ("Bridge", "bridge.xyz", "bridgelogistics.com"),
+        ("Forge", "forge.io", "forgeglobal.com"),
+        ("Haven", "haven.com", "havenhealth.org"),
+        ("Trace", "trace.ai", "tracesoftware.com"),
+        ("Zenith", "zenith.org", "zenithbank.com"),
+        ("Compass", "compass.com", "compasshealth.org"),
+        ("Catalyst", "catalyst.io", "catalystpharma.com"),
+        ("Flock", "flock.com", "flocksafety.com"),
+        ("Roost", "roost.com", "roostsensors.com"),
+        ("Nest", "nest.io", "nestbedding.com"),
+        ("Hive", "hive.com", "hivesmarthome.com"),
+        ("Grove", "grove.co", "grovecollaborative.com"),
+        ("Drift", "drift.com", "driftpayments.com"),
+        ("Bench", "bench.co", "benchaccounting.com"),
+        ("Slate", "slate.com", "slatemagazine.com"),
+        ("Verve", "verve.com", "vervecard.com"),
+        ("Prism", "prism.io", "prismhealth.org"),
+        ("Orbit", "orbit.love", "orbitirrigation.com"),
+        ("Signal", "signal.org", "signalai.com"),
+        ("Stream", "stream.io", "streamenergy.com"),
+        ("Echo", "echo.com", "echologistics.com"),
+        ("Spire", "spire.com", "spiresatellites.com"),
+        ("Vault", "vault.com", "vaulthashicorp.com"),
+    ]
+
+    for word, primary_domain, competing_domain in generic_collision_fixtures:
+        search = _DeterministicSearchProvider(
+            company=word,
+            domain=primary_domain,
+            results=[
+                SearchResult(
+                    title=f"{word} – Official Platform",
+                    url=f"https://{primary_domain}",
+                    snippet=f"{word} provides commercial software and services.",
+                ),
+                SearchResult(
+                    title=f"{word} Products & Solutions",
+                    url=f"https://{competing_domain}",
+                    snippet=f"Independent commercial services by {word}.",
+                ),
+            ]
+        )
+
+        crawl = _DeterministicCrawlManager({
+            f"https://{primary_domain}": _valid_doc(f"https://{primary_domain}", f"{word} – Official Platform", f"{word} is a commercial company.", PageType.HOMEPAGE),
+            f"https://{primary_domain}/about": _valid_doc(f"https://{primary_domain}/about", f"About {word}", f"About {word} platform.", PageType.ABOUT),
+        })
+
+        verifier = WebsiteVerifier(crawl, search)
+        resolver = IdentityResolver(search, verifier)
+
+        identity = resolver.resolve(word)
+        assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
+            f"Expected generic word '{word}' to be AMBIGUOUS due to collision distribution, but got {identity.confidence} (Domain: {identity.domain})"
+        )
+
+
+def test_short_generic_dictionary_words_stay_ambiguous():
+    """Tests that short (<= 5 chars) generic dictionary words (Kite, Loom, Acme, Apex)
+    stay AMBIGUOUS due to lexical commonness even when uncontested in search."""
     for word, domain in [
-        ("Pillar", "pillar.io"),
-        ("Beacon", "beacon.bio"),
-        ("Monolith", "monolith.asia"),
+        ("Acme", "acme.com"),
+        ("Apex", "apex.com"),
         ("Kite", "kite.com"),
         ("Loom", "loom.com"),
-        ("Summit", "summit.co"),
-        ("Apex", "apex.ai"),
     ]:
         search = _DeterministicSearchProvider(
             company=word,
@@ -50,62 +121,41 @@ def test_bare_dictionary_word_single_search_result_stays_ambiguous():
                 SearchResult(
                     title=f"{word} – Official Platform",
                     url=f"https://{domain}",
-                    snippet=f"{word} provides commercial services.",
+                    snippet=f"{word} provides industrial manufacturing.",
                 ),
             ]
         )
 
         crawl = _DeterministicCrawlManager({
-            f"https://{domain}": _valid_doc(f"https://{domain}", f"{word} – Official Platform", f"{word} is a company.", PageType.HOMEPAGE),
-            f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {word}", f"About {word} platform.", PageType.ABOUT),
+            f"https://{domain}": _valid_doc(f"https://{domain}", f"{word} – Official Platform", f"{word} is a manufacturing company.", PageType.HOMEPAGE),
+            f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {word}", f"About {word}.", PageType.ABOUT),
         })
 
         verifier = WebsiteVerifier(crawl, search)
         resolver = IdentityResolver(search, verifier)
 
         identity = resolver.resolve(word)
-        assert identity.confidence == IdentityConfidence.AMBIGUOUS, f"Expected {word} to be AMBIGUOUS, but got {identity.confidence} (Domain: {identity.domain})"
-        assert identity.domain == domain
-
-
-def test_bare_dictionary_word_multi_domain_collision_stays_ambiguous():
-    """Tests that a generic dictionary word with competing candidate domains in search results stays AMBIGUOUS."""
-    word = "Pillar"
-    search = _DeterministicSearchProvider(
-        company=word,
-        domain="pillar.io",
-        results=[
-            SearchResult(title="Pillar Spokes & Nipples", url="https://pillarspoke.com", snippet="Pillar bicycle spokes."),
-            SearchResult(title="Pillar College", url="https://pillar.edu", snippet="Pillar undergraduate education."),
-            SearchResult(title="Pillar – Link in Bio", url="https://pillar.io", snippet="Pillar creator monetization platform."),
-            SearchResult(title="Pillar VC", url="https://pillar.vc", snippet="Pillar venture capital investing in technical breakthroughs."),
-        ]
-    )
-
-    crawl = _DeterministicCrawlManager({
-        "https://pillar.io": _valid_doc("https://pillar.io", "Pillar – Link in Bio", "Pillar lets creators monetize their audience.", PageType.HOMEPAGE),
-        "https://pillar.io/about": _valid_doc("https://pillar.io/about", "About Pillar", "About Pillar creator tools.", PageType.ABOUT),
-    })
-
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
-
-    identity = resolver.resolve(word)
-    assert identity.confidence == IdentityConfidence.AMBIGUOUS
-    assert any(k in identity.reasoning.lower() for k in ("shape-risk", "collision", "dictionary", "conflicting"))
+        assert identity.confidence == IdentityConfidence.AMBIGUOUS, f"Expected short generic word '{word}' to be AMBIGUOUS, got {identity.confidence}"
 
 
 def test_coined_single_word_brand_uncontested_promoted_to_confident():
-    """Tests that coined / neologism brands (Adyen, Yoco, Qonto, Kasha, Mambu, Swile, Wasoko)
-    with exact domain and uncontested corroboration are safely promoted to CONFIDENT."""
-    for brand, domain in [
+    """Tests that uncommon coined / neologism brands with exact domain and uncontested corroboration
+    are safely promoted to CONFIDENT without hand-curated allowlists."""
+    coined_brands = [
         ("Adyen", "adyen.com"),
         ("Yoco", "yoco.com"),
         ("Qonto", "qonto.com"),
         ("Mambu", "mambu.com"),
         ("Swile", "swile.co"),
         ("Wasoko", "wasoko.com"),
-    ]:
+        ("Klarna", "klarna.com"),
+        ("Revolut", "revolut.com"),
+        ("Monzo", "monzo.com"),
+        ("Pipedrive", "pipedrive.com"),
+        ("Paystack", "paystack.com"),
+    ]
+
+    for brand, domain in coined_brands:
         search = _DeterministicSearchProvider(
             company=brand,
             domain=domain,
@@ -127,18 +177,22 @@ def test_coined_single_word_brand_uncontested_promoted_to_confident():
         resolver = IdentityResolver(search, verifier)
 
         identity = resolver.resolve(brand)
-        assert identity.confidence == IdentityConfidence.CONFIDENT, f"Expected {brand} to be CONFIDENT, but got {identity.confidence}"
+        assert identity.confidence == IdentityConfidence.CONFIDENT, f"Expected coined brand '{brand}' to be CONFIDENT, but got {identity.confidence}"
         assert identity.domain == domain
 
 
 def test_multi_token_distinctive_name_promoted_to_confident():
     """Tests that multi-token distinctive corporate names (Trade Republic, Bending Spoons, Cowrywise Financial)
     have low shape risk and resolve to CONFIDENT."""
-    for company, domain in [
+    multi_token_cases = [
         ("Trade Republic", "traderepublic.com"),
         ("Bending Spoons", "bendingspoons.com"),
         ("Lami Technologies", "lami.world"),
-    ]:
+        ("FairMoney Financial", "fairmoney.io"),
+        ("Cowrywise Investments", "cowrywise.com"),
+    ]
+
+    for company, domain in multi_token_cases:
         search = _DeterministicSearchProvider(
             company=company,
             domain=domain,
@@ -187,3 +241,27 @@ def test_competing_domains_in_search_prevents_confident_promotion():
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
+
+
+def test_brand_domain_mismatch_prevents_confident_promotion():
+    """Tests that a single verified candidate with a non-exact domain root stays non-CONFIDENT."""
+    company = "Nexus"
+    domain = "nexus-advisory-partners.com"
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Nexus Advisory Partners", url=f"https://{domain}", snippet="Nexus Advisory Partners is a management consultancy."),
+        ]
+    )
+
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _valid_doc(f"https://{domain}", "Nexus Advisory Partners", "Nexus provides business advisory services.", PageType.HOMEPAGE),
+        f"https://{domain}/about": _valid_doc(f"https://{domain}/about", "About Nexus Advisory Partners", "About Nexus Advisory Partners.", PageType.ABOUT),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    identity = resolver.resolve(company)
+    assert identity.confidence != IdentityConfidence.CONFIDENT

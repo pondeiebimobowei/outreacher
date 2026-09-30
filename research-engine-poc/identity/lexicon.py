@@ -28,8 +28,8 @@ def _get_dictionary() -> Set[str]:
 
     words: Set[str] = set()
     
-    # 1. Primary: Bundled dictionary_words.txt
-    data_path = Path(__file__).parent / "data" / "dictionary_words.txt"
+    # 1. Primary: Bundled common_english_words.txt
+    data_path = Path(__file__).parent / "data" / "common_english_words.txt"
     if data_path.is_file():
         try:
             with open(data_path, "r", encoding="utf-8") as f:

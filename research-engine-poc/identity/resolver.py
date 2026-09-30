@@ -58,32 +58,13 @@ class IdentityResolver:
         "partners", "ventures", "enterprises", "consulting",
     }
 
-    GENERIC_DICTIONARY_WORDS = {
-        "acme", "apex", "summit", "vertex", "nexus", "global", "general", "standard",
-        "national", "united", "universal", "premier", "prime", "beacon", "pinnacle",
-        "matrix", "fusion", "core", "horizon", "delta", "alpha", "omega", "target",
-        "allied", "central", "first", "direct", "select", "pioneer", "atlas", "mercury",
-        "focus", "venture", "crest", "stride", "pulse", "craft", "spark", "scale",
-        "sphere", "pillar", "monolith", "kite", "loom", "relay", "vector",
-        "vanguard", "anchor", "bridge", "forge", "haven", "trace", "zenith", "compass",
-        "catalyst", "flock", "roost", "nest", "hive", "grove", "drift", "bench", "slate",
-        "verve", "orbit", "prism", "signal",
-    }
-
     def name_shape_risk(self, company_name: str) -> bool:
         """
-        Measures the *shape* of the name (short <= 5 chars, generic-suffix dominated,
-        or known high-collision generic dictionary word).
+        Measures the *shape* of the name (short <= 5 chars or generic-suffix dominated).
         """
         words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
         distinctive = words - self.GENERIC_TERMS
-        if len(distinctive) == 0:
-            return True
-        if len(distinctive) == 1:
-            token = list(distinctive)[0]
-            if len(token) <= 5 or token in self.GENERIC_DICTIONARY_WORDS:
-                return True
-        return False
+        return len(distinctive) <= 1 and sum(len(w) for w in distinctive) <= 5
 
     def _should_discount_shape_risk(
         self,
@@ -104,9 +85,10 @@ class IdentityResolver:
         if not distinctive:
             return False, "Query contains only generic corporate suffixes without a distinctive brand token."
 
-        # 1. Lexical check: high-collision generic dictionary words cannot discount shape risk
-        if distinctive.issubset(self.GENERIC_DICTIONARY_WORDS) or any(t in self.GENERIC_DICTIONARY_WORDS for t in distinctive):
-            return False, "Distinctive token is a high-collision generic dictionary placeholder word."
+        # 1. Lexical check: common dictionary words cannot discount shape risk
+        for token in distinctive:
+            if is_dictionary_word(token):
+                return False, f"Distinctive token '{token}' is a common dictionary word with high entity collision risk."
 
         # 2. Strict domain correspondence
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
