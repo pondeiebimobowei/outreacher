@@ -127,7 +127,14 @@ class WebsiteVerifier:
         # ── 1. Homepage ────────────────────────────────────────────────────────
         hp_doc = self.crawl_manager.fetch_with_fallback(website_url, PageType.OTHER)
         if hp_doc.quality.name not in ["VALID", "TOO_SHORT"]:
-            return SiteRelationship.UNKNOWN, "Homepage fetch failed or blocked.", evidence
+            return self._verify_from_indexed_evidence(
+                company_name=company_name,
+                company_lower=company_lower,
+                website_url=website_url,
+                domain=domain,
+                domain_signal=domain_signal,
+                hint_title=hint_title,
+            )
 
         # Use the search-result title (Google-indexed) as a fallback when the
         # live crawler returns no title — common for JS-rendered SPAs.
@@ -531,3 +538,158 @@ class WebsiteVerifier:
                 )]
 
         return False, False, None, False, []
+
+    # ── Search-Indexed Acquisition Fallback (Track 2) ─────────────────────────
+
+    def _verify_from_indexed_evidence(
+        self,
+        company_name: str,
+        company_lower: str,
+        website_url: str,
+        domain: str,
+        domain_signal: str,
+        hint_title: Optional[str] = None,
+    ) -> Tuple[SiteRelationship, str, List[IdentityEvidence]]:
+        """
+        Legitimate Search-Indexed Acquisition Fallback (Track 2).
+        Rescues bot-blocked/challenge homepages (WAF, Cloudflare, 403) only when
+        strict first-party search-indexed evidence corroborates the entity without circumvention.
+        """
+        evidence: List[IdentityEvidence] = []
+
+        # Gate 1: Fetch indexed search results for domain
+        query = f'site:{domain}'
+        try:
+            self.telemetry["secondary_search_requests"] += 1
+            raw = self.search_provider.search(query, num_results=5)
+            clean = SearchResultSanitizer.sanitize(raw)
+        except SearchProviderError:
+            return SiteRelationship.UNKNOWN, "Homepage blocked and indexed search query failed.", evidence
+
+        if not clean:
+            return SiteRelationship.UNKNOWN, "Homepage blocked and no indexed search results found.", evidence
+
+        # Gate 2: First-party relationship check
+        # If any indexed result indicates a subordinate / product / subsidiary relationship, classify as RELATED
+        for r in clean:
+            sample = f"{r.title}. {r.snippet}"
+            if self._detect_relationship(sample, company_name):
+                evidence.append(IdentityEvidence(
+                    type=EvidenceType.RELATIONSHIP,
+                    source="indexed_search",
+                    url=r.url,
+                    signal="INDEXED_RELATIONSHIP_MENTION",
+                ))
+                return (
+                    SiteRelationship.RELATED,
+                    f"Indexed search evidence references {company_name} in a structural relationship (product/brand/acquired).",
+                    evidence,
+                )
+
+        # Gate 3: Strict Domain Correspondence for PRIMARY promotion
+        if domain_signal not in ("exact", "partial"):
+            return (
+                SiteRelationship.UNKNOWN,
+                f"Homepage fetch failed/blocked and domain signal '{domain_signal}' "
+                f"insufficient for search-indexed PRIMARY promotion.",
+                evidence,
+            )
+
+        # Gate 4: Root / Homepage entity match
+        norm_web_url = website_url.rstrip("/")
+        root_results = [r for r in clean if r.url.rstrip("/") == norm_web_url or r.url.rstrip("/") == norm_web_url.replace("www.", "")]
+
+        has_primary_match = False
+        primary_url = website_url
+
+        # Check hint_title first
+        if hint_title and self._title_matches_entity(hint_title, company_name):
+            has_primary_match = True
+
+        # Check root result if available
+        if root_results:
+            r0 = root_results[0]
+            primary_url = r0.url
+            if self._title_matches_entity(r0.title, company_name) or self._detect_self_identity(f"{r0.title}. {r0.snippet}", company_name):
+                has_primary_match = True
+        elif not has_primary_match and clean:
+            r0 = clean[0]
+            if self._title_matches_entity(r0.title, company_name) or self._detect_self_identity(f"{r0.title}. {r0.snippet}", company_name):
+                has_primary_match = True
+                primary_url = r0.url
+
+        if not has_primary_match:
+            return (
+                SiteRelationship.UNKNOWN,
+                f"Homepage blocked and indexed root page title does not match entity '{company_name}'.",
+                evidence,
+            )
+
+        evidence.append(IdentityEvidence(
+            type=EvidenceType.SELF_IDENTITY,
+            source="indexed_search",
+            url=primary_url,
+            signal="INDEXED_ROOT_MATCH",
+        ))
+
+        # Gate 5: Secondary Corroborating Page
+        # Needs a distinct second result corroborating identity
+        legal_forms = r"\b(?:se|gmbh|ltd|limited|inc|incorporated|corp|corporation|sa|s\.a\.|ag|pty|plc|sarl|bv|kg|llc)\b"
+        legal_pattern = rf"\b{re.escape(company_lower)}(?:\s+(?:&|and)\s+\w+)?\s+{legal_forms}"
+
+        corroborated = False
+        corroborating_url = None
+
+        for r in clean:
+            if r.url.rstrip("/") == primary_url.rstrip("/"):
+                continue
+            sample = f"{r.title}. {r.snippet}"
+
+            # Check 1: Secondary title matches entity
+            if self._secondary_title_matches_entity(r.title, company_name):
+                corroborated = True
+                corroborating_url = r.url
+                break
+
+            # Check 2: Self-identity in secondary snippet
+            if self._detect_self_identity(sample, company_name):
+                corroborated = True
+                corroborating_url = r.url
+                break
+
+            # Check 3: Legal corporate entity match in title/snippet
+            if re.search(legal_pattern, sample.lower()):
+                corroborated = True
+                corroborating_url = r.url
+                break
+
+            # Check 4: Identity route kind (ABOUT, LEGAL, CONTACT, COMPANY) + company name present
+            route_kind, _ = classify_route_kind(r.url)
+            if route_kind in ("ABOUT", "LEGAL", "CONTACT", "COMPANY") and (
+                company_lower in r.title.lower() or company_lower in r.snippet.lower()
+            ):
+                corroborated = True
+                corroborating_url = r.url
+                break
+
+        if not corroborated or not corroborating_url:
+            return (
+                SiteRelationship.UNKNOWN,
+                f"Homepage blocked; indexed root title matched but no corroborating secondary indexed page found.",
+                evidence,
+            )
+
+        evidence.append(IdentityEvidence(
+            type=EvidenceType.SELF_IDENTITY,
+            source="indexed_search",
+            url=corroborating_url,
+            signal="INDEXED_CORROBORATING_PAGE",
+        ))
+
+        return (
+            SiteRelationship.PRIMARY,
+            f"Homepage blocked, but dual identity-bearing indexed search evidence corroborates entity "
+            f"(domain_signal={domain_signal}).",
+            evidence,
+        )
+
