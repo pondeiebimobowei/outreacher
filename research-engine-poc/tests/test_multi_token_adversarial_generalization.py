@@ -341,6 +341,47 @@ def test_conflicting_external_registry_blocks_to_ambiguous():
     assert identity.diagnostic_trace.entity_discrimination_basis == "CONTRADICTION_BLOCKED"
 
 
+def test_untrusted_registry_source_rejected_to_ambiguous():
+    """10b: Untrusted / non-allowlisted external registry origin is rejected to AMBIGUOUS."""
+    company = "Iron Mountain"
+    domain = "ironmountain.com"
+    url = f"https://{domain}"
+
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} records management.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"{company} company profile.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
+    ]
+    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+
+    orig_classify = verifier.classify_relationship
+    def mock_classify(co, w_url, hint_title=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+        evs.append(IdentityEvidence(
+            type=EvidenceType.EXTERNAL_REGISTRY,
+            source="untrusted_third_party_scraper",
+            url="https://untrusted.com/ironmountain",
+            signal="EXTERNAL_REGISTRY_VERIFIED",
+            title="Untrusted Registry Mirror",
+        ))
+        return rel, msg, evs
+
+    verifier.classify_relationship = mock_classify
+
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        verifier,
+    )
+    identity = resolver.resolve(company)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "UNTRUSTED_REGISTRY_SOURCE"
+
+
 # ── 11 & 12. Coined Brand Tokens: Contested vs Uncontested ────────────────────
 
 COINED_BRAND_CASES = [

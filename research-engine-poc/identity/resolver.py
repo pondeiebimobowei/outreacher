@@ -19,6 +19,15 @@ from identity.lexicon import is_dictionary_word
 VERIFY_TOP_N = 3
 
 
+ALLOWLISTED_REGISTRY_PROVIDERS = {
+    "sec_edgar",
+    "companies_house",
+    "bafin",
+    "gleif",
+    "insee_sirene",
+}
+
+
 class IdentityResolver:
     def __init__(self, search_provider: ISearchProvider, verifier: WebsiteVerifier):
         self.search_provider = search_provider
@@ -44,33 +53,49 @@ class IdentityResolver:
     }
 
     @classmethod
-    def _extract_structural_discriminators(cls, context: IdentityContext) -> Tuple[List[str], List[str], List[str], List[str]]:
+    def _categorize_context_strength(
+        cls,
+        context: IdentityContext
+    ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], List[Tuple[str, str]]]:
         """
-        Extracts structured discriminators:
-        1. hq_geos: (headquarters, headquarters_country)
-        2. general_geos: (location, country, jurisdiction)
-        3. legals: (legal_name, registration_number, company_type)
-        4. product_or_registry_ids: (product_id, trusted_registry_id)
+        Formal Strength Hierarchy for caller context:
+        - STRONG: registration_number, trusted_registry_id, product_id,
+                  legal_name, explicit headquarters (headquarters / headquarters_country)
+        - MEDIUM: specific location / city (location)
+        - WEAK: country only, jurisdiction only, company_type only, description, industry
+        """
+        strong = []
+        medium = []
+        weak = []
 
-        Note: Description and industry fields are informational and do NOT act as entity discriminators.
-        """
-        hq_geos = [
-            x.strip().lower() for x in (context.headquarters, context.headquarters_country)
-            if x and x.strip()
-        ]
-        general_geos = [
-            x.strip().lower() for x in (context.location, context.country, context.jurisdiction)
-            if x and x.strip()
-        ]
-        legals = [
-            x.strip().lower() for x in (context.legal_name, context.registration_number, context.company_type)
-            if x and x.strip()
-        ]
-        product_or_registry_ids = [
-            x.strip().lower() for x in (context.product_id, context.trusted_registry_id)
-            if x and x.strip()
-        ]
-        return hq_geos, general_geos, legals, product_or_registry_ids
+        if context.registration_number and context.registration_number.strip():
+            strong.append(("registration_number", context.registration_number.strip().lower()))
+        if context.trusted_registry_id and context.trusted_registry_id.strip():
+            strong.append(("trusted_registry_id", context.trusted_registry_id.strip().lower()))
+        if context.product_id and context.product_id.strip():
+            strong.append(("product_id", context.product_id.strip().lower()))
+        if context.legal_name and context.legal_name.strip():
+            strong.append(("legal_name", context.legal_name.strip().lower()))
+        if context.headquarters and context.headquarters.strip():
+            strong.append(("headquarters", context.headquarters.strip().lower()))
+        if context.headquarters_country and context.headquarters_country.strip():
+            strong.append(("headquarters_country", context.headquarters_country.strip().lower()))
+
+        if context.location and context.location.strip():
+            medium.append(("location", context.location.strip().lower()))
+
+        if context.country and context.country.strip():
+            weak.append(("country", context.country.strip().lower()))
+        if context.jurisdiction and context.jurisdiction.strip():
+            weak.append(("jurisdiction", context.jurisdiction.strip().lower()))
+        if context.company_type and context.company_type.strip():
+            weak.append(("company_type", context.company_type.strip().lower()))
+        if context.industry and context.industry.strip():
+            weak.append(("industry", context.industry.strip().lower()))
+        if context.description and context.description.strip():
+            weak.append(("description", context.description.strip().lower()))
+
+        return strong, medium, weak
 
     def _evaluate_context_discrimination(
         self,
@@ -78,20 +103,27 @@ class IdentityResolver:
         context: IdentityContext,
     ) -> Tuple[bool, str, str]:
         """
-        Evaluates caller-supplied structured context against first-party crawled evidence.
-        - Free-text industry / description overlap is rejected as a discriminator.
-        - Specific structural discriminators (HQ, location, legal identity, product/registry ID)
-          matched against live crawled first-party evidence succeed.
-        - Explicit contradiction between caller context and candidate first-party evidence blocks.
-        - Multi-location operations are compatible with location queries.
+        Evaluates caller-supplied structured context against first-party crawled evidence:
+        - WEAK context attributes (country only, company_type only, generic industry) CANNOT
+          discriminate entity collision risk on common-word/shape-risk queries.
+        - MEDIUM context attributes (specific city location) discriminate when matched with first-party crawl.
+        - STRONG context attributes (legal registration, official registry ID, explicit HQ, full legal name)
+          provide full entity discrimination.
+        - Contradictions block to AMBIGUOUS.
         """
-        hq_geos, general_geos, legals, ids = self._extract_structural_discriminators(context)
+        strong_attrs, medium_attrs, weak_attrs = self._categorize_context_strength(context)
 
-        # Check if context contains any structural discriminators at all
-        if not hq_geos and not general_geos and not legals and not ids:
-            return False, "Caller context contains only general industry/description text without structural discriminators.", "GENERIC_CONTEXT_REJECTED"
+        # 1. Gate: Reject if context contains only WEAK attributes without any STRONG or MEDIUM discriminators
+        if not strong_attrs and not medium_attrs:
+            weak_names = [k for k, _ in weak_attrs] or ["none"]
+            return (
+                False,
+                f"Caller context contains only weak/non-discriminating attributes ({', '.join(weak_names)}). "
+                f"Shape-risk entity discrimination requires specific city location, explicit headquarters, legal registration, or trusted registry ID.",
+                "WEAK_CONTEXT_INSUFFICIENT"
+            )
 
-        # First-party live crawled evidence (NOT search index snippets)
+        # 2. Gate: First-party live crawled evidence (NOT search index snippets)
         first_party_ev = [
             ev for ev in candidate.evidence
             if (ev.source.startswith("homepage") or ev.source.startswith("secondary_"))
@@ -104,8 +136,8 @@ class IdentityResolver:
             f"{ev.title or ''} {ev.snippet or ''}" for ev in first_party_ev
         ).lower()
 
-        # 1. Contradiction check for geographic attributes
-        all_geos = hq_geos + general_geos
+        # 3. Gate: Geographic contradiction check
+        all_geos = [v for k, v in strong_attrs if k in ("headquarters", "headquarters_country")] + [v for k, v in medium_attrs] + [v for k, v in weak_attrs if k in ("country", "jurisdiction")]
         if all_geos:
             ctx_regions = set()
             for loc in all_geos:
@@ -126,34 +158,35 @@ class IdentityResolver:
                     if found_conflicting_regions:
                         return False, f"Explicit geographic contradiction: caller specified {all_geos}, candidate claims {sorted(found_conflicting_regions)}.", "CONTRADICTION_BLOCKED"
 
-        # 2. Check for explicit HQ Contradiction when caller specified headquarters
-        if hq_geos:
+        # 4. Gate: Explicit HQ Contradiction when caller specified headquarters
+        hq_vals = [v for k, v in strong_attrs if k in ("headquarters", "headquarters_country")]
+        if hq_vals:
             hq_match = re.search(r'\b(?:headquartered|based|hq)\s+(?:in|at)\s+([a-z\s,]+)', fp_text)
             if hq_match:
                 claimed_hq_text = hq_match.group(1)[:50]
                 claimed_regions = {self.COMMON_GEOS[w] for w in re.findall(r'\b[a-z0-9]+\b', claimed_hq_text) if w in self.COMMON_GEOS}
-                caller_hq_regions = {self.COMMON_GEOS[w] for loc in hq_geos for w in re.findall(r'\b[a-z0-9]+\b', loc) if w in self.COMMON_GEOS}
+                caller_hq_regions = {self.COMMON_GEOS[w] for loc in hq_vals for w in re.findall(r'\b[a-z0-9]+\b', loc) if w in self.COMMON_GEOS}
                 if claimed_regions and caller_hq_regions and not (claimed_regions & caller_hq_regions):
-                    return False, f"Explicit headquarters contradiction: caller specified HQ {hq_geos}, candidate states '{claimed_hq_text.strip()}'.", "CONTRADICTION_BLOCKED"
+                    return False, f"Explicit headquarters contradiction: caller specified HQ {hq_vals}, candidate states '{claimed_hq_text.strip()}'.", "CONTRADICTION_BLOCKED"
 
-        # 3. Matching check against first-party text
-        matches = []
-        for hq in hq_geos:
-            if hq in fp_text:
-                matches.append(f"headquarters '{hq}'")
-        for loc in general_geos:
-            if loc in fp_text:
-                matches.append(f"location '{loc}'")
-        for leg in legals:
-            if leg in fp_text:
-                matches.append(f"legal '{leg}'")
-        for id_val in ids:
-            if id_val in fp_text:
-                matches.append(f"identifier '{id_val}'")
+        # 5. Gate: Matching check against first-party text
+        strong_matches = []
+        for k, v in strong_attrs:
+            if v in fp_text:
+                strong_matches.append(f"{k} '{v}'")
 
-        if matches:
-            matched_str = ", ".join(matches[:3])
-            return True, f"Caller context matched first-party evidence ({matched_str}).", "USER_CONTEXT"
+        medium_matches = []
+        for k, v in medium_attrs:
+            if v in fp_text:
+                medium_matches.append(f"{k} '{v}'")
+
+        if strong_matches:
+            matched_str = ", ".join(strong_matches[:3])
+            return True, f"Caller context matched first-party evidence with STRONG discriminator ({matched_str}).", "USER_CONTEXT"
+
+        if medium_matches:
+            matched_str = ", ".join(medium_matches[:3])
+            return True, f"Caller context matched first-party evidence with MEDIUM discriminator ({matched_str}).", "USER_CONTEXT"
 
         return False, "Specific caller context structural attributes were not corroborated in candidate first-party evidence.", "NO_FIRST_PARTY_MATCH"
 
@@ -329,20 +362,33 @@ class IdentityResolver:
             if ev.type == EvidenceType.EXTERNAL_REGISTRY
         ]
         if ext_registry_ev:
+            # Enforce allowlisted provider provenance
+            invalid_providers = [ev for ev in ext_registry_ev if ev.source not in ALLOWLISTED_REGISTRY_PROVIDERS]
+            if invalid_providers:
+                return False, f"Untrusted external registry source '{invalid_providers[0].source}' rejected.", "UNTRUSTED_REGISTRY_SOURCE"
+
             has_conflict = any(
                 "CONFLICT" in (ev.signal or "") or "MISMATCH" in (ev.signal or "") or "CONTRADICTION" in (ev.signal or "")
                 for ev in ext_registry_ev
             )
             if has_conflict:
                 return False, "Conflicting external registry record detected.", "CONTRADICTION_BLOCKED"
-            return True, "Entity identity verified via independent external registry record.", "EXTERNAL_ENTITY_MATCH"
 
-        # 4. Check for Entity Discrimination Basis:
-        # Basis 0: Distinctive coined brand token (non-dictionary)
+            valid_verified = [
+                ev for ev in ext_registry_ev
+                if "VERIFIED" in (ev.signal or "") or "CORROBORATED" in (ev.signal or "") or "REGISTRY_MATCH" in (ev.signal or "")
+            ]
+            if valid_verified:
+                return True, f"Entity identity verified via allowlisted registry ({valid_verified[0].source}).", "EXTERNAL_ENTITY_MATCH"
+
+        # 4. Check for Distinctive Coined Brand Token with Active Namesake Collision Probe
         if any(not is_dictionary_word(t) for t in distinctive):
-            return True, "Entity collision risk discounted via distinctive coined brand token.", "COINED_BRAND_TOKEN"
+            has_namesake, namesake_str = self._check_active_namesake_collision(company_name, best_candidate)
+            if has_namesake:
+                return False, f"Active collision probe detected competing brand domains ({namesake_str}).", "NONE"
+            return True, "Entity collision risk discounted via coined brand token verified by active namesake collision probe.", "COINED_BRAND_TOKEN"
 
-        # Basis A: Caller-supplied structured context evaluated strictly against first-party crawled evidence
+        # 5. Basis USER_CONTEXT: Caller-supplied structured context evaluated strictly against first-party crawled evidence
         if context:
             is_matched, match_reason, match_basis = self._evaluate_context_discrimination(best_candidate, context)
             if is_matched:
@@ -353,6 +399,61 @@ class IdentityResolver:
         # Invariant B: First-party legal entity registration on candidate's site alone is self-corroboration,
         # NOT cross-entity discrimination. It remains AMBIGUOUS without caller context or external registry match.
         return False, "Common-word entity requires explicit entity-discriminating evidence (caller context matching first-party crawled evidence or external registry).", "NONE"
+
+    def _check_active_namesake_collision(
+        self,
+        company_name: str,
+        best_candidate: IdentityCandidate,
+    ) -> Tuple[bool, str]:
+        """
+        Executes an active negative namesake collision probe for coined/distinctive brands:
+        query: "{company_name}" -site:{best_candidate.domain}
+        Checks if other active corporate domains claim the exact same brand name.
+        """
+        probe_query = f'"{company_name}" -site:{best_candidate.domain}'
+        try:
+            raw = self.search_provider.search(probe_query, num_results=5)
+            clean = SearchResultSanitizer.sanitize(raw)
+        except Exception:
+            return False, ""
+
+        if not clean:
+            return False, ""
+
+        excluded_domains = {
+            'linkedin.com', 'crunchbase.com', 'wikipedia.org',
+            'twitter.com', 'x.com', 'facebook.com', 'youtube.com',
+            'glassdoor.com', 'g2.com', 'capterra.com', 'bloomberg.com',
+            'ycombinator.com', 'pitchbook.com', 'zoominfo.com', 'builtin.com',
+            'f6s.com', 'b2bhint.com', 'instagram.com', 'github.com',
+            'app.apollo.io', 'web.app', 'herokuapp.com', 'vercel.app',
+            'github.io',
+        }
+
+        best_reg = get_registrable_domain(best_candidate.domain)
+        clean_dist = self.canonical_brand_slug(company_name)
+        distinctive = self.extract_distinctive_tokens(company_name)
+
+        competing_domains = set()
+        for r in clean:
+            dom = normalize_domain(r.url)
+            if not dom or any(dom == ex or dom.endswith("." + ex) for ex in excluded_domains):
+                continue
+            reg = get_registrable_domain(dom)
+            if reg == best_reg:
+                continue
+            root = reg.split('.')[0]
+            if (
+                (clean_dist and clean_dist in reg)
+                or root == clean_dist
+                or (distinctive and root == distinctive[0])
+                or (distinctive and len(distinctive[0]) > 4 and distinctive[0] in root)
+            ):
+                competing_domains.add(dom)
+
+        if competing_domains:
+            return True, ", ".join(sorted(competing_domains)[:3])
+        return False, ""
 
     def _check_competing_brand_domains(
         self,
