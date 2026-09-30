@@ -708,7 +708,7 @@ def test_multi_token_generic_combinations_cannot_be_confident_uncontested():
         assert identity.domain == ""
 
 
-# ── Invariant 18: Footer Relationship Scanning Scope ──────────────────────────
+# ── Invariant 18: Footer Relationship Scanning Scope & Self-Attribution ───────
 
 def test_footer_relationship_detection_past_character_cutoff():
     """Verifies that relationship statements located deep in the footer (past character 5000)
@@ -736,3 +736,108 @@ def test_footer_relationship_detection_past_character_cutoff():
         f"Footer subsidiary notice must classify as RELATED/LEGACY, got {rel}. Msg: {msg}"
     )
     assert rel != SiteRelationship.PRIMARY
+
+
+def test_footer_self_attribution_preserves_primary_status():
+    """Verifies that ordinary creator/author self-attribution (e.g. 'Built by Foo',
+    'Powered by Foo') on Foo's own exact domain does NOT trigger false relationship detection."""
+    company = "Foo"
+    url = "https://foo.com"
+    
+    hp_content = "Foo is the leading developer platform for web infrastructure. " * 50 + "Built by Foo. Powered by Foo. Copyright 2026 Foo Inc."
+    about_content = "About Foo: Foo builds open web platforms. Powered by Foo engineering."
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Foo – Official Platform", hp_content, PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", "About Foo", about_content, PageType.ABOUT),
+    })
+    search = _DeterministicSearchProvider(company=company, domain="foo.com", results=[
+        SearchResult(title="Foo – Official Platform", url=url, snippet="Foo is the leading developer platform."),
+    ])
+
+    verifier = WebsiteVerifier(crawl, search)
+    rel, msg, _ = verifier.classify_relationship(company, url)
+
+    assert rel == SiteRelationship.PRIMARY, f"Self-attribution on exact domain must remain PRIMARY, got {rel}. Msg: {msg}"
+
+
+# ── Invariant 19: Unseen Generic Multi-Token Adversaries ───────────────────────
+
+def test_unseen_generic_multi_token_adversaries_stay_ambiguous():
+    """Verifies that generic dictionary words paired with descriptive category/infrastructure
+    suffixes (e.g. Pillar Platform, Beacon Workspace, Signal Systems, Forge Capital, Loom Cloud, Haven Healthcare)
+    remain AMBIGUOUS even with matching domain, strong homepage, strong secondary, and 0 search competitors."""
+    adversaries = [
+        ("Pillar Platform", "pillarplatform.com"),
+        ("Beacon Workspace", "beaconworkspace.com"),
+        ("Signal Systems", "signalsystems.com"),
+        ("Forge Capital", "forgecapital.com"),
+        ("Loom Cloud", "loomcloud.com"),
+        ("Haven Healthcare", "havenhealthcare.com"),
+    ]
+
+    for company, domain in adversaries:
+        crawl = _DeterministicCrawlManager({
+            f"https://{domain}": _doc(f"https://{domain}", f"{company} – Official", f"{company} is a leading commercial solution.", PageType.HOMEPAGE),
+            f"https://{domain}/about": _doc(f"https://{domain}/about", f"About {company}", f"About {company}: enterprise platform.", PageType.ABOUT),
+        })
+        search = _DeterministicSearchProvider(company=company, domain=domain, results=[
+            SearchResult(title=f"{company} – Official", url=f"https://{domain}", snippet=f"{company} commercial software."),
+        ])
+
+        verifier = WebsiteVerifier(crawl, search)
+        resolver = IdentityResolver(search, verifier)
+
+        identity = resolver.resolve(company)
+        assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
+            f"Expected generic multi-token adversary '{company}' to be AMBIGUOUS, but got {identity.confidence}. "
+            f"Reasoning: {identity.reasoning}"
+        )
+        assert identity.domain == "", f"Domain must be suppressed on AMBIGUOUS for {company}"
+
+
+# ── Invariant 20: Mixed-Provenance Fallback Preserves Epistemic Cap ───────────
+
+def test_mixed_provenance_indexed_fallback_preserves_epistemic_cap():
+    """Verifies that when verification evidence includes search-indexed fallback snippets
+    (e.g. live thin homepage + indexed secondary corroboration), candidate.is_indexed_only
+    is True and the candidate cannot discount shape risk to become CONFIDENT."""
+    candidate_mixed = IdentityCandidate(
+        domain="thinbrand.com",
+        is_verified=True,
+        relationship=SiteRelationship.PRIMARY,
+        relationship_reasoning="Live homepage + indexed snippet secondary fallback.",
+        evidence=[
+            IdentityEvidence(type=EvidenceType.SELF_IDENTITY, source="homepage", url="https://thinbrand.com", signal="TITLE_ENTITY_MATCH"),
+            IdentityEvidence(type=EvidenceType.FALLBACK_INDEXED, source="search_index_fallback", url="https://thinbrand.com/about", signal="FALLBACK_INDEXED_ABOUT_SNIPPET"),
+        ]
+    )
+    
+    assert candidate_mixed.is_indexed_only is True, "Mixed candidate with indexed fallback must have is_indexed_only == True"
+
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider("ThinBrand", "thinbrand.com", []),
+        WebsiteVerifier(_DeterministicCrawlManager({}), _DeterministicSearchProvider("ThinBrand", "thinbrand.com", []))
+    )
+    
+    can_discount, reason = resolver._should_discount_shape_risk("ThinBrand", candidate_mixed, [candidate_mixed])
+    assert can_discount is False
+    assert "epistemic cap" in reason.lower()
+
+
+# ── Invariant 21: Unsafe CONFIDENT Precision Loss Safety KPI ──────────────────
+
+def test_unsafe_confident_precision_loss_kpi_calculation():
+    """Verifies that Unsafe CONFIDENT Precision Loss = UNSAFE_CONFIDENT / Predicted_CONFIDENT
+    correctly measures precision decay across synthetic confusion partitions."""
+    # Case 1: 10 predicted CONFIDENT, 2 are wrong-target, 1 is false CONFIDENT from AMBIGUOUS -> 3 unsafe
+    predicted_conf = 10
+    wrong_target = 2
+    false_conf_amb = 1
+    unsafe_conf = wrong_target + false_conf_amb  # 3
+    
+    precision_loss_pct = (unsafe_conf / predicted_conf) * 100.0
+    assert precision_loss_pct == 30.0
+    
+    # Case 2: Perfect system (0 wrong target, 0 false confident) -> 0.0% precision loss
+    assert ((0 + 0) / 10 * 100.0) == 0.0

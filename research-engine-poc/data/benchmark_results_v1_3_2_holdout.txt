@@ -12,11 +12,14 @@
 ┃                      ┃  Dev Corpus  ┃ Corpus (10  ┃ Generaliz… ┃ Safety      ┃
 ┃ Metric Dimension     ┃  (28 cases)  ┃   cases)    ┃    Gap     ┃ Target      ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ Identity State       │    82.1%     │    90.0%    │   -7.9%    │ >= 90.0% on │
-│ Accuracy             │   (23/28)    │   (9/10)    │            │ Holdout     │
+│ Identity State       │    82.1%     │    80.0%    │   +2.1%    │ >= 90.0% on │
+│ Accuracy             │   (23/28)    │   (8/10)    │            │ Holdout     │
 ├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
-│ CONFIDENT Recall     │    72.2%     │ 83.3% (5/6) │   -11.1%   │ >= 85.0% on │
+│ CONFIDENT Recall     │    72.2%     │ 66.7% (4/6) │   +5.6%    │ >= 85.0% on │
 │                      │   (13/18)    │             │            │ Holdout     │
+├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
+│ Primary Safety:      │ 0.0% (0/13)  │ 0.0% (0/4)  │ 0.0% (Zero │ 0.0%        │
+│ Unsafe Loss          │              │             │    Gap)    │ (UNSAFE/Pr… │
 ├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
 │ Safety: False        │ 0.0% (0/10)  │ 0.0% (0/4)  │ 0.0% (Zero │ Strictly    │
 │ CONFIDENT Rate       │              │             │    Gap)    │ 0.0%        │
@@ -32,7 +35,7 @@
 ┃                    ┃    Predicted     ┃     Predicted     ┃    Predicted     ┃
 ┃ Expected State     ┃    CONFIDENT     ┃     AMBIGUOUS     ┃    UNRESOLVED    ┃
 ┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
-│ CONFIDENT (6)      │    5 (Correct    │  1 (Missed Conf)  │  0 (Missed ID)   │
+│ CONFIDENT (6)      │    4 (Correct    │  2 (Missed Conf)  │  0 (Missed ID)   │
 │                    │     Recall)      │                   │                  │
 ├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
 │ AMBIGUOUS (1)      │  0 (False Conf)  │    1 (Correct     │        0         │
@@ -49,7 +52,7 @@
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━╇━━━┩
 │ holdout_spa_nextjs_csr_hydra… │ SPA_REND… │ CONF… │ CONF… │ clickup.com  │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
-│ holdout_spa_svelte_bundle_ro… │ SPA_REND… │ CONF… │ CONF… │ sentry.io    │ … │
+│ holdout_spa_svelte_bundle_ro… │ SPA_REND… │ CONF… │ AMBI… │ —            │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
 │ holdout_unconv_our_story_rou… │ UNCONVEN… │ CONF… │ CONF… │ loom.com     │ … │
 ├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤

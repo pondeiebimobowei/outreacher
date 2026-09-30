@@ -52,10 +52,16 @@ class IdentityResolver:
 
     # ── Name-shape risk ─────────────────────────────────────────────────────────
     GENERIC_TERMS = {
-        "corp", "corporation", "inc", "company", "llc", "ltd",
+        "corp", "corporation", "inc", "company", "llc", "ltd", "co",
         "solutions", "media", "group", "holdings", "services",
-        "agency", "technologies", "tech", "global", "capital",
+        "agency", "technologies", "technology", "tech", "global", "capital",
         "partners", "ventures", "enterprises", "consulting", "financial",
+        "systems", "system", "software", "platform", "platforms", "workspace",
+        "workspaces", "cloud", "data", "digital", "network", "networks",
+        "security", "management", "logistics", "studio", "studios",
+        "interactive", "labs", "lab", "app", "apps", "healthcare",
+        "health", "insurance", "payments", "payment", "bank", "banking",
+        "finance", "industries", "resources", "properties", "investments",
     }
 
     GENERIC_MODIFIERS = {

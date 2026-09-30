@@ -15,6 +15,8 @@
 │                             │                    │ State                     │
 │ CONFIDENT Recall            │ 72.2% (13/18)      │ >= 90.0% Legitimate       │
 │                             │                    │ Recall                    │
+│ Primary Safety: Unsafe Loss │ 0.0% (0/13)        │ 0.0% (UNSAFE_CONFIDENT /  │
+│                             │                    │ Predicted)                │
 │ Safety: False CONFIDENT     │ 0.0% (0/10)        │ 0.0% (Hard Safety         │
 │ Rate                        │                    │ Invariant)                │
 │ Safety: Non-CONFIDENT       │ 100.0% (10/10)     │ 100.0% Controls Preserved │

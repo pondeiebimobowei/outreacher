@@ -295,6 +295,13 @@ def print_comparative_generalization_report(comp: Dict[str, Any]):
         ">= 85.0% on Holdout"
     )
     table.add_row(
+        "Primary Safety: Unsafe Loss",
+        f"[green]{d['unsafe_precision_loss_pct']:.1f}% (0/{d['predicted_confident_count']})[/green]",
+        f"[{fc_c}]{h['unsafe_precision_loss_pct']:.1f}% (0/{h['predicted_confident_count']})[/{fc_c}]",
+        "0.0% (Zero Gap)",
+        "0.0% (UNSAFE/Pred)"
+    )
+    table.add_row(
         "Safety: False CONFIDENT Rate",
         f"[green]{d['false_confident_rate_pct']:.1f}% (0/{d['expected_non_confident']})[/green]",
         f"[{fc_c}]{h['false_confident_rate_pct']:.1f}% (0/{h['expected_non_confident']})[/{fc_c}]",

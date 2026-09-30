@@ -58,12 +58,15 @@ _ABOUT_TITLE_PREFIXES: tuple = (
 
 # Relationship signal templates — indicate a NON-PRIMARY relationship.
 # {name} is replaced with re.escape(company_name.lower()).
-_RELATIONSHIP_TEMPLATES: list = [
+_SUBORDINATE_RELATIONSHIP_TEMPLATES: list = [
     # Subordinate relationship templates (entity is a brand/product/subsidiary of another)
     r"{name}\s+(?:is|was)\s+a\s+(?:brand|product|division|subsidiary|service)\s+of\b",
     r"{name}\s+(?:is|was)\s+(?:owned|acquired|built|made|created|developed|powered)\s+by\b",
     r"{name}\s+operates\s+as\s+a\s+(?:subsidiary|division)\s+of\b",
     r"{name}\s+(?:is|was)\s+part\s+of\b",
+]
+
+_PARENT_ATTRIBUTION_TEMPLATES: list = [
     # Parent/creator relationship templates
     r"a\s+product\s+of\s+{name}",
     r"owned\s+by\s+{name}",
@@ -80,6 +83,8 @@ _RELATIONSHIP_TEMPLATES: list = [
     # Guard [^a-zA-Z]|$ prevents matching mid-word (e.g. "Vercelian").
     r"by\s+{name}(?:[^a-zA-Z]|$)",
 ]
+
+_RELATIONSHIP_TEMPLATES: list = _SUBORDINATE_RELATIONSHIP_TEMPLATES + _PARENT_ATTRIBUTION_TEMPLATES
 
 # Corroboration strength by page type.
 # Only ABOUT and CONTACT satisfy PRIMARY; CAREERS is supplemental only.
@@ -143,7 +148,9 @@ class WebsiteVerifier:
 
         hp_title_match  = self._title_matches_entity(hp_title, company_name)
         hp_sentence_id  = self._detect_self_identity(hp_sample, company_name)
-        hp_relationship = self._detect_relationship(hp_sample, company_name)
+        hp_relationship = self._detect_relationship(
+            hp_sample, company_name, domain_signal=domain_signal, has_exact_title_match=hp_title_match
+        )
         hp_name_present = company_lower in hp_content.lower()
 
         # Record typed evidence signals
@@ -406,12 +413,32 @@ class WebsiteVerifier:
         return False
 
     @staticmethod
-    def _detect_relationship(text: str, company_name: str) -> bool:
-        """True if text signals that this site RELATES TO (but is not) the company."""
+    def _detect_relationship(
+        text: str,
+        company_name: str,
+        domain_signal: str = "none",
+        has_exact_title_match: bool = False,
+    ) -> bool:
+        """
+        True if text signals that this site RELATES TO (but is not) the company.
+        Distinguishes structural subordinate relationships (e.g. 'Foo is a subsidiary of Bar')
+        from ordinary creator/author self-attribution (e.g. 'Built by Foo' on Foo's own exact domain).
+        """
         escaped = re.escape(company_name.lower())
-        for tmpl in _RELATIONSHIP_TEMPLATES:
+
+        # 1. Subordinate relationship templates: {name} is explicitly a subsidiary/product of another entity
+        for tmpl in _SUBORDINATE_RELATIONSHIP_TEMPLATES:
             if re.search(tmpl.format(name=escaped), text.lower()):
                 return True
+
+        # 2. Parent/creator attribution templates: site is a product/creation of {name}
+        # On {name}'s own canonical exact domain with entity-title match, 'Built by {name}' is self-attribution
+        is_canonical_self = (domain_signal == "exact" and has_exact_title_match)
+        if not is_canonical_self:
+            for tmpl in _PARENT_ATTRIBUTION_TEMPLATES:
+                if re.search(tmpl.format(name=escaped), text.lower()):
+                    return True
+
         return False
 
     # ── Secondary corroboration ────────────────────────────────────────────────
@@ -436,6 +463,7 @@ class WebsiteVerifier:
           evidence           — list of IdentityEvidence items.
         """
         candidate_routes: Dict[str, Tuple[str, str, PageType]] = {}
+        domain_signal = self._domain_name_signal(company_name, domain)
 
         # 1. Dynamic first-party candidate routes from homepage HTML & JSON-LD
         if dynamic_candidates:
@@ -530,13 +558,14 @@ class WebsiteVerifier:
             if any(marker in doc_sample for marker in soft_404_markers) and len(doc_content.split()) < 50:
                 continue
 
-            rel_match = self._detect_relationship(doc_sample, company_name)
+            entity_match = self._secondary_title_matches_entity(doc_title, company_name)
+            rel_match = self._detect_relationship(
+                doc_sample, company_name, domain_signal=domain_signal, has_exact_title_match=entity_match
+            )
             if rel_match:
                 return False, False, None, True, [IdentityEvidence(
                     type=EvidenceType.RELATIONSHIP, source=f"secondary_{source.lower()}", url=url, signal="RELATIONSHIP_MENTION",
                 )]
-
-            entity_match = self._secondary_title_matches_entity(doc_title, company_name)
             name_match   = (
                 company_lower in doc_content.lower()
                 or company_lower in doc_title.lower()

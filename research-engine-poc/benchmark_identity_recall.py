@@ -675,9 +675,15 @@ def run_identity_recall_benchmark(cases: Optional[List[IdentityRecallCase]] = No
     correct_ambiguous_count = sum(1 for r in results if r["is_correct_ambiguous"])
     correct_unresolved_count = sum(1 for r in results if r["is_correct_unresolved"])
 
+    predicted_confident_count = sum(1 for r in results if r["actual_confidence"] == IdentityConfidence.CONFIDENT)
+    wrong_target_count = sum(1 for r in results if r["expected_confidence"] == IdentityConfidence.CONFIDENT and r["actual_confidence"] == IdentityConfidence.CONFIDENT and r["expected_domain"] and r["actual_domain"] != r["expected_domain"])
+    unsafe_confident_count = false_confident_count + wrong_target_count
+
     state_accuracy_pct = (correct_state_count / total_cases * 100.0) if total_cases > 0 else 0.0
     confident_recall_pct = (correct_confident_count / expected_confident * 100.0) if expected_confident > 0 else 0.0
     false_confident_rate_pct = (false_confident_count / expected_non_confident * 100.0) if expected_non_confident > 0 else 0.0
+    wrong_target_rate_pct = (wrong_target_count / expected_confident * 100.0) if expected_confident > 0 else 0.0
+    unsafe_precision_loss_pct = (unsafe_confident_count / predicted_confident_count * 100.0) if predicted_confident_count > 0 else 0.0
     non_confident_safety_pct = ((correct_ambiguous_count + correct_unresolved_count) / expected_non_confident * 100.0) if expected_non_confident > 0 else 0.0
 
     # Family Breakdown
@@ -699,11 +705,16 @@ def run_identity_recall_benchmark(cases: Optional[List[IdentityRecallCase]] = No
         "total_cases": total_cases,
         "expected_confident": expected_confident,
         "expected_non_confident": expected_non_confident,
+        "predicted_confident_count": predicted_confident_count,
         "state_accuracy_pct": state_accuracy_pct,
         "confident_recall_pct": confident_recall_pct,
         "false_confident_rate_pct": false_confident_rate_pct,
+        "wrong_target_rate_pct": wrong_target_rate_pct,
+        "unsafe_precision_loss_pct": unsafe_precision_loss_pct,
         "non_confident_safety_pct": non_confident_safety_pct,
         "correct_confident_count": correct_confident_count,
+        "wrong_target_count": wrong_target_count,
+        "unsafe_confident_count": unsafe_confident_count,
         "missed_conf_ambiguous_count": missed_conf_ambiguous_count,
         "missed_id_unresolved_count": missed_id_unresolved_count,
         "correct_ambiguous_count": correct_ambiguous_count,
@@ -731,10 +742,12 @@ def print_identity_recall_scorecard(metrics: Dict[str, Any]):
     acc_color = "green" if metrics["state_accuracy_pct"] >= 95.0 else "yellow"
     rec_color = "green" if metrics["confident_recall_pct"] >= 90.0 else "yellow"
     fc_color = "green" if metrics["false_confident_count"] == 0 else "red"
+    unsafe_color = "green" if metrics["unsafe_confident_count"] == 0 else "red"
     safe_color = "green" if metrics["non_confident_safety_pct"] == 100.0 else "red"
 
     scorecard.add_row("Identity State Accuracy", f"[{acc_color}]{metrics['state_accuracy_pct']:.1f}% ({sum(1 for r in metrics['case_results'] if r['is_state_match'])}/{metrics['total_cases']})[/{acc_color}]", ">= 95.0% Correct Decision State")
     scorecard.add_row("CONFIDENT Recall", f"[{rec_color}]{metrics['confident_recall_pct']:.1f}% ({metrics['correct_confident_count']}/{metrics['expected_confident']})[/{rec_color}]", ">= 90.0% Legitimate Recall")
+    scorecard.add_row("Primary Safety: Unsafe Loss", f"[{unsafe_color}]{metrics['unsafe_precision_loss_pct']:.1f}% ({metrics['unsafe_confident_count']}/{metrics['predicted_confident_count']})[/{unsafe_color}]", "0.0% (UNSAFE_CONFIDENT / Predicted)")
     scorecard.add_row("Safety: False CONFIDENT Rate", f"[{fc_color}]{metrics['false_confident_rate_pct']:.1f}% ({metrics['false_confident_count']}/{metrics['expected_non_confident']})[/{fc_color}]", "0.0% (Hard Safety Invariant)")
     scorecard.add_row("Safety: Non-CONFIDENT Correctness", f"[{safe_color}]{metrics['non_confident_safety_pct']:.1f}% ({metrics['correct_ambiguous_count'] + metrics['correct_unresolved_count']}/{metrics['expected_non_confident']})[/{safe_color}]", "100.0% Controls Preserved")
     scorecard.add_row("Missed Confidence (Ambiguous)", f"{metrics['missed_conf_ambiguous_count']}", "0 (Unnecessary Ambiguity)")

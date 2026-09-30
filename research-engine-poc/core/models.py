@@ -81,16 +81,12 @@ class IdentityCandidate(BaseModel):
     @property
     def is_indexed_only(self) -> bool:
         """
-        True if candidate was established exclusively via search-engine indexed snippets
-        (EvidenceType.FALLBACK_INDEXED) without direct live crawl confirmation.
+        True if candidate verification relied wholly or partially on search-engine
+        indexed fallback snippets (EvidenceType.FALLBACK_INDEXED) rather than complete
+        dual-page live crawled first-party verification.
         Carries a permanent epistemic cap: cannot produce CONFIDENT resolution.
         """
-        has_indexed = any(ev.type == EvidenceType.FALLBACK_INDEXED for ev in self.evidence)
-        has_live_homepage = any(
-            ev.type in (EvidenceType.SELF_IDENTITY, EvidenceType.PAGE_IDENTITY) and ev.source == "homepage"
-            for ev in self.evidence
-        )
-        return has_indexed and not has_live_homepage
+        return any(ev.type == EvidenceType.FALLBACK_INDEXED for ev in self.evidence)
 
 class CompanyIdentity(BaseModel):
     model_config = ConfigDict(frozen=True)
