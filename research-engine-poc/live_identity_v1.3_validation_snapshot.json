@@ -1,0 +1,3365 @@
+[
+  {
+    "case_id": "val_afr_tymebank",
+    "query_name": "TymeBank",
+    "target_entity": "TymeBank Limited (South African digital retail bank / Commonwealth Bank spin-off)",
+    "target_domain": "tymebank.co.za",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "South Africa",
+    "primary_language": "English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Prudential Authority South Africa / CIPC / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "bank.tymedigital.co.za",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "bank.tymedigital.co.za",
+      "gotyme.co.za",
+      "play.google.com",
+      "apps.apple.com",
+      "facebook.com",
+      "en.wikipedia.org",
+      "activation.tymedigital.co.za",
+      "reddit.com",
+      "cgap.org",
+      "tymebank.co.za"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://bank.tymedigital.co.za/",
+        "title": "Internet Banking",
+        "snippet": "TymeBank is an authorised Financial Services (FSP 49140) and Registered Credit Provider (NCRCP 10774). Tyme Bank Limited Reg no: 2015/231510/06."
+      },
+      {
+        "url": "https://gotyme.co.za/",
+        "title": "Open a bank account for free | GoTyme Bank | South Africa ...",
+        "snippet": "Important Notice: The Old TymeBank app has been discontinued. Switch to the GoTyme Bank app to continue banking. Your account information, balance and cards ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=consumer.cbsa.smartapp&hl=en_US",
+        "title": "TymeBank - Apps on Google Play",
+        "snippet": "TymeBank is now GoTyme Bank. We've got a new name and a new app. To get the best banking experience, download and use the new GoTyme Bank app."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/tymebank/id1546033972",
+        "title": "TymeBank - App Store - Apple",
+        "snippet": "TymeBank is now GoTyme Bank. We've got a new name \u2014 and a new app New to the bank? To open a new account, download the GoTyme Bank app instead."
+      },
+      {
+        "url": "https://www.facebook.com/gotymebankza/",
+        "title": "TymeBank ZA (@gotymebankza)",
+        "snippet": "TymeBank ZA. 366268 followers \u00b7 9285 talking about this. Welcome to GoTyme Bank (formerly TymeBank)."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/GoTyme_Bank_(South_Africa)",
+        "title": "GoTyme Bank (South Africa)",
+        "snippet": "GoTyme Bank is a South African digital-only bank aimed at the lower income market. GoTyme Bank. Formerly, TymeBank. Type, Private. Industry, Banking"
+      },
+      {
+        "url": "https://activation.tymedigital.co.za/reset-credentials",
+        "title": "Reset your profile credentials | TymeBank",
+        "snippet": "Forgotten your password? \u00b7 Your South African ID number \u00b7 Your cellphone number linked to your TymeBank account \u00b7 Your TymeBank debit card."
+      },
+      {
+        "url": "https://www.reddit.com/r/PersonalFinanceZA/comments/1p6bwhg/tymebank_warning_internet_banking_is_no_longer/",
+        "title": "Tymebank Warning: 'Internet Banking is No Longer Available'",
+        "snippet": "Ok for anyone interested, official feedback from Tymebank (after another call today):. They are busy phasing out browser based banking ..."
+      },
+      {
+        "url": "https://www.cgap.org/research/publication/tymebank-case-study-customer-impact-of-inclusive-digital-banking",
+        "title": "TymeBank Case Study: The Customer Impact of Inclusive ...",
+        "snippet": "TymeBank offers low-income customers simple products at low prices, such as checking accounts, savings accounts, and debit cards \u2013 all through a ..."
+      },
+      {
+        "url": "https://www.tymebank.co.za/wp-content/uploads/2026/04/Legal-terms-and-conditions_GoTyme-Bank-Letterhead-V1.5clean.pdf",
+        "title": "Terms & Conditions - GoTyme Bank",
+        "snippet": "GoTyme App\u201d). For the purposes of these SmartApp Terms of Use, the term \u201cApp / SmartApp\u201d shall refer to both the TymeBank App and the GoTyme App. 34.2. By ..."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "bank.tymedigital.co.za",
+      "gotyme.co.za",
+      "play.google.com",
+      "apps.apple.com",
+      "activation.tymedigital.co.za",
+      "reddit.com",
+      "cgap.org",
+      "wise.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT"
+    ],
+    "search_elapsed_ms": 1530.8715839928482,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 16997.08041700069,
+    "total_elapsed_ms": 18528.084791003494,
+    "timestamp_utc": "2026-09-30T08:30:13.122299+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_fairmoney",
+    "query_name": "FairMoney",
+    "target_entity": "FairMoney (Credit-led neobank and digital lending platform in Nigeria)",
+    "target_domain": "fairmoney.io",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Nigeria",
+    "primary_language": "English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Crunchbase / Y Combinator / Central Bank of Nigeria MFB Directory",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "fairmoney.io",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "fairmoney.io",
+      "apps.apple.com",
+      "linkedin.com",
+      "play.google.com",
+      "instagram.com",
+      "fairmoney.com",
+      "fairmoney.freshdesk.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://fairmoney.io/",
+        "title": "FairMoney - Quick Loans & Smart Savings in Nigeria",
+        "snippet": "Get quick loans up to \u20a610M, earn up to 20% on savings, and enjoy seamless digital banking. CBN licensed, NDIC insured. Trusted by 12M+ Nigerians."
+      },
+      {
+        "url": "https://apps.apple.com/gb/app/fairmoney-loan-app-in-nigeria/id6456485223",
+        "title": "FairMoney: Loan App In Nigeria - App Store",
+        "snippet": "FairMoney is a trusted finance partner that offers a seamless loan borrowing experience with a variety of features designed to meet your financial needs. 1."
+      },
+      {
+        "url": "https://www.linkedin.com/company/fairmoney",
+        "title": "FairMoney",
+        "snippet": "Website: https://fairmoney.io/. External link for FairMoney ; Industry: Financial Services ; Company size: 501-1,000 employees ; Headquarters: Paris, \u00cele-de-France."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=ng.com.fairmoney.fairmoney&hl=en&gl=IN",
+        "title": "FairMoney: Loans & Banking - Apps on Google Play",
+        "snippet": "All FairMoney deposits are insured by NDIC. To know more about us, visit us on: \ud83d\uddb1\ufe0f Website: www.fairmoney.ng http://fairmoney.io/privacy-policy Location ..."
+      },
+      {
+        "url": "https://www.instagram.com/fairmoney_ng/?hl=en",
+        "title": "FairMoney Microfinance Bank (@fairmoney_ng)",
+        "snippet": "Paying seamlessly, enjoying zero card charges and controlling your card right from the app? It's kinda chic. Order your free FairMoney Card today and have it ..."
+      },
+      {
+        "url": "https://fairmoney.com/",
+        "title": "FairMoney: Home page",
+        "snippet": "What our clients say... \u201cFairmoney.com offers a wide range of the loan products that will satisfy the needs of most customers. Exceptional service from an ..."
+      },
+      {
+        "url": "https://fairmoney.freshdesk.com/support/signup",
+        "title": "Signup for a new account - FairMoney",
+        "snippet": "FairMoney. Welcome. Login Sign up \u00b7 Home Solutions. Sign up for your FairMoney account. Full name *. Email *. Cancel \u00b7 Home Solutions."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "fairmoney.io",
+      "fairmoney.com",
+      "fairmoney.freshdesk.com",
+      "apps.apple.com",
+      "play.google.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "SELF_IDENTITY_STATEMENT",
+      "NAME_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1911.2084999796934,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 12148.81954100565,
+    "total_elapsed_ms": 14060.093000007328,
+    "timestamp_utc": "2026-09-30T08:30:32.656715+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_cowrywise",
+    "query_name": "Cowrywise",
+    "target_entity": "Cowrywise Financial Technology Limited (SEC-licensed Nigerian digital investment and savings platform)",
+    "target_domain": "cowrywise.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Nigeria",
+    "primary_language": "English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "SEC Nigeria Fund Manager License / Y Combinator (S18)",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "cowrywise.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "cowrywise.com",
+      "apps.apple.com",
+      "instagram.com",
+      "trustpilot.com",
+      "play.google.com",
+      "ng.linkedin.com",
+      "cowrywise.webflow.io"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://cowrywise.com/",
+        "title": "Cowrywise: Plan, Save and Invest Online | Get high returns",
+        "snippet": "Cowrywise helps Nigerians save and invest money regularly. We are re-imagining and reworking how financial services get delivered to people."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/cowrywise-save-invest-money/id1436590033",
+        "title": "Cowrywise: Save & Invest Money - App Store - Apple",
+        "snippet": "Cowrywise is the only SEC-licensed wealth management app you really need. We are licensed by the SEC, enabling you to grow and manage your money securely."
+      },
+      {
+        "url": "https://www.instagram.com/cowrywise/?hl=en",
+        "title": "Cowrywise",
+        "snippet": "Are you IPO ready? Get IPO ready by downloading the Cowrywise app and creating your CSCS account. Start here: Cowrywise.com/dangote-refinery-ipo ..."
+      },
+      {
+        "url": "https://www.trustpilot.com/review/cowrywise.com",
+        "title": "Read Customer Service Reviews of cowrywise.com",
+        "snippet": "Cowrywise helps Nigerians save and invest money online. We are a secure savings and investment platform to grow your wealth. Contact info. Nigeria. cowrywise."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.cowrywise.android&hl=en_US",
+        "title": "Cowrywise: Save, Invest safely - Apps on Google Play",
+        "snippet": "Cowrywise is a wealth management app that enables you to plan, save and invest money easily. With direct access to the largest pool of mutual ..."
+      },
+      {
+        "url": "https://ng.linkedin.com/company/cowrywise",
+        "title": "Cowrywise",
+        "snippet": "About us ; Website: https://cowrywise.com. External link for Cowrywise ; Industry: Financial Services ; Company size: 51-200 employees ; Headquarters: Ikeja, Lagos."
+      },
+      {
+        "url": "https://cowrywise.webflow.io/",
+        "title": "Cowrywise: Plan, Save and Invest online | Get high returns",
+        "snippet": "Cowrywise helps Nigerians save and invest money regularly. We are re-imagining and reworking how financial services get delivered to people."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "cowrywise.com",
+      "cowrywise.webflow.io",
+      "apps.apple.com",
+      "trustpilot.com",
+      "play.google.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1170.4419579764362,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 23396.408250002423,
+    "total_elapsed_ms": 24567.03341699904,
+    "timestamp_utc": "2026-09-30T08:30:47.722998+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_wasoko",
+    "query_name": "Wasoko",
+    "target_entity": "Wasoko Inc (East African B2B retail supply chain and e-commerce platform, formerly Sokowatch)",
+    "target_domain": "wasoko.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Kenya",
+    "primary_language": "English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Crunchbase / Financial Times Fastest Growing Companies Africa",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "wasoko.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "wasoko.com",
+      "wasoko.com",
+      "wasoko.com",
+      "weforum.org",
+      "play.google.com",
+      "ke.linkedin.com",
+      "jungleworks.com",
+      "leadiq.com",
+      "wfh.team",
+      "linkedin.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://wasoko.com/",
+        "title": "Wasoko: Home",
+        "snippet": "Increasing purchasing power across Africa. Making every retailer thrive, every shopper happy and every community shine! We are Wasoko."
+      },
+      {
+        "url": "https://wasoko.com/contact/",
+        "title": "Contact",
+        "snippet": "Get in touch ... Want to find out more about our business or chat to our team? We'd love to hear from you. ... Privacy Policy. wasoko ..."
+      },
+      {
+        "url": "https://wasoko.com/careers/",
+        "title": "Careers",
+        "snippet": "The rich blend of culture, great minds, and definite career growth is our real strength. This mix brings out the best in me. At Wasoko, delivery at work does ..."
+      },
+      {
+        "url": "https://www.weforum.org/organizations/sokowatch/",
+        "title": "Wasoko",
+        "snippet": "Access to financing grows 800% on average. Visit the Wasoko website. About us. Who we are \u00b7 Our strategy \u00b7 How we work \u00b7 Our leadership and governance \u00b7 Our ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.sokowatch_customer_app&hl=en_US",
+        "title": "Wasoko App - Apps on Google Play",
+        "snippet": "Wasoko, formally known as Sokowatch, is the number 1 preferred last mile delivery agent of Fast Moving Consumer Goods (FMCG) products for informal retailers ..."
+      },
+      {
+        "url": "https://ke.linkedin.com/company/wasokoglobal",
+        "title": "Wasoko",
+        "snippet": "Website: http://www.wasoko.com. External link for Wasoko ; Industry: Internet Marketplace Platforms ; Company size: 1,001-5,000 employees ; Headquarters: Nairobi."
+      },
+      {
+        "url": "https://jungleworks.com/wasoko-business-model-a-boost-to-africas-local-informal-retailers/",
+        "title": "Wasoko Business Model: A boost to Africa's local informal ...",
+        "snippet": "Wasoko, previously called Sokowatch is a Nairobi-based B2B organization that is responsible for connecting informal retailers to various ..."
+      },
+      {
+        "url": "https://leadiq.com/c/wasoko/6232f95aaf7fcf88533f8842",
+        "title": "Wasoko Company Overview, Contact Details & Competitors",
+        "snippet": "What is Wasoko's official website and social media links? ... Wasoko's official website is wasoko.com and has social profiles on LinkedInCrunchbase."
+      },
+      {
+        "url": "https://wfh.team/companies/wasoko",
+        "title": "Wasoko remote jobs and company guide",
+        "snippet": "Wasoko remote jobs and company guide. At Wasoko, we are dedicated to transforming communities across Africa by enhancing access to essential goods and services."
+      },
+      {
+        "url": "https://www.linkedin.com/posts/wasokoglobal_wasoko-company-video-activity-7031168954194702336-F01D",
+        "title": "Wasoko Company Video",
+        "snippet": "Wasoko enables over 75000 informal retailers to effectively sell, and offers working capital financing that helps unlock their purchasing ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "wasoko.com",
+      "weforum.org",
+      "play.google.com",
+      "wfh.team",
+      "jungleworks.com",
+      "leadiq.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "SELF_IDENTITY_STATEMENT",
+      "RELATIONSHIP_MENTION",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1422.0762500190176,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 25191.38341600774,
+    "total_elapsed_ms": 26613.572750007734,
+    "timestamp_utc": "2026-09-30T08:31:13.295762+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_maxab",
+    "query_name": "MaxAB",
+    "target_entity": "MaxAB (Egyptian B2B food and grocery e-commerce and retail logistics platform)",
+    "target_domain": "maxab.io",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Egypt",
+    "primary_language": "Arabic / English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Crunchbase / Beco Capital Portfolio Registry",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "maxab.io",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "maxab.io",
+      "linkedin.com",
+      "play.google.com",
+      "startupintros.com",
+      "techcrunch.com",
+      "careers.4dxventures.com",
+      "leadiq.com",
+      "crunchbase.com",
+      "mastercard.com",
+      "facebook.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.maxab.io/index.html",
+        "title": "Maxab | E-commerce, Marketplace & Fintech Platform for B2B",
+        "snippet": "At Maxab, we change how retailers run their business by bringing E-commerce, marketplace, and fintech together in one platform. Get it on Google Play Download ..."
+      },
+      {
+        "url": "https://www.linkedin.com/company/maxab",
+        "title": "MaxAB",
+        "snippet": "Website: http://maxab.io. External link for MaxAB ; Industry: Retail ; Company size: 1,001-5,000 employees ; Headquarters: Cairo, Cairo ; Type: Privately Held."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.maxab.maxab&hl=en_US",
+        "title": "MaxAB - Apps on Google Play",
+        "snippet": "MaxAB is a B2B platform that connects retailers of food and daily essentials to suppliers across Egypt and Morocco. The app gives small merchants and ..."
+      },
+      {
+        "url": "https://startupintros.com/orgs/maxab",
+        "title": "MaxAB: Funding, Team & Investors",
+        "snippet": "MaxAB operates as a business-to-business e-commerce platform dedicated to transforming the food and grocery supply chain."
+      },
+      {
+        "url": "https://techcrunch.com/2021/07/05/maxab-the-egyptian-b2b-food-and-grocery-delivery-startup-raises-40m-for-expansion/",
+        "title": "MaxAB, the Egyptian B2B food and grocery delivery startup ...",
+        "snippet": "MaxAB, a startup based out of Cairo that serves a network of traditional food and grocery retailers across Egypt, has raised $40 million in ..."
+      },
+      {
+        "url": "https://careers.4dxventures.com/companies/maxab",
+        "title": "MaxAB | 4DX Ventures Job Board",
+        "snippet": "MaxAB is a B2B e-commerce platform that connects food and grocery retailers to suppliers in the most under-served geographies. We are re-engineering the ..."
+      },
+      {
+        "url": "https://leadiq.com/c/maxab/5d8c9372408f0cc3d90c6c62",
+        "title": "MaxAB Company Overview, Contact Details & Competitors",
+        "snippet": "What is MaxAB's official website and social media links? Minus ... MaxAB's official website is maxab.io and has social profiles on LinkedIn and Crunchbase."
+      },
+      {
+        "url": "https://www.crunchbase.com/organization/maxab",
+        "title": "MaxAB - Crunchbase Company Profile & Funding",
+        "snippet": "MaxAB is a B2B e-commerce platform that connects food and grocery retailers to suppliers in the most under-served geographies. We are Re-engineering the ..."
+      },
+      {
+        "url": "https://www.mastercard.com/news/eemea/en/newsroom/press-releases/en/2023/november/mastercard-collaborates-with-maxab-to-empower-businesses-in-egypt/",
+        "title": "Mastercard collaborates with MaxAB to empower ...",
+        "snippet": "MaxAB Payments is a fintech service that enables local merchants to accept payments for various services that their end customers may require."
+      },
+      {
+        "url": "https://www.facebook.com/KCCAUC/posts/newly-published-maxab-reaching-the-unreachable-by-transforming-b2b-supply-chains/1676846881114211/",
+        "title": "Maxab transforms B2B supply chains in Africa",
+        "snippet": "MaxAB was founded in Egypt in August 2018 with the goal of enhancing access to goods for small retail stores, while optimizing the supply chain ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "maxab.io",
+      "play.google.com",
+      "startupintros.com",
+      "techcrunch.com",
+      "careers.4dxventures.com",
+      "leadiq.com",
+      "ifc.org"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "SELF_IDENTITY_STATEMENT",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1416.5697499993257,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 14068.335707997903,
+    "total_elapsed_ms": 15484.967875003349,
+    "timestamp_utc": "2026-09-30T08:31:40.915788+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_chargel",
+    "query_name": "Chargel",
+    "target_entity": "Chargel (Senegalese digital freight and logistics platform in Francophone West Africa)",
+    "target_domain": "chargel.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Senegal",
+    "primary_language": "French",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Crunchbase / Seedstars Directory",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "chargel.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "chargel.com",
+      "chargel.com",
+      "chargel.com",
+      "businesswire.com",
+      "theloamwolf.com",
+      "chargel.com",
+      "instagram.com",
+      "chargel.com",
+      "facebook.com",
+      "feedthehabit.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://chargel.com/?srsltid=AU7gw4VEHNaXq-49a2cHc1NTiAJRoBMiTFcyjbnSyuTCOFRQfAcAJTH6",
+        "title": "Chargel: Caffeine-Free Athletic Gel Drink",
+        "snippet": "Chargel has a juicy \"jelly-like\" texture that quickly dissolves in your mouth so it's easy to digest while satisfying both hunger and thirst."
+      },
+      {
+        "url": "https://chargel.com/pages/frequently-asked-questions?srsltid=AU7gw4XbMmrYlkm7z-ENl5GU1-3XKmRHuMpvpTzqN8SaDTMj4Dj41zQv",
+        "title": "Frequently Asked Questions",
+        "snippet": "You can buy Chargel directly from our website www.chargel.com. We look forward to launching in retail stores in the very near future. Do you ship to my area?"
+      },
+      {
+        "url": "https://chargel.com/blogs/press?srsltid=AU7gw4XMsnYmsXXUKQ-TkKrsD82Vmae0PZm2gMLJuGNsB1DdTehjfO4k",
+        "title": "NEWS & PRESS",
+        "snippet": "Chargel Wins Bronze for Sports Nutrition Product of the Year at Delicious Living. By Team Chargel February 24, 2025."
+      },
+      {
+        "url": "https://www.businesswire.com/news/home/20220215005466/en/Morinaga-America-Inc.-Announces-U.S.-Launch-of-Chargel-A-First-of-its-Kind-Athletic-Gel-Drink-for-Pre-Workout-Energy",
+        "title": "Morinaga America, Inc. Announces U.S. Launch of Chargel",
+        "snippet": "Chargel is available for purchase online at Chargel.com, and ... is the official distributor of HI-CHEW\u2122 and Chargel\u2122 in the United States."
+      },
+      {
+        "url": "https://theloamwolf.com/reviews/gear/review-chargel-energy-gel-drink/",
+        "title": "chargel energy gel drink review",
+        "snippet": "Chargel is an energy gel designed to give athletes the energy required to support their sporting efforts. It features a blend of carbohydrates ..."
+      },
+      {
+        "url": "https://chargel.com/pages/contact?srsltid=AU7gw4Uwp9-4c03LigD1rh8n4jCEAHWfs68sEk1vtvaN6NdQeDes2ciD",
+        "title": "Contact",
+        "snippet": "It's not the energy you expect, it's the energy you need. Chargel is also. Shop."
+      },
+      {
+        "url": "https://www.instagram.com/chargelusa/?hl=en",
+        "title": "Chargel (@chargelusa) \u2022 Instagram photos and videos",
+        "snippet": "\u26bd\ufe0f Chargel is a convenient, hydrating snack for all ages, including youth athletes. It's perfect for on-the-go fueling between practices, games, and ..."
+      },
+      {
+        "url": "https://chargel.com/pages/store-locator?srsltid=AU7gw4VqKVwCPUxSSaO_LyzR057RKne-OlWoHesl-IaMAIjSeGL5Y7HT",
+        "title": "Store Locator",
+        "snippet": "It's not the energy you expect, it's the energy you need. Chargel is also. Shop."
+      },
+      {
+        "url": "https://www.facebook.com/chargelusa/",
+        "title": "Chargel (@chargelusa)",
+        "snippet": "That's where Chargel comes in: \u2714\ufe0f Refreshing snack \u2714\ufe0f Fruity, easy-to-enjoy gel texture \u2714\ufe0f Convenient twist cap for on-the-go enjoyment \u2714\ufe0f Antioxidant ..."
+      },
+      {
+        "url": "https://www.feedthehabit.com/quick-take-chargel-energy-gel-drinks/",
+        "title": "Quick Take: Chargel Energy Gel Drinks - FeedTheHabit.com",
+        "snippet": "A full strawberry packet \u2014 refrigerated and ready to drink. So, what is Chargel? In short, it's a blend of targeted carbohydrates and B-vitamins ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "chargel.com",
+      "theloamwolf.com",
+      "businesswire.com",
+      "amazon.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "INDEXED_ROOT_MATCH",
+      "INDEXED_CORROBORATING_PAGE"
+    ],
+    "search_elapsed_ms": 2253.1222499965224,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 40901.27854197635,
+    "total_elapsed_ms": 43154.51154098264,
+    "timestamp_utc": "2026-09-30T08:31:57.403366+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_lami",
+    "query_name": "Lami Technologies",
+    "target_entity": "Lami Technologies Limited (Kenyan digital insurance-as-a-service API platform)",
+    "target_domain": "lami.world",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Kenya",
+    "primary_language": "English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Business Registration Service Kenya / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "groupmnk.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "lami.world",
+      "partners.lami.world",
+      "builtinafrica.io",
+      "crunchbase.com",
+      "medium.com",
+      "cioafrica.co",
+      "slideshare.net",
+      "techcrunch.com",
+      "africabusinesscommunities.com",
+      "accion.org"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.lami.world/",
+        "title": "Lami Website | Homepage",
+        "snippet": "Rhapta Heights, 3rd Floor. Rhapta Road, Westlands,Nairobi. Get a quote. \u00a9 2026 Lami Technologies - Privacy ..."
+      },
+      {
+        "url": "https://partners.lami.world/",
+        "title": "The Lami Dashboard - Lami Technologies",
+        "snippet": "Sign in. Forgotten your password? Want to become an agent? Sign up. lami brandicon. Digital insurance gateway. \u00a9 2026. Lami Technologies - Privacy."
+      },
+      {
+        "url": "https://www.builtinafrica.io/blog-post/jihan-abass-lami",
+        "title": "Lami Technologies, the Kenyan insurance-as-a- ...",
+        "snippet": "Lami Technologies, the Kenyan startup transforming and democratising insurance. by: Nathan Hastings-Spaine. Jihan Abass, the co-founder and ..."
+      },
+      {
+        "url": "https://www.crunchbase.com/organization/lami-insurance",
+        "title": "Lami - Crunchbase Company Profile & Funding",
+        "snippet": "Legal Name Lami Technologies, Inc. ... Lami is an end-to-end digital insurance platform and API that enables companies across sectors to offer insurance products."
+      },
+      {
+        "url": "https://medium.com/lami-technologies/lami-technologies-raises-us-3-7mn-seed-extension-22a062e3d663",
+        "title": "Lami Technologies Raises US$3.7mn Seed Extension",
+        "snippet": "NAIROBI, Kenya: August 2, 2022 \u2014 Kenya-based startup Lami Technologies has raised a US$ 3.7m seed extension to expand its insurtech product ..."
+      },
+      {
+        "url": "https://cioafrica.co/lami-technologies-secures-seed-funding-for-growth/",
+        "title": "Lami Technologies Secures Seed Funding For Growth",
+        "snippet": "Lami Technologies has closed USD 1.8 million seed funding to accelerate the growth of digital insurance in Africa."
+      },
+      {
+        "url": "https://www.slideshare.net/slideshow/lami-technologies-insurtech-innovation-award-2023/258563319",
+        "title": "Lami Technologies - Insurtech Innovation Award 2023 | PPTX",
+        "snippet": "Lami Technologies - Insurtech Innovation Award 2023 ... Lami is an insurance platform that aims to insure all Africans by offering affordable and accessible ..."
+      },
+      {
+        "url": "https://techcrunch.com/2022/08/02/kenyan-insurtech-lami-raises-3-7m-seed-extension-led-by-harlem-capital/",
+        "title": "Insurtech Lami raises $3.7M seed ext led by Harlem Capital",
+        "snippet": "Right from the launch of its first product in 2020, Kenyan insurtech Lami Technologies set out to increase insurance penetration in Kenya ..."
+      },
+      {
+        "url": "https://africabusinesscommunities.com/tech-24/lami-technologies-and-sendy-launch-per-trip-insurance-policy-for-transporters-in-kenya/",
+        "title": "Lami Technologies and Sendy launch per-trip insurance ...",
+        "snippet": "Kenyan insurance startup Lami Technologies and Sendy have today announced a new per-trip insurance policy for transporter in Kenya."
+      },
+      {
+        "url": "https://www.accion.org/article/tech-opens-the-door-for-low-income-africans-to-get-the-insurance-they-need/",
+        "title": "Tech opens the door for low-income Africans to get the insurance ...",
+        "snippet": "People with access to insurance products are typically higher-income consumers. Lami Technologies, an Accion Venture Lab investee, works to broaden access to ..."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "groupmnk.com",
+      "techpoint.africa",
+      "peopleofcolorintech.com",
+      "healthcap.co",
+      "fintech.global"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT"
+    ],
+    "search_elapsed_ms": 2029.7870410140604,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 10853.126250003697,
+    "total_elapsed_ms": 12883.138584002154,
+    "timestamp_utc": "2026-09-30T08:32:41.565472+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_djamo",
+    "query_name": "Djamo",
+    "target_entity": "Djamo (Ivorian personal finance and digital banking app in Francophone West Africa)",
+    "target_domain": "djamo.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Ivory Coast",
+    "primary_language": "French",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Y Combinator Directory (W21) / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "djamo.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "djamo.com",
+      "djamo.com",
+      "business-civ.djamo.com",
+      "apps.apple.com",
+      "djamo.com",
+      "partechpartners.com",
+      "djamo.com",
+      "theafricaceoforum.com",
+      "play.google.com",
+      "djamo.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.djamo.com/fr-ci",
+        "title": "Djamo | Credit up to 1,000,000 F, current account, savings",
+        "snippet": "A physical card to pay everywhere. Your Djamo VISA card, accepted online and in stores, anywhere in the world. All about the VISA card."
+      },
+      {
+        "url": "https://www.djamo.com/en-ci/current-account",
+        "title": "Current account | Free IBAN, salary paid faster",
+        "snippet": "The Djamo current account, with a free IBAN, zero fees, and your salary paid faster. Open in 5 minutes, 100% mobile, in C\u00f4te d'Ivoire."
+      },
+      {
+        "url": "https://business-civ.djamo.com/",
+        "title": "Djamo Business - Authentification",
+        "snippet": "D\u00e9marrez avec votre compte Djamo. Num\u00e9ro Djamo. Code de s\u00e9curit\u00e9. Continuer. J'ai oubli\u00e9 mon mot de passe. Besoin d'aide ? Veuillez contacter le support."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/djamo/id1504072402",
+        "title": "Djamo - App Store - Apple",
+        "snippet": "Le compte et la carte Visa pour mieux g\u00e9rer votre argent. - Rechargez, payez, transf\u00e9rez et retirez sans frais avec votre - carte Visa Djamo."
+      },
+      {
+        "url": "https://www.djamo.com/en-ci/business-account",
+        "title": "Business Account | Mass payroll, treasury",
+        "snippet": "Djamo Business: a professional account, mass payroll, and treasury management for businesses, entrepreneurs, and nonprofits across C\u00f4te d'Ivoire."
+      },
+      {
+        "url": "https://partechpartners.com/companies/djamo",
+        "title": "Djamo",
+        "snippet": "Djamo is a hassle-free innovative neobank in Francophone Africa. It offers the smooth, reliable, and affordable banking option that every consumer deserves."
+      },
+      {
+        "url": "https://www.djamo.com/en-ci/learn/learn-online-with-the-djamo-card-on-tutocom",
+        "title": "Learn online with the Djamo card on tuto.com",
+        "snippet": "The DJAMO VISA card is a co-branded VISA card issued by our partners: BGFIBank C\u00f4te d'Ivoire or Ecobank C\u00f4te d'Ivoire. Language ..."
+      },
+      {
+        "url": "https://www.theafricaceoforum.com/en/intervenant/regis-bamba/",
+        "title": "R\u00e9gis Bamba",
+        "snippet": "DJAMO is a fintech offering digital financial management services for French-speaking Africa. DJAMO was launched in C\u00f4te d'Ivoire in November 2020 by R\u00e9gis ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.djamo.app&hl=en_US",
+        "title": "Djamo - Apps on Google Play",
+        "snippet": "Pour ouvrir un compte Djamo, il suffit de t\u00e9l\u00e9charger l'application et de s'inscrire, cela prend moins de 2 minutes. ... Djamo est certifi\u00e9 PCI DSS et dispose ..."
+      },
+      {
+        "url": "https://www.djamo.com/en-sn/api",
+        "title": "Djamo Business API Senegal | Payments for developers",
+        "snippet": "The Djamo Business API in Senegal: collect, send, and track payments via a modern API built for developers. Also available in C\u00f4te d'Ivoire."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "djamo.com",
+      "apps.apple.com",
+      "partechpartners.com",
+      "theafricaceoforum.com",
+      "play.google.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1725.934292015154,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 37840.99399999832,
+    "total_elapsed_ms": 39567.10812498932,
+    "timestamp_utc": "2026-09-30T08:32:55.456255+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_prospa",
+    "query_name": "Prospa Business Banking",
+    "target_entity": "Prospa Technology Limited (Nigerian operating system for micro-businesses and entrepreneurs)",
+    "target_domain": "getprospa.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Nigeria",
+    "primary_language": "English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Y Combinator Directory (W21) / Corporate Affairs Commission Nigeria",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "getprospa.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "getprospa.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://getprospa.com/",
+        "title": "Prospa - Business Banking, Loans and Expense Cards for ...",
+        "snippet": "Open a business account, access credit, and manage spending with Prospa. Trusted by Nigerian SMEs for fast, secure, and modern business banking."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "getprospa.com",
+      "liners.com",
+      "startupperks.co",
+      "startupperklist.com",
+      "consulta.santiago.gob.mx"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT"
+    ],
+    "search_elapsed_ms": 1450.9272499999497,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 39482.32220899081,
+    "total_elapsed_ms": 40933.28512500739,
+    "timestamp_utc": "2026-09-30T08:33:36.031144+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_afr_zoona",
+    "query_name": "Zoona",
+    "target_entity": "Zoona Transacting Ltd (Zambian and South African mobile money remittance and agent network)",
+    "target_domain": "zoona.co.za",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "AFRICA_REAL",
+    "region": "AFRICA",
+    "country_association": "Zambia / South Africa",
+    "primary_language": "English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "CIPC South Africa / Chipper Cash Acquisition Public Records",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "AMBIGUOUS",
+    "actual_domain": "ilovezoona.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": true,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_NOT_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_SEARCH_DROPOFF",
+    "top_search_domains": [
+      "ilovezoona.com",
+      "kiva.org",
+      "gsma.com",
+      "facebook.com",
+      "cgap.org",
+      "pigeonpie.com",
+      "breadwinners.fandom.com",
+      "zoona.ai",
+      "unreasonablegroup.com",
+      "big-picture.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.ilovezoona.com/",
+        "title": "Zoona \u2014 Secure. Seamless. Trusted Payments.",
+        "snippet": "Zoona empowers millions of Zambians with fast, reliable, and secure financial services \u2014 from FISP payments to everyday transactions."
+      },
+      {
+        "url": "https://www.kiva.org/about/where-kiva-works/partners/210",
+        "title": "Zoona",
+        "snippet": "Zoona's network in urban and rural areas has enabled unbanked and financially excluded individuals to transact in an easy, quick and safe manner with family, ..."
+      },
+      {
+        "url": "https://www.gsma.com/mobilefordevelopment/programme/mobile-money/zoona",
+        "title": "Zoona - Zambia, Malawi | Mobile for Development",
+        "snippet": "Zoona \u2013 pronounced 'Z-oh-na' and meaning 'it's real' \u2013 is the leading mobile money provider in Zambia. The company's core product is a ..."
+      },
+      {
+        "url": "https://www.facebook.com/ilovezoona/posts/zoona-has-a-fresh-new-lookwere-excited-to-share-it-with-you-head-over-to-our-web/857093379849895/",
+        "title": "Zoona Zambia",
+        "snippet": "Zoona is now a financial services enabler, offering multiple services on our platform. We aim to make it easier for customers to access their ..."
+      },
+      {
+        "url": "https://www.cgap.org/blog/zoona-is-putting-apis-core-of-its-business-heres-why",
+        "title": "Zoona Is Putting APIs at the Core of Its Business: Here's Why",
+        "snippet": "At Zoona, this is exactly what we're doing as we transition from being a consumer product business to being a platform-first business and ..."
+      },
+      {
+        "url": "https://pigeonpie.com/case-studies/the-zoona-website-design/",
+        "title": "The Zoona Website Design - Pigeon Pie",
+        "snippet": "An overhaul of Zoona's online content and a new website to demonstrate their impact, credibility, and track record. Result. Zoona finally had the tools to show ..."
+      },
+      {
+        "url": "https://breadwinners.fandom.com/wiki/Zoona",
+        "title": "Zoona - Breadwinners Wiki - Fandom",
+        "snippet": "Zoona is a minor antagonist of Breadwinners, and one of the Breadwinners' rivals. She is one of the two Pizzawinners. She first appeared in the episode ..."
+      },
+      {
+        "url": "https://zoona.ai/",
+        "title": "Zoona AI Agents for Customer Service Built for Modern ...",
+        "snippet": "Scale customer service with Zoona AI agents. Resolve queries faster, cut support costs, and deliver consistent, high-quality experiences at scale."
+      },
+      {
+        "url": "https://unreasonablegroup.com/initiatives/girl-effect-accelerator/portfolio/zoona",
+        "title": "Zoona | Girl Effect Accelerator",
+        "snippet": "Zoona is the #1 mobile money operator in Zambia and strives to be the best at providing business solutions to emerging entrepreneurs in Africa. The company's ..."
+      },
+      {
+        "url": "https://big-picture.com/fintech/zoona.html",
+        "title": "Zoona - big picture",
+        "snippet": "Striving to become Zambia's No 1 Interoperable financial services distribution network. Zoona is an interoperable distribution business that enables the drive ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "zoona.org",
+      "zoona.co.uk",
+      "ilovezoona.com",
+      "zoona.de",
+      "zoona.ai",
+      "websites.milonic.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "INDEXED_ROOT_MATCH",
+      "INDEXED_CORROBORATING_PAGE"
+    ],
+    "search_elapsed_ms": 2157.6326249924023,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 16997.55341699347,
+    "total_elapsed_ms": 19155.42533400003,
+    "timestamp_utc": "2026-09-30T08:34:17.970993+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_bunq",
+    "query_name": "Bunq",
+    "target_entity": "bunq B.V. (Dutch digital neobank and European financial institution)",
+    "target_domain": "bunq.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Netherlands",
+    "primary_language": "English / Dutch",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "De Nederlandsche Bank (DNB) Banking License / KVK Trade Register",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "bunq.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "bunq.com",
+      "en.wikipedia.org",
+      "play.google.com",
+      "trustpilot.com",
+      "bunq.me",
+      "dnb.nl",
+      "apps.apple.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.bunq.com/en-us/",
+        "title": "Banking made easy with bunq",
+        "snippet": "Buy and sell crypto, right where you bank ... Get started with crypto directly from your bunq app. Choose from top cryptocurrencies\u2014buying and selling takes just ..."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Bunq",
+        "title": "Bunq",
+        "snippet": "Bunq B.V. is a fintech and neobank licensed in the Netherlands and operating within 30 European countries. It is headquartered in Amsterdam. bunq B.V. ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=com.bunq.android&hl=en_US",
+        "title": "bunq - Apps on Google Play",
+        "snippet": "Open a Savings Account and start growing your money with bunq today. Say hello to bunq \u2013 the mobile bank that's there for you at every chapter of your life!"
+      },
+      {
+        "url": "https://www.trustpilot.com/review/bunq.com",
+        "title": "Read Customer Service Reviews of bunq.com",
+        "snippet": "Written by the company. bunq is a fully mobile bank designed to make managing your money simple, fast, and flexible. Whether you're traveling, saving, ..."
+      },
+      {
+        "url": "https://bunq.me/",
+        "title": "Send me money with bunq.me",
+        "snippet": "bunq | Bank of The Free."
+      },
+      {
+        "url": "https://www.dnb.nl/en/public-register/information-detail/?registerCode=WFTDG&relationNumber=R127999",
+        "title": "Information detail | bunq B.V.",
+        "snippet": "Statutory name: bunq B.V. \u00b7 Trade name: bunq B.V., bunq.com, bunq \u00b7 Statutory seat: AMSTERDAM, NEDERLAND \u00b7 Chamber of Commerce: 54992060 \u00b7 LEI code: ..."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/bunq/id1021178150",
+        "title": "bunq - App Store - Apple",
+        "snippet": "Open a Savings Account and start growing your money with bunq today. Say hello to bunq \u2013 the mobile bank that's there for you at every chapter of your life!"
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "bunq.com",
+      "bunq.me",
+      "play.google.com",
+      "trustpilot.com",
+      "honest.ie",
+      "dnb.nl"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "NAME_IN_CONTENT_ONLY"
+    ],
+    "search_elapsed_ms": 1245.0212500116322,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 13225.90829100227,
+    "total_elapsed_ms": 14471.029415988596,
+    "timestamp_utc": "2026-09-30T08:34:38.134733+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_pennylane",
+    "query_name": "Pennylane",
+    "target_entity": "Pennylane SAS (French financial management and accounting platform for SMEs)",
+    "target_domain": "pennylane.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "France",
+    "primary_language": "French",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Infogreffe France / Sirene / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "pennylane.ai",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": true,
+    "search_attribution": "TARGET_DOMAIN_NOT_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_TARGET_MISIDENTIFICATION",
+    "top_search_domains": [
+      "pennylane.ai",
+      "pennylane.ai",
+      "pennylane.ai",
+      "github.com",
+      "xanadu.ai",
+      "pennylane.ai",
+      "arxiv.org",
+      "docs.alliancecan.ca",
+      "pennylane.ai",
+      "pennylane.org"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://pennylane.ai/",
+        "title": "Quantum Programming Software \u2014 PennyLane",
+        "snippet": "Built by researchers for research, PennyLane is the definitive open-source Python framework for quantum machine learning, quantum chemistry, and quantum ..."
+      },
+      {
+        "url": "https://pennylane.ai/learn",
+        "title": "Learn quantum programming",
+        "snippet": "PennyLane is an open-source quantum software platform for quantum computing, quantum machine learning, and quantum chemistry. Create meaningful quantum ..."
+      },
+      {
+        "url": "https://pennylane.ai/demonstrations",
+        "title": "Demos",
+        "snippet": "PennyLane is an open-source quantum software platform for quantum computing, quantum machine learning, and quantum chemistry. Create meaningful quantum ..."
+      },
+      {
+        "url": "https://github.com/PennyLaneAI/pennylane",
+        "title": "PennyLane is an open-source quantum software ...",
+        "snippet": "PennyLane is an open-source quantum software platform for quantum computing, quantum machine learning, and quantum chemistry. Create meaningful quantum ..."
+      },
+      {
+        "url": "https://www.xanadu.ai/products/pennylane/",
+        "title": "PennyLane",
+        "snippet": "PennyLane is the leading tool for programming quantum computers. A cross-platform Python library, it enables a new paradigm \u2014 quantum differentiable ..."
+      },
+      {
+        "url": "https://pennylane.ai/install",
+        "title": "Install \u2014 PennyLane",
+        "snippet": "PennyLane is an open-source quantum software platform for quantum computing, quantum machine learning, and quantum chemistry. Create meaningful quantum ..."
+      },
+      {
+        "url": "https://arxiv.org/html/2503.02497v1",
+        "title": "PennyLang: Pioneering LLM-Based Quantum Code ...",
+        "snippet": "To further enhance our dataset, we systematically scraped all code snippets from the official PennyLane website. This included examples ..."
+      },
+      {
+        "url": "https://docs.alliancecan.ca/wiki/PennyLane/en",
+        "title": "PennyLane",
+        "snippet": "PennyLane is an open-source software platform for differentiable quantum computing that was launched in 2018 by Xanadu, a quantum technology company based ..."
+      },
+      {
+        "url": "https://pennylane.ai/get-involved",
+        "title": "Collaborate to innovate in quantum computing.",
+        "snippet": "PennyLane is an open-source quantum software platform for quantum computing, quantum machine learning, and quantum chemistry. Create meaningful quantum ..."
+      },
+      {
+        "url": "https://www.pennylane.org/",
+        "title": "Penny Lane Centers | Supporting Children, Youth & Families",
+        "snippet": "Penny Lane Centers is a 501 (c) (3) nonprofit organization that cares for over 3500 abused and neglected children, youth and families a month."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "pennylane.ai",
+      "pennylane.org",
+      "xanadu.ai",
+      "arxiv.org",
+      "docs.alliancecan.ca",
+      "bluequbit.io"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "INDEXED_ROOT_MATCH",
+      "INDEXED_CORROBORATING_PAGE"
+    ],
+    "search_elapsed_ms": 1952.5386249879375,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 36531.315500003984,
+    "total_elapsed_ms": 38484.03125000186,
+    "timestamp_utc": "2026-09-30T08:34:53.612497+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_spendesk",
+    "query_name": "Spendesk",
+    "target_entity": "Spendesk SAS (French corporate spend management platform with smart payment cards)",
+    "target_domain": "spendesk.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "France",
+    "primary_language": "French / English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Infogreffe France / Sirene / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "spendesk.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "spendesk.com",
+      "app.spendesk.com",
+      "linkedin.com",
+      "spendesk.com",
+      "vendr.com",
+      "leadiq.com",
+      "trustpilot.com",
+      "accountsjunction.com",
+      "career.spendesk.com",
+      "spendesk.pissedconsumer.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.spendesk.com/",
+        "title": "Spend Smarter, Work Better | Spendesk Spend Management ...",
+        "snippet": "Automate spend management with one platform for expenses, cards and invoices. Get complete control and visibility while empowering teams to spend ..."
+      },
+      {
+        "url": "https://app.spendesk.com/app",
+        "title": "Spendesk",
+        "snippet": "Spendesk is the all-in-one spend management solution that delivers more control,"
+      },
+      {
+        "url": "https://www.linkedin.com/company/spendesk",
+        "title": "Spendesk",
+        "snippet": "Spendesk is the AI-powered spend management and procurement platform that transforms company spending. By simplifying procurement, payment cards, ..."
+      },
+      {
+        "url": "https://www.spendesk.com/press/",
+        "title": "Spendesk Newsroom | Latest News, Brand Assets & ...",
+        "snippet": "Stay updated with the latest Spendesk news, press releases, and media coverage. Access press contacts, brand assets, and company updates."
+      },
+      {
+        "url": "https://www.vendr.com/buyer-guides/spendesk",
+        "title": "Spendesk Software Pricing & Plans 2025",
+        "snippet": "Spendesk is a comprehensive spend management software designed to help SMBs take control of their spending. With smart company cards and a real-time payment ..."
+      },
+      {
+        "url": "https://leadiq.com/c/spendesk/5a1d9d932300005b008d6fc7",
+        "title": "Spendesk Company Overview, Contact Details & ...",
+        "snippet": "What is Spendesk's official website and social media links? ... Spendesk's official website is spendesk.com and has social profiles on LinkedInCrunchbase."
+      },
+      {
+        "url": "https://www.trustpilot.com/review/spendesk.com",
+        "title": "Read Customer Service Reviews of spendesk.com",
+        "snippet": "Spendesk is very easy to use. It is quick to set up and requests can be submitted with just a few mouse clicks. Once approved, a virtual credit card is ..."
+      },
+      {
+        "url": "https://www.accountsjunction.com/software/spendesk",
+        "title": "Spendesk: Spend Management & Financial Automation",
+        "snippet": "Spendesk is a comprehensive spend management platform designed to help businesses track, control, and optimize their financial operations."
+      },
+      {
+        "url": "https://career.spendesk.com/",
+        "title": "Spendesk: Ready to grow further?",
+        "snippet": "Spendesk is Europe's leading AI-powered spend management and procurement platform that transforms company spending. By simplifying procurement, payment cards, ..."
+      },
+      {
+        "url": "https://spendesk.pissedconsumer.com/customer-service.html",
+        "title": "Spendesk Customer Service Phone Number +3 318 288 ...",
+        "snippet": "Spendesk Website: www.spendesk.com. Spendesk Help Center: Visit contact page. Corporate Office Address: Spendesk SAS. 51, Rue de Londres. Paris ..."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "spendesk.com",
+      "app.spendesk.com",
+      "spendesk.pissedconsumer.com",
+      "status.spendesk.com",
+      "vendr.com",
+      "webcatalog.io",
+      "trustpilot.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "NAME_IN_CONTENT_ONLY"
+    ],
+    "search_elapsed_ms": 2410.3117500199005,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 12055.27191600413,
+    "total_elapsed_ms": 14465.76091699535,
+    "timestamp_utc": "2026-09-30T08:35:33.104891+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_wefox",
+    "query_name": "Wefox",
+    "target_entity": "wefox Holding AG (German digital insurance company and insurance distribution platform)",
+    "target_domain": "wefox.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Germany",
+    "primary_language": "German / English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Handelsregister Berlin-Charlottenburg / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "jcfco.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "wefox.com",
+      "wefox.com",
+      "linkedin.com",
+      "wefox.com",
+      "wefox.com",
+      "acmilan.com",
+      "wefox.com",
+      "startuprad.io",
+      "leadiq.com",
+      "ourcrowd.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.wefox.com/",
+        "title": "Home | wefox",
+        "snippet": "Welcome to wefox: the European insurance platform combining smart distribution and MGA services."
+      },
+      {
+        "url": "https://www.wefox.com/about",
+        "title": "About",
+        "snippet": "Empowering Insurance. wefox is built on a simple vision: to make insurance better and create measurable value for everyone involved."
+      },
+      {
+        "url": "https://www.linkedin.com/company/wefox",
+        "title": "wefox",
+        "snippet": "Website: http://www.wefox.com. External link for wefox ; Industry: Insurance ; Company size: 201-500 employees ; Headquarters: Z\u00fcrich ; Type: Privately Held."
+      },
+      {
+        "url": "https://www.wefox.com/en-ch/contact",
+        "title": "wefox Contact",
+        "snippet": "Need to file a claim? With wefox, you can easily take care of it online. ... FAQs. Got questions about wefox, free advice, or managing your insurance? We've got ..."
+      },
+      {
+        "url": "https://www.wefox.com/de-ch",
+        "title": "wefox in Switzerland",
+        "snippet": "Need to file a claim? With wefox, you can easily take care of it online. ... FAQs. Got questions about wefox, free advice, or managing your insurance? We've got ..."
+      },
+      {
+        "url": "https://www.acmilan.com/en/news/articles/sponsor/2022-02-21/wefox-joins-the-club-as-its-new-premium-partner-and-first-ever-official-back-of-shirt-partner",
+        "title": "WEFOX JOINS THE CLUB AS ITS NEW PREMIUM ...",
+        "snippet": "AC Milan is delighted to announce a new partnership with wefox, which sees the leading European insurtech become the Club's Official ..."
+      },
+      {
+        "url": "https://www.wefox.com/en-ch/why-wefox",
+        "title": "About wefox",
+        "snippet": "Because insurance is about safety. wefox Switzerland is a top-ranked player in retail insurance distribution, continuously expanding its customer offering ..."
+      },
+      {
+        "url": "https://www.startuprad.io/entities/wefox",
+        "title": "Wefox",
+        "snippet": "Wefox is a European insurtech group founded in 2015 that distributes insurance through brokers and other intermediaries rather than directly to consumers, with ..."
+      },
+      {
+        "url": "https://leadiq.com/c/wefox/5a335f2d5500008301b610b5",
+        "title": "wefox Company Overview, Contact Details & Competitors",
+        "snippet": "What is wefox's official website and social media links? Minus ... wefox's official website is wefox.com and has social profiles on LinkedInCrunchbase."
+      },
+      {
+        "url": "https://www.ourcrowd.com/companies/wefox",
+        "title": "Invest in wefox private stocks",
+        "snippet": "wefox is a fast-growing, full-stack digital insurer that automates back office and bureaucratic functions, freeing agents' time to increase sales and ..."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "jcfco.com",
+      "dealroom.co",
+      "reuters.com",
+      "slideshare.net",
+      "nbcconnecticut.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT"
+    ],
+    "search_elapsed_ms": 1793.9750000077765,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 23772.94616700965,
+    "total_elapsed_ms": 25567.10991699947,
+    "timestamp_utc": "2026-09-30T08:35:48.577444+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_taxfix",
+    "query_name": "Taxfix",
+    "target_entity": "Taxfix SE (German digital mobile tax filing and compliance platform)",
+    "target_domain": "taxfix.de",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Germany",
+    "primary_language": "German",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Handelsregister Berlin-Charlottenburg / Impressum",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "taxfix.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": true,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "taxfix.com",
+      "taxfix.de",
+      "trustpilot.com",
+      "taxfix.de",
+      "play.google.com",
+      "apps.apple.com",
+      "reddit.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://taxfix.com/",
+        "title": "Taxfix file your taxes the easy and correct way",
+        "snippet": "File quick and paperless taxes from anywhere. Taxfix in UK \u00b7 Taxfix in Deutschland \u00b7 Taxfix en Espa\u00f1a \u00b7 Taxfix in Italia."
+      },
+      {
+        "url": "https://taxfix.de/",
+        "title": "Taxfix ist die Steuer-App f\u00fcr deine Steuererkl\u00e4rung",
+        "snippet": "Den Experten-Service kann man ab 99,99\u20ac nutzen. Auf der Seite Taxfix Kosten gibt es mehr zu den Preisen und auch die M\u00f6glichkeit, mit dem Abo Geld zu sparen. Du ..."
+      },
+      {
+        "url": "https://www.trustpilot.com/review/taxfix.de",
+        "title": "Read Customer Service Reviews of taxfix.de",
+        "snippet": "Do you agree with Taxfix's 4-star rating? Check out what 19549 people have written so far, and share your own experience."
+      },
+      {
+        "url": "https://taxfix.de/en/",
+        "title": "Taxfix | File in English",
+        "snippet": "Missed the tax deadline? No problem. With Taxfix Expert, your tax deadline is extended to 1 March 2027. Our independent tax advisors take care of everything ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=de.taxfix&hl=en_US",
+        "title": "Taxfix: Tax return for Germany - Apps on ...",
+        "snippet": "Taxfix connects you with an independent tax advisor so you can sit back and relax. Simply upload documents to the app and an expert will file for you. FAIR FEES ..."
+      },
+      {
+        "url": "https://apps.apple.com/gr/app/taxfix-tax-return-for-germany/id1163776422",
+        "title": "Taxfix: Tax return for Germany - App Store - Apple",
+        "snippet": "Take your finances into your own hands. With Taxfix, you can complete your tax return yourself without any prior knowledge by answering a simple step by ..."
+      },
+      {
+        "url": "https://www.reddit.com/r/germany/comments/vc7qjz/is_taxfix_scam/",
+        "title": "Is Taxfix scam? : r/germany",
+        "snippet": "I just did my tax return filing via TaxFix for the first time. I received this in the email from Taxfix: \"We received your tax return for 2023."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "taxfix.com",
+      "taxfix.de",
+      "trustpilot.com",
+      "play.google.com",
+      "apps.apple.com",
+      "reddit.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "NAME_IN_CONTENT_ONLY"
+    ],
+    "search_elapsed_ms": 1720.8775419858284,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 12545.62387499027,
+    "total_elapsed_ms": 14266.686624992872,
+    "timestamp_utc": "2026-09-30T08:36:15.151740+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_traderepublic",
+    "query_name": "Trade Republic",
+    "target_entity": "Trade Republic Bank GmbH (German neobroker and savings banking platform)",
+    "target_domain": "traderepublic.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Germany",
+    "primary_language": "German / English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "BaFin German Banking Directory / Handelsregister Berlin",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "traderepublic.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "traderepublic.com",
+      "en.wikipedia.org",
+      "traderepublic.com",
+      "traderepublic.com",
+      "trustpilot.com",
+      "play.google.com",
+      "traderepublic.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://traderepublic.com/en-de",
+        "title": "Trade Republic. Invest, spend and bank.",
+        "snippet": "without any fees from Trade Republic to build long term wealth. Open a Child Savings Account. directly in the app ..."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Trade_Republic",
+        "title": "Trade Republic",
+        "snippet": "Trade Republic Bank GmbH is a German online broker and bank headquartered in Berlin. ... Website, https://traderepublic.com/. Corporate headquarter in Berlin ..."
+      },
+      {
+        "url": "https://traderepublic.com/en-fr?openModal=imprint",
+        "title": "Invest in stocks, bonds, crypto, ETFs & derivatives",
+        "snippet": "Save now for later ... in stocks, ETFs, crypto and Private Markets. No hidden fees. ... without any fees from Trade Republic to build long term wealth. Manage your ..."
+      },
+      {
+        "url": "https://traderepublic.com/en-nl/support",
+        "title": "Support 24/7: Call and Chat",
+        "snippet": "The Trade Republic card is a Visa debit card, meaning money is directly deducted from your cash balance. You can choose between our virtual or one of our two ..."
+      },
+      {
+        "url": "https://www.trustpilot.com/review/www.traderepublic.com",
+        "title": "Trade Republic Reviews | Read Customer Service ...",
+        "snippet": "Trade Republic is on a mission to empower everyone to create wealth with easy, safe and free access to the financial system. As a fully licensed bank, it brings ..."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=de.traderepublic.app&hl=en_US",
+        "title": "Trade Republic: Broker & Bank - Apps on Google Play",
+        "snippet": "- A fully licensed German bank regulated by BaFin and the Bundesbank. - Orders executed at the Best Price across all relevant exchanges against Trade Republic."
+      },
+      {
+        "url": "https://traderepublic.com/en-ie",
+        "title": "Trade Republic: Invest in stocks, bonds & ETFs",
+        "snippet": "Save now for later ... in stocks, ETFs, crypto and Private Markets. No hidden fees. ... without any fees from Trade Republic to build long term wealth. Investing ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "traderepublic.com",
+      "trustpilot.com",
+      "play.google.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1138.8333750073798,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 20746.835541009204,
+    "total_elapsed_ms": 21885.76762500452,
+    "timestamp_utc": "2026-09-30T08:36:30.425652+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_swile",
+    "query_name": "Swile",
+    "target_entity": "Swile SAS (French employee benefit, meal voucher, and corporate engagement card platform)",
+    "target_domain": "swile.co",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "France",
+    "primary_language": "French",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Infogreffe Montpellier / Sirene / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "swile.co",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "directory.swile.co",
+      "swile.co",
+      "join.swile.co",
+      "apps.apple.com",
+      "facebook.com",
+      "team.swile.co",
+      "welcometothejungle.com",
+      "trustpilot.com",
+      "status.swile.co",
+      "play.google.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://directory.swile.co/signin",
+        "title": "Sign in to Swile",
+        "snippet": "Swile, the card and app dedicated to employee engagement. Discover the most powerful card ever designed for them."
+      },
+      {
+        "url": "https://www.swile.co/",
+        "title": "Swile: Let's smile at work",
+        "snippet": "Swile, la carte et l'app au service de l'engagement des employ\u00e9s. D\u00e9couvrez la carte la plus puissante jamais imagin\u00e9e pour eux."
+      },
+      {
+        "url": "https://join.swile.co/",
+        "title": "Swile: Choice of account creation type",
+        "snippet": "Swile, la carte et l'app au service de l'engagement des employ\u00e9s. D\u00e9couvrez la carte la plus puissante jamais imagin\u00e9e pour eux."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/swile/id1190612035",
+        "title": "Swile - App Store - Apple",
+        "snippet": "Swile is: - The card that makes it ultra-easy to spend all your employee benefits: Meal vouchers, gift cards, mobility vouchers, holiday benefits, and even your ..."
+      },
+      {
+        "url": "https://www.facebook.com/swileglobal/",
+        "title": "Swile (@swileglobal)",
+        "snippet": "At Swile, your employee benefits are getting a serious makeover! Check out our new look and website at swile.co/en."
+      },
+      {
+        "url": "https://team.swile.co/",
+        "title": "Swile: Let's smile at work",
+        "snippet": "Swile, la carte et l'app au service de l'engagement des employ\u00e9s."
+      },
+      {
+        "url": "https://www.welcometothejungle.com/en/companies/swile",
+        "title": "Swile - Profil - Welcome to the Jungle",
+        "snippet": "Since its launch in 2018, Swile has revolutionised the employee benefits market. By digitalising the management and use of benefits, thanks to our super app, we ..."
+      },
+      {
+        "url": "https://www.trustpilot.com/review/www.swile.co?page=5",
+        "title": "Read Customer Service Reviews of www.swile.co | 5 of 9",
+        "snippet": "Swile has 5 stars! Check out what 9237 people have written so far, and share your own experience. | Read 81-100 Reviews out of 179."
+      },
+      {
+        "url": "https://status.swile.co/",
+        "title": "Swile Status",
+        "snippet": "Welcome to Swile's home for real-time and historical data on system performance."
+      },
+      {
+        "url": "https://play.google.com/store/apps/details?id=hr.lunc.client&hl=en_US",
+        "title": "Swile - Apps on Google Play",
+        "snippet": "- The application that lets you view your balance, past transactions and PIN code. In short, anything that can be view, you can view it with Swile. - The app ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "swile.co",
+      "directory.swile.co",
+      "join.swile.co",
+      "help.swile.co",
+      "trustpilot.com",
+      "brandfolder.com",
+      "apps.apple.com",
+      "play.google.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 2045.1378749858122,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 16930.878874991322,
+    "total_elapsed_ms": 18976.267916994402,
+    "timestamp_utc": "2026-09-30T08:36:53.318984+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_docplanner",
+    "query_name": "Docplanner",
+    "target_entity": "Docplanner Tech S.L. / ZnanyLekarz Sp. z o.o. (European healthcare booking platform)",
+    "target_domain": "docplanner.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Poland / Spain",
+    "primary_language": "Polish / Spanish / English",
+    "provenance_type": "COMPANY_DIRECTORY",
+    "ground_truth_provenance": "Crunchbase / Polish National Court Register (KRS)",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "docplanner.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "docplanner.com",
+      "integrations.docplanner.com",
+      "docplanner.com",
+      "docplanner-gomycode.onrender.com",
+      "nl.linkedin.com",
+      "en.wikipedia.org",
+      "docplanner.design",
+      "docplanner.com",
+      "vonage.com",
+      "twilio.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.docplanner.com/",
+        "title": "Docplanner Group",
+        "snippet": "The world's biggest healthcare platform. We work from 11 offices all over the world, bringing Docplanner Group to life in 13 countries."
+      },
+      {
+        "url": "https://integrations.docplanner.com/guide/api-objects/online-features.html",
+        "title": "Online Features",
+        "snippet": "Docplanner provides a comprehensive set of features designed to support doctors in managing everyday practice through online solutions."
+      },
+      {
+        "url": "https://www.docplanner.com/career/",
+        "title": "Search for your dream job",
+        "snippet": "Docplanner Group \u00b7 Looking for your next challenge? We have plenty. \u00b7 Search for your dream job \u00b7 Together at docplanner \u00b7 Our Values \u00b7 Open Docplanner positions."
+      },
+      {
+        "url": "https://docplanner-gomycode.onrender.com/",
+        "title": "Docplanner Group",
+        "snippet": "healthcare platform. We work from 9 offices all over the world, bringing Docplanner Group to life in 13 countries. background logo. flag. Leader in 13 ..."
+      },
+      {
+        "url": "https://nl.linkedin.com/company/docplannergroup",
+        "title": "Docplanner",
+        "snippet": "Operating across 13 countries, Docplanner's network includes more than 2.8 million healthcare professionals and facilitates over 20 million bookings monthly."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Docplanner",
+        "title": "Docplanner",
+        "snippet": "Docplanner is a Polish health technology company that operates online platforms for finding and booking healthcare professionals and provides ..."
+      },
+      {
+        "url": "https://www.docplanner.design/",
+        "title": "Design at Docplanner",
+        "snippet": "With over 60 million unique patients and over 5 million bookings every month, Docplanner is the leading healthcare booking platform globally. We list more ..."
+      },
+      {
+        "url": "https://www.docplanner.com/department/?dep=marketing",
+        "title": "Marketing & PR",
+        "snippet": "Marketing & PR in Docplanner seems unique. Wonder why? Because all of our projects are created especially for doctors and for patients, too. JOB OFFERS."
+      },
+      {
+        "url": "https://www.vonage.com/resources/customers/docplanner-provides-visual-engagement--enhanced-healthcare-suppo/",
+        "title": "DocPlanner",
+        "snippet": "Founded in Poland, DocPlanner is a leading healthcare booking platform with offices worldwide, serving more than 30 million unique patients on its websites."
+      },
+      {
+        "url": "https://www.twilio.com/en-us/press/releases/docplanner-expands-patient-access-with-voice-ai-agent-powered-by",
+        "title": "Docplanner Expands Patient Access with Voice AI Agent ...",
+        "snippet": "Docplanner connects patients with healthcare providers across 13 countries in Europe and Latin America. The service helps people discover doctors, read and ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "docplanner.com",
+      "docplanner-gomycode.onrender.com",
+      "meet.docplanner.com",
+      "help.docplanner.com",
+      "phone.docplanner.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "INDEXED_ROOT_MATCH",
+      "INDEXED_CORROBORATING_PAGE"
+    ],
+    "search_elapsed_ms": 1217.939291993389,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 13638.96520799608,
+    "total_elapsed_ms": 14856.975750008132,
+    "timestamp_utc": "2026-09-30T08:37:13.303496+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_bendingspoons",
+    "query_name": "Bending Spoons",
+    "target_entity": "Bending Spoons S.p.A. (Italian mobile application technology and software publisher)",
+    "target_domain": "bendingspoons.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Italy",
+    "primary_language": "English / Italian",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "Registro delle Imprese Milano / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "AMBIGUOUS",
+    "actual_domain": "bendingspoons.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": true,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_UNEXPECTED_COLLISION",
+    "top_search_domains": [
+      "bendingspoons.com",
+      "en.wikipedia.org",
+      "instagram.com",
+      "linkedin.com",
+      "bendingspoonssupport.zendesk.com",
+      "reddit.com",
+      "finance.yahoo.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://bendingspoons.com/",
+        "title": "Bending Spoons | Impossible. Maybe.",
+        "snippet": "\u00a9 Bending Spoons Operations S.p.A. | Via Nino Bonnet 10, 20154, Milan, Italy | VAT, tax code, and number of registration with the Milan Monza Brianza Lodi ..."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Bending_Spoons",
+        "title": "Bending Spoons",
+        "snippet": "Bending Spoons S.p.A. is an Italian technology conglomerate founded in 2013. Based in Milan, the company acquires products with existing product\u2011market fit ..."
+      },
+      {
+        "url": "https://www.instagram.com/bendingspoons/?hl=en",
+        "title": "Bending Spoons (@bendingspoons)",
+        "snippet": "Introducing the Bending Spoons Sales Bootcamp: a three-month program where you'll get hands-on experience working on products like Vimeo, Brightcove, and ..."
+      },
+      {
+        "url": "https://www.linkedin.com/company/bendingspoons",
+        "title": "Bending Spoons",
+        "snippet": "Website: https://bndspn.com/company. External link for Bending Spoons ; Industry: Software Development ; Company size: 501-1,000 employees ; Headquarters: Milan, ..."
+      },
+      {
+        "url": "https://bendingspoonssupport.zendesk.com/hc/en-gb",
+        "title": "Bending Spoons",
+        "snippet": "Sign in \u00b7 Submit a request. Bending Spoons. Search. Categories. Apps \u00b7 Partnerships and press \u00b7 Jobs and events \u00b7 Bending Spoons."
+      },
+      {
+        "url": "https://www.reddit.com/r/Evernote/comments/18jmx3t/what_bending_spoons_is_doing_and_why_you_should/",
+        "title": "What Bending Spoons is doing, and why you should care ...",
+        "snippet": "1) What is Bending Spoons strategy? What they are doing is a classic software investment playbook. Basically you have an software business which ..."
+      },
+      {
+        "url": "https://finance.yahoo.com/news/bending-spoons-everything-know-aol-011134961.html",
+        "title": "What is Bending Spoons? The little-known AOL and Vimeo ...",
+        "snippet": "Bending Spoons applies a private equity playbook to software, buying up mostly fledgling subscription-based apps, slashing headcount and ..."
+      }
+    ],
+    "primary_candidate_count": 2,
+    "candidate_domains": [
+      "bendingspoons.com",
+      "bendingspoonssupport.zendesk.com",
+      "reddit.com",
+      "trustpilot.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1151.8259160220623,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 16881.49808399612,
+    "total_elapsed_ms": 18033.426457986934,
+    "timestamp_utc": "2026-09-30T08:37:29.167556+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_eu_mambu",
+    "query_name": "Mambu",
+    "target_entity": "Mambu B.V. (Dutch SaaS cloud banking engine and platform)",
+    "target_domain": "mambu.com",
+    "expected_state": "CONFIDENT",
+    "expected_relationship": "PRIMARY",
+    "category": "EU_REAL",
+    "region": "EU",
+    "country_association": "Netherlands",
+    "primary_language": "English",
+    "provenance_type": "CORPORATE_REGISTRY",
+    "ground_truth_provenance": "KVK Dutch Trade Register / Crunchbase",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "mambu.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": true,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "TARGET_DOMAIN_IN_SEARCH",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_TARGET_CONFIDENT",
+    "top_search_domains": [
+      "mambu.com",
+      "mambu.com",
+      "gartner.com",
+      "mambu.com",
+      "en.wikipedia.org",
+      "mambu.com",
+      "nl.linkedin.com",
+      "docs.mambu.com",
+      "tcv.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://mambu.com/en",
+        "title": "Mambu: The Intelligent Core for Banking",
+        "snippet": "Mambu connects core banking, payments and agentic AI into one Intelligent ... Partner Portal. Access the tools and resources you need to scale your ..."
+      },
+      {
+        "url": "https://mambu.com/en/about-us",
+        "title": "About Mambu",
+        "snippet": "Discover Mambu's journey from supporting microfinance startups to becoming a global leader in cloud banking."
+      },
+      {
+        "url": "https://www.gartner.com/reviews/product/mambu-cloud-banking-platform",
+        "title": "Mambu Cloud Banking Platform Reviews & Ratings 2026",
+        "snippet": "Mambu Cloud Banking Platform is a software designed to support the creation, management, and delivery of banking products and services through a cloud-native ..."
+      },
+      {
+        "url": "https://mambu.com/en/insights/press",
+        "title": "Press",
+        "snippet": "Explore Mambu's latest press releases and media coverage to stay informed about innovations in cloud banking and industry trends."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Mambu_(company)",
+        "title": "Mambu (company)",
+        "snippet": "Mambu is a German-Dutch software company founded in Berlin and headquartered ... Website, www.mambu.com. The company generates most of its revenue ..."
+      },
+      {
+        "url": "https://mambu.com/en/contact-us",
+        "title": "Cloud core banking platform",
+        "snippet": "Whether you're exploring new ideas or actively building, we'll connect you with the right people to talk through your goals and how Mambu can support them."
+      },
+      {
+        "url": "https://nl.linkedin.com/company/mambu",
+        "title": "Mambu",
+        "snippet": "Trusted by hundreds of customers across 65 countries, we are shaping the next generation of banking. Website: https://www.mambu.com. Externe link voor Mambu."
+      },
+      {
+        "url": "https://docs.mambu.com/docs/developer-overview/",
+        "title": "Overview | Mambu Documentation Hub",
+        "snippet": "Mambu offers a full suite of RESTful APIs to provide programmatic access to nearly every aspect of our banking software, typically with JSON or ..."
+      },
+      {
+        "url": "https://www.tcv.com/partnerships/mambu",
+        "title": "Mambu | TCV",
+        "snippet": "Mambu is the market-leading SaaS cloud banking platform. The company fast-tracks the design and build of nearly any type of financial product for banks, ..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "mambu.com",
+      "docs.mambu.com",
+      "gartner.com",
+      "leadiq.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1522.7719160029665,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 44448.199584003305,
+    "total_elapsed_ms": 45971.16833398468,
+    "timestamp_utc": "2026-09-30T08:37:48.208422+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_pillar",
+    "query_name": "Pillar",
+    "target_entity": "Disambiguation Conflict: Pillar Payments vs Pillar VC vs Pillar Wellbeing",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across fintech, venture capital, and wellness",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "pillar.io",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": true,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_FALSE_CONFIDENT_LEAK",
+    "top_search_domains": [
+      "pillarspoke.com",
+      "pillar.edu",
+      "blm.gov",
+      "instagram.com",
+      "pillar.io",
+      "pillarcatholic.com",
+      "pompeyspillar.org",
+      "pillarchurch.com",
+      "withpillar.com",
+      "pillar.vc"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.pillarspoke.com/",
+        "title": "Pillar distributor location contact | Pillar Spokes and Nipples",
+        "snippet": "For over 30 years, Pillar has been a world leader in the development of spokes. With specialized production facilities in Taiwan closely linked to its own ..."
+      },
+      {
+        "url": "https://www.pillar.edu/",
+        "title": "Pillar College: Home",
+        "snippet": "Pillar is an undergraduate and graduate institution of higher learning that is faithful to classical Christianity, grounded on the authority of God's Word, and ..."
+      },
+      {
+        "url": "https://www.blm.gov/visit/pompeys-pillar-national-monument-and-visitor-center",
+        "title": "Pompeys Pillar National Monument and Visitor Center",
+        "snippet": "Visit Pompeys Pillar National Monument to climb a boardwalk to the top of the pillar, explore the Visitor Center, and enjoy the picturesque grounds."
+      },
+      {
+        "url": "https://www.instagram.com/pillarmusic/?hl=en",
+        "title": "Pillar (@pillarmusic) \u2022 Instagram photos and videos",
+        "snippet": "Hello, it's Michael Kalel from Pillar. Many of you know we have a new documentary about to release, \u201cPillar: Beyond The Frontline\u201d, directed by my son Kaden."
+      },
+      {
+        "url": "https://pillar.io/",
+        "title": "Best Link in Bio for Instagram & TikTok Creators | Pillar",
+        "snippet": "... Pillar lets you create, host, and sell products from your very own online store. The easiest way to make money online. One Link, Multiple Revenue Streams."
+      },
+      {
+        "url": "https://www.pillarcatholic.com/",
+        "title": "The Pillar",
+        "snippet": "News and analysis covering the Catholic Church. Click to read The Pillar, a Substack publication."
+      },
+      {
+        "url": "https://www.pompeyspillar.org/",
+        "title": "Friends of Pompeys Pillar: Home",
+        "snippet": "We are a 501 (c) (3) non-profit organization established in 1989 to support Pompeys Pillar National Monument, which contains the last remaining inscription ..."
+      },
+      {
+        "url": "https://pillarchurch.com/",
+        "title": "Pillar - a church for the city",
+        "snippet": "Pillar is committed to being a church for the city: reconciling divisions, raising up leaders, redeeming the city, renewing the church."
+      },
+      {
+        "url": "https://withpillar.com/privacy-policy",
+        "title": "Privacy Policy 1 - Pillar",
+        "snippet": "Pillar may revise the terms of this Privacy Policy in its sole discretion at any time by updating this page. We encourage you to check our Site ..."
+      },
+      {
+        "url": "https://www.pillar.vc/",
+        "title": "Pillar | Investing in Technical Breakthroughs",
+        "snippet": "Pillar VC is a pre-seed and seed venture capital firm that invests in technical breakthroughs and exceptional founders."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "pillar.edu",
+      "pillarspoke.com",
+      "pillar.io",
+      "pillarcatholic.com",
+      "pompeyspillar.org",
+      "pillar.vc",
+      "blm.gov",
+      "pillarchurch.com",
+      "withpillar.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "SELF_IDENTITY_STATEMENT",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 2385.5591660249047,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 165683.7799999921,
+    "total_elapsed_ms": 168069.4851249864,
+    "timestamp_utc": "2026-09-30T08:38:35.309729+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_beacon",
+    "query_name": "Beacon",
+    "target_entity": "Disambiguation Conflict: Beacon Supply Chain vs Beacon Digital vs Beacon Health",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across logistics, healthcare, and software",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "beacon.bio",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": true,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_FALSE_CONFIDENT_LEAK",
+    "top_search_domains": [
+      "beaconny.gov",
+      "beacon.tv",
+      "beaconbank.com",
+      "beacon.bio",
+      "beaconhealthsystem.org",
+      "beacon.illinois.gov",
+      "beacontx.com",
+      "beaconschool.org",
+      "beaconband.com",
+      "seekingmavisbeacon.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://beaconny.gov/",
+        "title": "City of Beacon, NY \u2014 City of Beacon",
+        "snippet": "The Official Website of the City of Beacon, NY. Government \u00b7 Departments \u00b7 Forms ... Beacon Food Security Resources \u00b7 Community Calendar \u00b7 Housing Resources ..."
+      },
+      {
+        "url": "https://beacon.tv/",
+        "title": "Home | Beacon",
+        "snippet": "Explore unparalleled access to Critical Role with a Beacon membership. Enjoy ad-free beloved & new exclusive series, instant access to VODs & podcasts, live ..."
+      },
+      {
+        "url": "https://www.beaconbank.com/",
+        "title": "Beacon Bank | MA CT VT NY RI Savings & Checking Accounts ...",
+        "snippet": "Beacon Bank offers tailored loans, money management, checking and savings accounts for individuals and business in MA, CT, VT, NY and RI. Get started."
+      },
+      {
+        "url": "https://beacon.bio/",
+        "title": "Beacon Biosignals",
+        "snippet": "Beacon is the leading precision medicine platform for collecting, integrating and analyzing EEG data across the full drug development lifecycle, from clinical ..."
+      },
+      {
+        "url": "https://www.beaconhealthsystem.org/",
+        "title": "Beacon Health System - connect with us for care",
+        "snippet": "When it can't wait, our emergency and trauma centers are always open. When a medical emergency strikes, Beacon Health System is prepared to give you the help ..."
+      },
+      {
+        "url": "https://beacon.illinois.gov/",
+        "title": "BEACON Public Portal",
+        "snippet": "Welcome to BEACON. (Behavioral Health Care and Ongoing Navigation). BEACON is a centralized resource for Illinois youth and families seeking services for ..."
+      },
+      {
+        "url": "https://www.beacontx.com/",
+        "title": "Beacon Therapeutics: Home",
+        "snippet": "Beacon aids in restoring and improving the vision of patients with ophthalmic gene therapy. Find out more."
+      },
+      {
+        "url": "https://www.beaconschool.org/",
+        "title": "The Beacon School",
+        "snippet": "No worries\u2014we've got you covered! The NEW Beacon Online School Merchandise Store is now live! Grab your favorite spirit wear anytime\u2014shirts, bags, and more\u2014all ..."
+      },
+      {
+        "url": "https://www.beaconband.com/",
+        "title": "Beacon",
+        "snippet": "Beacon return with 'How drie a Cinder', their fifth full\u2011length album and a vivid new chapter in their 15\u2011year career. 01 Over in No Time 02 Cinder"
+      },
+      {
+        "url": "https://www.seekingmavisbeacon.com/",
+        "title": "Seeking Mavis Beacon | Official Website | August 30 2024",
+        "snippet": "Watch the trailer, find screenings & book tickets for Seeking Mavis Beacon on the official site. In theaters August 30, 2024 brought to you by NEON."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "beacon.tv",
+      "beaconny.gov",
+      "beacon.bio",
+      "beacongroup.org",
+      "beaconbank.com",
+      "beaconregistration.noaa.gov",
+      "beaconcapital.com",
+      "beacontx.com",
+      "seekingmavisbeacon.com",
+      "beaconband.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "SELF_IDENTITY_STATEMENT",
+      "NAME_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 2047.0992080227006,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 13818.31758399494,
+    "total_elapsed_ms": 15865.528875001473,
+    "timestamp_utc": "2026-09-30T08:41:24.383100+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_monolith",
+    "query_name": "Monolith",
+    "target_entity": "Disambiguation Conflict: Monolith AI vs Monolith Crypto vs Monolith Materials",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across engineering AI, crypto cards, and carbon materials",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "monolith.asia",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": true,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_FALSE_CONFIDENT_LEAK",
+    "top_search_domains": [
+      "monolithsrl.com",
+      "monolithai.com",
+      "monolith-grill.com",
+      "github.com",
+      "monolithedition.com",
+      "monoprice.com",
+      "orchestraltools.com",
+      "monolithforensics.com",
+      "beholdthemonolith.com",
+      "monolith.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.monolithsrl.com/en/",
+        "title": "Monolith: Home",
+        "snippet": "Monolith Srl represents the pinnacle of Italian engineering in fluid control. The trusted partner for global B2B industrial solutions. Facebook Instagram ..."
+      },
+      {
+        "url": "https://www.monolithai.com/",
+        "title": "AI Software: Engineering Product Development | Monolith",
+        "snippet": "Use Monolith AI software to build self-learning models to predict design performance, test less, learn more, and develop better quality products faster.\u200b"
+      },
+      {
+        "url": "https://monolith-grill.com/",
+        "title": "MONOLITH. The Kamado. - your German brand for premium ...",
+        "snippet": "MONOLITH offers you the complete kamado experience: Experience new culinary worlds with our ceramic grills and comprehensive accessories for the kamado!"
+      },
+      {
+        "url": "https://github.com/y2z/monolith",
+        "title": "Y2Z/monolith: \u2b1b\ufe0f CLI tool and library for saving complete ...",
+        "snippet": "Unlike the conventional \u201cSave page as\u201d, monolith not only saves the target document, it embeds CSS, image, and JavaScript assets all at once, producing a single ..."
+      },
+      {
+        "url": "https://monolithedition.com/en/?srsltid=AU7gw4XoORFJ6qFUH01-0NHFOrTUR_5ihQ3hRMgKMoskNz-zreFaBJH0",
+        "title": "Monolith Board Games",
+        "snippet": "Monolith Board Games, creator of immersive and narrative board games. Explore our online store and our ongoing projects."
+      },
+      {
+        "url": "https://www.monoprice.com/?srsltid=AU7gw4VQ-JAVeKTF7MwDSfPHGCk46bxzkJzOh6tq0yvbzQZVbUe62YWA",
+        "title": "Monoprice.com: HDMI Cable, Home Theater Accessories ...",
+        "snippet": "... Monolith by Monoprice Audition B4 Bookshelf Speaker (Each). NOW $69.99 (50% OFF) \u00b7 Monolith Audition B4 Bookshelf Speakers, 2-Way Passive Stereo Speakers ..."
+      },
+      {
+        "url": "https://www.orchestraltools.com/monolith?srsltid=AU7gw4XKKgvn3wgS3-STns_7svsvR1WMDtrGLTc3ciGRGgaW8tNbBA60",
+        "title": "Orchestral Tools - Monolith by Richard Harvey",
+        "snippet": "Monolith puts an otherwise unattainable collection of rare and antique drums at your fingertips\u2014a choir of 53 big drums, carefully tuned and voiced, ..."
+      },
+      {
+        "url": "https://www.monolithforensics.com/mobile",
+        "title": "Monolith Mobile - Available for iOS and Android",
+        "snippet": "Access Monolith cases & evidence from anywhere. Manage chain of custody, add evidence items, upload photos, and take notes on the go with Monolith Mobile."
+      },
+      {
+        "url": "https://www.beholdthemonolith.com/",
+        "title": "Behold! The Monolith - Official Site",
+        "snippet": "The Monolith one of Los Angeles' greatest treasures over the last decade: lumbering iron riffs that kneel at the altar of Iommi, foam-mouthed roars, serpentine ..."
+      },
+      {
+        "url": "http://www.monolith.com/",
+        "title": "Monolith Business Technology - A world leader in networking ...",
+        "snippet": "Monolith Corporation is committed to supporting our customers with expert training! We're excited to announce an upcoming online event from the leader in..."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "monolith.asia",
+      "monolithsrl.com",
+      "monolith.xyz",
+      "monolithai.com",
+      "monolith.com",
+      "monolith.nyc",
+      "monolithadmin.com",
+      "monolitham.com",
+      "milanjovanovic.tech"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "INDEXED_ROOT_MATCH",
+      "INDEXED_CORROBORATING_PAGE"
+    ],
+    "search_elapsed_ms": 1555.2233750058804,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 14330.472500005271,
+    "total_elapsed_ms": 15885.899999993853,
+    "timestamp_utc": "2026-09-30T08:41:41.254824+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_kite",
+    "query_name": "Kite",
+    "target_entity": "Disambiguation Conflict: Kite Zerodha vs Kite AI vs Kite Mobility",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across brokerage trading, developer AI, and urban micro-mobility",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "kite.kerala.gov.in",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": true,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_FALSE_CONFIDENT_LEAK",
+    "top_search_domains": [
+      "my-kite.com",
+      "kite.kerala.gov.in",
+      "store.kitehq.band",
+      "kitepharma.com",
+      "dynamiclearningmaps.org",
+      "kitesurfingofficial.com",
+      "gokite.ai",
+      "enfield-ct.gov",
+      "kite.org",
+      "abckitefest.org"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://my-kite.com/",
+        "title": "Kite Backpacks and Stationery | Official Kite Website",
+        "snippet": "Kite official website: backpacks, bags, pencil cases, stationery, art supplies, accessories. \u2713 New collection. Buy original Kite products from official ..."
+      },
+      {
+        "url": "https://kite.kerala.gov.in/",
+        "title": "KITE",
+        "snippet": "Welcome to KITE. KITE (Kerala Infrastructure and Technology for Education) is a Govt of Kerala enterprise set up to foster, promote and implement modernisation ..."
+      },
+      {
+        "url": "https://store.kitehq.band/",
+        "title": "Kite Official Merchandise: Kite Official Merch",
+        "snippet": "Official merch from Kite: t-shirts, longsleeve, sweatshirts, vinyl & CDs, posters, accessories, bundles and totes."
+      },
+      {
+        "url": "http://www.kitepharma.com/",
+        "title": "Kite Pharma, Changing the Way Cancer is Treated",
+        "snippet": "Kite is dedicated to curing cancer. Learn about the science of cell therapy, our cancer research, and our cancer treatments in the pipeline."
+      },
+      {
+        "url": "https://dynamiclearningmaps.org/kite",
+        "title": "Kite Suite",
+        "snippet": "The Kite Suite is the online testing interface for DLM Assessments. Students take tests in Student Portal. Educators manage student data in Educator Portal."
+      },
+      {
+        "url": "https://kitesurfingofficial.com/?srsltid=AU7gw4Xc-9yB_BvzVJCBeuANvEakfHUJDZ4Quyj7vU8lUIf7cQfTgsRP",
+        "title": "KitesurfingOfficial | World's Biggest Kite Community",
+        "snippet": "Kite spots, gear guides, tutorials, wind tools and an AI kite assistant from the world's biggest kitesurfing community \u2014 plus a global rider forum."
+      },
+      {
+        "url": "https://gokite.ai/",
+        "title": "Kite - The Payments Layer for the Agent Economy",
+        "snippet": "Kite provides autonomous agents with verifiable trust and a purpose-built chain to transact, coordinate, and operate at scale. Try Kite Agent Passport."
+      },
+      {
+        "url": "https://www.enfield-ct.gov/383/Key-Initiatives-to-Early-Education-KITE",
+        "title": "Key Initiatives to Early Education (KITE) | Enfield, CT",
+        "snippet": "KITE is Enfield's early childhood collaborative, dedicated to enhancing health, family engagement and support, and early care and education for Enfield's ..."
+      },
+      {
+        "url": "https://www.kite.org/",
+        "title": "AKA American Kitefliers Association",
+        "snippet": "What is a Kite? How do Kites Fly? Kinds of Kites \u00b7 How to Fly a Kite \u00b7 How to Make a Kite \u00b7 Kite Activities \u00b7 Kite Plans \u00b7 Kite Safety. Community. Kiting ..."
+      },
+      {
+        "url": "https://abckitefest.org/",
+        "title": "ABC Kite Fest \u2013 The official ABC Kite Fest website",
+        "snippet": "Join Austin's beloved ABC Kite Fest! This free spring tradition features kite flying contests, kite making, MossFest concert, and family fun since 1929."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "kite.kerala.gov.in",
+      "my-kite.com",
+      "store.kitehq.band",
+      "kitepharma.com",
+      "kitesurfingofficial.com",
+      "kite.org",
+      "gokite.ai",
+      "dynamiclearningmaps.org",
+      "enfield-ct.gov"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "SELF_IDENTITY_STATEMENT",
+      "NAME_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1410.0355000118725,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 18344.4481670158,
+    "total_elapsed_ms": 19754.644917004043,
+    "timestamp_utc": "2026-09-30T08:41:58.148029+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_verve",
+    "query_name": "Verve",
+    "target_entity": "Disambiguation Conflict: Verve Card Interswitch vs Verve Therapeutics vs Verve Coffee",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across African card scheme, biotech, and consumer coffee",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "AMBIGUOUS",
+    "actual_domain": "ververecords.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": true,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": true,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_AMBIGUOUS_SAFETY",
+    "top_search_domains": [
+      "shop.theverveband.com",
+      "ververecords.com",
+      "facebook.com",
+      "en.wikipedia.org",
+      "theverveonline.com",
+      "store.ververecords.com",
+      "umgcatalog.com",
+      "verve.com",
+      "instagram.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://shop.theverveband.com/?srsltid=AU7gw4WuRuFyMTvd9D2-gq8MCdgna-puLWCDSR_2D4O73h5ErHettC5o",
+        "title": "The Verve UK - Official The Verve Store - Shop Exclusive ...",
+        "snippet": "The official The Verve online store. Shop exclusive The Verve vinyl, CDs, t-shirts, sweatshirts, hoodies, merch, accessories and more."
+      },
+      {
+        "url": "https://www.ververecords.com/",
+        "title": "Verve Records",
+        "snippet": "Since opening its doors back in 1956, Verve Records has upheld a core commitment to authenticity, artistry, and integrity. The label has always sought to ..."
+      },
+      {
+        "url": "https://www.facebook.com/theverve/",
+        "title": "The Verve (@theverve)",
+        "snippet": "New merch arrivals from The Verve Check out The Verve's official store for more."
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/The_Verve",
+        "title": "The Verve",
+        "snippet": "Official website (defunct since 29 June 2013) \u00b7 The Verve at IMDb."
+      },
+      {
+        "url": "https://www.theverveonline.com/",
+        "title": "The Verve Online",
+        "snippet": "Welcome to The Verve Online. This website is totally unofficial and is dedicated to The Verve. Feel free to browse the various sections. There is a complete ..."
+      },
+      {
+        "url": "https://store.ververecords.com/?srsltid=AU7gw4WGztCLmEBbpOzekogQa7ozZxHhPdlZXORbvwcFjmHiME3_OkwP",
+        "title": "Verve Record Store",
+        "snippet": "Shop exclusive music, merch, and apparel from the Verve Record Store. Hoodies, T-Shirts, Vinyl and more."
+      },
+      {
+        "url": "https://www.umgcatalog.com/labels/the-verve-music-group/",
+        "title": "The Verve Music Group - UMe | Official Website",
+        "snippet": "The Verve Music Group is home to established adult artists and a growing roster of new artists. Under the leadership of 16-time ..."
+      },
+      {
+        "url": "https://verve.com/",
+        "title": "Verve | Let's make media better.",
+        "snippet": "Verve is a global omnichannel advertising platform powered by premium direct supply. We illuminate, connect and activate high-fidelity signals to drive ..."
+      },
+      {
+        "url": "https://www.instagram.com/officialtheverve/?hl=en",
+        "title": "The Verve (@officialtheverve) \u2022 Instagram photos and videos",
+        "snippet": "The official Instagram of The Verve Richard Ashcroft, Nick McCabe, Simon Jones, Peter Salisbury and Simon Tong."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "shop.theverveband.com",
+      "ververecords.com",
+      "thevervepipe.com",
+      "store.ververecords.com",
+      "theverveonline.com",
+      "umgcatalog.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "NAME_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1356.4511250006035,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 21140.077749994816,
+    "total_elapsed_ms": 22496.770249999827,
+    "timestamp_utc": "2026-09-30T08:42:18.908864+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_crest",
+    "query_name": "Crest",
+    "target_entity": "Disambiguation Conflict: Crest Oral Care (P&G) vs Crest Data Systems vs Crest Financial",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across consumer health, enterprise data integrations, and financial services",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "crest.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+    "top_search_domains": [
+      "crest.com",
+      "instagram.com",
+      "amazon.com",
+      "cresteurope.eu",
+      "en.wikipedia.org",
+      "crestwhite.com",
+      "crestoralbproshop.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://crest.com/en-us?srsltid=AU7gw4WydoCs0wo6dQTieP2tkAQY9tqy_vaYQRIH_XBbPJiiySGshRhV",
+        "title": "Toothpaste, Mouthwash and Oral Hygiene Products | Crest US",
+        "snippet": "At Crest, we offer a variety of toothpaste, 3D whitestrips, mouthwash, teeth whitening and other oral care products. Browse our coupons and purchase today!"
+      },
+      {
+        "url": "https://www.instagram.com/crest/?hl=en",
+        "title": "Crest (@crest) \u2022 Instagram photos and videos",
+        "snippet": "Witness the teeth whitening power! Our Crest scientist demonstrates how Crest 3DWhite Deep Stain Remover helps achieve a brighter smile in just ONE DAY."
+      },
+      {
+        "url": "https://www.amazon.com/stores/Crest/page/BFCAC29E-D887-42C7-826B-FEDABF96B8DF",
+        "title": "Crest",
+        "snippet": "Crest toothpaste, whitestrips, mouthwash, teeth whitening and other oral care products."
+      },
+      {
+        "url": "https://cresteurope.eu/",
+        "title": "Buy Crest Whitening Strips | Authentic 3D Whitestrips Europe",
+        "snippet": "Get authentic Crest 3D Whitestrips shipped fast across Europe. 100% genuine teeth whitening kits with express delivery. Shop now!"
+      },
+      {
+        "url": "https://en.wikipedia.org/wiki/Crest_(toothpaste)",
+        "title": "Crest (toothpaste)",
+        "snippet": "Crest is an American brand of toothpaste and other oral hygiene products made by American multinational Procter & Gamble (P&G) and sold worldwide."
+      },
+      {
+        "url": "https://crestwhite.com/",
+        "title": "Crest 3D Teeth Whitening Strips - Crestwhite.com",
+        "snippet": "Crestwhite is one of the largest sellers of Crest whitening strips and toothpastes in Europe. We offer quick delivery to all EU countries!"
+      },
+      {
+        "url": "https://crestoralbproshop.com/shop-by-product.html",
+        "title": "Shop Crest + Oral-B Products",
+        "snippet": "Shop Crest + Oral-B Products with discounted exclusive offers available just for dental professionals."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "crest.com",
+      "cresteurope.eu",
+      "crestoralbproshop.com",
+      "crestwhite.com",
+      "amazon.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "NAME_IN_CONTENT_ONLY"
+    ],
+    "search_elapsed_ms": 1297.1244999789633,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 9027.071166987298,
+    "total_elapsed_ms": 10324.334875011118,
+    "timestamp_utc": "2026-09-30T08:42:42.413154+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_col_loom",
+    "query_name": "Loom",
+    "target_entity": "Disambiguation Conflict: Loom Video (Atlassian) vs Loom Network vs Loom Games",
+    "target_domain": null,
+    "expected_state": "AMBIGUOUS",
+    "expected_relationship": "UNKNOWN",
+    "category": "ENTITY_COLLISION",
+    "region": "GLOBAL_COLLISION",
+    "country_association": "Global",
+    "primary_language": "English",
+    "provenance_type": "MULTI_ENTITY_REFERENCE",
+    "ground_truth_provenance": "Multi-industry collision across async video software, blockchain network, and mobile games",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "CONFIDENT",
+    "actual_domain": "loom.com",
+    "actual_relationship": "PRIMARY",
+    "is_state_match": false,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": false,
+    "is_false_confident": true,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "FAIL_FALSE_CONFIDENT_LEAK",
+    "top_search_domains": [
+      "loom.com",
+      "atlassian.com",
+      "rainbowloom.com",
+      "fruit.com",
+      "apps.apple.com",
+      "sngular.com",
+      "instagram.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.loom.com/",
+        "title": "Loom: Free screen recorder for Mac and PC",
+        "snippet": "Best free online screen recording tool with advanced video editing and video storage trusted by over 22 million people and easy sharing from Loom.com."
+      },
+      {
+        "url": "https://www.atlassian.com/software/loom",
+        "title": "Loom | Video Messaging for Work",
+        "snippet": "Loom video messaging helps you communicate complex work with a simple visual recording experience."
+      },
+      {
+        "url": "https://rainbowloom.com/",
+        "title": "Rainbow Loom Official Website \u2013 Rainbow Loom USA Webstore",
+        "snippet": "Rainbow Loom is the original educational rubber band craft that won toy of the year award in 2014. We are also the creator of Loomi-Pals, Loomoji, ..."
+      },
+      {
+        "url": "https://www.fruit.com/",
+        "title": "Fruit of the Loom: Comfortable underwear and stylish apparel ...",
+        "snippet": "Shop underwear, undershirts, activewear & socks for men, women and kids at Fruit of the Loom. Our comfortable underwear is perfect for everyone and made ..."
+      },
+      {
+        "url": "https://apps.apple.com/us/app/loom-screen-recorder/id1474480829",
+        "title": "Loom: Screen Recorder - App Store - Apple",
+        "snippet": "LOOM FOR iOS Record your screen or camera with one tap. Share that content in an instant with a link. Loom for iOS is the fastest, easiest way to record ..."
+      },
+      {
+        "url": "https://www.sngular.com/insights/390/loom-all-its-features",
+        "title": "Loom and all its features",
+        "snippet": "Loom, the video messaging platform, is now almost fully integrated across all applications on the Atlassian Cloud platform."
+      },
+      {
+        "url": "https://www.instagram.com/theloom__official/?hl=en",
+        "title": "The Loom (@theloom__official)",
+        "snippet": "The Loom. 5,408 followers. 290 following. Clothing (Brand). Spanish-made, city ... Available on our website."
+      }
+    ],
+    "primary_candidate_count": 1,
+    "candidate_domains": [
+      "loom.com",
+      "rainbowloom.com",
+      "atlassian.com",
+      "fruit.com",
+      "apps.apple.com",
+      "sngular.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT",
+      "TITLE_ENTITY_MATCH",
+      "ENTITY_TITLE_IN_STRONG_PAGE"
+    ],
+    "search_elapsed_ms": 1773.1064169784077,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 16013.045208004769,
+    "total_elapsed_ms": 17786.28695802763,
+    "timestamp_utc": "2026-09-30T08:42:53.745102+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_dunder_mifflin",
+    "query_name": "Dunder Mifflin Paper Company Inc",
+    "target_entity": "Fictional paper company control (The Office)",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Pop Culture Negative Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": "dunder-mifflin-inc.com",
+    "actual_relationship": "UNKNOWN",
+    "is_state_match": true,
+    "is_domain_match": false,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [
+      "en.wikipedia.org",
+      "theoffice.fandom.com",
+      "linkedin.com",
+      "facebook.com",
+      "worldtrademarkreview.com",
+      "fictionalbrandsarchive.com",
+      "instagram.com",
+      "crunchbase.com",
+      "fundraise.als.net",
+      "us.shein.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Dunder_Mifflin",
+        "title": "Dunder Mifflin",
+        "snippet": "Dunder Mifflin Paper Company, Inc. (DMI) is a fictional paper and office supplies wholesale company featured in the American television series The Office, ..."
+      },
+      {
+        "url": "https://theoffice.fandom.com/wiki/Dunder_Mifflin_Paper_Company",
+        "title": "Dunder Mifflin Paper Company | Dunderpedia: The Office Wiki",
+        "snippet": "Dunder Mifflin Paper Company, Inc. (NYSE: DMI) was a failed mid-sized paper supplier for small businesses in Northeastern United States that was acquired by ..."
+      },
+      {
+        "url": "https://www.linkedin.com/company/dunder-mifflin-paper-company",
+        "title": "Dunder Mifflin Paper Company",
+        "snippet": "Dunder Mifflin Paper Company, Inc. is a fictional paper sales company ... Website: www.dundermifflin.com. External link for Dunder Mifflin Paper Company."
+      },
+      {
+        "url": "https://www.facebook.com/dundermifflinpaper/",
+        "title": "Dunder Mifflin Paper Company, Inc. (@dundermifflinpaper)",
+        "snippet": "Dunder Mifflin Paper Company, Inc. 14495 likes \u00b7 6 talking about this. The Paper People's Paper Company."
+      },
+      {
+        "url": "https://www.worldtrademarkreview.com/article/the-battle-dunder-mifflin-the-global-effort-trademark-fictional-paper-company",
+        "title": "The battle for Dunder Mifflin: the global effort to trademark a ...",
+        "snippet": "Over in the United Kingdom, a London-based company called Gift Zone Direct Limited filed for DUNDER MIFFLIN PAPER COMPANY INC, covering various ..."
+      },
+      {
+        "url": "https://fictionalbrandsarchive.com/dunder-mifflin",
+        "title": "FBA - Dunder Mifflin",
+        "snippet": "Dunder Mifflin Paper Company, Inc. is mid-cap regional paper and office supply distributor with an emphasis on servicing small-business clients."
+      },
+      {
+        "url": "https://www.instagram.com/dundermifflinpaperco/?hl=en",
+        "title": "(@dundermifflinpaperco) \u2022 Instagram photos and videos",
+        "snippet": "152K followers \u00b7 155 following \u00b7 4014 posts \u00b7 @dundermifflinpaperco: \u201cDunder Mifflin Paper Company Inc.| Go Team Scranton| Sept.20.2013|\u201d"
+      },
+      {
+        "url": "https://www.crunchbase.com/organization/dunder-mifflin-paper-company",
+        "title": "Dunder Mifflin Paper Company",
+        "snippet": "Paper Manufacturing \u00b7 Retail \u00b7 Wholesale. Details. Legal Name Dunder Mifflin Paper Company, Inc. Operating Status Active. Company Type For Profit. Phone Number ..."
+      },
+      {
+        "url": "https://fundraise.als.net/team/dundermifflinpapercompanyinc",
+        "title": "Dunder Mifflin Paper Company, inc.",
+        "snippet": "The process is fast, easy, and secure...and you can be sure that it will benefit a great cause! Team Page. Dunder Mifflin Paper Company, inc. $0 Raised. $500."
+      },
+      {
+        "url": "https://us.shein.com/Dunder-Mifflin-Paper-Company-Inc-The-Office-Logo-Baseball-Caps-Vintage-Denim-He-p-554143470.html",
+        "title": "Dunder Mifflin Paper Company Inc The Office Logo Baseball ...",
+        "snippet": "Free Returns \u2713 Free Shipping\u2713. Dunder Mifflin Paper Company Inc The Office Logo Baseball Caps Vintage Denim He- Women Hats at SHEIN."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [
+      "dunder-mifflin-inc.com",
+      "dunder-mifflin.netlify.app",
+      "dundermifflincompany.com",
+      "dundermifflinscrantonbranch.weebly.com",
+      "theoffice.fandom.com"
+    ],
+    "corroboration_signals": [
+      "RANKED_RESULT"
+    ],
+    "search_elapsed_ms": 1313.090833980823,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 11425.625625008252,
+    "total_elapsed_ms": 12738.87204102357,
+    "timestamp_utc": "2026-09-30T08:43:12.537722+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_stark_industries",
+    "query_name": "Stark Industries Defense Technologies",
+    "target_entity": "Fictional defense / technology conglomerate control",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Pop Culture Negative Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [
+      "businessinsider.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.businessinsider.com/here-are-the-wealthiest-fictional-characters-from-the-simpsons-to-iron-man-2012-4",
+        "title": "RANKING: Check Out The 15 Richest Fictional Characters",
+        "snippet": "Claim to Fame: \"Iron Man\" comics and films. How he amassed his fortune: Stark Industries' defense technologies. 4. Jed Clampett."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 1477.2018329822458,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 3363.7553750013467,
+    "total_elapsed_ms": 4841.006958013168,
+    "timestamp_utc": "2026-09-30T08:43:26.278998+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_wayne_enterprises",
+    "query_name": "Wayne Enterprises Global Holdings",
+    "target_entity": "Fictional industrial enterprise control",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Pop Culture Negative Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NO_SEARCH_RESULTS",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [],
+    "top_search_snippets": [],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 1371.8462079996243,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 1842.3655830265488,
+    "total_elapsed_ms": 3214.224708004622,
+    "timestamp_utc": "2026-09-30T08:43:32.126149+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_initech_software",
+    "query_name": "Initech Y2K Software Solutions LLC",
+    "target_entity": "Fictional software company control (Office Space)",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Pop Culture Negative Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NO_SEARCH_RESULTS",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [],
+    "top_search_snippets": [],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 1507.1241250261664,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 2122.249375010142,
+    "total_elapsed_ms": 3629.3858329881914,
+    "timestamp_utc": "2026-09-30T08:43:36.363560+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_pied_piper",
+    "query_name": "Pied Piper Decentralized Compression",
+    "target_entity": "Fictional compression startup control (Silicon Valley)",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Pop Culture Negative Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NO_SEARCH_RESULTS",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [],
+    "top_search_snippets": [],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 1191.5677090000827,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 2194.424457993591,
+    "total_elapsed_ms": 3386.00349999615,
+    "timestamp_utc": "2026-09-30T08:43:41.000395+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_acme_widget_logistics",
+    "query_name": "Acme Widget Logistics Group International",
+    "target_entity": "Hyper-generic synthetic combination control",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "ADVERSARIAL_THIRD_PARTY",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Synthetic Generic Combination Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NON_CONFIDENT_QUERY_SEARCH_OK",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [
+      "provarerestaurants.com",
+      "synchrony.com",
+      "nodusfall.hoyoverse.com",
+      "draaimolen.nu",
+      "portal.nysc.org.ng",
+      "49s.co.uk",
+      "southwindairlines.com"
+    ],
+    "top_search_snippets": [
+      {
+        "url": "https://www.provarerestaurants.com/",
+        "title": "Provare Chicago",
+        "snippet": "Experience the intimate dining of Provar\u00e9 Chicago with reservation options and a full menu available for walk-ins at the bar."
+      },
+      {
+        "url": "https://www.synchrony.com/accounts/?client=amazon",
+        "title": "Synchrony Account Manager",
+        "snippet": "Synchrony Account Manager"
+      },
+      {
+        "url": "https://nodusfall.hoyoverse.com/",
+        "title": "The official website of \"Nodusfall\" is now live!",
+        "snippet": "Players will step into a world where divine authority has crumbled, and order has collapsed, taking on the role of a \"Weaver.\" Forge bonds with powerful companions, stand together against earth-shattering foes, seize whatever divinity remains, and ultimately restore order to this world."
+      },
+      {
+        "url": "https://www.draaimolen.nu/",
+        "title": "Draaimolen",
+        "snippet": "Draaimolen is an independent event organizer in Tilburg blending electronic music, art, and nature."
+      },
+      {
+        "url": "https://portal.nysc.org.ng/nysc1/",
+        "title": "Welcome to The NYSC Portal",
+        "snippet": "NYSC Registration Portal National Youth Service Corps The secure, official gateway for corps member registration, payment processing, certificate replacement, and all NYSC services."
+      },
+      {
+        "url": "https://49s.co.uk/49s",
+        "title": "49's - The Original Live Draw",
+        "snippet": "The official 49's app with results, fixtures, form guides, and odds."
+      },
+      {
+        "url": "https://southwindairlines.com/tr",
+        "title": "Southwind Airlines",
+        "snippet": "Southwind Airlines is a Turkish air carrier providing safe, efficient, and economic service to the aviation industry."
+      }
+    ],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 4555.414542002836,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 2964.1542920144275,
+    "total_elapsed_ms": 7519.7003339999355,
+    "timestamp_utc": "2026-09-30T08:43:45.394346+00:00",
+    "error_message": null
+  },
+  {
+    "case_id": "val_neg_aperture_science",
+    "query_name": "Aperture Science Innovations Portal Labs",
+    "target_entity": "Fictional scientific research lab control (Portal)",
+    "target_domain": null,
+    "expected_state": "UNRESOLVED",
+    "expected_relationship": "UNKNOWN",
+    "category": "SYNTHETIC_NEGATIVE",
+    "region": "NEGATIVE_CONTROL",
+    "country_association": "N/A",
+    "primary_language": "English",
+    "provenance_type": "SYNTHETIC_NEGATIVE_CONTROL",
+    "ground_truth_provenance": "Fictional / Video Game Control Catalog",
+    "ground_truth_verified_at": "2026-09-30T09:00:00Z",
+    "actual_confidence": "UNRESOLVED",
+    "actual_domain": null,
+    "actual_relationship": null,
+    "is_state_match": true,
+    "is_domain_match": true,
+    "is_correct_confident": false,
+    "is_missed_conf_ambiguous": false,
+    "is_missed_id_unresolved": false,
+    "is_correct_ambiguous": false,
+    "is_correct_unresolved": true,
+    "is_false_confident": false,
+    "is_target_misidentified": false,
+    "search_attribution": "NO_SEARCH_RESULTS",
+    "homepage_attribution": "UNKNOWN",
+    "secondary_attribution": "UNKNOWN",
+    "arbitration_attribution": "UNKNOWN",
+    "final_stage_attribution": "RESOLVED_UNRESOLVED_SAFETY",
+    "top_search_domains": [],
+    "top_search_snippets": [],
+    "primary_candidate_count": 0,
+    "candidate_domains": [],
+    "corroboration_signals": [],
+    "search_elapsed_ms": 1252.4749580188654,
+    "crawler_elapsed_ms": 0.0,
+    "resolver_elapsed_ms": 2486.356249981327,
+    "total_elapsed_ms": 3738.8419169874396,
+    "timestamp_utc": "2026-09-30T08:43:53.919952+00:00",
+    "error_message": null
+  }
+]

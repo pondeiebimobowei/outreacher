@@ -1,0 +1,84 @@
+{
+  "benchmark_version": "identity-v1.3-validation-34cases",
+  "execution_timestamp": "2026-09-30T08:43:57.673273+00:00",
+  "total_cases": 34,
+  "metrics": {
+    "canonical_target_id_rate_pct": 70.0,
+    "state_accuracy_pct": 55.88235294117647,
+    "confident_recall_pct": 50.0,
+    "correct_conf_given_target_pct": 71.42857142857143,
+    "target_misidentification_rate_pct": 5.0,
+    "false_confident_rate_pct": 35.714285714285715,
+    "non_conf_safety_pct": 57.14285714285714
+  },
+  "strata_stats": {
+    "AFRICA": {
+      "total": 10,
+      "state_matches": 6,
+      "state_accuracy_pct": 60.0,
+      "target_domain_matches": 7,
+      "target_domain_total": 10,
+      "target_id_rate_pct": 70.0,
+      "stage_distribution": {
+        "FAIL_HOMEPAGE_ACQUISITION": 3,
+        "RESOLVED_TARGET_CONFIDENT": 6,
+        "FAIL_SEARCH_DROPOFF": 1
+      }
+    },
+    "EU": {
+      "total": 10,
+      "state_matches": 5,
+      "state_accuracy_pct": 50.0,
+      "target_domain_matches": 7,
+      "target_domain_total": 10,
+      "target_id_rate_pct": 70.0,
+      "stage_distribution": {
+        "FAIL_HOMEPAGE_ACQUISITION": 4,
+        "FAIL_TARGET_MISIDENTIFICATION": 1,
+        "RESOLVED_TARGET_CONFIDENT": 4,
+        "FAIL_UNEXPECTED_COLLISION": 1
+      }
+    },
+    "GLOBAL_COLLISION": {
+      "total": 7,
+      "state_matches": 1,
+      "state_accuracy_pct": 14.285714285714285,
+      "target_domain_matches": 0,
+      "target_domain_total": 0,
+      "target_id_rate_pct": 0.0,
+      "stage_distribution": {
+        "FAIL_FALSE_CONFIDENT_LEAK": 5,
+        "RESOLVED_AMBIGUOUS_SAFETY": 1,
+        "FAIL_HOMEPAGE_ACQUISITION": 1
+      }
+    },
+    "NEGATIVE_CONTROL": {
+      "total": 7,
+      "state_matches": 7,
+      "state_accuracy_pct": 100.0,
+      "target_domain_matches": 0,
+      "target_domain_total": 0,
+      "target_id_rate_pct": 0.0,
+      "stage_distribution": {
+        "RESOLVED_UNRESOLVED_SAFETY": 7
+      }
+    }
+  },
+  "confusion_matrix": {
+    "expected_confident": {
+      "predicted_confident": 11,
+      "predicted_ambiguous": 2,
+      "predicted_unresolved": 7
+    },
+    "expected_ambiguous": {
+      "predicted_confident": 5,
+      "predicted_ambiguous": 1,
+      "predicted_unresolved": 1
+    },
+    "expected_unresolved": {
+      "predicted_confident": 0,
+      "predicted_ambiguous": 0,
+      "predicted_unresolved": 7
+    }
+  }
+}
