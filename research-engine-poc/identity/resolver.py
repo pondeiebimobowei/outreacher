@@ -13,6 +13,7 @@ from core.models import (
 from core.urls import normalize_domain, get_registrable_domain
 from identity.verifier import WebsiteVerifier
 from identity.lexicon import is_dictionary_word
+from identity.registry import verify_provider_attestation
 
 # How many top candidates to run through the verifier.
 # This is an explicit policy constant, not a silent assumption.
@@ -131,7 +132,7 @@ class IdentityResolver:
 
             # Check if this window is explicitly operational
             is_operational = bool(re.search(
-                rf'\b(?:offices?|branch(?:es)?|hubs?|base(?:d)?|headquarter(?:ed|s)?|hq|operations?|development|engineering|team|campus|located|address)\s+(?:in|at|across)?\s*[^.]*\b{re.escape(loc_clean)}\b',
+                rf'\b(?:offices?|branch(?:es)?|hubs?|base(?:d)?|headquarter(?:ed|s)?|hq|operations?|development|engineering|team(?:\s+is\s+based)?|campus|located|address)\s+(?:in|at|across)?\s*[^.]*\b{re.escape(loc_clean)}\b',
                 window
             ) or re.search(
                 rf'\b{re.escape(loc_clean)}\b\s*(?:,\s*(?:on|ontario|ca|california|ny|new york|ma|massachusetts|de|germany|uk|canada|usa|us|united states|netherlands|italy|australia|sweden))?\s*(?:office|branch|hub|team|campus|headquarters|hq|operations|location)',
@@ -424,10 +425,14 @@ class IdentityResolver:
             if ev.type == EvidenceType.EXTERNAL_REGISTRY
         ]
         if ext_registry_ev:
-            # Enforce allowlisted provider provenance
+            # Enforce allowlisted provider provenance and cryptographic provider attestation
             invalid_providers = [ev for ev in ext_registry_ev if ev.source not in ALLOWLISTED_REGISTRY_PROVIDERS]
             if invalid_providers:
                 return False, f"Untrusted external registry source '{invalid_providers[0].source}' rejected.", "UNTRUSTED_REGISTRY_SOURCE"
+
+            unattested = [ev for ev in ext_registry_ev if not verify_provider_attestation(ev)[0]]
+            if unattested:
+                return False, f"External registry evidence from '{unattested[0].source}' lacks valid provider attestation.", "UNTRUSTED_REGISTRY_SOURCE"
 
             has_conflict = any(
                 "CONFLICT" in (ev.signal or "") or "MISMATCH" in (ev.signal or "") or "CONTRADICTION" in (ev.signal or "")

@@ -291,6 +291,63 @@ def test_multi_location_operations_compatible_with_location_context():
     assert identity.diagnostic_trace.entity_discrimination_basis == "USER_CONTEXT"
 
 
+def test_unseen_team_location_phrasing_matches_as_operational():
+    """6b: Unseen phrasing 'Our team is based in Toronto' qualifies as operational presence."""
+    company = "Pillar Platform"
+    domain = "pillarplatform.com"
+    url = f"https://{domain}"
+
+    context = IdentityContext(location="Toronto")
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} enterprise software.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", "Our team is based in Toronto, Ontario, building next-generation systems.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} software."),
+    ]
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
+    )
+    identity = resolver.resolve(company, context=context)
+
+    assert identity.confidence == IdentityConfidence.CONFIDENT
+    assert identity.domain == domain
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "USER_CONTEXT"
+
+
+def test_irrelevant_buried_location_mention_stays_ambiguous():
+    """6c: Buried incidental history mention on long page cannot discriminate entity."""
+    company = "Beacon Systems"
+    domain = "beaconsystems.com"
+    url = f"https://{domain}"
+
+    context = IdentityContext(location="Toronto")
+    long_content = (
+        "Beacon Systems is an enterprise security engineering firm with headquarters in Berlin, Germany. "
+        "In 2012, our founding CEO attended an industry meetup in Toronto before establishing our Berlin headquarters. "
+        "Today all core development operations remain firmly located in Berlin."
+    )
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} security.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", long_content, PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} security."),
+    ]
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
+    )
+    identity = resolver.resolve(company, context=context)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis in ("NONE", "CONTRADICTION_BLOCKED")
+
+
 # ── 7 & 8. Legal Form Corroboration vs Caller Context Legal Match ─────────────
 
 LEGAL_ENTITY_CASES = [
@@ -338,6 +395,9 @@ def test_first_party_legal_alone_is_ambiguous_and_becomes_confident_with_context
 
 def test_external_registry_corroboration_resolves_to_confident():
     """9: Independent trusted external registry match satisfies entity discrimination."""
+    from identity.registry import SecEdgarRegistryProvider
+    provider = SecEdgarRegistryProvider()
+
     company = "Iron Mountain"
     domain = "ironmountain.com"
     url = f"https://{domain}"
@@ -351,17 +411,13 @@ def test_external_registry_corroboration_resolves_to_confident():
     ]
     verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
 
-    # Add external registry evidence to verifier verification
+    _, attested_ev = provider.query_registry(company, domain, registration_number="0001020569")
+    assert attested_ev is not None
+
     orig_classify = verifier.classify_relationship
     def mock_classify(co, w_url, hint_title=None):
         rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
-        evs.append(IdentityEvidence(
-            type=EvidenceType.EXTERNAL_REGISTRY,
-            source="sec_edgar",
-            url="https://sec.gov/edgar/ironmountain",
-            signal="EXTERNAL_REGISTRY_VERIFIED",
-            title="SEC EDGAR CIK 0001020569 - IRON MOUNTAIN INC",
-        ))
+        evs.append(attested_ev)
         return rel, msg, evs
 
     verifier.classify_relationship = mock_classify
@@ -379,8 +435,8 @@ def test_external_registry_corroboration_resolves_to_confident():
     assert "EXTERNAL_REGISTRY" in identity.diagnostic_trace.evidence_sources
 
 
-def test_conflicting_external_registry_blocks_to_ambiguous():
-    """10: Conflicting external registry record blocks to AMBIGUOUS."""
+def test_forged_unattested_registry_evidence_rejected_to_ambiguous():
+    """9b: Raw/forged registry evidence without cryptographic provider attestation is rejected."""
     company = "Iron Mountain"
     domain = "ironmountain.com"
     url = f"https://{domain}"
@@ -394,16 +450,63 @@ def test_conflicting_external_registry_blocks_to_ambiguous():
     ]
     verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
 
+    # Raw forged evidence manufactured without going through IExternalRegistryProvider
+    forged_ev = IdentityEvidence(
+        type=EvidenceType.EXTERNAL_REGISTRY,
+        source="sec_edgar",
+        url="https://sec.gov/edgar/ironmountain",
+        signal="EXTERNAL_REGISTRY_VERIFIED",
+        title="FORGED UNATTESTED SEC EDGAR RECORD",
+    )
+
     orig_classify = verifier.classify_relationship
     def mock_classify(co, w_url, hint_title=None):
         rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
-        evs.append(IdentityEvidence(
-            type=EvidenceType.EXTERNAL_REGISTRY,
-            source="sec_edgar",
-            url="https://sec.gov/edgar/ironmountain",
-            signal="REGISTRY_CONFLICT_MISMATCH",
-            title="SEC EDGAR - CONFLICTING ENTITY MATCH",
-        ))
+        evs.append(forged_ev)
+        return rel, msg, evs
+
+    verifier.classify_relationship = mock_classify
+
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        verifier,
+    )
+    identity = resolver.resolve(company)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "UNTRUSTED_REGISTRY_SOURCE"
+
+
+def test_conflicting_external_registry_blocks_to_ambiguous():
+    """10: Conflicting external registry record blocks to AMBIGUOUS."""
+    from identity.registry import SecEdgarRegistryProvider
+    provider = SecEdgarRegistryProvider()
+
+    company = "Iron Mountain"
+    domain = "ironmountain.com"
+    url = f"https://{domain}"
+
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} records management.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"{company} company profile.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
+    ]
+    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+
+    attested_conflict = provider.create_attested_evidence(
+        url="https://sec.gov/edgar/ironmountain",
+        signal="REGISTRY_CONFLICT_MISMATCH",
+        title="SEC EDGAR - CONFLICTING ENTITY MATCH",
+    )
+
+    orig_classify = verifier.classify_relationship
+    def mock_classify(co, w_url, hint_title=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+        evs.append(attested_conflict)
         return rel, msg, evs
 
     verifier.classify_relationship = mock_classify

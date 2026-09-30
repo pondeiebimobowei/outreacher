@@ -1,19 +1,52 @@
 """
 identity/registry.py — Authoritative External Registry Provider Architecture & Attestation
 
-Defines the formal interface and provider implementations for trusted external
-registries (SEC EDGAR, Companies House, BaFin, GLEIF).
+Defines the formal interface, attestation service, and provider implementations for
+trusted external registries (SEC EDGAR, Companies House, BaFin, GLEIF).
 
 Security Invariant:
 EXTERNAL_ENTITY_MATCH can ONLY be produced by a registered instance of
 IExternalRegistryProvider that cryptographically/structurally attests the evidence.
 Raw IdentityEvidence objects with type=EXTERNAL_REGISTRY without provider attestation
-are strictly rejected by the resolver.
+are strictly rejected by the resolver as UNTRUSTED_REGISTRY_SOURCE.
 """
 
+import hmac
+import hashlib
+import os
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Set, Dict
 from core.models import IdentityEvidence, EvidenceType
+
+
+_REGISTRY_SECRET = os.environ.get("REGISTRY_ATTESTATION_SECRET", "antigravity_identity_secret_key_v1")
+_ATTESTED_TOKENS: Set[str] = set()
+
+
+def _generate_attestation_token(provider_id: str, url: str, signal: str, title: str) -> str:
+    message = f"{provider_id}|{url}|{signal}|{title}".encode("utf-8")
+    token = hmac.new(_REGISTRY_SECRET.encode("utf-8"), message, hashlib.sha256).hexdigest()
+    _ATTESTED_TOKENS.add(token)
+    return token
+
+
+def verify_provider_attestation(evidence: IdentityEvidence) -> Tuple[bool, str]:
+    """
+    Verifies that the given IdentityEvidence was genuinely constructed and attested
+    by an active IExternalRegistryProvider instance.
+    """
+    if evidence.type != EvidenceType.EXTERNAL_REGISTRY:
+        return True, "Non-registry evidence type does not require registry provider attestation."
+    
+    expected_token = hmac.new(
+        _REGISTRY_SECRET.encode("utf-8"),
+        f"{evidence.source}|{evidence.url}|{evidence.signal}|{evidence.title or ''}".encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    if expected_token in _ATTESTED_TOKENS:
+        return True, f"Attestation verified for provider '{evidence.source}'."
+    return False, f"Registry evidence from source '{evidence.source}' lacks valid provider cryptographic attestation."
 
 
 class IExternalRegistryProvider(ABC):
@@ -31,6 +64,11 @@ class IExternalRegistryProvider(ABC):
         """Statutory jurisdiction covered (e.g. 'US', 'UK', 'DE', 'GLOBAL')."""
         pass
 
+    @property
+    def is_live_network_enabled(self) -> bool:
+        """Indicates whether live statutory HTTP API connections are active in production."""
+        return False
+
     @abstractmethod
     def query_registry(
         self,
@@ -40,9 +78,27 @@ class IExternalRegistryProvider(ABC):
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
         """
         Queries the authoritative registry. Returns (is_verified, attested_evidence).
-        The returned IdentityEvidence carries provider attestation.
+        The returned IdentityEvidence carries cryptographic provider attestation.
         """
         pass
+
+    def create_attested_evidence(
+        self,
+        url: str,
+        signal: str,
+        title: str,
+        query: Optional[str] = None
+    ) -> IdentityEvidence:
+        """Helper to create genuinely attested IdentityEvidence."""
+        _generate_attestation_token(self.provider_id, url, signal, title)
+        return IdentityEvidence(
+            type=EvidenceType.EXTERNAL_REGISTRY,
+            source=self.provider_id,
+            url=url,
+            signal=signal,
+            title=title,
+            query=query,
+        )
 
 
 class SecEdgarRegistryProvider(IExternalRegistryProvider):
@@ -62,14 +118,11 @@ class SecEdgarRegistryProvider(IExternalRegistryProvider):
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        # In production, queries SEC EDGAR API. In deterministic/mock mode, returns attested evidence.
-        return True, IdentityEvidence(
-            type=EvidenceType.EXTERNAL_REGISTRY,
-            source="sec_edgar",
-            url=f"https://sec.gov/edgar/{registration_number or company_name.lower().replace(' ', '')}",
-            signal="EXTERNAL_REGISTRY_VERIFIED",
-            title=f"SEC EDGAR - {company_name.upper()} (CIK {registration_number or '0001020569'})",
-        )
+        url = f"https://sec.gov/edgar/{registration_number or company_name.lower().replace(' ', '')}"
+        signal = "EXTERNAL_REGISTRY_VERIFIED"
+        title = f"SEC EDGAR - {company_name.upper()} (CIK {registration_number or '0001020569'})"
+        evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
+        return True, evidence
 
 
 class CompaniesHouseRegistryProvider(IExternalRegistryProvider):
@@ -89,13 +142,11 @@ class CompaniesHouseRegistryProvider(IExternalRegistryProvider):
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        return True, IdentityEvidence(
-            type=EvidenceType.EXTERNAL_REGISTRY,
-            source="companies_house",
-            url=f"https://find-and-update.company-information.service.gov.uk/company/{registration_number or '12345678'}",
-            signal="EXTERNAL_REGISTRY_VERIFIED",
-            title=f"Companies House UK - {company_name.upper()}",
-        )
+        url = f"https://find-and-update.company-information.service.gov.uk/company/{registration_number or '12345678'}"
+        signal = "EXTERNAL_REGISTRY_VERIFIED"
+        title = f"Companies House UK - {company_name.upper()}"
+        evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
+        return True, evidence
 
 
 class BaFinRegistryProvider(IExternalRegistryProvider):
@@ -115,10 +166,8 @@ class BaFinRegistryProvider(IExternalRegistryProvider):
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        return True, IdentityEvidence(
-            type=EvidenceType.EXTERNAL_REGISTRY,
-            source="bafin",
-            url=f"https://portal.mvp.bafin.de/database/InstInfo/institutDetails.do?id={registration_number or '10156942'}",
-            signal="EXTERNAL_REGISTRY_VERIFIED",
-            title=f"BaFin Database - {company_name.upper()}",
-        )
+        url = f"https://portal.mvp.bafin.de/database/InstInfo/institutDetails.do?id={registration_number or '10156942'}"
+        signal = "EXTERNAL_REGISTRY_VERIFIED"
+        title = f"BaFin Database - {company_name.upper()}"
+        evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
+        return True, evidence
