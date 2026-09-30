@@ -296,10 +296,11 @@ def test_causal_mutation_active_coined_collision_probe_gate():
 
 def test_causal_mutation_indexed_fallback_epistemic_cap_gate():
     """Proves that the Track 2 Epistemic Cap on bot-blocked indexed evidence is causally necessary."""
-    company = "Acme Global"
-    domain = "acmeglobal.com"
+    company = "Paystack Payments"
+    domain = "paystack.com"
     url = f"https://{domain}"
 
+    # Bot-blocked homepage -> fallback indexed evidence
     docs = {
         url: CrawledDocument(
             url=url, final_url=url, content="", title="", status_code=403,
@@ -313,11 +314,11 @@ def test_causal_mutation_indexed_fallback_epistemic_cap_gate():
         ),
     }
     results = [
-        SearchResult(title=f"{company}: Official Site", url=url, snippet=f"{company} delivers global services."),
+        SearchResult(title=f"{company}: Official Site", url=url, snippet=f"{company} delivers global payments."),
         SearchResult(title=f"About {company}", url=f"{url}/about", snippet=f"About {company} company information."),
     ]
 
-    # 1. Baseline: Gate active -> AMBIGUOUS (INDEXED_ONLY_EPISTEMIC_CAP_AMBIGUOUS)
+    # 1. Baseline: Gate active -> is_indexed_only enforces epistemic cap -> AMBIGUOUS
     resolver = IdentityResolver(
         _DeterministicSearchProvider(company, domain, results),
         WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
@@ -326,23 +327,25 @@ def test_causal_mutation_indexed_fallback_epistemic_cap_gate():
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.final_decision_rule == "INDEXED_ONLY_EPISTEMIC_CAP_AMBIGUOUS"
 
-    # 2. Mutation: Bypass epistemic cap check in resolver
-    orig_discount = resolver._should_discount_shape_risk
-    def mutated_discount(co, best, cands=None, ctx=None):
-        # Mutated: ignore is_indexed_only
-        best.evidence = [ev for ev in best.evidence if ev.type != EvidenceType.FALLBACK_INDEXED]
-        return True, "Mutated: ignored epistemic cap", "COINED_BRAND_TOKEN"
-    resolver._should_discount_shape_risk = mutated_discount
+    # 2. Mutation: Disable strictly the is_indexed_only epistemic cap by clearing fallback indexed flag
+    orig_classify = resolver.verifier.classify_relationship
+    def mock_classify(co, cand_url, hint_title=""):
+        rel, msg, evs = orig_classify(co, cand_url, hint_title=hint_title)
+        mutated_evs = []
+        for ev in evs:
+            if ev.type == EvidenceType.FALLBACK_INDEXED:
+                mutated_evs.append(IdentityEvidence(
+                    type=EvidenceType.SELF_IDENTITY,
+                    source="homepage_title",
+                    url=ev.url,
+                    signal=ev.signal,
+                    title=ev.title,
+                ))
+            else:
+                mutated_evs.append(ev)
+        return rel, msg, mutated_evs
+    resolver.verifier.classify_relationship = mock_classify
 
-    # Also mutate resolve() indexed_only check
-    orig_resolve = resolver.resolve
-    def mutated_resolve(co, context=None):
-        ident = orig_resolve(co, context=context)
-        if ident.diagnostic_trace.final_decision_rule == "INDEXED_ONLY_EPISTEMIC_CAP_AMBIGUOUS":
-            return resolver.resolve(co, context=context)
-        return ident
-
-    # Directly verify resolver policy rule
-    best_cand = resolver.verifier.classify_relationship(company, url, hint_title=f"{company}: Official Site")
-    cand_obj = resolver.resolve(company)
-    assert cand_obj.confidence == IdentityConfidence.AMBIGUOUS
+    mutated = resolver.resolve(company)
+    assert mutated.confidence == IdentityConfidence.CONFIDENT
+    assert mutated.domain == domain

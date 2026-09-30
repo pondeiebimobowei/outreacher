@@ -184,6 +184,85 @@ def test_geographic_contradiction_between_context_and_first_party_blocks_confide
     assert identity.diagnostic_trace.entity_discrimination_basis == "CONTRADICTION_BLOCKED"
 
 
+def test_explicit_headquarters_contradiction_overrides_historical_location_blocks_confident():
+    """5b: Explicit HQ contradiction blocks even if historical/founding city matches caller HQ."""
+    company = "Harbor Payments"
+    domain = "harborpayments.com"
+    url = f"https://{domain}"
+
+    # Caller requests Toronto HQ; Candidate was founded in Toronto but HQ is now Berlin
+    context = IdentityContext(headquarters="Toronto")
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} global payments.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"{company} was founded in Toronto. Headquarters in Berlin, Germany.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} global payments."),
+    ]
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
+    )
+    identity = resolver.resolve(company, context=context)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "CONTRADICTION_BLOCKED"
+
+
+def test_incidental_customer_location_mention_fails_to_discriminate_stays_ambiguous():
+    """5c: Mention of city purely in a customer/marketing context cannot discriminate entity."""
+    company = "Pillar Platform"
+    domain = "pillarplatform.com"
+    url = f"https://{domain}"
+
+    context = IdentityContext(location="Toronto")
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} software platform.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"We are proud to serve our enterprise customers in Toronto and across North America.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} customers in Toronto."),
+    ]
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
+    )
+    identity = resolver.resolve(company, context=context)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "NONE"
+
+
+def test_incidental_conference_location_mention_fails_to_discriminate_stays_ambiguous():
+    """5d: Mention of city purely in an event/conference context cannot discriminate entity."""
+    company = "Beacon Systems"
+    domain = "beaconsystems.com"
+    url = f"https://{domain}"
+
+    context = IdentityContext(location="Toronto")
+    docs = {
+        url: _doc(url, f"{company} – Official", f"{company} enterprise security.", PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"Join our tech keynote at the annual developer conference in Toronto next summer.", PageType.ABOUT),
+    }
+    results = [
+        SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} conference in Toronto."),
+    ]
+    resolver = IdentityResolver(
+        _DeterministicSearchProvider(company, domain, results),
+        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
+    )
+    identity = resolver.resolve(company, context=context)
+
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+    assert identity.diagnostic_trace is not None
+    assert identity.diagnostic_trace.entity_discrimination_basis == "NONE"
+
+
 # ── 6. Multi-Location Operations are Compatible ───────────────────────────────
 
 def test_multi_location_operations_compatible_with_location_context():

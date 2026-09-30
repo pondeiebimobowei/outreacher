@@ -97,6 +97,60 @@ class IdentityResolver:
 
         return strong, medium, weak
 
+    @classmethod
+    def _is_operational_location_mention(cls, loc: str, text: str) -> bool:
+        """
+        Determines whether a geographic location mention in first-party text represents
+        genuine operational attachment (offices, headquarters, development hub, branch, base)
+        versus incidental marketing/customer/event mentions (customers in X, conference in X).
+        """
+        loc_clean = loc.strip().lower()
+        if not loc_clean:
+            return False
+
+        matches = list(re.finditer(rf'\b{re.escape(loc_clean)}\b', text))
+        if not matches:
+            return False
+
+        has_operational = False
+        all_incidental = True
+
+        for m in matches:
+            start = max(0, m.start() - 60)
+            end = min(len(text), m.end() + 60)
+            window = text[start:end]
+
+            # Check if this window is an incidental / marketing / event mention
+            is_incidental = bool(re.search(
+                rf'\b(?:customers?|clients?|users?|merchants?|subscribers?|audience|serving|supported|conference|summit|event|meetup|webinar|gathering|spoke\s+at|attended)\s+(?:in|at|across|from)?\s*[^.]*\b{re.escape(loc_clean)}\b',
+                window
+            ) or re.search(
+                rf'\b{re.escape(loc_clean)}\b\s+[^.]*\b(?:conference|summit|event|meetup|webinar|expo)\b',
+                window
+            ))
+
+            # Check if this window is explicitly operational
+            is_operational = bool(re.search(
+                rf'\b(?:offices?|branch(?:es)?|hubs?|base(?:d)?|headquarter(?:ed|s)?|hq|operations?|development|engineering|team|campus|located|address)\s+(?:in|at|across)?\s*[^.]*\b{re.escape(loc_clean)}\b',
+                window
+            ) or re.search(
+                rf'\b{re.escape(loc_clean)}\b\s*(?:,\s*(?:on|ontario|ca|california|ny|new york|ma|massachusetts|de|germany|uk|canada|usa|us|united states|netherlands|italy|australia|sweden))?\s*(?:office|branch|hub|team|campus|headquarters|hq|operations|location)',
+                window
+            ) or re.search(
+                rf'\b{re.escape(loc_clean)}\s*,\s*(?:canada|usa|us|uk|germany|italy|netherlands|australia|sweden|on|ontario|ca|ny|ma)\b',
+                window
+            ))
+
+            if is_operational:
+                has_operational = True
+                all_incidental = False
+            elif not is_incidental:
+                all_incidental = False
+
+        if all_incidental:
+            return False
+        return has_operational or (not all_incidental)
+
     def _evaluate_context_discrimination(
         self,
         candidate: IdentityCandidate,
@@ -106,7 +160,8 @@ class IdentityResolver:
         Evaluates caller-supplied structured context against first-party crawled evidence:
         - WEAK context attributes (country only, company_type only, generic industry) CANNOT
           discriminate entity collision risk on common-word/shape-risk queries.
-        - MEDIUM context attributes (specific city location) discriminate when matched with first-party crawl.
+        - MEDIUM context attributes (specific city location) discriminate when matched with first-party crawl
+          with operational attachment.
         - STRONG context attributes (legal registration, official registry ID, explicit HQ, full legal name)
           provide full entity discrimination.
         - Contradictions block to AMBIGUOUS.
@@ -161,7 +216,7 @@ class IdentityResolver:
         # 4. Gate: Explicit HQ Contradiction when caller specified headquarters
         hq_vals = [v for k, v in strong_attrs if k in ("headquarters", "headquarters_country")]
         if hq_vals:
-            hq_match = re.search(r'\b(?:headquartered|based|hq)\s+(?:in|at)\s+([a-z\s,]+)', fp_text)
+            hq_match = re.search(r'\b(?:headquartered|headquarters|based|hq)\s+(?:in|at|:)?\s+([a-z\s,]+)', fp_text)
             if hq_match:
                 claimed_hq_text = hq_match.group(1)[:50]
                 claimed_regions = {self.COMMON_GEOS[w] for w in re.findall(r'\b[a-z0-9]+\b', claimed_hq_text) if w in self.COMMON_GEOS}
@@ -172,12 +227,19 @@ class IdentityResolver:
         # 5. Gate: Matching check against first-party text
         strong_matches = []
         for k, v in strong_attrs:
-            if v in fp_text:
+            if k in ("headquarters", "headquarters_country"):
+                if v in fp_text and self._is_operational_location_mention(v, fp_text):
+                    strong_matches.append(f"{k} '{v}'")
+            elif v in fp_text:
                 strong_matches.append(f"{k} '{v}'")
 
         medium_matches = []
         for k, v in medium_attrs:
-            if v in fp_text:
+            if k == "location":
+                if v in fp_text:
+                    if self._is_operational_location_mention(v, fp_text):
+                        medium_matches.append(f"{k} '{v}'")
+            elif v in fp_text:
                 medium_matches.append(f"{k} '{v}'")
 
         if strong_matches:
