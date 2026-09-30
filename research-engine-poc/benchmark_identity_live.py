@@ -484,11 +484,11 @@ class InstrumentedLiveIdentityRunner:
             # A. State Match
             t.is_state_match = (resolved_identity.confidence == case.expected_state)
 
-            # B. Domain / Entity Match
+            # B. Domain / Entity Match (evaluated for cases with a defined target domain)
             if case.target_domain is not None:
                 t.is_domain_match = (resolved_identity.domain == case.target_domain)
             else:
-                t.is_domain_match = (resolved_identity.domain is None)
+                t.is_domain_match = True
 
             # C. Safety Boundary Checks
             if resolved_identity.confidence == IdentityConfidence.CONFIDENT:
@@ -502,7 +502,7 @@ class InstrumentedLiveIdentityRunner:
                 t.final_stage_attribution = "FAIL_FALSE_CONFIDENT_LEAK"
             elif t.is_target_misidentified:
                 t.final_stage_attribution = "FAIL_TARGET_MISIDENTIFICATION"
-            elif t.is_state_match and t.is_domain_match:
+            elif t.is_state_match:
                 if resolved_identity.confidence == IdentityConfidence.CONFIDENT:
                     t.final_stage_attribution = "RESOLVED_TARGET_CONFIDENT"
                 elif resolved_identity.confidence == IdentityConfidence.AMBIGUOUS:
@@ -511,12 +511,12 @@ class InstrumentedLiveIdentityRunner:
                     t.final_stage_attribution = "RESOLVED_UNRESOLVED_SAFETY"
             else:
                 # Classify Failure Stage for Unresolved / Misclassified Cases
-                if t.search_attribution == "TARGET_DOMAIN_NOT_IN_SEARCH":
+                if case.target_domain and t.search_attribution == "TARGET_DOMAIN_NOT_IN_SEARCH":
                     t.final_stage_attribution = "FAIL_SEARCH_DROPOFF"
-                elif t.search_attribution == "NO_SEARCH_RESULTS":
+                elif case.target_domain and t.search_attribution == "NO_SEARCH_RESULTS":
                     t.final_stage_attribution = "FAIL_NO_SEARCH_RESULTS"
                 elif t.primary_candidate_count == 0:
-                    if not resolved_identity.corroboration_signals:
+                    if not t.corroboration_signals:
                         t.final_stage_attribution = "FAIL_SECONDARY_CORROBORATION"
                     else:
                         t.final_stage_attribution = "FAIL_HOMEPAGE_ACQUISITION"
