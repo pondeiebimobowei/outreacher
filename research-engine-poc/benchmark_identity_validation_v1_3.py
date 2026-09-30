@@ -1039,9 +1039,13 @@ def run_validation_identity_benchmark(
     false_confident = sum(1 for r in expected_non_conf_cases if r.is_false_confident)
     false_confident_rate_pct = (false_confident / len(expected_non_conf_cases) * 100.0) if expected_non_conf_cases else 0.0
 
-    # 7. Non-CONFIDENT Safety Rate
-    non_conf_safety_count = sum(1 for r in expected_non_conf_cases if r.is_state_match)
-    non_conf_safety_pct = (non_conf_safety_count / len(expected_non_conf_cases) * 100.0) if expected_non_conf_cases else 0.0
+    # 7. Non-CONFIDENT Metrics (Leak Resistance vs Exact State Accuracy)
+    non_conf_total = len(expected_non_conf_cases)
+    non_conf_leak_resistance_count = non_conf_total - false_confident
+    non_conf_leak_resistance_pct = (non_conf_leak_resistance_count / non_conf_total * 100.0) if non_conf_total else 0.0
+
+    non_conf_exact_state_count = sum(1 for r in expected_non_conf_cases if r.is_state_match)
+    non_conf_exact_state_accuracy_pct = (non_conf_exact_state_count / non_conf_total * 100.0) if non_conf_total else 0.0
 
     # Stratum & Failure Stage Distribution Breakdown
     strata = ["AFRICA", "EU", "GLOBAL_COLLISION", "NEGATIVE_CONTROL"]
@@ -1095,7 +1099,8 @@ def run_validation_identity_benchmark(
         "correct_conf_given_target_pct": correct_conf_given_target_pct,
         "target_misidentification_rate_pct": target_misidentification_rate_pct,
         "false_confident_rate_pct": false_confident_rate_pct,
-        "non_conf_safety_pct": non_conf_safety_pct,
+        "non_conf_leak_resistance_pct": non_conf_leak_resistance_pct,
+        "non_conf_exact_state_accuracy_pct": non_conf_exact_state_accuracy_pct,
         "strata_stats": strata_stats,
         "confusion_matrix": matrix,
         "results": [asdict(r) for r in results],
@@ -1107,7 +1112,7 @@ def run_validation_identity_benchmark(
 
 def _render_validation_scorecard(metrics: Dict[str, Any]) -> None:
     table = Table(title=f"Fresh Unseen Validation Live Identity Scorecard ({metrics['total_cases']} Cases)", show_header=True)
-    table.add_column("Metric Dimension", style="cyan", width=36)
+    table.add_column("Metric Dimension", style="cyan", width=38)
     table.add_column("Value", justify="right", style="bold green", width=12)
     table.add_column("Status / Boundary", style="dim", width=34)
 
@@ -1125,7 +1130,8 @@ def _render_validation_scorecard(metrics: Dict[str, Any]) -> None:
         f"{metrics['false_confident_rate_pct']:.1f}%",
         "[bold green]PASS (0.0% False Conf)[/bold green]" if metrics['false_confident_rate_pct'] == 0 else "[bold red]FAIL LEAK[/bold red]"
     )
-    table.add_row("Non-CONFIDENT Safety Rate", f"{metrics['non_conf_safety_pct']:.1f}%", "Collision & Adversarial Robustness")
+    table.add_row("Non-CONFIDENT Leak Resistance", f"{metrics['non_conf_leak_resistance_pct']:.1f}%", "Adversarial/Collision Safety Rate")
+    table.add_row("Non-CONFIDENT Exact State Accuracy", f"{metrics['non_conf_exact_state_accuracy_pct']:.1f}%", "AMBIGUOUS vs UNRESOLVED Exact Precision")
 
     console.print()
     console.print(table)
@@ -1165,7 +1171,8 @@ if __name__ == "__main__":
                 "correct_conf_given_target_pct": metrics["correct_conf_given_target_pct"],
                 "target_misidentification_rate_pct": metrics["target_misidentification_rate_pct"],
                 "false_confident_rate_pct": metrics["false_confident_rate_pct"],
-                "non_conf_safety_pct": metrics["non_conf_safety_pct"],
+                "non_conf_leak_resistance_pct": metrics["non_conf_leak_resistance_pct"],
+                "non_conf_exact_state_accuracy_pct": metrics["non_conf_exact_state_accuracy_pct"],
             },
             "strata_stats": metrics["strata_stats"],
             "confusion_matrix": metrics["confusion_matrix"],

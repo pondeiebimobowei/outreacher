@@ -9,7 +9,8 @@
     "correct_conf_given_target_pct": 71.42857142857143,
     "target_misidentification_rate_pct": 5.0,
     "false_confident_rate_pct": 35.714285714285715,
-    "non_conf_safety_pct": 57.14285714285714
+    "non_conf_leak_resistance_pct": 64.28571428571429,
+    "non_conf_exact_state_accuracy_pct": 57.14285714285714
   },
   "strata_stats": {
     "AFRICA": {

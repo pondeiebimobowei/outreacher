@@ -1,7 +1,7 @@
 import re
 from urllib.parse import urlparse
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from search.base import ISearchProvider
 from search.sanitizer import SearchResultSanitizer
@@ -11,6 +11,7 @@ from core.models import (
 )
 from core.urls import normalize_domain
 from identity.verifier import WebsiteVerifier
+from identity.lexicon import is_dictionary_word, is_coined_brand
 
 # How many top candidates to run through the verifier.
 # This is an explicit policy constant, not a silent assumption.
@@ -58,52 +59,117 @@ class IdentityResolver:
     }
 
     GENERIC_DICTIONARY_WORDS = {
-        "acme", "apex", "summit", "vertex", "nexus", "global",
-        "general", "standard", "national", "united", "universal",
-        "premier", "prime", "beacon", "pinnacle", "matrix",
-        "fusion", "core", "horizon", "delta", "alpha", "omega",
-        "target", "allied", "central", "first", "direct", "select",
-        "pioneer", "atlas", "mercury", "focus", "venture", "crest",
-        "stride", "pulse", "craft", "spark", "scale", "sphere",
+        "acme", "apex", "summit", "vertex", "nexus", "global", "general", "standard",
+        "national", "united", "universal", "premier", "prime", "beacon", "pinnacle",
+        "matrix", "fusion", "core", "horizon", "delta", "alpha", "omega", "target",
+        "allied", "central", "first", "direct", "select", "pioneer", "atlas", "mercury",
+        "focus", "venture", "crest", "stride", "pulse", "craft", "spark", "scale",
+        "sphere", "pillar", "monolith", "kite", "loom", "relay", "vector",
+        "vanguard", "anchor", "bridge", "forge", "haven", "trace", "zenith", "compass",
+        "catalyst", "flock", "roost", "nest", "hive", "grove", "drift", "bench", "slate",
+        "verve", "orbit", "prism", "signal",
     }
 
     def name_shape_risk(self, company_name: str) -> bool:
         """
-        Measures the *shape* of the name (short / dominated by generic suffixes).
+        Measures the *shape* of the name (short <= 5 chars, generic-suffix dominated,
+        or known high-collision generic dictionary word).
         """
-        words = set(re.findall(r'\b[a-z]+\b', company_name.lower()))
+        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
         distinctive = words - self.GENERIC_TERMS
-        return len(distinctive) <= 1 and sum(len(w) for w in distinctive) <= 5
+        if len(distinctive) == 0:
+            return True
+        if len(distinctive) == 1:
+            token = list(distinctive)[0]
+            if len(token) <= 5 or token in self.GENERIC_DICTIONARY_WORDS:
+                return True
+        return False
 
     def _should_discount_shape_risk(
         self,
         company_name: str,
         best_candidate: IdentityCandidate,
+        all_candidates: Optional[List[IdentityCandidate]] = None,
     ) -> Tuple[bool, str]:
         """
         Evaluates whether shape risk on a uniquely verified PRIMARY candidate
-        should be discounted due to strong coined-brand distinctiveness and
-        exact domain correspondence (Track 3).
+        should be discounted due to strong coined-brand distinctiveness,
+        exact domain correspondence, and uncontested search distribution (Track 3).
 
         Returns (can_discount, reason).
         """
-        words = set(re.findall(r'\b[a-z]+\b', company_name.lower()))
+        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
         distinctive = words - self.GENERIC_TERMS
 
-        # 1. High-collision generic dictionary words cannot be discounted
-        if distinctive.issubset(self.GENERIC_DICTIONARY_WORDS):
-            return False, "Distinctive token is a generic dictionary placeholder word with high collision risk."
+        if not distinctive:
+            return False, "Query contains only generic corporate suffixes without a distinctive brand token."
+
+        # 1. Lexical check: high-collision generic dictionary words cannot discount shape risk
+        if distinctive.issubset(self.GENERIC_DICTIONARY_WORDS) or any(t in self.GENERIC_DICTIONARY_WORDS for t in distinctive):
+            return False, "Distinctive token is a high-collision generic dictionary placeholder word."
 
         # 2. Strict domain correspondence
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
-        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(distinctive))
+        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(sorted(distinctive)))
         clean_lbl = best_candidate.domain.split('.')[0].lower()
 
-        is_exact_domain = (clean_lbl == clean_dist) or (clean_lbl == clean_co)
+        is_exact_domain = (clean_lbl == clean_dist) or (clean_lbl == clean_co) or best_candidate.domain.startswith(clean_dist + ".")
         if not is_exact_domain:
-            return False, "Domain does not exactly match distinctive brand name."
+            return False, f"Domain '{best_candidate.domain}' does not exactly match distinctive brand name."
 
-        return True, "Coined brand with exact domain correspondence and uncontested corroboration."
+        # 3. Search Result Collision / Competing Entity Detection
+        if all_candidates:
+            best_root = best_candidate.domain.lower()
+            competing_brand_domains = set()
+            for cand in all_candidates:
+                c_domain = cand.domain.lower()
+                if not c_domain or c_domain == best_root:
+                    continue
+                # Subdomains or parent domains of best_root are not competing entities
+                if c_domain.endswith("." + best_root) or best_root.endswith("." + c_domain):
+                    continue
+                c_root = c_domain.split('.')[0]
+                if clean_dist in c_domain or c_root == clean_dist or c_root == clean_co:
+                    competing_brand_domains.add(c_domain)
+
+            if len(competing_brand_domains) >= 1:
+                competing_str = ", ".join(sorted(competing_brand_domains)[:3])
+                return False, f"Multiple distinct brand domains ({competing_str}) observed in search results."
+
+        return True, "Coined brand with exact domain correspondence, uncontested search dominance, and verified corroboration."
+
+    def _check_competing_brand_domains(
+        self,
+        company_name: str,
+        best_candidate: IdentityCandidate,
+        all_candidates: List[IdentityCandidate],
+    ) -> Tuple[bool, str]:
+        """
+        Checks if search candidates contain multiple distinct root domains
+        claiming the same brand name (e.g. pennylane.ai vs pennylane.org).
+        """
+        words = set(re.findall(r'\b[a-z0-9]+\b', company_name.lower()))
+        distinctive = words - self.GENERIC_TERMS
+        clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
+        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(sorted(distinctive)))
+
+        best_root = best_candidate.domain.lower()
+        competing_brand_domains = set()
+        for cand in all_candidates:
+            c_domain = cand.domain.lower()
+            if not c_domain or c_domain == best_root:
+                continue
+            if c_domain.endswith("." + best_root) or best_root.endswith("." + c_domain):
+                continue
+            c_root = c_domain.split('.')[0]
+            if (clean_dist and clean_dist in c_domain) or c_root == clean_dist or c_root == clean_co:
+                competing_brand_domains.add(c_domain)
+
+        if competing_brand_domains:
+            competing_str = ", ".join(sorted(competing_brand_domains)[:3])
+            return True, competing_str
+
+        return False, ""
 
     # ── Resolution ──────────────────────────────────────────────────────────────
     def resolve(
@@ -221,8 +287,20 @@ class IdentityResolver:
         # ── Decision policy ──────────────────────────────────────────────────────
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
-            if is_shape_risk:
-                can_discount, discount_reason = self._should_discount_shape_risk(company_name, best)
+            has_competing, competing_str = self._check_competing_brand_domains(
+                company_name, best, recorded_candidates
+            )
+            if has_competing:
+                confidence = IdentityConfidence.AMBIGUOUS
+                reasoning = (
+                    f"Single PRIMARY candidate '{best.domain}', but conflicting brand domains "
+                    f"({competing_str}) observed in search results. Manual disambiguation required. "
+                    f"{best.relationship_reasoning}"
+                )
+            elif is_shape_risk:
+                can_discount, discount_reason = self._should_discount_shape_risk(
+                    company_name, best, recorded_candidates
+                )
                 if can_discount:
                     confidence = IdentityConfidence.CONFIDENT
                     reasoning = (
