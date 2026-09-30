@@ -27,16 +27,25 @@ class SerperSearchProvider(ISearchProvider):
             "Content-Type": "application/json"
         }
         
-        try:
-            if self._client is not None:
-                response = self._client.post(url, json=payload, headers=headers, timeout=10.0)
-            else:
-                with httpx.Client() as client:
-                    response = client.post(url, json=payload, headers=headers, timeout=10.0)
-            response.raise_for_status()
-            data = response.json()
-        except Exception as exc:
-            raise SearchProviderError(f"Serper search failed for query '{query}': {exc}") from exc
+        max_retries = 3
+        last_exc = None
+        for attempt in range(max_retries):
+            try:
+                if self._client is not None:
+                    response = self._client.post(url, json=payload, headers=headers, timeout=15.0)
+                else:
+                    with httpx.Client() as client:
+                        response = client.post(url, json=payload, headers=headers, timeout=15.0)
+                response.raise_for_status()
+                data = response.json()
+                break
+            except Exception as exc:
+                last_exc = exc
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(1.0 * (attempt + 1))
+        else:
+            raise SearchProviderError(f"Serper search failed for query '{query}': {last_exc}") from last_exc
             
         organic = data.get("organic", [])
         results = []

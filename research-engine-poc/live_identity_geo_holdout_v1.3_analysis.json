@@ -1,0 +1,64 @@
+{
+  "benchmark_suite": "identity-v1.3-geographic-holdout",
+  "resolver_version": "identity-v1.2 (frozen)",
+  "analysis_type": "post_hoc_geographic_diagnostic",
+  "raw_snapshot_reference": "live_identity_geo_holdout_snapshot_v1.3.json",
+  "analyzed_at": "2026-09-30T05:58:00+00:00",
+  "summary": {
+    "total_cases": 30,
+    "canonical_target_id_rate_pct": 88.89,
+    "state_accuracy_pct": 46.67,
+    "confident_recall_pct": 22.22,
+    "correct_conf_given_target_pct": 25.0,
+    "target_misidentified_count": 0,
+    "false_confident_count": 0,
+    "non_confident_safety_pct": 100.0,
+    "hard_invariants_preserved": true
+  },
+  "strata_breakdown": {
+    "AFRICA": {
+      "total": 9,
+      "canonical_target_id_rate_pct": 77.78,
+      "confident_recall_pct": 11.11,
+      "state_accuracy_pct": 11.11,
+      "findings": "1 resolved CONFIDENT (M-KOPA), 4 failed secondary corroboration (Fawry, Yoco, Kasha, Numida), 3 blocked/acquired homepages (Wave, Julaya, mPharma), 1 search dropoff (Chari)."
+    },
+    "EU": {
+      "total": 9,
+      "canonical_target_id_rate_pct": 100.0,
+      "confident_recall_pct": 33.33,
+      "state_accuracy_pct": 33.33,
+      "findings": "3 resolved CONFIDENT (Factorial, Vinted, Supercell), 2 shape-risk downgraded to AMBIGUOUS (Adyen, Pleo), 2 failed secondary corroboration (Qonto, Pipedrive), 2 blocked homepages (Personio, Fortnox)."
+    },
+    "GLOBAL_COLLISION": {
+      "total": 6,
+      "state_accuracy_pct": 66.67,
+      "safety_preservation_pct": 100.0,
+      "findings": "4 resolved AMBIGUOUS (Linear, Atlas, Bolt, Kora), 2 safe UNRESOLVED due to acquisition blocks (Mercury, Lydia). Zero false CONFIDENT leaks."
+    },
+    "NEGATIVE_CONTROL": {
+      "total": 6,
+      "state_accuracy_pct": 100.0,
+      "false_confident_count": 0,
+      "findings": "6/6 resolved UNRESOLVED (100% safety). 3 synthetic plausibles and 3 distributor/reseller lookalikes all safely rejected."
+    }
+  },
+  "root_cause_categorization": {
+    "SHAPE_RISK_CONSERVATISM": {
+      "cases": ["geo_eu_adyen_netherlands", "geo_eu_pleo_denmark"],
+      "mechanism": "5-letter and 4-letter brand names trigger name_shape_risk <= 5 threshold, safely forcing verified PRIMARY domains adyen.com and pleo.io into AMBIGUOUS."
+    },
+    "BOT_DEFENSE_AND_WAF_BLOCKS": {
+      "cases": ["geo_afr_wave_senegal", "geo_afr_julaya_ivorycoast", "geo_afr_mpharma_ghana", "geo_eu_personio_germany", "geo_eu_fortnox_sweden", "geo_col_mercury_bare_name"],
+      "mechanism": "Cloudflare challenge, cookie consent walls, or bot protection blocked homepage DOM extraction before self-ID statements could be evaluated."
+    },
+    "SECONDARY_ROUTE_DISCOVERY_ABSENCE": {
+      "cases": ["geo_afr_fawry_egypt", "geo_afr_yoco_southafrica", "geo_afr_kasha_rwanda", "geo_afr_numida_uganda", "geo_eu_qonto_france", "geo_eu_pipedrive_estonia"],
+      "mechanism": "Target homepage verified with self-ID, but secondary routes (/about, /legal, /contact) either returned 404, lacked explicit entity statements, or used localized paths not in static candidate table."
+    },
+    "SEARCH_QUERY_LOCALIZATION_DROPOFF": {
+      "cases": ["geo_afr_chari_morocco"],
+      "mechanism": "Global search query for Moroccan entity without country/ccTLD biasing surfaced third-party portfolio domain chari.myportfolio.com rather than chari.ma."
+    }
+  }
+}
