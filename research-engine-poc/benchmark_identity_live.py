@@ -86,14 +86,15 @@ class LiveIdentityCase:
     expected_state: IdentityConfidence
     expected_relationship: SiteRelationship
     category: str
-    ground_truth_source: str
+    provenance_type: str  # CORPORATE_REGISTRY | COMPANY_DIRECTORY | PUBLIC_ENTITY_RECORD | MULTI_ENTITY_REFERENCE | SYNTHETIC_NEGATIVE_CONTROL
+    ground_truth_provenance: str
     ground_truth_verified_at: str
     rationale: str
     context: Optional[IdentityContext] = None
 
 
 # Independent Frozen Live Corpus (20 Strictly Single-Valued Cases)
-# Cataloged with independent external registry provenance
+# Cataloged with independent ground-truth provenance
 LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
     # ── Category 1: Global SaaS & Developer Infrastructure (Expected CONFIDENT) ─
     LiveIdentityCase(
@@ -104,7 +105,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="GLOBAL_FINTECH",
-        ground_truth_source="SEC Form D / Delaware Registry / Crunchbase Unicorn Index",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="SEC Form D / Delaware Division of Corporations",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is stripe.com.",
     ),
@@ -116,7 +118,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_CLOUD",
-        ground_truth_source="Crunchbase / Next.js Parent Organization",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Crunchbase Verified / Next.js Parent Organization",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is vercel.com.",
     ),
@@ -128,7 +131,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_API",
-        ground_truth_source="ActiveCampaign Subsidiary Registry / Official Website",
+        provenance_type="PUBLIC_ENTITY_RECORD",
+        ground_truth_provenance="ActiveCampaign Subsidiary Registry / Official Product Site",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Brand-divergent domain postmarkapp.com is canonical primary presence.",
     ),
@@ -140,7 +144,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_API",
-        ground_truth_source="Y Combinator Directory / Official Brand Registry",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Y Combinator Directory / Official Brand Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is resend.com.",
     ),
@@ -152,7 +157,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="WORKPLACE_SAAS",
-        ground_truth_source="Delaware Division of Corporations / Crunchbase",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="Delaware Division of Corporations / Crunchbase",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is clickup.com.",
     ),
@@ -164,7 +170,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_CLOUD",
-        ground_truth_source="Y Combinator Directory / Crunchbase",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Y Combinator Directory / Crunchbase",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical domain is fly.io.",
     ),
@@ -176,7 +183,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_DATABASE",
-        ground_truth_source="Y Combinator Directory / GitHub Organization",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Y Combinator Directory / GitHub Verified Org",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is supabase.com.",
     ),
@@ -188,7 +196,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEVELOPER_TOOL",
-        ground_truth_source="NASDAQ: GTLB / SEC Filings",
+        provenance_type="PUBLIC_ENTITY_RECORD",
+        ground_truth_provenance="NASDAQ: GTLB / SEC Filings",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Publicly traded DevOps platform. Canonical domain is gitlab.com.",
     ),
@@ -202,7 +211,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_FINTECH",
-        ground_truth_source="Central Bank of Nigeria Licensed MFB List / Crunchbase Unicorn List",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="Central Bank of Nigeria Licensed MFB Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is moniepoint.com.",
     ),
@@ -214,7 +224,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_FINTECH",
-        ground_truth_source="Corporate Affairs Commission / Visa Equity Partnership Registry",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="Corporate Affairs Commission / Visa Equity Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary corporate domain is interswitchgroup.com.",
     ),
@@ -226,7 +237,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_FINTECH",
-        ground_truth_source="SEC Nigeria Capital Market Registry / Crunchbase",
+        provenance_type="PUBLIC_ENTITY_RECORD",
+        ground_truth_provenance="SEC Nigeria Capital Market Registry / Crunchbase",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is piggyvest.com.",
     ),
@@ -238,7 +250,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="AFRICA_SAAS",
-        ground_truth_source="Y Combinator Directory (W20) / Official Registry",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Y Combinator Directory (W20) / Official Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Canonical primary domain is termii.com.",
     ),
@@ -252,7 +265,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.AMBIGUOUS,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="ENTITY_COLLISION",
-        ground_truth_source="Entity Disambiguation Registry: Multiple prominent independent firms sharing exact name",
+        provenance_type="MULTI_ENTITY_REFERENCE",
+        ground_truth_provenance="Public Disambiguation: Multiple prominent independent firms sharing exact name",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Bare name 'Linear' surfaces multiple prominent independent entities without context.",
     ),
@@ -264,7 +278,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.AMBIGUOUS,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="ENTITY_COLLISION",
-        ground_truth_source="Entity Disambiguation Registry: Major banking fintech vs marine engine manufacturer vs insurance firm",
+        provenance_type="MULTI_ENTITY_REFERENCE",
+        ground_truth_provenance="Public Disambiguation: Banking fintech vs marine engine manufacturer vs insurer",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Bare name 'Mercury' surfaces fintech banking, marine propulsion, and insurance companies.",
     ),
@@ -276,7 +291,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.AMBIGUOUS,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="ENTITY_COLLISION",
-        ground_truth_source="Entity Disambiguation Registry: Multi-industry global collision",
+        provenance_type="MULTI_ENTITY_REFERENCE",
+        ground_truth_provenance="Public Disambiguation: Multi-industry global collision",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Bare name 'Atlas' has no single canonical owner without contextual disambiguation.",
     ),
@@ -290,7 +306,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.UNRESOLVED,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
-        ground_truth_source="Synthetic Control Catalog (Fictitious Entity)",
+        provenance_type="SYNTHETIC_NEGATIVE_CONTROL",
+        ground_truth_provenance="Synthetic Control Catalog (Fictitious Entity)",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Non-existent company name; verifier must safely abstain without hallucinating primary.",
     ),
@@ -302,7 +319,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.UNRESOLVED,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
-        ground_truth_source="Synthetic Control Catalog (Fictitious Entity)",
+        provenance_type="SYNTHETIC_NEGATIVE_CONTROL",
+        ground_truth_provenance="Synthetic Control Catalog (Fictitious Entity)",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Non-existent entity; verifier must not promote partial directory matches.",
     ),
@@ -314,7 +332,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.UNRESOLVED,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="FICTITIOUS_NEGATIVE",
-        ground_truth_source="Synthetic Control Catalog (Fictitious Entity)",
+        provenance_type="SYNTHETIC_NEGATIVE_CONTROL",
+        ground_truth_provenance="Synthetic Control Catalog (Fictitious Entity)",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Fictitious brand; verifier must reject partial search matches.",
     ),
@@ -326,7 +345,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.UNRESOLVED,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="SHAPE_RISK_NEGATIVE",
-        ground_truth_source="Synthetic Control Catalog (Generic Archetype)",
+        provenance_type="SYNTHETIC_NEGATIVE_CONTROL",
+        ground_truth_provenance="Synthetic Control Catalog (Generic Archetype)",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Generic shape-risk archetype with no single canonical primary owner.",
     ),
@@ -338,7 +358,8 @@ LIVE_IDENTITY_CORPUS: List[LiveIdentityCase] = [
         expected_state=IdentityConfidence.UNRESOLVED,
         expected_relationship=SiteRelationship.UNKNOWN,
         category="DISTRIBUTOR_NEGATIVE",
-        ground_truth_source="Synthetic Control Catalog (Third-Party Partner)",
+        provenance_type="SYNTHETIC_NEGATIVE_CONTROL",
+        ground_truth_provenance="Synthetic Control Catalog (Third-Party Partner)",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Third-party reseller or distributor naming must not be promoted to PRIMARY.",
     ),
@@ -566,26 +587,30 @@ def run_live_identity_benchmark(
     expected_non_conf_cases = [r for r in results if r.expected_state != "CONFIDENT"]
     cases_with_target_domain = [r for r in results if r.target_domain is not None]
     
-    # 1. Target Domain Recall (Did we resolve the intended canonical domain?)
+    # 1. Canonical Target Identification Rate (Did acquisition/resolver find the intended canonical domain?)
     target_domain_matches = sum(1 for r in cases_with_target_domain if r.is_domain_match)
-    target_domain_recall_pct = (target_domain_matches / len(cases_with_target_domain) * 100.0) if cases_with_target_domain else 0.0
+    canonical_target_id_rate_pct = (target_domain_matches / len(cases_with_target_domain) * 100.0) if cases_with_target_domain else 0.0
     
-    # 2. State Accuracy (Did the resolver assign the correct confidence state?)
+    # 2. State Accuracy (Did the resolver assign the exact expected confidence state?)
     state_acc_pct = (state_matches / total * 100.0) if total > 0 else 0.0
     
     # 3. CONFIDENT Recall (Correct state AND correct canonical domain)
     correct_confident_count = sum(1 for r in expected_conf_cases if r.actual_confidence == "CONFIDENT" and r.is_domain_match)
     conf_recall_pct = (correct_confident_count / len(expected_conf_cases) * 100.0) if expected_conf_cases else 0.0
+
+    # 4. Correct Confidence Given Correct Target (Once target is found, did the resolver assign expected confidence?)
+    correct_conf_given_target = sum(1 for r in cases_with_target_domain if r.is_domain_match and r.is_state_match)
+    correct_conf_given_target_pct = (correct_conf_given_target / target_domain_matches * 100.0) if target_domain_matches > 0 else 0.0
     
-    # 4. Target Misidentifications (CONFIDENT on wrong entity domain)
-    target_misidentified_count = sum(1 for r in results if r.is_target_misidentified)
-    target_misidentified_pct = (target_misidentified_count / total * 100.0) if total > 0 else 0.0
+    # 5. Target Misidentifications (CONFIDENT on wrong entity domain among cases with defined target)
+    target_misidentified_count = sum(1 for r in cases_with_target_domain if r.is_target_misidentified)
+    target_misidentified_pct = (target_misidentified_count / len(cases_with_target_domain) * 100.0) if cases_with_target_domain else 0.0
     
-    # 5. False CONFIDENT (CONFIDENT when expected AMBIGUOUS or UNRESOLVED)
+    # 6. False CONFIDENT (CONFIDENT when expected AMBIGUOUS or UNRESOLVED)
     false_conf_count = sum(1 for r in expected_non_conf_cases if r.actual_confidence == "CONFIDENT")
     false_conf_rate_pct = (false_conf_count / len(expected_non_conf_cases) * 100.0) if expected_non_conf_cases else 0.0
     
-    # 6. Non-CONFIDENT Safety (Correctly preserved as AMBIGUOUS or UNRESOLVED)
+    # 7. Non-CONFIDENT Safety (Correctly preserved as AMBIGUOUS or UNRESOLVED)
     correct_safety_count = sum(1 for r in expected_non_conf_cases if r.actual_confidence in {"AMBIGUOUS", "UNRESOLVED"})
     non_conf_safety_pct = (correct_safety_count / len(expected_non_conf_cases) * 100.0) if expected_non_conf_cases else 100.0
     
@@ -600,11 +625,13 @@ def run_live_identity_benchmark(
         "expected_non_confident_count": len(expected_non_conf_cases),
         "cases_with_target_domain_count": len(cases_with_target_domain),
         "target_domain_matches": target_domain_matches,
-        "target_domain_recall_pct": target_domain_recall_pct,
+        "canonical_target_id_rate_pct": canonical_target_id_rate_pct,
         "state_matches": state_matches,
         "state_accuracy_pct": state_acc_pct,
         "correct_confident_count": correct_confident_count,
         "confident_recall_pct": conf_recall_pct,
+        "correct_conf_given_target": correct_conf_given_target,
+        "correct_conf_given_target_pct": correct_conf_given_target_pct,
         "target_misidentified_count": target_misidentified_count,
         "target_misidentified_pct": target_misidentified_pct,
         "false_confident_count": false_conf_count,
@@ -626,25 +653,70 @@ def print_live_identity_scorecard(metrics: Dict[str, Any]):
         border_style="cyan"
     ))
 
-    # Core Metric Table
+    # Core Metric Table with Observed Result vs Acceptance Target vs Status
     t = Table(title="Core Multi-Dimensional Live Evaluation Metrics", expand=True, show_lines=True)
-    t.add_column("Evaluation Dimension", style="cyan", width=34)
-    t.add_column("Result", justify="right", width=22)
-    t.add_column("Operational Target / Interpretation", style="green", width=32)
+    t.add_column("Evaluation Metric / Dimension", style="cyan", width=34)
+    t.add_column("Observed Result", justify="right", width=22)
+    t.add_column("Acceptance Target", justify="center", width=20)
+    t.add_column("Status", justify="center", width=16)
 
-    dom_c = "green" if metrics["target_domain_recall_pct"] >= 80.0 else "yellow"
-    acc_c = "green" if metrics["state_accuracy_pct"] >= 85.0 else "yellow"
-    rec_c = "green" if metrics["confident_recall_pct"] >= 80.0 else "yellow"
-    mis_c = "green" if metrics["target_misidentified_count"] == 0 else "red"
-    fc_c = "green" if metrics["false_confident_count"] == 0 else "red"
+    # Status classification
+    target_id_status = "[green]PASS[/green]" if metrics["canonical_target_id_rate_pct"] >= 80.0 else "[yellow]BELOW TARGET[/yellow]"
+    state_acc_status = "[green]PASS[/green]" if metrics["state_accuracy_pct"] >= 85.0 else "[yellow]BELOW TARGET[/yellow]"
+    conf_rec_status = "[green]PASS[/green]" if metrics["confident_recall_pct"] >= 80.0 else "[yellow]BELOW TARGET[/yellow]"
+    conf_given_target_status = "[green]PASS[/green]" if metrics["correct_conf_given_target_pct"] >= 90.0 else "[yellow]BELOW TARGET[/yellow]"
+    misid_status = "[green]PASS[/green]" if metrics["target_misidentified_count"] == 0 else "[bold red]INVARIANT VIOLATION[/bold red]"
+    false_conf_status = "[green]PASS[/green]" if metrics["false_confident_count"] == 0 else "[bold red]INVARIANT VIOLATION[/bold red]"
+    safety_status = "[green]PASS[/green]" if metrics["non_confident_safety_pct"] == 100.0 else "[bold red]INVARIANT VIOLATION[/bold red]"
 
-    t.add_row("Target Canonical Domain Recall", f"[{dom_c}]{metrics['target_domain_recall_pct']:.1f}% ({metrics['target_domain_matches']}/{metrics['cases_with_target_domain_count']})[/{dom_c}]", ">= 80.0% Intended Entity Identified")
-    t.add_row("Identity State Accuracy", f"[{acc_c}]{metrics['state_accuracy_pct']:.1f}% ({metrics['state_matches']}/{metrics['total_cases']})[/{acc_c}]", ">= 85.0% Correct Decision State")
-    t.add_row("Live CONFIDENT Recall", f"[{rec_c}]{metrics['confident_recall_pct']:.1f}% ({metrics['correct_confident_count']}/{metrics['expected_confident_count']})[/{rec_c}]", ">= 80.0% Verified Canonical Recall")
-    t.add_row("Target Misidentification Rate", f"[{mis_c}]{metrics['target_misidentified_pct']:.1f}% ({metrics['target_misidentified_count']}/{metrics['total_cases']})[/{mis_c}]", "0.0% (No Wrong-Entity Confidence)")
-    t.add_row("Safety: False CONFIDENT Rate", f"[{fc_c}]{metrics['false_confident_rate_pct']:.1f}% ({metrics['false_confident_count']}/{metrics['expected_non_confident_count']})[/{fc_c}]", "0.0% (Hard Safety Invariant)")
-    t.add_row("Safety: Non-CONFIDENT Safety", f"[green]{metrics['non_confident_safety_pct']:.1f}% ({metrics['correct_safety_count']}/{metrics['expected_non_confident_count']})[/green]", "100.0% Non-CONFIDENT Preserved")
-    t.add_row("Mean End-to-End Latency", f"{metrics['avg_resolver_latency_ms']:.1f} ms", "Real-world Network / I/O Latency")
+    t.add_row(
+        "Canonical Target Identification Rate",
+        f"{metrics['canonical_target_id_rate_pct']:.1f}% ({metrics['target_domain_matches']}/{metrics['cases_with_target_domain_count']})",
+        ">= 80.0%",
+        target_id_status,
+    )
+    t.add_row(
+        "Identity State Accuracy",
+        f"{metrics['state_accuracy_pct']:.1f}% ({metrics['state_matches']}/{metrics['total_cases']})",
+        ">= 85.0%",
+        state_acc_status,
+    )
+    t.add_row(
+        "Live CONFIDENT Recall",
+        f"{metrics['confident_recall_pct']:.1f}% ({metrics['correct_confident_count']}/{metrics['expected_confident_count']})",
+        ">= 80.0%",
+        conf_rec_status,
+    )
+    t.add_row(
+        "Correct Confidence Given Target",
+        f"{metrics['correct_conf_given_target_pct']:.1f}% ({metrics['correct_conf_given_target']}/{metrics['target_domain_matches']})",
+        ">= 90.0%",
+        conf_given_target_status,
+    )
+    t.add_row(
+        "Target Misidentification Rate",
+        f"{metrics['target_misidentified_pct']:.1f}% ({metrics['target_misidentified_count']}/{metrics['cases_with_target_domain_count']})",
+        "0.0%",
+        misid_status,
+    )
+    t.add_row(
+        "Safety: False CONFIDENT Rate",
+        f"{metrics['false_confident_rate_pct']:.1f}% ({metrics['false_confident_count']}/{metrics['expected_non_confident_count']})",
+        "0.0% (Hard Invariant)",
+        false_conf_status,
+    )
+    t.add_row(
+        "Safety: Non-CONFIDENT Safety",
+        f"{metrics['non_confident_safety_pct']:.1f}% ({metrics['correct_safety_count']}/{metrics['expected_non_confident_count']})",
+        "100.0%",
+        safety_status,
+    )
+    t.add_row(
+        "Mean End-to-End Latency",
+        f"{metrics['avg_resolver_latency_ms']:.1f} ms",
+        "—",
+        "[dim]TELEMETRY[/dim]",
+    )
 
     console.print("\n")
     console.print(t)

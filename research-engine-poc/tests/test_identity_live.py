@@ -23,7 +23,8 @@ def test_live_corpus_ground_truth_integrity():
         assert case.case_id.startswith("live_")
         assert len(case.query_name) > 0
         assert len(case.target_entity) > 0
-        assert len(case.ground_truth_source) > 0
+        assert len(case.provenance_type) > 0
+        assert len(case.ground_truth_provenance) > 0
         assert len(case.ground_truth_verified_at) > 0
         assert len(case.rationale) > 0
         if case.expected_state == IdentityConfidence.CONFIDENT:
@@ -41,7 +42,8 @@ def test_instrumented_runner_stage_attribution_success():
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="GLOBAL_FINTECH",
-        ground_truth_source="Registry Test",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="Registry Test",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Unit test case for live runner.",
     )
@@ -87,7 +89,8 @@ def test_instrumented_runner_target_misidentification_detection():
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="LOGISTICS",
-        ground_truth_source="SEC Form D / Corporate Registry",
+        provenance_type="CORPORATE_REGISTRY",
+        ground_truth_provenance="SEC Form D / Corporate Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Simulated collision where retail Zipline surfaces instead.",
     )
@@ -130,7 +133,8 @@ def test_instrumented_runner_stage_attribution_search_dropoff():
         expected_state=IdentityConfidence.CONFIDENT,
         expected_relationship=SiteRelationship.PRIMARY,
         category="DEV_TEST",
-        ground_truth_source="Test Registry",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Test Registry",
         ground_truth_verified_at="2026-09-29T18:00:00Z",
         rationale="Simulated search dropoff.",
     )
