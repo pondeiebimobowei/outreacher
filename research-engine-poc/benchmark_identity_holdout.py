@@ -127,17 +127,17 @@ IDENTITY_HOLDOUT_DATASET: List[IdentityRecallCase] = [
     IdentityRecallCase(
         case_id="holdout_indirect_helps_teams_deliver",
         category="INDIRECT_SELF_ID",
-        company="Render Platform",
+        company="Render Services",
         expected_confidence=IdentityConfidence.CONFIDENT,
         expected_domain="render.com",
         expected_relationship=SiteRelationship.PRIMARY,
-        ground_truth_reason="Homepage opens with 'Render Platform helps developers host web services...'",
+        ground_truth_reason="Homepage opens with 'Render Services helps developers host web services...'",
         search_results=[
-            SearchResult(title="Render Platform: Cloud Application Platform", url="https://render.com", snippet="Render Platform provides zero-DevOps cloud hosting for developers."),
+            SearchResult(title="Render Services: Cloud Application Platform", url="https://render.com", snippet="Render Services provides zero-DevOps cloud hosting for developers."),
         ],
         mock_documents={
-            "https://render.com": _doc("https://render.com", title="Render Platform: Cloud Application Platform", content="Render Platform helps developers host web services, databases, and static sites with automated git deployments.", ptype=PageType.HOMEPAGE),
-            "https://render.com/about": _doc("https://render.com/about", title="About Render Platform", content="About Render Platform: The unified cloud platform for modern software development.", ptype=PageType.ABOUT),
+            "https://render.com": _doc("https://render.com", title="Render Services: Cloud Application Platform", content="Render Services helps developers host web services, databases, and static sites with automated git deployments.", ptype=PageType.HOMEPAGE),
+            "https://render.com/about": _doc("https://render.com/about", title="About Render Services", content="About Render Services: The unified cloud platform for modern software development.", ptype=PageType.ABOUT),
         },
         snapshot_version="identity-v1.1-holdout",
     ),

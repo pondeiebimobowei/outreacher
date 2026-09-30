@@ -11,7 +11,7 @@ from core.models import (
 )
 from core.urls import normalize_domain
 from identity.verifier import WebsiteVerifier
-from identity.lexicon import is_dictionary_word, is_coined_brand
+from identity.lexicon import is_dictionary_word
 
 # How many top candidates to run through the verifier.
 # This is an explicit policy constant, not a silent assumption.
@@ -206,7 +206,7 @@ class IdentityResolver:
             'ycombinator.com', 'pitchbook.com', 'zoominfo.com', 'builtin.com',
             'f6s.com', 'b2bhint.com', 'instagram.com', 'github.com',
             'app.apollo.io', 'web.app', 'herokuapp.com', 'vercel.app',
-            'github.io', 'maptons.com',
+            'github.io',
         }
 
         domain_evidence: dict = defaultdict(list)
@@ -297,6 +297,12 @@ class IdentityResolver:
         # ── Decision policy ──────────────────────────────────────────────────────
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
+            is_indexed_only = any(
+                ev.type == EvidenceType.FALLBACK_INDEXED for ev in best.evidence
+            ) and not any(
+                ev.type in (EvidenceType.SELF_IDENTITY, EvidenceType.PAGE_IDENTITY) and ev.source == "homepage"
+                for ev in best.evidence
+            )
             has_competing, competing_str = self._check_competing_brand_domains(
                 company_name, best, recorded_candidates
             )
@@ -306,6 +312,12 @@ class IdentityResolver:
                     f"Single PRIMARY candidate '{best.domain}', but conflicting brand domains "
                     f"({competing_str}) observed in search results. Manual disambiguation required. "
                     f"{best.relationship_reasoning}"
+                )
+            elif is_indexed_only:
+                confidence = IdentityConfidence.AMBIGUOUS
+                reasoning = (
+                    f"Single PRIMARY candidate '{best.domain}' established via search-indexed fallback (bot-blocked homepage). "
+                    f"Manual confirmation required. {best.relationship_reasoning}"
                 )
             elif is_shape_risk:
                 can_discount, discount_reason = self._should_discount_shape_risk(

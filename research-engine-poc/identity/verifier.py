@@ -612,7 +612,8 @@ class WebsiteVerifier:
 
         # Gate 4: Root / Homepage entity match
         norm_web_url = website_url.rstrip("/")
-        root_results = [r for r in clean if r.url.rstrip("/") == norm_web_url or r.url.rstrip("/") == norm_web_url.replace("www.", "")]
+        root_candidates = {norm_web_url, norm_web_url.replace("www.", ""), f"https://{domain}", f"http://{domain}"}
+        root_results = [r for r in clean if r.url.rstrip("/") in root_candidates]
 
         has_primary_match = False
         primary_url = website_url
@@ -627,11 +628,6 @@ class WebsiteVerifier:
             primary_url = r0.url
             if self._title_matches_entity(r0.title, company_name) or self._detect_self_identity(f"{r0.title}. {r0.snippet}", company_name):
                 has_primary_match = True
-        elif not has_primary_match and clean:
-            r0 = clean[0]
-            if self._title_matches_entity(r0.title, company_name) or self._detect_self_identity(f"{r0.title}. {r0.snippet}", company_name):
-                has_primary_match = True
-                primary_url = r0.url
 
         if not has_primary_match:
             return (
@@ -641,14 +637,14 @@ class WebsiteVerifier:
             )
 
         evidence.append(IdentityEvidence(
-            type=EvidenceType.SELF_IDENTITY,
-            source="indexed_search",
+            type=EvidenceType.FALLBACK_INDEXED,
+            source="indexed_fallback",
             url=primary_url,
             signal="INDEXED_ROOT_MATCH",
         ))
 
         # Gate 5: Secondary Corroborating Page
-        # Needs a distinct second result corroborating identity
+        # Needs a distinct second result corroborating identity on an identity-bearing route
         legal_forms = r"\b(?:se|gmbh|ltd|limited|inc|incorporated|corp|corporation|sa|s\.a\.|ag|pty|plc|sarl|bv|kg|llc)\b"
         legal_pattern = rf"\b{re.escape(company_lower)}(?:\s+(?:&|and)\s+\w+)?\s+{legal_forms}"
 
@@ -658,16 +654,24 @@ class WebsiteVerifier:
         for r in clean:
             if r.url.rstrip("/") == primary_url.rstrip("/"):
                 continue
+
+            ptype = TwoStageClassifier.stage1_classify_url(r.url)
+            if ptype in (PageType.BLOG, PageType.JOB_LISTING):
+                continue
+            route_kind, _ = classify_route_kind(r.url)
+            if route_kind == "EXCLUDED":
+                continue
+
             sample = f"{r.title}. {r.snippet}"
 
-            # Check 1: Secondary title matches entity
-            if self._secondary_title_matches_entity(r.title, company_name):
+            # Check 1: Secondary title matches entity on acceptable identity route
+            if route_kind in ("ABOUT", "LEGAL", "CONTACT", "COMPANY") and self._secondary_title_matches_entity(r.title, company_name):
                 corroborated = True
                 corroborating_url = r.url
                 break
 
-            # Check 2: Self-identity in secondary snippet
-            if self._detect_self_identity(sample, company_name):
+            # Check 2: Self-identity in secondary snippet on identity route
+            if route_kind in ("ABOUT", "LEGAL", "CONTACT", "COMPANY") and self._detect_self_identity(sample, company_name):
                 corroborated = True
                 corroborating_url = r.url
                 break
@@ -678,8 +682,7 @@ class WebsiteVerifier:
                 corroborating_url = r.url
                 break
 
-            # Check 4: Identity route kind (ABOUT, LEGAL, CONTACT, COMPANY) + company name present
-            route_kind, _ = classify_route_kind(r.url)
+            # Check 4: Identity route kind + company name present
             if route_kind in ("ABOUT", "LEGAL", "CONTACT", "COMPANY") and (
                 company_lower in r.title.lower() or company_lower in r.snippet.lower()
             ):
@@ -695,8 +698,8 @@ class WebsiteVerifier:
             )
 
         evidence.append(IdentityEvidence(
-            type=EvidenceType.SELF_IDENTITY,
-            source="indexed_search",
+            type=EvidenceType.FALLBACK_INDEXED,
+            source="indexed_fallback",
             url=corroborating_url,
             signal="INDEXED_CORROBORATING_PAGE",
         ))

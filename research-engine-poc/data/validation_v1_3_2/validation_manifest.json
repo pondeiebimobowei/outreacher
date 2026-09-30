@@ -1,0 +1,19 @@
+{
+  "benchmark_definition_commit": "62d34dc88a7943fe36521aedcb92590f92d21941",
+  "case_count": 34,
+  "contamination_audit_status": "PASSED (0 overlaps across all repository corpora)",
+  "corpus_version": "identity-v1.3.2-validation-34",
+  "created_at": "2026-09-30T10:55:00Z",
+  "dataset_sha256": "28a73267471b711f8af36436f4f073337ae047af0edf20d9b32cc3b1cfa756a2",
+  "expected_state_counts": {
+    "AMBIGUOUS": 7,
+    "CONFIDENT": 20,
+    "UNRESOLVED": 7
+  },
+  "hash_locked_files": [
+    "validation_cases.json",
+    "validation_cases.sha256",
+    "validation_manifest.json"
+  ],
+  "resolver_commit": "62d34dc88a7943fe36521aedcb92590f92d21941"
+}

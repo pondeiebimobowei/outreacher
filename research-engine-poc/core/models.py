@@ -43,6 +43,8 @@ class EvidenceType(str, Enum):
     THIRD_PARTY    = "THIRD_PARTY"
     # Generic page-identity signal (legacy; prefer the three types above)
     PAGE_IDENTITY  = "PAGE_IDENTITY"
+    # Search-indexed acquisition fallback evidence (Track 2)
+    FALLBACK_INDEXED = "FALLBACK_INDEXED"
 
 class IdentityEvidence(BaseModel):
     model_config = ConfigDict(frozen=True)
