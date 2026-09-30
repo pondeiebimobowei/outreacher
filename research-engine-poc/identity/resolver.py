@@ -50,17 +50,60 @@ class IdentityResolver:
         return sum(1 for t in terms if t in text_lower)
 
     # ── Name-shape risk ─────────────────────────────────────────────────────────
-    # Measures the *shape* of the name (short / dominated by generic suffixes).
-    # Does NOT calculate true collision probability; hence "name_shape_risk".
+    GENERIC_TERMS = {
+        "corp", "corporation", "inc", "company", "llc", "ltd",
+        "solutions", "media", "group", "holdings", "services",
+        "agency", "technologies", "tech", "global", "capital",
+        "partners", "ventures", "enterprises", "consulting",
+    }
+
+    GENERIC_DICTIONARY_WORDS = {
+        "acme", "apex", "summit", "vertex", "nexus", "global",
+        "general", "standard", "national", "united", "universal",
+        "premier", "prime", "beacon", "pinnacle", "matrix",
+        "fusion", "core", "horizon", "delta", "alpha", "omega",
+        "target", "allied", "central", "first", "direct", "select",
+        "pioneer", "atlas", "mercury", "focus", "venture", "crest",
+        "stride", "pulse", "craft", "spark", "scale", "sphere",
+    }
+
     def name_shape_risk(self, company_name: str) -> bool:
-        generic_terms = {
-            "corp", "corporation", "inc", "company", "llc", "ltd",
-            "solutions", "media", "group", "holdings", "services",
-            "agency", "technologies", "tech",
-        }
+        """
+        Measures the *shape* of the name (short / dominated by generic suffixes).
+        """
         words = set(re.findall(r'\b[a-z]+\b', company_name.lower()))
-        distinctive = words - generic_terms
+        distinctive = words - self.GENERIC_TERMS
         return len(distinctive) <= 1 and sum(len(w) for w in distinctive) <= 5
+
+    def _should_discount_shape_risk(
+        self,
+        company_name: str,
+        best_candidate: IdentityCandidate,
+    ) -> Tuple[bool, str]:
+        """
+        Evaluates whether shape risk on a uniquely verified PRIMARY candidate
+        should be discounted due to strong coined-brand distinctiveness and
+        exact domain correspondence (Track 3).
+
+        Returns (can_discount, reason).
+        """
+        words = set(re.findall(r'\b[a-z]+\b', company_name.lower()))
+        distinctive = words - self.GENERIC_TERMS
+
+        # 1. High-collision generic dictionary words cannot be discounted
+        if distinctive.issubset(self.GENERIC_DICTIONARY_WORDS):
+            return False, "Distinctive token is a generic dictionary placeholder word with high collision risk."
+
+        # 2. Strict domain correspondence
+        clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
+        clean_dist = re.sub(r'[^a-z0-9]', '', ''.join(distinctive))
+        clean_lbl = best_candidate.domain.split('.')[0].lower()
+
+        is_exact_domain = (clean_lbl == clean_dist) or (clean_lbl == clean_co)
+        if not is_exact_domain:
+            return False, "Domain does not exactly match distinctive brand name."
+
+        return True, "Coined brand with exact domain correspondence and uncontested corroboration."
 
     # ── Resolution ──────────────────────────────────────────────────────────────
     def resolve(
@@ -179,12 +222,20 @@ class IdentityResolver:
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
             if is_shape_risk:
-                confidence = IdentityConfidence.AMBIGUOUS
-                reasoning  = (
-                    f"Single PRIMARY candidate '{best.domain}', but name has high "
-                    f"shape-risk (short / generic-suffix dominated). Manual disambiguation "
-                    f"required. {best.relationship_reasoning}"
-                )
+                can_discount, discount_reason = self._should_discount_shape_risk(company_name, best)
+                if can_discount:
+                    confidence = IdentityConfidence.CONFIDENT
+                    reasoning = (
+                        f"Uniquely verified PRIMARY candidate with exact domain correspondence "
+                        f"and uncontested corroboration discounting shape-risk. {best.relationship_reasoning}"
+                    )
+                else:
+                    confidence = IdentityConfidence.AMBIGUOUS
+                    reasoning = (
+                        f"Single PRIMARY candidate '{best.domain}', but name has high "
+                        f"shape-risk (short / generic-suffix dominated: {discount_reason}). "
+                        f"Manual disambiguation required. {best.relationship_reasoning}"
+                    )
             else:
                 confidence = IdentityConfidence.CONFIDENT
                 reasoning  = (
