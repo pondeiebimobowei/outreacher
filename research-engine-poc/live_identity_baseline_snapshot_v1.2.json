@@ -532,7 +532,7 @@
       "primary_candidate_count": 0,
       "related_candidate_count": 0,
       "unknown_candidate_count": 5,
-      "final_stage_attribution": "FAIL_HOMEPAGE_ACQUISITION",
+      "final_stage_attribution": "FAIL_SECONDARY_CORROBORATION",
       "resolver_elapsed_ms": 14621.755208005197,
       "error_message": null
     },

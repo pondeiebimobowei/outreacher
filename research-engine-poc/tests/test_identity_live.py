@@ -160,3 +160,83 @@ def test_instrumented_runner_stage_attribution_search_dropoff():
     assert telemetry.is_state_match is False
     assert telemetry.search_attribution == "TARGET_DOMAIN_NOT_IN_SEARCH"
     assert telemetry.final_stage_attribution == "FAIL_SEARCH_DROPOFF"
+
+
+def test_instrumented_runner_secondary_corroboration_failure():
+    """Tests that when homepage self-ID succeeds but secondary corroboration fails, attribution is FAIL_SECONDARY_CORROBORATION."""
+    case = LiveIdentityCase(
+        case_id="test_live_missing_secondary",
+        query_name="Uncorroborated Co",
+        target_entity="Uncorroborated Co",
+        target_domain="uncorroborated.com",
+        expected_state=IdentityConfidence.CONFIDENT,
+        expected_relationship=SiteRelationship.PRIMARY,
+        category="DEV_TEST",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Test Registry",
+        ground_truth_verified_at="2026-09-29T18:00:00Z",
+        rationale="Simulated missing secondary corroboration.",
+    )
+
+    search = _DeterministicSearchProvider(
+        company="Uncorroborated Co",
+        domain="uncorroborated.com",
+        results=[
+            SearchResult(title="Uncorroborated Co - Official Homepage", url="https://uncorroborated.com", snippet="Uncorroborated Co builds tools."),
+        ]
+    )
+    crawl = _DeterministicCrawlManager({
+        "https://uncorroborated.com": _doc("https://uncorroborated.com", title="Uncorroborated Co", content="Uncorroborated Co is a developer tools company.", ptype=PageType.HOMEPAGE),
+        # No about/contact page exists -> secondary corroboration fails
+    })
+
+    runner = InstrumentedLiveIdentityRunner(
+        search_provider=search,
+        crawl_manager=crawl,
+        inter_case_delay=0.0,
+    )
+
+    telemetry = runner.evaluate_case(case)
+    assert telemetry.is_state_match is False
+    assert telemetry.actual_confidence == "UNRESOLVED"
+    assert telemetry.final_stage_attribution == "FAIL_SECONDARY_CORROBORATION"
+
+
+def test_instrumented_runner_homepage_acquisition_failure():
+    """Tests that when homepage crawl fails (WAF/error/no self-ID), attribution is FAIL_HOMEPAGE_ACQUISITION."""
+    case = LiveIdentityCase(
+        case_id="test_live_blocked_homepage",
+        query_name="Blocked Co",
+        target_entity="Blocked Co",
+        target_domain="blockedco.com",
+        expected_state=IdentityConfidence.CONFIDENT,
+        expected_relationship=SiteRelationship.PRIMARY,
+        category="DEV_TEST",
+        provenance_type="COMPANY_DIRECTORY",
+        ground_truth_provenance="Test Registry",
+        ground_truth_verified_at="2026-09-29T18:00:00Z",
+        rationale="Simulated blocked homepage.",
+    )
+
+    search = _DeterministicSearchProvider(
+        company="Blocked Co",
+        domain="blockedco.com",
+        results=[
+            SearchResult(title="Blocked Co - Homepage", url="https://blockedco.com", snippet="Blocked Co portal."),
+        ]
+    )
+    crawl = _DeterministicCrawlManager({
+        # Homepage crawl returns BLOCKED quality
+        "https://blockedco.com": _doc("https://blockedco.com", title="", content="", ptype=PageType.HOMEPAGE, quality=DocumentQuality.BLOCKED),
+    })
+
+    runner = InstrumentedLiveIdentityRunner(
+        search_provider=search,
+        crawl_manager=crawl,
+        inter_case_delay=0.0,
+    )
+
+    telemetry = runner.evaluate_case(case)
+    assert telemetry.is_state_match is False
+    assert telemetry.actual_confidence == "UNRESOLVED"
+    assert telemetry.final_stage_attribution == "FAIL_HOMEPAGE_ACQUISITION"

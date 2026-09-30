@@ -516,9 +516,16 @@ class InstrumentedLiveIdentityRunner:
                 elif case.target_domain and t.search_attribution == "NO_SEARCH_RESULTS":
                     t.final_stage_attribution = "FAIL_NO_SEARCH_RESULTS"
                 elif t.primary_candidate_count == 0:
-                    if not t.corroboration_signals:
+                    # Check if homepage self-identity was established on the target/top candidate
+                    has_hp_self_id = any(
+                        ("SELF_IDENTITY_STATEMENT" in sig or "TITLE_ENTITY_MATCH" in sig)
+                        for sig in t.corroboration_signals
+                    )
+                    if has_hp_self_id:
+                        # Homepage was successfully crawled and identified, but secondary about/contact corroboration failed
                         t.final_stage_attribution = "FAIL_SECONDARY_CORROBORATION"
                     else:
+                        # Homepage failed to crawl (WAF block / HTTP error) or lacked self-identity evidence
                         t.final_stage_attribution = "FAIL_HOMEPAGE_ACQUISITION"
                 elif t.primary_candidate_count > 1 and case.expected_state == IdentityConfidence.CONFIDENT:
                     t.final_stage_attribution = "FAIL_UNEXPECTED_COLLISION"
