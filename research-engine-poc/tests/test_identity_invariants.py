@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Optional, Set
 
 from core.models import (
-    CompanyIdentity, IdentityConfidence, IdentityCandidate, IdentityEvidence,
+    CompanyIdentity, IdentityConfidence, IdentityCandidate, IdentityEvidence, IdentityContext,
     CrawledDocument, SearchResult, SiteRelationship,
     DocumentQuality, PageType, EvidenceType,
 )
@@ -195,13 +195,13 @@ def test_single_coined_distinctive_word_resolves_to_confident():
 def test_multi_token_distinctive_phrase_resolves_to_confident():
     """Distinctive multi-token queries with exact primary match must resolve to CONFIDENT."""
     multi_cases = [
-        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin."),
-        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy."),
-        ("Moove Mobility", "moove.io", "Moove Mobility democratizes vehicle ownership in emerging markets."),
-        ("GitLab Engineering", "gitlab.com", "GitLab Engineering provides DevSecOps automation."),
+        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin.", IdentityContext(country="Germany", legal_name="Trade Republic Bank GmbH")),
+        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy.", IdentityContext(country="Italy", location="Milan", company_type="S.p.A.")),
+        ("Moove Mobility", "moove.io", "Moove Mobility democratizes vehicle ownership in emerging markets.", None),
+        ("GitLab Engineering", "gitlab.com", "GitLab Engineering provides DevSecOps automation.", None),
     ]
 
-    for brand, domain, desc in multi_cases:
+    for brand, domain, desc, context in multi_cases:
         search = _DeterministicSearchProvider(
             company=brand,
             domain=domain,
@@ -217,7 +217,7 @@ def test_multi_token_distinctive_phrase_resolves_to_confident():
         verifier = WebsiteVerifier(crawl, search)
         resolver = IdentityResolver(search, verifier)
 
-        identity = resolver.resolve(brand)
+        identity = resolver.resolve(brand, context=context)
         assert identity.confidence == IdentityConfidence.CONFIDENT, (
             f"Expected multi-token brand '{brand}' to be CONFIDENT, but got {identity.confidence}. Reasoning: {identity.reasoning}"
         )

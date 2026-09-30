@@ -5,7 +5,7 @@ tests/test_collision_search_dominance.py — Unit test suite for Lexical & Colli
 import pytest
 from datetime import datetime, timezone
 from core.models import (
-    CompanyIdentity, IdentityConfidence, IdentityCandidate,
+    CompanyIdentity, IdentityConfidence, IdentityCandidate, IdentityContext,
     CrawledDocument, SearchResult, SiteRelationship,
     DocumentQuality, PageType,
 )
@@ -184,14 +184,14 @@ def test_coined_single_word_brand_uncontested_promoted_to_confident():
 def test_multi_token_distinctive_name_promoted_to_confident():
     """Tests that multi-token corporate names with legal entity registration or coined tokens resolve to CONFIDENT."""
     multi_token_cases = [
-        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin."),
-        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy."),
-        ("Lami Technologies", "lami.world", "Lami Technologies builds embedded insurance."),
-        ("FairMoney Financial", "fairmoney.io", "FairMoney is a digital bank."),
-        ("Cowrywise Investments", "cowrywise.com", "Cowrywise provides investment solutions."),
+        ("Trade Republic", "traderepublic.com", "Trade Republic Bank GmbH is supervised by BaFin.", IdentityContext(country="Germany", legal_name="Trade Republic Bank GmbH")),
+        ("Bending Spoons", "bendingspoons.com", "Bending Spoons S.p.A. Registered in Milan, Italy.", IdentityContext(country="Italy", location="Milan", company_type="S.p.A.")),
+        ("Lami Technologies", "lami.world", "Lami Technologies builds embedded insurance.", None),
+        ("FairMoney Financial", "fairmoney.io", "FairMoney is a digital bank.", None),
+        ("Cowrywise Investments", "cowrywise.com", "Cowrywise provides investment solutions.", None),
     ]
 
-    for company, domain, desc in multi_token_cases:
+    for company, domain, desc, context in multi_token_cases:
         search = _DeterministicSearchProvider(
             company=company,
             domain=domain,
@@ -212,7 +212,7 @@ def test_multi_token_distinctive_name_promoted_to_confident():
         verifier = WebsiteVerifier(crawl, search)
         resolver = IdentityResolver(search, verifier)
 
-        identity = resolver.resolve(company)
+        identity = resolver.resolve(company, context=context)
         assert identity.confidence == IdentityConfidence.CONFIDENT
         assert identity.domain == domain
 

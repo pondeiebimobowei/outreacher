@@ -107,6 +107,7 @@ class IdentityDiagnosticTrace(BaseModel):
     shape_risk_result: bool
     entity_discrimination_basis: str
     final_decision_rule: str
+    evidence_sources: tuple[str, ...] = Field(default_factory=tuple)
 
 class CompanyIdentity(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -136,26 +137,34 @@ class IdentityContext(BaseModel):
     Optional caller-supplied context for entity disambiguation.
 
     Used when a bare company name resolves to multiple PRIMARY candidates
-    (genuine entity collision). The resolver scores each candidate's search
-    snippet against the provided terms and selects the one that aligns best.
+    (genuine entity collision) or has shape risk. The resolver scores
+    specific discriminators strictly against live crawled first-party evidence.
 
     Context must come from the caller's domain knowledge (user profile, job
     opportunity metadata, etc.) — NOT from an LLM inferring the user's intent.
 
-    Fields are free-text, not an enum. The resolver tokenises and scores them.
+    Fields are structured and free-text.
 
     Example:
         IdentityContext(
-            industry="software",
-            description="product development software",
-            company_type="software_product",
+            industry="fintech",
+            description="neobroker and investment platform",
+            location="Berlin",
+            country="Germany",
+            company_type="GmbH",
+            legal_name="Trade Republic Bank GmbH",
         )
     """
     model_config = ConfigDict(frozen=True)
 
-    industry: Optional[str] = None      # "software", "fintech", "venture capital"
-    description: Optional[str] = None   # "product development software"
-    company_type: Optional[str] = None  # "software_product", "vc_firm", "bank"
+    industry: Optional[str] = None            # "software", "fintech", "venture capital"
+    description: Optional[str] = None         # "product development software"
+    company_type: Optional[str] = None        # "software_product", "GmbH", "bank"
+    location: Optional[str] = None            # "Toronto", "Berlin", "Lagos", "San Francisco"
+    country: Optional[str] = None             # "Canada", "Germany", "Nigeria", "United States"
+    jurisdiction: Optional[str] = None        # "Germany", "Delaware", "Ontario", "UK"
+    legal_name: Optional[str] = None          # "Trade Republic Bank GmbH", "Iron Mountain Inc."
+    registration_number: Optional[str] = None # "HRB 12345", "7349102"
 
 class PageType(str, Enum):
     HOMEPAGE = "HOMEPAGE"

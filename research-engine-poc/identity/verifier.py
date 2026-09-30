@@ -162,26 +162,31 @@ class WebsiteVerifier:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="TITLE_ENTITY_MATCH",
+                title=hp_title, snippet=hp_scan_text[:1000],
             ))
         if hp_sentence_id:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="SELF_IDENTITY_STATEMENT",
+                title=hp_title, snippet=hp_scan_text[:1000],
             ))
         if hp_legal_match:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
-                url=website_url, signal="LEGAL_ENTITY_REGISTRATION",
+                url=website_url, signal="LEGAL_ENTITY_CORROBORATION",
+                title=hp_title, snippet=hp_scan_text[:1000],
             ))
         if hp_relationship:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.RELATIONSHIP, source="homepage",
                 url=website_url, signal="RELATIONSHIP_MENTION",
+                title=hp_title, snippet=hp_scan_text[:1000],
             ))
         elif hp_name_present and not hp_title_match and not hp_sentence_id:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.THIRD_PARTY, source="homepage",
                 url=website_url, signal="NAME_IN_CONTENT_ONLY",
+                title=hp_title, snippet=hp_scan_text[:1000],
             ))
 
         # ── 2. Early exits ────────────────────────────────────────────────────
@@ -591,10 +596,12 @@ class WebsiteVerifier:
                 
                 ev_list = [IdentityEvidence(
                     type=ev_type, source=f"secondary_{source.lower()}", url=url, signal=signal,
+                    title=doc_title, snippet=doc_scan_text[:1000],
                 )]
                 if re.search(r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|registered\s+in|registration\s+no|company\s+no|licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b', doc_sample):
                     ev_list.append(IdentityEvidence(
-                        type=EvidenceType.SELF_IDENTITY, source=f"secondary_{source.lower()}", url=url, signal="LEGAL_ENTITY_REGISTRATION",
+                        type=EvidenceType.SELF_IDENTITY, source=f"secondary_{source.lower()}", url=url, signal="LEGAL_ENTITY_CORROBORATION",
+                        title=doc_title, snippet=doc_scan_text[:1000],
                     ))
                 return entity_match, name_match, strength, False, ev_list
 
