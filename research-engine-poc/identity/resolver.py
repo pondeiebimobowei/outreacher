@@ -9,7 +9,7 @@ from core.models import (
     CompanyIdentity, IdentityConfidence, IdentityContext,
     IdentityCandidate, IdentityEvidence, EvidenceType, SiteRelationship,
 )
-from core.urls import normalize_domain
+from core.urls import normalize_domain, get_registrable_domain
 from identity.verifier import WebsiteVerifier
 from identity.lexicon import is_dictionary_word
 
@@ -131,17 +131,17 @@ class IdentityResolver:
 
         # 3. Search Result Collision / Competing Entity Detection
         if all_candidates:
-            best_root = best_candidate.domain.lower()
+            best_reg = get_registrable_domain(best_candidate.domain)
             competing_brand_domains = set()
             for cand in all_candidates:
                 c_domain = cand.domain.lower()
-                if not c_domain or c_domain == best_root:
+                if not c_domain:
                     continue
-                # Subdomains or parent domains of best_root are not competing entities
-                if c_domain.endswith("." + best_root) or best_root.endswith("." + c_domain):
+                c_reg = get_registrable_domain(c_domain)
+                if c_reg == best_reg:
                     continue
-                c_root = c_domain.split('.')[0]
-                if clean_dist in c_domain or c_root == clean_dist or c_root == clean_co:
+                c_root = c_reg.split('.')[0]
+                if (clean_dist and clean_dist in c_reg) or c_root == clean_dist or c_root == clean_co:
                     competing_brand_domains.add(c_domain)
 
             if len(competing_brand_domains) >= 1:
@@ -157,22 +157,23 @@ class IdentityResolver:
         all_candidates: List[IdentityCandidate],
     ) -> Tuple[bool, str]:
         """
-        Checks if search candidates contain multiple distinct root domains
-        claiming the same brand name (e.g. pennylane.ai vs pennylane.org).
+        Checks if search candidates contain multiple distinct registrable root domains
+        claiming the same brand name (e.g. pennylane.ai vs pennylane.fr vs pennylane.org).
         """
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
         clean_dist = self.canonical_brand_slug(company_name)
 
-        best_root = best_candidate.domain.lower()
+        best_reg = get_registrable_domain(best_candidate.domain)
         competing_brand_domains = set()
         for cand in all_candidates:
             c_domain = cand.domain.lower()
-            if not c_domain or c_domain == best_root:
+            if not c_domain:
                 continue
-            if c_domain.endswith("." + best_root) or best_root.endswith("." + c_domain):
+            c_reg = get_registrable_domain(c_domain)
+            if c_reg == best_reg:
                 continue
-            c_root = c_domain.split('.')[0]
-            if (clean_dist and clean_dist in c_domain) or c_root == clean_dist or c_root == clean_co:
+            c_root = c_reg.split('.')[0]
+            if (clean_dist and clean_dist in c_reg) or c_root == clean_dist or c_root == clean_co:
                 competing_brand_domains.add(c_domain)
 
         if competing_brand_domains:

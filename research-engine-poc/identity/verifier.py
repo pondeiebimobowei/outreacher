@@ -138,7 +138,8 @@ class WebsiteVerifier:
         # live crawler returns no title — common for JS-rendered SPAs.
         hp_title   = (hp_doc.title or hint_title or "").strip()
         hp_content = (hp_doc.content or "")
-        hp_sample  = (hp_title + ". " + hp_content[:3000]).lower()
+        hp_scan_text = hp_content if len(hp_content) <= 12000 else (hp_content[:6000] + " " + hp_content[-6000:])
+        hp_sample  = (hp_title + ". " + hp_scan_text).lower()
 
         hp_title_match  = self._title_matches_entity(hp_title, company_name)
         hp_sentence_id  = self._detect_self_identity(hp_sample, company_name)
@@ -494,9 +495,9 @@ class WebsiteVerifier:
         for url, (route_kind, source, ptype) in candidate_routes.items():
             if route_kind == "EXCLUDED" or ptype in (PageType.BLOG, PageType.JOB_LISTING):
                 continue
-            if route_kind in ("ABOUT", "LEGAL", "COMPANY"):
+            if route_kind in ("ABOUT", "LEGAL"):
                 strength = "strong"
-            elif route_kind == "CONTACT":
+            elif route_kind in ("COMPANY", "CONTACT"):
                 strength = "medium"
             elif route_kind == "CAREERS" or ptype == PageType.CAREERS_INDEX:
                 strength = "supplemental"
@@ -517,7 +518,8 @@ class WebsiteVerifier:
 
             doc_title   = (doc.title   or "").strip()
             doc_content = (doc.content or "")
-            doc_sample  = (doc_title + ". " + doc_content[:3000]).lower()
+            doc_scan_text = doc_content if len(doc_content) <= 12000 else (doc_content[:6000] + " " + doc_content[-6000:])
+            doc_sample  = (doc_title + ". " + doc_scan_text).lower()
 
             # Invariant: Catch-all SPA duplicate content check
             if hp_clean_content and len(hp_clean_content) > 30 and doc_content.strip() == hp_clean_content:

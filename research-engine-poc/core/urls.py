@@ -40,6 +40,48 @@ def normalize_domain(domain_or_url: str) -> str:
     except Exception:
         return ""
 
+
+# Common multi-part country code second-level domains (ccSLDs)
+_MULTI_PART_TLDS = {
+    "co.uk", "org.uk", "gov.uk", "ac.uk", "me.uk", "net.uk",
+    "com.au", "net.au", "org.au", "edu.au", "gov.au",
+    "co.nz", "net.nz", "org.nz", "govt.nz",
+    "co.za", "org.za", "net.za", "gov.za",
+    "com.ng", "org.ng", "gov.ng", "edu.ng",
+    "co.jp", "ne.jp", "or.jp", "ac.jp", "go.jp",
+    "com.br", "org.br", "net.br", "gov.br",
+    "co.in", "net.in", "org.in", "gen.in", "firm.in",
+    "com.sg", "org.sg", "edu.sg", "gov.sg",
+    "com.mx", "org.mx", "edu.mx", "gob.mx",
+    "com.tr", "org.tr", "edu.tr", "gov.tr",
+}
+
+def get_registrable_domain(domain_or_url: str) -> str:
+    """
+    Extracts the registrable domain (effective top-level domain + 1 label) from a hostname or URL.
+    Examples:
+      - 'eu.company.com' -> 'company.com'
+      - 'company.com' -> 'company.com'
+      - 'docs.company.co.uk' -> 'company.co.uk'
+      - 'company.example.com' -> 'example.com'
+    """
+    host = normalize_domain(domain_or_url)
+    if not host:
+        return ""
+    parts = host.split(".")
+    if len(parts) <= 1:
+        return host
+    
+    # Check if the last two parts match known multi-part ccTLDs (e.g. 'co.uk')
+    if len(parts) >= 3:
+        two_part_suffix = f"{parts[-2]}.{parts[-1]}"
+        if two_part_suffix in _MULTI_PART_TLDS:
+            return f"{parts[-3]}.{two_part_suffix}"
+            
+    # Default single-part TLD (e.g. 'company.com')
+    return f"{parts[-2]}.{parts[-1]}"
+
+
 def canonicalize_url(url: str) -> str:
     """
     Normalizes a URL to prevent duplicate crawls of identical pages:

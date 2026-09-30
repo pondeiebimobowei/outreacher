@@ -536,29 +536,152 @@ def test_lexicon_fails_closed_on_missing_or_empty_corpus():
     assert len(valid_dict) > 10000
 
 
-# ── Invariant 15: UNSAFE_CONFIDENT Metric Calculation Formula ─────────────────
+def _is_unsafe_confident(pred_state: IdentityConfidence, pred_domain: str, exp_state: IdentityConfidence, accepted_domains: Set[str]) -> bool:
+    return (pred_state == IdentityConfidence.CONFIDENT) and (
+        exp_state != IdentityConfidence.CONFIDENT or pred_domain not in accepted_domains
+    )
+
 
 def test_unsafe_confident_metric_formal_invariant():
     """Verifies that UNSAFE_CONFIDENT(case) is strictly True iff:
     predicted_state == CONFIDENT and (expected_state != CONFIDENT or predicted_domain not in accepted_domains)."""
-    def is_unsafe_confident(pred_state: IdentityConfidence, pred_domain: str, exp_state: IdentityConfidence, accepted_domains: Set[str]) -> bool:
-        return (pred_state == IdentityConfidence.CONFIDENT) and (
-            exp_state != IdentityConfidence.CONFIDENT or pred_domain not in accepted_domains
-        )
-
     # 1. Correct Confident
-    assert not is_unsafe_confident(IdentityConfidence.CONFIDENT, "stripe.com", IdentityConfidence.CONFIDENT, {"stripe.com"})
+    assert not _is_unsafe_confident(IdentityConfidence.CONFIDENT, "stripe.com", IdentityConfidence.CONFIDENT, {"stripe.com"})
 
     # 2. False Confident on Ambiguous ground truth
-    assert is_unsafe_confident(IdentityConfidence.CONFIDENT, "pillar.io", IdentityConfidence.AMBIGUOUS, set())
+    assert _is_unsafe_confident(IdentityConfidence.CONFIDENT, "pillar.io", IdentityConfidence.AMBIGUOUS, set())
 
     # 3. False Confident on Unresolved ground truth
-    assert is_unsafe_confident(IdentityConfidence.CONFIDENT, "linear.vc", IdentityConfidence.UNRESOLVED, set())
+    assert _is_unsafe_confident(IdentityConfidence.CONFIDENT, "linear.vc", IdentityConfidence.UNRESOLVED, set())
 
     # 4. Wrong domain on Confident ground truth
-    assert is_unsafe_confident(IdentityConfidence.CONFIDENT, "pennylane.com", IdentityConfidence.CONFIDENT, {"pennylane.fr"})
+    assert _is_unsafe_confident(IdentityConfidence.CONFIDENT, "pennylane.com", IdentityConfidence.CONFIDENT, {"pennylane.fr"})
 
     # 5. Safe Ambiguous / Unresolved
-    assert not is_unsafe_confident(IdentityConfidence.AMBIGUOUS, "", IdentityConfidence.CONFIDENT, {"stripe.com"})
-    assert not is_unsafe_confident(IdentityConfidence.AMBIGUOUS, "", IdentityConfidence.AMBIGUOUS, set())
-    assert not is_unsafe_confident(IdentityConfidence.UNRESOLVED, "", IdentityConfidence.UNRESOLVED, set())
+    assert not _is_unsafe_confident(IdentityConfidence.AMBIGUOUS, "", IdentityConfidence.CONFIDENT, {"stripe.com"})
+    assert not _is_unsafe_confident(IdentityConfidence.AMBIGUOUS, "", IdentityConfidence.AMBIGUOUS, set())
+    assert not _is_unsafe_confident(IdentityConfidence.UNRESOLVED, "", IdentityConfidence.UNRESOLVED, set())
+
+
+def test_metric_partition_identities_and_synthetic_matrix():
+    """
+    Formally tests the partition identities on a deliberate synthetic outcome set:
+    - gold_CONFIDENT = correct_target_CONFIDENT + wrong_target_CONFIDENT + missed_to_ambiguous + missed_to_unresolved
+    - UNSAFE_CONFIDENT = wrong_target_CONFIDENT + false_CONFIDENT_from_ambiguous + false_CONFIDENT_from_unresolved
+    - FALSE_CONFIDENT = false_CONFIDENT_from_ambiguous + false_CONFIDENT_from_unresolved
+    - Total = sum(all confusion matrix cells)
+    """
+    synthetic_evaluations = [
+        # 1. Correct Confident
+        {"case_id": "c1", "exp_state": IdentityConfidence.CONFIDENT, "pred_state": IdentityConfidence.CONFIDENT, "exp_domain": "stripe.com", "pred_domain": "stripe.com"},
+        {"case_id": "c2", "exp_state": IdentityConfidence.CONFIDENT, "pred_state": IdentityConfidence.CONFIDENT, "exp_domain": "klarna.com", "pred_domain": "klarna.com"},
+        # 2. Wrong-Target Confident (Pennylane hazard)
+        {"case_id": "c3", "exp_state": IdentityConfidence.CONFIDENT, "pred_state": IdentityConfidence.CONFIDENT, "exp_domain": "pennylane.fr", "pred_domain": "pennylane.com"},
+        # 3. Missed Confident to AMBIGUOUS (e.g. generic name)
+        {"case_id": "c4", "exp_state": IdentityConfidence.CONFIDENT, "pred_state": IdentityConfidence.AMBIGUOUS, "exp_domain": "linear.app", "pred_domain": ""},
+        # 4. Missed Confident to UNRESOLVED (missing corroboration)
+        {"case_id": "c5", "exp_state": IdentityConfidence.CONFIDENT, "pred_state": IdentityConfidence.UNRESOLVED, "exp_domain": "widget.com", "pred_domain": ""},
+        # 5. False Confident on AMBIGUOUS (collision leakage)
+        {"case_id": "c6", "exp_state": IdentityConfidence.AMBIGUOUS, "pred_state": IdentityConfidence.CONFIDENT, "exp_domain": "", "pred_domain": "pillar.io"},
+        # 6. Correct AMBIGUOUS
+        {"case_id": "c7", "exp_state": IdentityConfidence.AMBIGUOUS, "pred_state": IdentityConfidence.AMBIGUOUS, "exp_domain": "", "pred_domain": ""},
+        # 7. False Confident on UNRESOLVED
+        {"case_id": "c8", "exp_state": IdentityConfidence.UNRESOLVED, "pred_state": IdentityConfidence.CONFIDENT, "exp_domain": "", "pred_domain": "linear.vc"},
+        # 8. Correct UNRESOLVED
+        {"case_id": "c9", "exp_state": IdentityConfidence.UNRESOLVED, "pred_state": IdentityConfidence.UNRESOLVED, "exp_domain": "", "pred_domain": ""},
+    ]
+
+    total_cases = len(synthetic_evaluations)
+    gold_confident = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.CONFIDENT)
+    gold_non_confident = total_cases - gold_confident
+
+    correct_target_conf = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.CONFIDENT and e["pred_state"] == IdentityConfidence.CONFIDENT and e["pred_domain"] == e["exp_domain"])
+    wrong_target_conf = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.CONFIDENT and e["pred_state"] == IdentityConfidence.CONFIDENT and e["pred_domain"] != e["exp_domain"])
+    missed_conf_ambiguous = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.CONFIDENT and e["pred_state"] == IdentityConfidence.AMBIGUOUS)
+    missed_conf_unresolved = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.CONFIDENT and e["pred_state"] == IdentityConfidence.UNRESOLVED)
+
+    false_conf_from_amb = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.AMBIGUOUS and e["pred_state"] == IdentityConfidence.CONFIDENT)
+    false_conf_from_unres = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.UNRESOLVED and e["pred_state"] == IdentityConfidence.CONFIDENT)
+    false_conf = false_conf_from_amb + false_conf_from_unres
+
+    unsafe_conf = wrong_target_conf + false_conf
+
+    # Partition 1: Gold CONFIDENT decomposition
+    assert gold_confident == (correct_target_conf + wrong_target_conf + missed_conf_ambiguous + missed_conf_unresolved)
+    assert gold_confident == 5
+    assert correct_target_conf == 2
+    assert wrong_target_conf == 1
+    assert missed_conf_ambiguous == 1
+    assert missed_conf_unresolved == 1
+
+    # Partition 2: UNSAFE_CONFIDENT decomposition
+    assert unsafe_conf == (wrong_target_conf + false_conf)
+    assert unsafe_conf == 3  # 1 wrong-target + 1 false from AMB + 1 false from UNRES
+    assert false_conf == 2
+
+    # Partition 3: Non-CONFIDENT safety
+    correct_amb = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.AMBIGUOUS and e["pred_state"] == IdentityConfidence.AMBIGUOUS)
+    correct_unres = sum(1 for e in synthetic_evaluations if e["exp_state"] == IdentityConfidence.UNRESOLVED and e["pred_state"] == IdentityConfidence.UNRESOLVED)
+    assert gold_non_confident == (false_conf + correct_amb + correct_unres)
+    assert correct_amb == 1
+    assert correct_unres == 1
+
+    # Partition 4: Direct UNSAFE_CONFIDENT case verification
+    for e in synthetic_evaluations:
+        accepted = {e["exp_domain"]} if e["exp_domain"] else set()
+        is_unsafe = _is_unsafe_confident(e["pred_state"], e["pred_domain"], e["exp_state"], accepted)
+        if e["case_id"] in ("c3", "c6", "c8"):
+            assert is_unsafe is True, f"Case {e['case_id']} must be UNSAFE_CONFIDENT"
+        else:
+            assert is_unsafe is False, f"Case {e['case_id']} must NOT be UNSAFE_CONFIDENT"
+
+
+# ── Invariant 16: Registrable Domain Extraction and Disambiguation ────────────
+
+def test_registrable_domain_normalization_and_distinction():
+    """Verifies that get_registrable_domain correctly isolates registrable root domains
+    across single-part and multi-part country code TLDs."""
+    from core.urls import get_registrable_domain
+
+    # Single-part TLDs
+    assert get_registrable_domain("eu.company.com") == "company.com"
+    assert get_registrable_domain("company.com") == "company.com"
+    assert get_registrable_domain("company.ai") == "company.ai"
+    assert get_registrable_domain("company.example.com") == "example.com"
+    assert get_registrable_domain("https://sub.portal.app.brand.io/about") == "brand.io"
+
+    # Multi-part ccTLDs
+    assert get_registrable_domain("docs.company.co.uk") == "company.co.uk"
+    assert get_registrable_domain("portal.bank.com.ng") == "bank.com.ng"
+    assert get_registrable_domain("app.service.co.za") == "service.co.za"
+    assert get_registrable_domain("sub.shop.com.au") == "shop.com.au"
+
+
+# ── Invariant 17: Footer Relationship Scanning Scope ──────────────────────────
+
+def test_footer_relationship_detection_past_character_cutoff():
+    """Verifies that relationship statements located deep in the footer (past character 5000)
+    are successfully detected, preventing subordinate brands from becoming PRIMARY."""
+    company = "SubordinateBrand"
+    url = "https://subordinatebrand.com"
+    
+    # 6000 chars of marketing fluff followed by footer subsidiary statement
+    fluff = "We provide modern enterprise software solutions. " * 120
+    footer = "SubordinateBrand is a subsidiary of Global Enterprise Holdings Inc. All rights reserved."
+    hp_content = fluff + footer
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, f"{company} – Official", hp_content, PageType.HOMEPAGE),
+        f"{url}/about": _doc(f"{url}/about", f"About {company}", f"About {company}: {footer}", PageType.ABOUT),
+    })
+    search = _DeterministicSearchProvider(company=company, domain="subordinatebrand.com", results=[
+        SearchResult(title=f"{company} – Official", url=url, snippet="Enterprise software solutions."),
+    ])
+
+    verifier = WebsiteVerifier(crawl, search)
+    rel, msg, _ = verifier.classify_relationship(company, url)
+
+    assert rel in (SiteRelationship.RELATED, SiteRelationship.LEGACY), (
+        f"Footer subsidiary notice must classify as RELATED/LEGACY, got {rel}. Msg: {msg}"
+    )
+    assert rel != SiteRelationship.PRIMARY
