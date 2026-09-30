@@ -1,0 +1,69 @@
+╭─────────────────── Generalization & Safety Verification ───────────────────╮
+│ Identity Resolution Layer — Development vs Holdout Generalization Analysis │
+│ Development Corpus: identity-v1.1-frozen (28 cases)                        │
+│ Holdout Corpus:     identity-v1.1-holdout (10 unseen cases)                │
+│ Resolver Commit:    7a870ea (Frozen State Machine)                         │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+
+                  Development vs Unseen Holdout Metric Matrix                   
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃                      ┃              ┃   Holdout   ┃            ┃             ┃
+┃                      ┃  Dev Corpus  ┃ Corpus (10  ┃ Generaliz… ┃ Safety      ┃
+┃ Metric Dimension     ┃  (28 cases)  ┃   cases)    ┃    Gap     ┃ Target      ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ Identity State       │    82.1%     │    90.0%    │   -7.9%    │ >= 90.0% on │
+│ Accuracy             │   (23/28)    │   (9/10)    │            │ Holdout     │
+├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
+│ CONFIDENT Recall     │    72.2%     │ 83.3% (5/6) │   -11.1%   │ >= 85.0% on │
+│                      │   (13/18)    │             │            │ Holdout     │
+├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
+│ Safety: False        │ 0.0% (0/10)  │ 0.0% (0/4)  │ 0.0% (Zero │ Strictly    │
+│ CONFIDENT Rate       │              │             │    Gap)    │ 0.0%        │
+├──────────────────────┼──────────────┼─────────────┼────────────┼─────────────┤
+│ Safety:              │    100.0%    │   100.0%    │ 0.0% (Zero │ 100.0%      │
+│ Non-CONFIDENT        │   (10/10)    │    (4/4)    │    Gap)    │ Controls    │
+│ Correctness          │              │             │            │             │
+└──────────────────────┴──────────────┴─────────────┴────────────┴─────────────┘
+
+
+                      Holdout Confusion Matrix (10 Cases)                       
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃                    ┃    Predicted     ┃     Predicted     ┃    Predicted     ┃
+┃ Expected State     ┃    CONFIDENT     ┃     AMBIGUOUS     ┃    UNRESOLVED    ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│ CONFIDENT (6)      │    5 (Correct    │  1 (Missed Conf)  │  0 (Missed ID)   │
+│                    │     Recall)      │                   │                  │
+├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
+│ AMBIGUOUS (1)      │  0 (False Conf)  │    1 (Correct     │        0         │
+│                    │                  │      Safety)      │                  │
+├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
+│ UNRESOLVED (3)     │  0 (False Conf)  │         0         │    3 (Correct    │
+│                    │                  │                   │     Safety)      │
+└────────────────────┴──────────────────┴───────────────────┴──────────────────┘
+
+
+                      Holdout Per-Case Outcomes (10 Cases)                      
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━┳━━━┓
+┃ Case ID                       ┃ Category  ┃ Expe… ┃ Actu… ┃ Domain       ┃ … ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━╇━━━┩
+│ holdout_spa_nextjs_csr_hydra… │ SPA_REND… │ CONF… │ CONF… │ clickup.com  │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_spa_svelte_bundle_ro… │ SPA_REND… │ CONF… │ CONF… │ sentry.io    │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_unconv_our_story_rou… │ UNCONVEN… │ CONF… │ CONF… │ loom.com     │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_unconv_contact_suppo… │ UNCONVEN… │ CONF… │ CONF… │ postmarkapp… │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_indirect_helps_teams… │ INDIRECT… │ CONF… │ AMBI… │ —            │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_indirect_offers_unif… │ INDIRECT… │ CONF… │ CONF… │ moderntreas… │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_subdomain_doc_portal  │ SUBDOMAI… │ UNRE… │ UNRE… │ —            │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_subdomain_operating_… │ SUBDOMAI… │ UNRE… │ UNRE… │ —            │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_neg_competing_brand_… │ NEGATIVE… │ AMBI… │ AMBI… │ —            │ … │
+├───────────────────────────────┼───────────┼───────┼───────┼──────────────┼───┤
+│ holdout_neg_portfolio_divisi… │ NEGATIVE… │ UNRE… │ UNRE… │ —            │ … │
+└───────────────────────────────┴───────────┴───────┴───────┴──────────────┴───┘

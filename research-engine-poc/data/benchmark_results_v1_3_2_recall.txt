@@ -1,0 +1,122 @@
+╭──────────────────────── Identity Layer Verification ─────────────────────────╮
+│ Dual-Contract Research Engine — Identity Recall & State Accuracy Benchmark   │
+│ Corpus Snapshot: identity-v1.1-frozen (28 Frozen Fixtures across 5           │
+│ Categories)                                                                  │
+│ Breakdown: 18 Expected CONFIDENT, 10 Expected Non-CONFIDENT Controls         │
+│ Invariants: 1. Strict PRIMARY Contract | 2. False CONFIDENT strictly 0.0%    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+      Identity Recall & State Correctness Scorecard (identity-v1.1-frozen)      
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric Dimension            ┃ Result Value       ┃ Target / Invariant        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Identity State Accuracy     │ 82.1% (23/28)      │ >= 95.0% Correct Decision │
+│                             │                    │ State                     │
+│ CONFIDENT Recall            │ 72.2% (13/18)      │ >= 90.0% Legitimate       │
+│                             │                    │ Recall                    │
+│ Safety: False CONFIDENT     │ 0.0% (0/10)        │ 0.0% (Hard Safety         │
+│ Rate                        │                    │ Invariant)                │
+│ Safety: Non-CONFIDENT       │ 100.0% (10/10)     │ 100.0% Controls Preserved │
+│ Correctness                 │                    │                           │
+│ Missed Confidence           │ 5                  │ 0 (Unnecessary Ambiguity) │
+│ (Ambiguous)                 │                    │                           │
+│ Missed Identity             │ 0                  │ 0 (Unnecessary Rejection) │
+│ (Unresolved)                │                    │                           │
+│ Correct Safety (Ambiguous)  │ 2                  │ Preserved Collision Gate  │
+│ Correct Safety (Unresolved) │ 8                  │ Preserved Evidence Gate   │
+└─────────────────────────────┴────────────────────┴───────────────────────────┘
+
+
+        Identity Outcome Confusion Matrix (28 Cases - identity-v1.2-dev)        
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃                    ┃    Predicted     ┃     Predicted     ┃    Predicted     ┃
+┃ Expected State     ┃    CONFIDENT     ┃     AMBIGUOUS     ┃    UNRESOLVED    ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│ CONFIDENT (18)     │   13 (Correct    │  5 (Missed Conf)  │  0 (Missed ID)   │
+│                    │     Recall)      │                   │                  │
+├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
+│ AMBIGUOUS (2)      │  0 (False Conf)  │    2 (Correct     │        0         │
+│                    │                  │      Safety)      │                  │
+├────────────────────┼──────────────────┼───────────────────┼──────────────────┤
+│ UNRESOLVED (8)     │  0 (False Conf)  │         0         │    8 (Correct    │
+│                    │                  │                   │     Safety)      │
+└────────────────────┴──────────────────┴───────────────────┴──────────────────┘
+
+
+                Category & Family Breakdown (identity-v1.2-dev)                 
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
+┃ Category Family         ┃ Total Cases ┃   State Accuracy ┃   False CONFIDENT ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩
+│ SPA_RENDERED            │      5      │      60.0% (3/5) │                 0 │
+├─────────────────────────┼─────────────┼──────────────────┼───────────────────┤
+│ UNCONVENTIONAL_PATH     │      7      │      85.7% (6/7) │                 0 │
+├─────────────────────────┼─────────────┼──────────────────┼───────────────────┤
+│ INDIRECT_SELF_ID        │      6      │      66.7% (4/6) │                 0 │
+├─────────────────────────┼─────────────┼──────────────────┼───────────────────┤
+│ SUBDOMAIN_MULTI_TIER    │      4      │     100.0% (4/4) │                 0 │
+├─────────────────────────┼─────────────┼──────────────────┼───────────────────┤
+│ NEGATIVE_CONTROL        │      6      │     100.0% (6/6) │                 0 │
+└─────────────────────────┴─────────────┴──────────────────┴───────────────────┘
+
+
+               Per-Case Verification & Outcome Details (24 Cases)               
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━┓
+┃ Case ID                    ┃ Category   ┃ Expec… ┃ Actual ┃ Domain       ┃ … ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━┩
+│ spa_empty_body_with_hint_… │ SPA_RENDE… │ CONFI… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ spa_minimal_tagline_clien… │ SPA_RENDE… │ CONFI… │ CONFI… │ vercel.com   │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ spa_framework_shell_react  │ SPA_RENDE… │ CONFI… │ CONFI… │ retool.com   │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ spa_angular_root_loader    │ SPA_RENDE… │ CONFI… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ spa_shadow_dom_minimal_te… │ SPA_RENDE… │ CONFI… │ CONFI… │ figma.com    │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ unconv_company_story_path  │ UNCONVENT… │ CONFI… │ CONFI… │ moove.io     │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ unconv_who_we_are_path     │ UNCONVENT… │ CONFI… │ CONFI… │ zipline.com  │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ unconv_about_us_mission_p… │ UNCONVENT… │ CONFI… │ CONFI… │ paystack.com │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ unconv_company_overview_p… │ UNCONVENT… │ CONFI… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ unconv_contact_sales_path  │ UNCONVENT… │ CONFI… │ CONFI… │ supabase.com │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ indirect_action_verb_brand │ INDIRECT_… │ CONFI… │ CONFI… │ moniepoint.… │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ indirect_mission_statement │ INDIRECT_… │ CONFI… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ indirect_enables_enterpri… │ INDIRECT_… │ CONFI… │ CONFI… │ datadoghq.c… │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ indirect_serves_global_wo… │ INDIRECT_… │ CONFI… │ CONFI… │ deel.com     │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ indirect_welcome_phrase_o… │ INDIRECT_… │ CONFI… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ subdomain_related_product… │ SUBDOMAIN… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ subdomain_rebranded_legac… │ SUBDOMAIN… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ subdomain_standalone_prod… │ SUBDOMAIN… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ subdomain_hosted_engineer… │ SUBDOMAIN… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ neg_competing_primary_col… │ NEGATIVE_… │ AMBIG… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ neg_shape_risk_generic_na… │ NEGATIVE_… │ AMBIG… │ AMBIG… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ neg_unsupported_homepage_… │ NEGATIVE_… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ neg_unrelated_distributor… │ NEGATIVE_… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ neg_adversarial_exact_dom… │ NEGATIVE_… │ UNRES… │ UNRES… │ —            │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ dev_route_probing_about_us │ UNCONVENT… │ CONFI… │ CONFI… │ gitlab.com   │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ dev_lexical_subtoken_doma… │ INDIRECT_… │ CONFI… │ CONFI… │ retool.com   │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ dev_route_probing_company… │ UNCONVENT… │ CONFI… │ CONFI… │ anthropic.c… │ … │
+├────────────────────────────┼────────────┼────────┼────────┼──────────────┼───┤
+│ dev_subtoken_negative_con… │ NEGATIVE_… │ UNRES… │ UNRES… │ —            │ … │
+└────────────────────────────┴────────────┴────────┴────────┴──────────────┴───┘

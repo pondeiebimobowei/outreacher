@@ -476,7 +476,7 @@ class WebsiteVerifier:
 
         # 3. Multi-candidate conventional route fallback probing
         conventional_paths = [
-            "/about", "/about-us", "/company", "/company/about",
+            "/about", "/about-us", "/company", "/company/about", "/about/company",
             "/who-we-are", "/our-story", "/contact", "/contact-us",
             "/impressum", "/legal", "/mentions-legales", "/aviso-legal",
         ]

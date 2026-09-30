@@ -58,6 +58,20 @@ class IdentityResolver:
         "partners", "ventures", "enterprises", "consulting", "financial",
     }
 
+    GENERIC_MODIFIERS = {
+        "general", "global", "national", "international", "first",
+        "universal", "standard", "central", "united", "american",
+        "federal", "mutual", "prime", "direct", "total", "core",
+        "premier", "advanced", "integrated", "strategic", "applied",
+    }
+
+    GENERIC_CATEGORY_NOUNS = {
+        "logistics", "capital", "security", "financial", "partners",
+        "ventures", "holdings", "services", "solutions", "management",
+        "consulting", "enterprises", "investments", "properties",
+        "resources", "industries", "systems",
+    }
+
     @classmethod
     def extract_distinctive_tokens(cls, company_name: str) -> List[str]:
         """Extracts distinctive brand tokens in order, stripping common corporate suffixes."""
@@ -92,6 +106,8 @@ class IdentityResolver:
                 return True
         elif sum(len(t) for t in tokens) <= 5:
             return True
+        elif all(is_dictionary_word(t) for t in tokens):
+            return True
         return False
 
     def name_shape_risk(self, company_name: str) -> bool:
@@ -111,44 +127,53 @@ class IdentityResolver:
 
         Returns (can_discount, reason).
         """
+        # 0. Candidate provenance: indexed-only evidence cannot discount shape risk
+        if best_candidate.is_indexed_only:
+            return False, "Candidate established via search-indexed fallback (bot-blocked homepage) carries epistemic cap."
+
         distinctive = self.extract_distinctive_tokens(company_name)
         if not distinctive:
             return False, "Query contains only generic corporate suffixes without a distinctive brand token."
 
-        # 1. Lexical check: common dictionary words cannot discount shape risk
-        for token in distinctive:
-            if is_dictionary_word(token):
-                return False, f"Distinctive token '{token}' is a common dictionary word with high entity collision risk."
+        # 1. Single-token dictionary words carry unmitigated entity collision risk
+        if len(distinctive) == 1:
+            tok = distinctive[0]
+            if is_dictionary_word(tok):
+                return False, f"Single-token dictionary word '{tok}' carries high entity collision risk."
 
-        # 2. Strict domain correspondence
+        # 2. Multi-token generic combinations (e.g. 'General Logistics Services', 'First National Security')
+        if len(distinctive) >= 2:
+            if distinctive[0] in self.GENERIC_MODIFIERS and all(
+                t in (self.GENERIC_CATEGORY_NOUNS | self.GENERIC_TERMS | self.GENERIC_MODIFIERS) for t in distinctive[1:]
+            ):
+                return False, f"Multi-token generic combination ({' '.join(distinctive)}) without distinctive brand token."
+
+        # 3. Domain correspondence
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
         clean_dist = self.canonical_brand_slug(company_name)
         clean_lbl = best_candidate.domain.split('.')[0].lower()
+        clean_tok0 = distinctive[0] if distinctive else ""
 
-        is_exact_domain = (clean_lbl == clean_dist) or (clean_lbl == clean_co) or best_candidate.domain.startswith(clean_dist + ".")
+        is_exact_domain = (
+            (clean_lbl == clean_dist)
+            or (clean_lbl == clean_co)
+            or best_candidate.domain.startswith(clean_dist + ".")
+            or (clean_lbl == clean_tok0)
+            or (clean_tok0 and clean_lbl.startswith(clean_tok0))
+            or (clean_tok0 and clean_tok0.startswith(clean_lbl))
+        )
         if not is_exact_domain:
-            return False, f"Domain '{best_candidate.domain}' does not exactly match distinctive brand name."
+            return False, f"Domain '{best_candidate.domain}' does not match distinctive brand name."
 
-        # 3. Search Result Collision / Competing Entity Detection
+        # 4. Search Result Collision / Competing Entity Detection
         if all_candidates:
-            best_reg = get_registrable_domain(best_candidate.domain)
-            competing_brand_domains = set()
-            for cand in all_candidates:
-                c_domain = cand.domain.lower()
-                if not c_domain:
-                    continue
-                c_reg = get_registrable_domain(c_domain)
-                if c_reg == best_reg:
-                    continue
-                c_root = c_reg.split('.')[0]
-                if (clean_dist and clean_dist in c_reg) or c_root == clean_dist or c_root == clean_co:
-                    competing_brand_domains.add(c_domain)
-
-            if len(competing_brand_domains) >= 1:
-                competing_str = ", ".join(sorted(competing_brand_domains)[:3])
+            has_competing, competing_str = self._check_competing_brand_domains(
+                company_name, best_candidate, all_candidates
+            )
+            if has_competing:
                 return False, f"Multiple distinct brand domains ({competing_str}) observed in search results."
 
-        return True, "Coined brand with exact domain correspondence, uncontested search dominance, and verified corroboration."
+        return True, "Distinctive brand with exact domain correspondence, uncontested search dominance, and verified corroboration."
 
     def _check_competing_brand_domains(
         self,
@@ -298,12 +323,7 @@ class IdentityResolver:
         # ── Decision policy ──────────────────────────────────────────────────────
         if len(verified_candidates) == 1:
             best = verified_candidates[0]
-            is_indexed_only = any(
-                ev.type == EvidenceType.FALLBACK_INDEXED for ev in best.evidence
-            ) and not any(
-                ev.type in (EvidenceType.SELF_IDENTITY, EvidenceType.PAGE_IDENTITY) and ev.source == "homepage"
-                for ev in best.evidence
-            )
+            is_indexed_only = best.is_indexed_only
             has_competing, competing_str = self._check_competing_brand_domains(
                 company_name, best, recorded_candidates
             )

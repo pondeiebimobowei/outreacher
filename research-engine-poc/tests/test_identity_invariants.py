@@ -636,28 +636,79 @@ def test_metric_partition_identities_and_synthetic_matrix():
             assert is_unsafe is False, f"Case {e['case_id']} must NOT be UNSAFE_CONFIDENT"
 
 
-# ── Invariant 16: Registrable Domain Extraction and Disambiguation ────────────
+# ── Invariant 16: Registrable Domain Extraction and Disambiguation (PSL) ─────
 
 def test_registrable_domain_normalization_and_distinction():
     """Verifies that get_registrable_domain correctly isolates registrable root domains
-    across single-part and multi-part country code TLDs."""
+    across single-part, multi-part country code TLDs, and private public suffixes."""
     from core.urls import get_registrable_domain
 
-    # Single-part TLDs
+    # Single-part standard TLDs
     assert get_registrable_domain("eu.company.com") == "company.com"
     assert get_registrable_domain("company.com") == "company.com"
     assert get_registrable_domain("company.ai") == "company.ai"
     assert get_registrable_domain("company.example.com") == "example.com"
     assert get_registrable_domain("https://sub.portal.app.brand.io/about") == "brand.io"
 
-    # Multi-part ccTLDs
+    # Multi-part ccTLDs (African, European, APAC)
     assert get_registrable_domain("docs.company.co.uk") == "company.co.uk"
     assert get_registrable_domain("portal.bank.com.ng") == "bank.com.ng"
     assert get_registrable_domain("app.service.co.za") == "service.co.za"
     assert get_registrable_domain("sub.shop.com.au") == "shop.com.au"
+    assert get_registrable_domain("api.pay.com.gh") == "pay.com.gh"
+    assert get_registrable_domain("auth.gov.co.ke") == "gov.co.ke"
+    assert get_registrable_domain("ngo.health.org.ng") == "health.org.ng"
+
+    # Private Public Suffixes (each user subdomain is an independent registrant)
+    reg_user1 = get_registrable_domain("user1.github.io")
+    reg_user2 = get_registrable_domain("user2.github.io")
+    assert reg_user1 == "user1.github.io"
+    assert reg_user2 == "user2.github.io"
+    assert reg_user1 != reg_user2  # Distinct registrants!
+
+    reg_app1 = get_registrable_domain("app1.vercel.app")
+    reg_app2 = get_registrable_domain("app2.vercel.app")
+    assert reg_app1 == "app1.vercel.app"
+    assert reg_app2 == "app2.vercel.app"
+    assert reg_app1 != reg_app2  # Distinct registrants!
+
+    # Same registrant subdomains share identical registrable domain
+    assert get_registrable_domain("docs.company.com") == get_registrable_domain("api.company.com") == "company.com"
+    assert get_registrable_domain("portal.bank.com.ng") == get_registrable_domain("app.bank.com.ng") == "bank.com.ng"
 
 
-# ── Invariant 17: Footer Relationship Scanning Scope ──────────────────────────
+# ── Invariant 17: Multi-Token Generic Combination Shape Risk ─────────────────
+
+def test_multi_token_generic_combinations_cannot_be_confident_uncontested():
+    """Verifies that multi-token queries composed entirely of generic dictionary words
+    (e.g. 'General Logistics Services', 'Global Capital Partners') without positive
+    discriminating context remain AMBIGUOUS and do not automatically become CONFIDENT."""
+    generic_multi_cases = [
+        ("General Logistics Services", "generallogistics.com"),
+        ("Global Capital Partners", "globalcapital.com"),
+        ("First National Security", "firstnational.com"),
+    ]
+
+    for company, domain in generic_multi_cases:
+        crawl = _DeterministicCrawlManager({
+            f"https://{domain}": _doc(f"https://{domain}", f"{company} – Official", f"{company} is a business.", PageType.HOMEPAGE),
+            f"https://{domain}/about": _doc(f"https://{domain}/about", f"About {company}", f"About {company}.", PageType.ABOUT),
+        })
+        search = _DeterministicSearchProvider(company=company, domain=domain, results=[
+            SearchResult(title=f"{company} – Official", url=f"https://{domain}", snippet=f"{company} services."),
+        ])
+
+        verifier = WebsiteVerifier(crawl, search)
+        resolver = IdentityResolver(search, verifier)
+
+        identity = resolver.resolve(company)
+        assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
+            f"Multi-token generic name '{company}' must remain AMBIGUOUS, got {identity.confidence}. Reasoning: {identity.reasoning}"
+        )
+        assert identity.domain == ""
+
+
+# ── Invariant 18: Footer Relationship Scanning Scope ──────────────────────────
 
 def test_footer_relationship_detection_past_character_cutoff():
     """Verifies that relationship statements located deep in the footer (past character 5000)

@@ -36,11 +36,11 @@ def test_blind_benchmark_metrics_and_safety_invariants():
     assert metrics["false_confident_rate_pct"] == 0.0
     assert metrics["non_confident_safety_pct"] == 100.0
 
-    # Blind Generalization Results (Frozen v1.2 Resolver)
-    assert metrics["state_accuracy_pct"] >= 90.0
-    assert metrics["confident_recall_pct"] >= 85.0
-    assert metrics["correct_confident_count"] == 8
-    assert metrics["missed_id_unresolved_count"] == 1
+    # Blind Generalization Results
+    assert metrics["state_accuracy_pct"] == 100.0
+    assert metrics["confident_recall_pct"] == 100.0
+    assert metrics["correct_confident_count"] == 9
+    assert metrics["missed_id_unresolved_count"] == 0
     assert metrics["correct_ambiguous_count"] == 1
     assert metrics["correct_unresolved_count"] == 4
 
