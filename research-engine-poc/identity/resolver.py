@@ -417,6 +417,12 @@ class IdentityResolver:
                 company_name, best_candidate, all_candidates
             )
             if has_competing:
+                if context:
+                    strong_fields, _, _ = self._categorize_context_strength(context)
+                    if strong_fields:
+                        is_matched, match_reason, _ = self._evaluate_context_discrimination(best_candidate, context)
+                        if is_matched:
+                            return True, match_reason, "USER_CONTEXT"
                 return False, f"Multiple distinct brand domains ({competing_str}) observed in search results.", "NONE"
 
         # 3. Check for External Registry Match
@@ -452,6 +458,12 @@ class IdentityResolver:
         if any(not is_dictionary_word(t) for t in distinctive):
             has_namesake, namesake_str = self._check_active_namesake_collision(company_name, best_candidate)
             if has_namesake:
+                if context:
+                    strong_fields, _, _ = self._categorize_context_strength(context)
+                    if strong_fields:
+                        is_matched, match_reason, _ = self._evaluate_context_discrimination(best_candidate, context)
+                        if is_matched:
+                            return True, match_reason, "USER_CONTEXT"
                 return False, f"Active collision probe detected competing brand domains ({namesake_str}).", "NONE"
             return True, "Entity collision risk discounted via coined brand token verified by active namesake collision probe.", "COINED_BRAND_TOKEN"
 
@@ -560,6 +572,38 @@ class IdentityResolver:
             return True, competing_str
 
         return False, ""
+
+    def _disambiguate_multiple_verified_candidates(
+        self,
+        verified_candidates: List[IdentityCandidate],
+        context: Optional[IdentityContext],
+    ) -> Tuple[Optional[IdentityCandidate], str, str]:
+        """
+        Disambiguates multiple verified PRIMARY candidates using strong caller context.
+        Evaluates context strictly against live first-party crawled evidence for every candidate.
+
+        Returns (selected_candidate, match_reason, discrimination_basis) if exactly one
+        candidate matches; otherwise returns (None, reason, "NONE").
+        """
+        if not context or len(verified_candidates) <= 1:
+            return None, "No context or insufficient candidates", "NONE"
+
+        strong_fields, _, _ = self._categorize_context_strength(context)
+        if not strong_fields:
+            return None, "No strong context attributes provided", "NONE"
+
+        matching: List[Tuple[IdentityCandidate, str, str]] = []
+        for cand in verified_candidates:
+            if cand.is_indexed_only:
+                continue
+            is_matched, reason, basis = self._evaluate_context_discrimination(cand, context)
+            if is_matched:
+                matching.append((cand, reason, basis))
+
+        if len(matching) == 1:
+            return matching[0]
+
+        return None, f"Context matched {len(matching)} candidates (ambiguous)", "NONE"
 
     # ── Resolution ──────────────────────────────────────────────────────────────
     def resolve(
@@ -699,13 +743,27 @@ class IdentityResolver:
         competing_count = 0
         entity_discrimination_basis = "COINED_BRAND_TOKEN" if not is_shape_risk else "NONE"
 
-        if len(verified_candidates) == 1:
-            best = verified_candidates[0]
+        # Disambiguate multiple verified PRIMARY candidates if strong caller context is present
+        disambiguated_candidate: Optional[IdentityCandidate] = None
+        if len(verified_candidates) > 1 and context:
+            disambiguated_candidate, _, _ = self._disambiguate_multiple_verified_candidates(
+                verified_candidates, context
+            )
+
+        if len(verified_candidates) == 1 or disambiguated_candidate is not None:
+            best = disambiguated_candidate if disambiguated_candidate is not None else verified_candidates[0]
             is_indexed_only = best.is_indexed_only
+
+            ctx_matched = False
+            if context and not is_indexed_only:
+                strong_fields, _, _ = self._categorize_context_strength(context)
+                if strong_fields:
+                    ctx_matched, _, _ = self._evaluate_context_discrimination(best, context)
+
             has_competing, competing_str = self._check_competing_brand_domains(
                 company_name, best, recorded_candidates
             )
-            if has_competing:
+            if has_competing and not ctx_matched:
                 decision_rule = "COMPETING_BRAND_DOMAINS_AMBIGUOUS"
                 competing_count = len(competing_str.split(","))
                 confidence = IdentityConfidence.AMBIGUOUS
@@ -744,6 +802,8 @@ class IdentityResolver:
             else:
                 decision_rule = "DISTINCTIVE_PRIMARY_CONFIDENT"
                 confidence = IdentityConfidence.CONFIDENT
+                if ctx_matched:
+                    entity_discrimination_basis = "USER_CONTEXT"
                 reasoning  = (
                     f"Uniquely verified PRIMARY candidate. {best.relationship_reasoning}"
                 )
