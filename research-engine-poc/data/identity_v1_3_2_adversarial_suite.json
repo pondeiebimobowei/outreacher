@@ -1320,7 +1320,8 @@
     {
       "case_id": "blind-061",
       "query_name": "Crown",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "event in Sydney"
       },
       "expected_state": "AMBIGUOUS",
@@ -1342,7 +1343,8 @@
     {
       "case_id": "blind-062",
       "query_name": "Summit",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in Houston"
       },
       "expected_state": "AMBIGUOUS",
@@ -1364,7 +1366,8 @@
     {
       "case_id": "blind-063",
       "query_name": "Pinnacle",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "conference in Phoenix"
       },
       "expected_state": "AMBIGUOUS",
@@ -1390,7 +1393,8 @@
     {
       "case_id": "blind-064",
       "query_name": "Evergreen",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "patients travelling from Seattle"
       },
       "expected_state": "AMBIGUOUS",
@@ -1412,7 +1416,8 @@
     {
       "case_id": "blind-065",
       "query_name": "Frontier",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in Toronto"
       },
       "expected_state": "AMBIGUOUS",
@@ -1434,7 +1439,8 @@
     {
       "case_id": "blind-066",
       "query_name": "Heritage",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "buyers in London"
       },
       "expected_state": "AMBIGUOUS",
@@ -1460,7 +1466,8 @@
     {
       "case_id": "blind-067",
       "query_name": "Beacon",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "conference in Boston"
       },
       "expected_state": "AMBIGUOUS",
@@ -1482,7 +1489,8 @@
     {
       "case_id": "blind-068",
       "query_name": "Sterling",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "projects discussed in Dubai"
       },
       "expected_state": "AMBIGUOUS",
@@ -1504,7 +1512,8 @@
     {
       "case_id": "blind-069",
       "query_name": "United",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in Chicago"
       },
       "expected_state": "AMBIGUOUS",
@@ -1526,7 +1535,8 @@
     {
       "case_id": "blind-070",
       "query_name": "Liberty",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "clients in New York"
       },
       "expected_state": "AMBIGUOUS",
@@ -1548,7 +1558,8 @@
     {
       "case_id": "blind-071",
       "query_name": "Phoenix",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "conference in Berlin"
       },
       "expected_state": "AMBIGUOUS",
@@ -1570,7 +1581,8 @@
     {
       "case_id": "blind-072",
       "query_name": "Vertex",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in Philadelphia"
       },
       "expected_state": "AMBIGUOUS",
@@ -1592,7 +1604,8 @@
     {
       "case_id": "blind-073",
       "query_name": "Compass",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "clients in New York"
       },
       "expected_state": "AMBIGUOUS",
@@ -1614,7 +1627,8 @@
     {
       "case_id": "blind-074",
       "query_name": "Clearwater",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "users in London"
       },
       "expected_state": "AMBIGUOUS",
@@ -1636,7 +1650,8 @@
     {
       "case_id": "blind-075",
       "query_name": "Equinox",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in Vancouver"
       },
       "expected_state": "AMBIGUOUS",
@@ -1658,7 +1673,8 @@
     {
       "case_id": "blind-076",
       "query_name": "Acadia",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "patients in Florida"
       },
       "expected_state": "AMBIGUOUS",
@@ -1680,7 +1696,8 @@
     {
       "case_id": "blind-077",
       "query_name": "Continental",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "customers in New York"
       },
       "expected_state": "AMBIGUOUS",
@@ -1702,7 +1719,8 @@
     {
       "case_id": "blind-078",
       "query_name": "Alliance",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "passengers in Delhi"
       },
       "expected_state": "AMBIGUOUS",
@@ -1724,7 +1742,8 @@
     {
       "case_id": "blind-079",
       "query_name": "Aurora",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "travellers in Sydney"
       },
       "expected_state": "AMBIGUOUS",
@@ -1746,7 +1765,8 @@
     {
       "case_id": "blind-080",
       "query_name": "Apollo",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "geographic_mention": "patients in Hyderabad"
       },
       "expected_state": "AMBIGUOUS",
@@ -2216,7 +2236,8 @@
     {
       "case_id": "blind-101",
       "query_name": "Crown",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "discovery_signal": "A dominant search result favors one well-known entity using this name."
       },
       "expected_state": "AMBIGUOUS",
@@ -2238,7 +2259,8 @@
     {
       "case_id": "blind-102",
       "query_name": "Summit",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "discovery_signal": "A dominant search result favors one well-known entity using this name."
       },
       "expected_state": "AMBIGUOUS",
@@ -2260,7 +2282,8 @@
     {
       "case_id": "blind-103",
       "query_name": "Pinnacle",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "discovery_signal": "A dominant search result favors one well-known entity using this name."
       },
       "expected_state": "AMBIGUOUS",
@@ -2286,7 +2309,8 @@
     {
       "case_id": "blind-104",
       "query_name": "Evergreen",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "discovery_signal": "A dominant search result favors one well-known entity using this name."
       },
       "expected_state": "AMBIGUOUS",
@@ -2308,7 +2332,8 @@
     {
       "case_id": "blind-105",
       "query_name": "Frontier",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "discovery_signal": "A dominant search result favors one well-known entity using this name."
       },
       "expected_state": "AMBIGUOUS",
@@ -2330,7 +2355,8 @@
     {
       "case_id": "blind-106",
       "query_name": "Crown",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "legal_form": "Corporation"
       },
       "expected_state": "AMBIGUOUS",
@@ -2352,7 +2378,8 @@
     {
       "case_id": "blind-107",
       "query_name": "Summit",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "legal_form": "Limited"
       },
       "expected_state": "AMBIGUOUS",
@@ -2374,7 +2401,8 @@
     {
       "case_id": "blind-108",
       "query_name": "Pinnacle",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "legal_form": "Inc."
       },
       "expected_state": "AMBIGUOUS",
@@ -2400,7 +2428,8 @@
     {
       "case_id": "blind-109",
       "query_name": "Evergreen",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "legal_form": "PLC"
       },
       "expected_state": "AMBIGUOUS",
@@ -2422,7 +2451,8 @@
     {
       "case_id": "blind-110",
       "query_name": "Frontier",
-      "context": {
+      "context": {},
+      "adversarial_metadata": {
         "legal_form": "Group"
       },
       "expected_state": "AMBIGUOUS",
@@ -2445,8 +2475,8 @@
       "case_id": "blind-112",
       "query_name": "GitLab",
       "context": {
-        "domain": "gitlab.com",
-        "industry": "software development"
+        "legal_name": "GitLab Inc.",
+        "country": "United States"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2470,8 +2500,8 @@
       "case_id": "blind-113",
       "query_name": "Snowflake",
       "context": {
-        "domain": "snowflake.com",
-        "industry": "data cloud"
+        "legal_name": "Snowflake Inc.",
+        "headquarters": "Bozeman"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2495,8 +2525,8 @@
       "case_id": "blind-114",
       "query_name": "Palantir",
       "context": {
-        "domain": "palantir.com",
-        "industry": "software"
+        "legal_name": "Palantir Technologies Inc.",
+        "headquarters": "Denver"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2520,8 +2550,8 @@
       "case_id": "blind-115",
       "query_name": "Mambu",
       "context": {
-        "domain": "mambu.com",
-        "industry": "banking software"
+        "legal_name": "Mambu B.V.",
+        "headquarters": "Amsterdam"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2545,8 +2575,8 @@
       "case_id": "blind-116",
       "query_name": "Personio",
       "context": {
-        "domain": "personio.com",
-        "industry": "HR software"
+        "legal_name": "Personio SE & Co. KG",
+        "headquarters": "Munich"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2570,9 +2600,8 @@
       "case_id": "blind-117",
       "query_name": "Pleo",
       "context": {
-        "domain": "pleo.io",
-        "industry": "expense management",
-        "country": "Denmark"
+        "legal_name": "Pleo Technologies ApS",
+        "headquarters": "Copenhagen"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2596,8 +2625,8 @@
       "case_id": "blind-118",
       "query_name": "Klaviyo",
       "context": {
-        "domain": "klaviyo.com",
-        "industry": "marketing technology"
+        "legal_name": "Klaviyo, Inc.",
+        "headquarters": "Boston"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2621,8 +2650,8 @@
       "case_id": "blind-119",
       "query_name": "UiPath",
       "context": {
-        "domain": "uipath.com",
-        "industry": "automation software"
+        "legal_name": "UiPath Inc.",
+        "headquarters": "New York"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2646,8 +2675,8 @@
       "case_id": "blind-120",
       "query_name": "Celonis",
       "context": {
-        "domain": "celonis.com",
-        "industry": "process intelligence"
+        "legal_name": "Celonis SE",
+        "headquarters": "Munich"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2671,8 +2700,8 @@
       "case_id": "blind-121",
       "query_name": "Snyk",
       "context": {
-        "domain": "snyk.io",
-        "industry": "application security"
+        "legal_name": "Snyk Limited",
+        "location": "London"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2696,9 +2725,8 @@
       "case_id": "blind-122",
       "query_name": "Huel",
       "context": {
-        "domain": "huel.com",
-        "industry": "nutrition",
-        "country": "United Kingdom"
+        "legal_name": "Huel Limited",
+        "location": "Tring"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2722,9 +2750,8 @@
       "case_id": "blind-123",
       "query_name": "Hilti",
       "context": {
-        "domain": "hilti.com",
-        "industry": "construction technology",
-        "country": "Liechtenstein"
+        "legal_name": "Hilti Corporation",
+        "headquarters": "Schaan"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2748,9 +2775,8 @@
       "case_id": "blind-124",
       "query_name": "Maersk",
       "context": {
-        "domain": "maersk.com",
-        "industry": "shipping and logistics",
-        "country": "Denmark"
+        "legal_name": "A.P. Møller - Mærsk A/S",
+        "headquarters": "Copenhagen"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2774,9 +2800,8 @@
       "case_id": "blind-125",
       "query_name": "Safaricom",
       "context": {
-        "domain": "safaricom.co.ke",
-        "industry": "telecommunications",
-        "country": "Kenya"
+        "legal_name": "Safaricom PLC",
+        "headquarters": "Nairobi"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2800,9 +2825,8 @@
       "case_id": "blind-126",
       "query_name": "Dangote",
       "context": {
-        "domain": "dangote.com",
-        "industry": "industrial conglomerate",
-        "country": "Nigeria"
+        "legal_name": "Dangote Industries Limited",
+        "headquarters": "Lagos"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2826,9 +2850,8 @@
       "case_id": "blind-127",
       "query_name": "Canva",
       "context": {
-        "domain": "canva.com",
-        "industry": "design software",
-        "country": "Australia"
+        "legal_name": "Canva Pty Ltd",
+        "headquarters": "Sydney"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2852,8 +2875,8 @@
       "case_id": "blind-128",
       "query_name": "Chime",
       "context": {
-        "domain": "chime.com",
-        "industry": "financial technology"
+        "legal_name": "Chime Financial, Inc.",
+        "headquarters": "San Francisco"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2877,8 +2900,8 @@
       "case_id": "blind-129",
       "query_name": "Stripe",
       "context": {
-        "domain": "stripe.com",
-        "industry": "payments technology"
+        "legal_name": "Stripe, Inc.",
+        "headquarters": "South San Francisco"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2902,8 +2925,8 @@
       "case_id": "blind-130",
       "query_name": "DocuSign",
       "context": {
-        "domain": "docusign.com",
-        "industry": "electronic signatures"
+        "legal_name": "DocuSign, Inc.",
+        "headquarters": "San Francisco"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [
@@ -2927,9 +2950,8 @@
       "case_id": "blind-131",
       "query_name": "lululemon",
       "context": {
-        "domain": "lululemon.com",
-        "industry": "athletic apparel",
-        "country": "Canada"
+        "legal_name": "Lululemon Athletica Inc.",
+        "headquarters": "Vancouver"
       },
       "expected_state": "CONFIDENT",
       "accepted_domains": [

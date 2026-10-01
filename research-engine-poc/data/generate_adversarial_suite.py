@@ -1,7 +1,7 @@
 import json, hashlib
 from pathlib import Path
 
-OUT = Path("./identity_v1_3_2_adversarial_suite.json")
+OUT = Path(__file__).parent / "identity_v1_3_2_adversarial_suite.json"
 
 # Sources are public first-party or statutory pages selected independently.
 # The excerpts below are concise supporting excerpts/notes, not resolver-derived data.
@@ -259,7 +259,8 @@ for q in pairs:
     cases.append({
         "case_id": f"blind-{case_num:03d}",
         "query_name": q,
-        "context": {"geographic_mention": geo[q]},
+        "context": {},
+        "adversarial_metadata": {"geographic_mention": geo[q]},
         "expected_state": "AMBIGUOUS",
         "accepted_domains": [],
         "ground_truth_relationship": "UNKNOWN",
@@ -312,7 +313,8 @@ for q in list(pairs)[:5]:
     cases.append({
         "case_id": f"blind-{case_num:03d}",
         "query_name": q,
-        "context": {
+        "context": {},
+        "adversarial_metadata": {
             "discovery_signal": "A dominant search result favors one well-known entity using this name."
         },
         "expected_state": "AMBIGUOUS",
@@ -328,7 +330,8 @@ for q, legal_form in zip(list(pairs)[:5], ["Corporation","Limited","Inc.","PLC",
     cases.append({
         "case_id": f"blind-{case_num:03d}",
         "query_name": q,
-        "context": {"legal_form": legal_form},
+        "context": {},
+        "adversarial_metadata": {"legal_form": legal_form},
         "expected_state": "AMBIGUOUS",
         "accepted_domains": [],
         "ground_truth_relationship": "UNKNOWN",
@@ -343,121 +346,121 @@ assert case_num - 1 == 110, case_num - 1
 
 # 20 positives, intentionally distinct from all entities used in the negative set.
 positive_data = [
-    ("GitLab","gitlab.com",{"domain":"gitlab.com","industry":"software development"},
+    ("GitLab","gitlab.com",{"legal_name": "GitLab Inc.", "country": "United States"},
      "GitLab is a distinctive coined company name; first-party pages identify GitLab and corroborate the exact gitlab.com domain.",
      [
          {"url":"https://about.gitlab.com/company/team/","excerpt":"We're the company behind GitLab, the intelligent orchestration platform."},
          {"url":"https://ir.gitlab.com/","excerpt":"GitLab is the intelligent orchestration platform for DevSecOps."}
      ]),
-    ("Snowflake","snowflake.com",{"domain":"snowflake.com","industry":"data cloud"},
+    ("Snowflake","snowflake.com",{"legal_name": "Snowflake Inc.", "headquarters": "Bozeman"},
      "Snowflake is a distinctive name with first-party company information and exact snowflake.com correspondence.",
      [
          {"url":"https://www.snowflake.com/en/company/overview/about-snowflake/","excerpt":"Snowflake has become a global force to help every enterprise achieve its full potential through data and AI."},
          {"url":"https://www.snowflake.com/en/","excerpt":"Snowflake."}
      ]),
-    ("Palantir","palantir.com",{"domain":"palantir.com","industry":"software"},
+    ("Palantir","palantir.com",{"legal_name": "Palantir Technologies Inc.", "headquarters": "Denver"},
      "Palantir is distinctive and its first-party About page identifies the company at palantir.com.",
      [
          {"url":"https://www.palantir.com/about/","excerpt":"That’s why we founded Palantir."},
          {"url":"https://investors.palantir.com/","excerpt":"Palantir Technologies Inc."}
      ]),
-    ("Mambu","mambu.com",{"domain":"mambu.com","industry":"banking software"},
+    ("Mambu","mambu.com",{"legal_name": "Mambu B.V.", "headquarters": "Amsterdam"},
      "Mambu is a distinctive coined identity with first-party company evidence on mambu.com.",
      [
          {"url":"https://mambu.com/en/about-us","excerpt":"Mambu gives financial institutions the agility to evolve beyond legacy constraints."},
          {"url":"https://mambu.com/en/","excerpt":"Mambu."}
      ]),
-    ("Personio","personio.com",{"domain":"personio.com","industry":"HR software"},
+    ("Personio","personio.com",{"legal_name": "Personio SE & Co. KG", "headquarters": "Munich"},
      "Personio is a distinctive coined identity; first-party company and legal pages establish Personio and the exact domain.",
      [
          {"url":"https://www.personio.com/about-personio/","excerpt":"Personio is Europe's leading HR software provider."},
          {"url":"https://www.personio.com/legal-notice/","excerpt":"Personio SE & Co. KG ... Website: www.personio.com"}
      ]),
-    ("Pleo","pleo.io",{"domain":"pleo.io","industry":"expense management","country":"Denmark"},
+    ("Pleo","pleo.io",{"legal_name": "Pleo Technologies ApS", "headquarters": "Copenhagen"},
      "Pleo is a distinctive coined identity, with first-party company history and exact pleo.io correspondence.",
      [
          {"url":"https://www.pleo.io/en/about","excerpt":"We’re Pleo and this is our story, so far."},
          {"url":"https://www.pleo.io/en/","excerpt":"Pleo is the spending solution for forward-thinking teams everywhere."}
      ]),
-    ("Klaviyo","klaviyo.com",{"domain":"klaviyo.com","industry":"marketing technology"},
+    ("Klaviyo","klaviyo.com",{"legal_name": "Klaviyo, Inc.", "headquarters": "Boston"},
      "Klaviyo is a distinctive coined identity with first-party About and corporate materials on klaviyo.com.",
      [
          {"url":"https://www.klaviyo.com/about","excerpt":"Klaviyo is a B2C CRM platform."},
          {"url":"https://investors.klaviyo.com/","excerpt":"Klaviyo investor relations."}
      ]),
-    ("UiPath","uipath.com",{"domain":"uipath.com","industry":"automation software"},
+    ("UiPath","uipath.com",{"legal_name": "UiPath Inc.", "headquarters": "New York"},
      "UiPath is a distinctive coined company identity with first-party company evidence and exact domain correspondence.",
      [
          {"url":"https://www.uipath.com/about-us","excerpt":"The company building your clear path to AI results."},
          {"url":"https://ir.uipath.com/","excerpt":"UiPath investor relations."}
      ]),
-    ("Celonis","celonis.com",{"domain":"celonis.com","industry":"process intelligence"},
+    ("Celonis","celonis.com",{"legal_name": "Celonis SE", "headquarters": "Munich"},
      "Celonis is a distinctive coined name with first-party company evidence on celonis.com.",
      [
          {"url":"https://www.celonis.com/company/about-us","excerpt":"About Celonis."},
          {"url":"https://www.celonis.com/","excerpt":"Celonis."}
      ]),
-    ("Snyk","snyk.io",{"domain":"snyk.io","industry":"application security"},
+    ("Snyk","snyk.io",{"legal_name": "Snyk Limited", "location": "London"},
      "Snyk is a distinctive coined name; the first-party About page establishes the company at snyk.io.",
      [
          {"url":"https://snyk.io/about/","excerpt":"About Snyk."},
          {"url":"https://snyk.io/","excerpt":"Snyk."}
      ]),
-    ("Huel","huel.com",{"domain":"huel.com","industry":"nutrition","country":"United Kingdom"},
+    ("Huel","huel.com",{"legal_name": "Huel Limited", "location": "Tring"},
      "Huel is a distinctive coined brand/company identity, with first-party history and exact huel.com correspondence.",
      [
          {"url":"https://huel.com/pages/our-story","excerpt":"Huel was launched in 2015 to change the way people eat."},
          {"url":"https://huel.com/pages/about-us","excerpt":"Huel is nutritionally complete food."}
      ]),
-    ("Hilti","hilti.com",{"domain":"hilti.com","industry":"construction technology","country":"Liechtenstein"},
+    ("Hilti","hilti.com",{"legal_name": "Hilti Corporation", "headquarters": "Schaan"},
      "Hilti is a distinctive non-dictionary company name; first-party materials identify Hilti and its global headquarters.",
      [
          {"url":"https://www.hilti.com/content/company/about-hilti","excerpt":"Based in Schaan, Liechtenstein, family-owned Hilti provides the construction industry with advanced hardware, software, and services."},
          {"url":"https://www.hilti.com.ng/articles/about-hilti","excerpt":"Hilti Group was founded in 1941 ... with its global headquarters in the Principality of Liechtenstein."}
      ]),
-    ("Maersk","maersk.com",{"domain":"maersk.com","industry":"shipping and logistics","country":"Denmark"},
+    ("Maersk","maersk.com",{"legal_name": "A.P. Møller - Mærsk A/S", "headquarters": "Copenhagen"},
      "Maersk is a distinctive corporate name/short name with exact maersk.com correspondence and public corporate identity evidence.",
      [
          {"url":"https://www.maersk.com/","excerpt":"Maersk."},
          {"url":"https://www.maersk.com/about","excerpt":"Maersk provides integrated logistics and transport services."}
      ]),
-    ("Safaricom","safaricom.co.ke",{"domain":"safaricom.co.ke","industry":"telecommunications","country":"Kenya"},
+    ("Safaricom","safaricom.co.ke",{"legal_name": "Safaricom PLC", "headquarters": "Nairobi"},
      "Safaricom is a distinctive coined name; its first-party site establishes the corporate identity and exact domain.",
      [
          {"url":"https://www.safaricom.co.ke/about/who-we-are","excerpt":"Our Story. We believe in reputation before revenue."},
          {"url":"https://www.safaricom.co.ke/","excerpt":"Safaricom."}
      ]),
-    ("Dangote","dangote.com",{"domain":"dangote.com","industry":"industrial conglomerate","country":"Nigeria"},
+    ("Dangote","dangote.com",{"legal_name": "Dangote Industries Limited", "headquarters": "Lagos"},
      "Dangote is a distinctive surname-based corporate identity; first-party materials identify Dangote Industries Limited and the exact domain.",
      [
          {"url":"https://www.dangote.com/about-us/","excerpt":"About Dangote Industries Limited."},
          {"url":"https://www.dangote.com/","excerpt":"Dangote Group."}
      ]),
-    ("Canva","canva.com",{"domain":"canva.com","industry":"design software","country":"Australia"},
+    ("Canva","canva.com",{"legal_name": "Canva Pty Ltd", "headquarters": "Sydney"},
      "Canva is a distinctive coined identity with first-party company information and exact canva.com correspondence.",
      [
          {"url":"https://www.canva.com/about/","excerpt":"Launched in 2013, Canva is an online design and publishing tool."},
          {"url":"https://www.canva.com/","excerpt":"Canva."}
      ]),
-    ("Chime","chime.com",{"domain":"chime.com","industry":"financial technology"},
+    ("Chime","chime.com",{"legal_name": "Chime Financial, Inc.", "headquarters": "San Francisco"},
      "Chime is a distinctive service/company identity with first-party company information on chime.com.",
      [
          {"url":"https://www.chime.com/about-us/","excerpt":"Chime is a financial technology company."},
          {"url":"https://www.chime.com/","excerpt":"Chime."}
      ]),
-    ("Stripe","stripe.com",{"domain":"stripe.com","industry":"payments technology"},
+    ("Stripe","stripe.com",{"legal_name": "Stripe, Inc.", "headquarters": "South San Francisco"},
      "Stripe is a distinctive company identity with first-party corporate information and exact stripe.com correspondence.",
      [
          {"url":"https://stripe.com/about","excerpt":"Stripe is a technology company focused on improving the conditions for economic growth and prosperity."},
          {"url":"https://stripe.com/","excerpt":"Stripe."}
      ]),
-    ("DocuSign","docusign.com",{"domain":"docusign.com","industry":"electronic signatures"},
+    ("DocuSign","docusign.com",{"legal_name": "DocuSign, Inc.", "headquarters": "San Francisco"},
      "DocuSign is a distinctive compound identity with first-party company information on docusign.com.",
      [
          {"url":"https://www.docusign.com/company","excerpt":"About Docusign."},
          {"url":"https://www.docusign.com/","excerpt":"DocuSign."}
      ]),
-    ("lululemon","lululemon.com",{"domain":"lululemon.com","industry":"athletic apparel","country":"Canada"},
+    ("lululemon","lululemon.com",{"legal_name": "Lululemon Athletica Inc.", "headquarters": "Vancouver"},
      "lululemon is a distinctive non-dictionary brand/company identity, with first-party company information and exact domain correspondence.",
      [
          {"url":"https://corporate.lululemon.com/about-us","excerpt":"We are a purpose-driven brand and our values guide us in all that we do."},
