@@ -371,8 +371,8 @@ def test_first_party_legal_alone_is_ambiguous_and_becomes_confident_with_context
 
 def test_external_registry_corroboration_resolves_to_confident():
     """9: Independent trusted external registry match satisfies entity discrimination."""
-    from identity.registry import SecEdgarRegistryProvider
-    provider = SecEdgarRegistryProvider()
+    from identity.registry import AuthoritativeTestRegistryFixture
+    provider = AuthoritativeTestRegistryFixture(provider_id="sec_edgar", jurisdiction="US")
 
     company = "Iron Mountain"
     domain = "ironmountain.com"
@@ -457,8 +457,8 @@ def test_forged_unattested_registry_evidence_rejected_to_ambiguous():
 
 def test_conflicting_external_registry_blocks_to_ambiguous():
     """10: Conflicting external registry record blocks to AMBIGUOUS."""
-    from identity.registry import SecEdgarRegistryProvider
-    provider = SecEdgarRegistryProvider()
+    from identity.registry import AuthoritativeTestRegistryFixture
+    provider = AuthoritativeTestRegistryFixture(provider_id="sec_edgar", jurisdiction="US")
 
     company = "Iron Mountain"
     domain = "ironmountain.com"

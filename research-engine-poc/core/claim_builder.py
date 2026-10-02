@@ -146,7 +146,7 @@ class ClaimGraphBuilder:
                     supporting_quotes=(j_span.text.strip(),),
                     confidence=0.85,
                 )
-        elif not valid_job_docs:
+        elif not valid_job_docs and spans:
             # Explicit UNKNOWN claim: 0 evidence refs, confidence 0.0
             add_claim(
                 subject=company_name,
@@ -254,10 +254,19 @@ class ClaimGraphBuilder:
         overview_claims = [c.object_value for c in graph.claims if c.category == ClaimCategory.OVERVIEW and c.classification == ClaimClassification.FACT]
         if overview_claims:
             summary = f"{company_name}: {overview_claims[0]}"
+        elif not package.documents:
+            summary = f"Research failed for {company_name}: no documents acquired."
+        elif not findings and not graph.evidence_spans:
+            summary = f"Research partial for {company_name}: documents were acquired but no valid evidence spans remained."
         else:
             summary = f"Research profile for {company_name} based on {len(package.documents)} verified documents."
 
-        status = ResearchStatus.COMPLETED if package.documents else ResearchStatus.FAILED
+        if not package.documents:
+            status = ResearchStatus.FAILED
+        elif not findings and not graph.evidence_spans:
+            status = ResearchStatus.PARTIAL
+        else:
+            status = ResearchStatus.COMPLETED
 
         return CompanyResearchDTO(
             summary=summary,

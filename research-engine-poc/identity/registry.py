@@ -102,7 +102,13 @@ class IExternalRegistryProvider(ABC):
 
 
 class SecEdgarRegistryProvider(IExternalRegistryProvider):
-    """Authoritative US SEC EDGAR corporate filings registry provider."""
+    """
+    Authoritative US SEC EDGAR corporate filings registry provider.
+
+    Default/synthetic instances in testing and non-production environments
+    unconditionally return (False, None). Live network queries require genuine
+    production statutory network integration, never simulated via boolean flags.
+    """
 
     @property
     def provider_id(self) -> str:
@@ -112,21 +118,25 @@ class SecEdgarRegistryProvider(IExternalRegistryProvider):
     def jurisdiction(self) -> str:
         return "US"
 
+    @property
+    def is_live_network_enabled(self) -> bool:
+        return False
+
     def query_registry(
         self,
         company_name: str,
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        url = f"https://sec.gov/edgar/{registration_number or company_name.lower().replace(' ', '')}"
-        signal = "EXTERNAL_REGISTRY_VERIFIED"
-        title = f"SEC EDGAR - {company_name.upper()} (CIK {registration_number or '0001020569'})"
-        evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
-        return True, evidence
+        # Non-live statutory connection: unconditionally unavailable
+        return False, None
 
 
 class CompaniesHouseRegistryProvider(IExternalRegistryProvider):
-    """Authoritative UK Companies House corporate filings registry provider."""
+    """
+    Authoritative UK Companies House corporate filings registry provider.
+    Default/synthetic instances unconditionally return (False, None).
+    """
 
     @property
     def provider_id(self) -> str:
@@ -136,21 +146,24 @@ class CompaniesHouseRegistryProvider(IExternalRegistryProvider):
     def jurisdiction(self) -> str:
         return "UK"
 
+    @property
+    def is_live_network_enabled(self) -> bool:
+        return False
+
     def query_registry(
         self,
         company_name: str,
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        url = f"https://find-and-update.company-information.service.gov.uk/company/{registration_number or '12345678'}"
-        signal = "EXTERNAL_REGISTRY_VERIFIED"
-        title = f"Companies House UK - {company_name.upper()}"
-        evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
-        return True, evidence
+        return False, None
 
 
 class BaFinRegistryProvider(IExternalRegistryProvider):
-    """Authoritative German Federal Financial Supervisory Authority (BaFin) provider."""
+    """
+    Authoritative German Federal Financial Supervisory Authority (BaFin) provider.
+    Default/synthetic instances unconditionally return (False, None).
+    """
 
     @property
     def provider_id(self) -> str:
@@ -160,14 +173,52 @@ class BaFinRegistryProvider(IExternalRegistryProvider):
     def jurisdiction(self) -> str:
         return "DE"
 
+    @property
+    def is_live_network_enabled(self) -> bool:
+        return False
+
     def query_registry(
         self,
         company_name: str,
         domain: str,
         registration_number: Optional[str] = None
     ) -> Tuple[bool, Optional[IdentityEvidence]]:
-        url = f"https://portal.mvp.bafin.de/database/InstInfo/institutDetails.do?id={registration_number or '10156942'}"
+        return False, None
+
+
+class AuthoritativeTestRegistryFixture(IExternalRegistryProvider):
+    """
+    Separately controlled test-only fixture that explicitly models verified statutory
+    records from an allowlisted provider (e.g. SEC EDGAR, Companies House).
+
+    Separates synthetic/default provider implementations (which return False, None)
+    from explicit test simulations of authoritative registry lookups.
+    """
+
+    def __init__(self, provider_id: str = "sec_edgar", jurisdiction: str = "US"):
+        self._provider_id = provider_id
+        self._jurisdiction = jurisdiction
+
+    @property
+    def provider_id(self) -> str:
+        return self._provider_id
+
+    @property
+    def jurisdiction(self) -> str:
+        return self._jurisdiction
+
+    @property
+    def is_live_network_enabled(self) -> bool:
+        return False
+
+    def query_registry(
+        self,
+        company_name: str,
+        domain: str,
+        registration_number: Optional[str] = None
+    ) -> Tuple[bool, Optional[IdentityEvidence]]:
+        url = f"https://authoritative-registry.test/{self.provider_id}/{registration_number or company_name.lower().replace(' ', '')}"
         signal = "EXTERNAL_REGISTRY_VERIFIED"
-        title = f"BaFin Database - {company_name.upper()}"
+        title = f"{self.provider_id.upper()} Statutory Record - {company_name.upper()}"
         evidence = self.create_attested_evidence(url=url, signal=signal, title=title, query=company_name)
         return True, evidence

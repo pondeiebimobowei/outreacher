@@ -88,6 +88,23 @@ _PARENT_ATTRIBUTION_TEMPLATES: list = [
 
 _RELATIONSHIP_TEMPLATES: list = _SUBORDINATE_RELATIONSHIP_TEMPLATES + _PARENT_ATTRIBUTION_TEMPLATES
 
+_LEGAL_ENTITY_REGEX = re.compile(
+    r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|llc|inc\.?|corp\.?|ltd\.?|'
+    r'registered\s+in|registration\s+no|company\s+no|registered\s+office|'
+    r'licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b',
+    re.IGNORECASE,
+)
+
+_HQ_LOCATION_REGEX = re.compile(
+    r'\b(?:headquartered|headquarters|based\s+in|offices\s+in|principal\s+office|operations\s+in)\b',
+    re.IGNORECASE,
+)
+
+_JURISDICTION_REGEX = re.compile(
+    r'\b(?:incorporated\s+in|registered\s+under\s+the\s+laws\s+of|formed\s+in)\b',
+    re.IGNORECASE,
+)
+
 
 class WebsiteVerifier:
     def __init__(
@@ -101,6 +118,111 @@ class WebsiteVerifier:
             "successful_corroboration_count": 0,
             "verifier_elapsed_ms": 0.0,
         }
+
+    @staticmethod
+    def _extract_bounded_excerpt(
+        text: str,
+        start_idx: int,
+        end_idx: int,
+        max_length: int = 350,
+    ) -> str:
+        """
+        Extracts a clean, word-bounded excerpt around [start_idx, end_idx]
+        clamped to at most max_length characters.
+        """
+        if not text:
+            return ""
+        text_len = len(text)
+        if text_len <= max_length:
+            return text.strip()
+
+        match_center = (start_idx + end_idx) // 2
+        half_len = max_length // 2
+
+        raw_start = max(0, match_center - half_len)
+        raw_end = min(text_len, raw_start + max_length)
+        if raw_end - raw_start < max_length:
+            raw_start = max(0, raw_end - max_length)
+
+        # Snap to nearest word boundary
+        if raw_start > 0:
+            sp = text.find(" ", raw_start)
+            if sp != -1 and sp < match_center:
+                raw_start = sp + 1
+        if raw_end < text_len:
+            sp = text.rfind(" ", match_center, raw_end)
+            if sp != -1:
+                raw_end = sp
+
+        excerpt = text[raw_start:raw_end].strip()
+        if len(excerpt) > max_length:
+            excerpt = excerpt[:max_length].rstrip()
+        return excerpt
+
+    @classmethod
+    def _extract_bounded_evidence_spans(
+        cls,
+        text: str,
+        company_name: str,
+        max_spans_per_type: int = 2,
+        max_span_length: int = 350,
+    ) -> List[Tuple[str, str]]:
+        """
+        Extracts bounded, signal-specific spans for identity evidence.
+        Returns list of (signal_name, excerpt).
+        Signals targeted: LEGAL_ENTITY, HQ_LOCATION, JURISDICTION.
+
+        Anchor Safety Gate: Requires the company name or distinctive brand token
+        to be present within the bounded excerpt window to prevent generic legal
+        words ('inc', 'limited', 'corp') or unrelated addresses in boilerplate/customers
+        from fabricating identity-bearing evidence.
+        """
+        spans: List[Tuple[str, str]] = []
+        if not text or not company_name:
+            return spans
+
+        co_words = [w.lower() for w in re.findall(r'\b[a-z0-9]+\b', company_name.lower()) if len(w) >= 3]
+
+        def _is_entity_relevant(exc: str) -> bool:
+            exc_lower = exc.lower()
+            if company_name.lower() in exc_lower:
+                return True
+            return any(w in exc_lower for w in co_words)
+
+        # 1. Legal Entity
+        legal_matches = list(_LEGAL_ENTITY_REGEX.finditer(text))
+        added_legal = 0
+        for m in legal_matches:
+            if added_legal >= max_spans_per_type:
+                break
+            exc = cls._extract_bounded_excerpt(text, m.start(), m.end(), max_span_length)
+            if _is_entity_relevant(exc):
+                spans.append(("LEGAL_ENTITY_CORROBORATION", exc))
+                added_legal += 1
+
+        # 2. HQ / Location
+        hq_matches = list(_HQ_LOCATION_REGEX.finditer(text))
+        added_hq = 0
+        for m in hq_matches:
+            if added_hq >= max_spans_per_type:
+                break
+            exc = cls._extract_bounded_excerpt(text, m.start(), m.end(), max_span_length)
+            if _is_entity_relevant(exc):
+                spans.append(("HEADQUARTERS_CORROBORATION", exc))
+                added_hq += 1
+
+        # 3. Jurisdiction / Formation
+        jur_matches = list(_JURISDICTION_REGEX.finditer(text))
+        added_jur = 0
+        for m in jur_matches:
+            if added_jur >= max_spans_per_type:
+                break
+            exc = cls._extract_bounded_excerpt(text, m.start(), m.end(), max_span_length)
+            if _is_entity_relevant(exc):
+                spans.append(("JURISDICTION_CORROBORATION", exc))
+                added_jur += 1
+
+        return spans
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -165,35 +287,51 @@ class WebsiteVerifier:
         ))
 
         # Record typed evidence signals
+        m_hp_name = re.search(rf'\b{re.escape(company_lower)}\b', hp_scan_text, re.IGNORECASE)
+        hp_bounded_snippet = (
+            self._extract_bounded_excerpt(hp_scan_text, m_hp_name.start(), m_hp_name.end(), 350)
+            if m_hp_name else self._extract_bounded_excerpt(hp_scan_text, 0, min(len(hp_scan_text), 350), 350)
+        )
+
         if hp_title_match:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="TITLE_ENTITY_MATCH",
-                title=hp_title, snippet=hp_scan_text[:1000],
+                title=hp_title, snippet=hp_bounded_snippet,
+                route_kind="HOMEPAGE", strength="strong",
             ))
         if hp_sentence_id:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="SELF_IDENTITY_STATEMENT",
-                title=hp_title, snippet=hp_scan_text[:1000],
+                title=hp_title, snippet=hp_bounded_snippet,
+                route_kind="HOMEPAGE", strength="strong",
             ))
         if hp_legal_match:
+            m_legal = _LEGAL_ENTITY_REGEX.search(hp_scan_text)
+            legal_snippet = (
+                self._extract_bounded_excerpt(hp_scan_text, m_legal.start(), m_legal.end(), 350)
+                if m_legal else hp_bounded_snippet
+            )
             evidence.append(IdentityEvidence(
                 type=EvidenceType.SELF_IDENTITY, source="homepage",
                 url=website_url, signal="LEGAL_ENTITY_CORROBORATION",
-                title=hp_title, snippet=hp_scan_text[:1000],
+                title=hp_title, snippet=legal_snippet,
+                route_kind="HOMEPAGE", strength="strong",
             ))
         if hp_relationship:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.RELATIONSHIP, source="homepage",
                 url=website_url, signal="RELATIONSHIP_MENTION",
-                title=hp_title, snippet=hp_scan_text[:1000],
+                title=hp_title, snippet=hp_bounded_snippet,
+                route_kind="HOMEPAGE", strength="strong",
             ))
         elif hp_name_present and not hp_title_match and not hp_sentence_id:
             evidence.append(IdentityEvidence(
                 type=EvidenceType.THIRD_PARTY, source="homepage",
                 url=website_url, signal="NAME_IN_CONTENT_ONLY",
-                title=hp_title, snippet=hp_scan_text[:1000],
+                title=hp_title, snippet=hp_bounded_snippet,
+                route_kind="HOMEPAGE", strength="supplemental",
             ))
 
         # ── 2. Early exits ────────────────────────────────────────────────────
@@ -482,13 +620,23 @@ class WebsiteVerifier:
         Evaluate acquired secondary identity pages (ABOUT / CONTACT / LEGAL / COMPANY).
         Pure in-memory verification — no network acquisition side effects.
 
+        Accumulates evidence across ALL secondary pages without dropping subsequent documents.
+        Preserves precedence: structural relationship match (RELATED) immediately aborts.
+
         Returns:
-          entity_title_match — secondary page title entity-matched the company name.
-          name_match         — company name was present on the secondary page.
-          strength           — 'strong' | 'medium' | 'supplemental' | None.
+          entity_title_match — at least one secondary page title entity-matched company name.
+          name_match         — company name was present on at least one secondary page.
+          strength           — best corroboration strength ('strong' > 'medium' > 'supplemental' > None).
           rel_match          — structural relationship (product/brand/subsidiary) detected.
-          evidence           — list of IdentityEvidence items.
+          evidence           — list of bounded IdentityEvidence items across all documents.
         """
+        strength_ranks = {"strong": 3, "medium": 2, "supplemental": 1}
+        any_entity_match = False
+        any_name_match = False
+        best_strength: Optional[str] = None
+        best_rank = 0
+        accumulated_evidence: List[IdentityEvidence] = []
+
         for acq in secondary_docs:
             doc = acq.doc
             doc_title = (doc.title or "").strip()
@@ -500,10 +648,24 @@ class WebsiteVerifier:
             rel_match = self._detect_relationship(
                 doc_sample, company_name, domain_signal=domain_signal, has_exact_title_match=entity_match
             )
+            # Relationship signal has absolute precedence: immediate return as RELATED
             if rel_match:
+                m_rel = re.search(rf'\b{re.escape(company_lower)}\b', doc_scan_text, re.IGNORECASE)
+                rel_snippet = (
+                    self._extract_bounded_excerpt(doc_scan_text, m_rel.start(), m_rel.end(), 350)
+                    if m_rel else self._extract_bounded_excerpt(doc_scan_text, 0, min(len(doc_scan_text), 350), 350)
+                )
                 return False, False, None, True, [IdentityEvidence(
-                    type=EvidenceType.RELATIONSHIP, source=f"secondary_{acq.source.lower()}", url=doc.url, signal="RELATIONSHIP_MENTION",
+                    type=EvidenceType.RELATIONSHIP,
+                    source=f"secondary_{acq.source.lower()}",
+                    url=doc.url,
+                    signal="RELATIONSHIP_MENTION",
+                    title=doc_title,
+                    snippet=rel_snippet,
+                    route_kind=acq.route_kind,
+                    strength=acq.strength,
                 )]
+
             name_match = (
                 company_lower in doc_content.lower()
                 or company_lower in doc_title.lower()
@@ -512,22 +674,56 @@ class WebsiteVerifier:
             if entity_match or name_match:
                 self.telemetry["successful_corroboration_count"] += 1
                 if entity_match:
+                    any_entity_match = True
+                if name_match:
+                    any_name_match = True
+
+                curr_rank = strength_ranks.get(acq.strength, 0)
+                if curr_rank > best_rank:
+                    best_rank = curr_rank
+                    best_strength = acq.strength
+
+                m_name = re.search(rf'\b{re.escape(company_lower)}\b', doc_scan_text, re.IGNORECASE)
+                name_offset = m_name.start() if m_name else 0
+                page_snippet = (
+                    self._extract_bounded_excerpt(doc_scan_text, m_name.start(), m_name.end(), 350)
+                    if m_name else self._extract_bounded_excerpt(doc_scan_text, 0, min(len(doc_scan_text), 350), 350)
+                )
+
+                if entity_match:
                     signal = f"ENTITY_TITLE_IN_{acq.strength.upper()}_PAGE"
                     ev_type = EvidenceType.SELF_IDENTITY
                 else:
                     signal = f"NAME_IN_{acq.strength.upper()}_PAGE"
                     ev_type = EvidenceType.PAGE_IDENTITY
-                
-                ev_list = [IdentityEvidence(
-                    type=ev_type, source=f"secondary_{acq.source.lower()}", url=doc.url, signal=signal,
-                    title=doc_title, snippet=doc_scan_text[:1000],
-                )]
-                if re.search(r'\b(?:gmbh|s\.p\.a\.|s\.a\.|b\.v\.|pty\s+ltd|registered\s+in|registration\s+no|company\s+no|licen[sc]ed\s+by|regulated\s+by|supervised\s+by)\b', doc_sample):
-                    ev_list.append(IdentityEvidence(
-                        type=EvidenceType.SELF_IDENTITY, source=f"secondary_{acq.source.lower()}", url=doc.url, signal="LEGAL_ENTITY_CORROBORATION",
-                        title=doc_title, snippet=doc_scan_text[:1000],
+
+                accumulated_evidence.append(IdentityEvidence(
+                    type=ev_type,
+                    source=f"secondary_{acq.source.lower()}",
+                    url=doc.url,
+                    signal=signal,
+                    title=doc_title,
+                    snippet=page_snippet,
+                    route_kind=acq.route_kind,
+                    strength=acq.strength,
+                ))
+
+                # Extract signal-specific bounded spans (legal entity, headquarters, jurisdiction)
+                spans = self._extract_bounded_evidence_spans(doc_scan_text, company_name)
+                for sig_name, span_excerpt in spans:
+                    accumulated_evidence.append(IdentityEvidence(
+                        type=EvidenceType.SELF_IDENTITY,
+                        source=f"secondary_{acq.source.lower()}",
+                        url=doc.url,
+                        signal=sig_name,
+                        title=doc_title,
+                        snippet=span_excerpt,
+                        route_kind=acq.route_kind,
+                        strength=acq.strength,
                     ))
-                return entity_match, name_match, acq.strength, False, ev_list
+
+        if any_entity_match or any_name_match:
+            return any_entity_match, any_name_match, best_strength, False, accumulated_evidence[:20]
 
         return False, False, None, False, []
 

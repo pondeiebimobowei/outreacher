@@ -165,6 +165,16 @@ class LLMClaimGraphBridge:
                         continue
                     valid_quotes = tuple(cleaned_quotes)
                 else:  # INFERENCE
+                    if not cleaned_quotes:
+                        diagnostics.append(ClaimRejectionDiagnostic(
+                            candidate_index=idx,
+                            subject=cand.subject,
+                            predicate=cand.predicate,
+                            reason="Rejected: INFERENCE claim requires verbatim supporting_quotes from cited spans.",
+                            invalid_evidence_refs=tuple(cand.evidence_span_ids),
+                        ))
+                        continue
+
                     unverified_quotes = [
                         q for q in cleaned_quotes
                         if not any(q in span_by_id[ref].text for ref in resolved_refs)

@@ -59,6 +59,8 @@ class IdentityEvidence(BaseModel):
     query: Optional[str] = None
     title: Optional[str] = None
     snippet: Optional[str] = None
+    route_kind: Optional[str] = None
+    strength: Optional[str] = None
 
 class IdentityCandidate(BaseModel):
     model_config = ConfigDict(frozen=True)

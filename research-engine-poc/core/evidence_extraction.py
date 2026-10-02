@@ -1,7 +1,7 @@
 import re
 from typing import List
 from datetime import datetime, timezone
-from core.models import CrawledDocument, PageType, RawResearchPackage
+from core.models import CrawledDocument, PageType, RawResearchPackage, DocumentQuality
 from core.evidence import (
     EvidenceSpan, ResearchEvidenceType, compute_document_hash, compute_span_id,
 )
@@ -14,6 +14,7 @@ class DeterministicEvidenceExtractor:
       - Detects structural heading patterns and updates current semantic section context.
       - Assigns locatable `ResearchEvidenceType` based on structural section and keyword heuristics.
       - Emits deterministic, addressable, and immutable `EvidenceSpan` instances.
+      - Enforces DocumentQuality.VALID gate: documents with non-VALID quality are strictly rejected from span extraction.
     """
     _HEADING_PATTERN = re.compile(
         r'^(?:#{1,6}\s+)?([A-Z][A-Za-z0-9\s,\-\&/]{1,50}):?$',
@@ -49,6 +50,8 @@ class DeterministicEvidenceExtractor:
     @classmethod
     def extract_document_spans(cls, doc: CrawledDocument) -> List[EvidenceSpan]:
         """Extracts deterministic line-level evidence spans from a single CrawledDocument."""
+        if doc.quality != DocumentQuality.VALID:
+            return []
         if not doc.content or not doc.content.strip():
             return []
 
