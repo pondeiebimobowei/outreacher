@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Linear",
+    "domain": "linear.app",
+    "discovery_ms": 21316.05,
+    "crawl_ms": 10356.03,
+    "llm_ms": 5337.37,
+    "total_downstream_ms": 37009.45,
+    "docs_count": 4,
+    "claims_count": 7
+  },
+  {
+    "name": "Stripe",
+    "domain": "stripe.com",
+    "discovery_ms": 18262.16,
+    "crawl_ms": 6535.27,
+    "llm_ms": 4312.72,
+    "total_downstream_ms": 29110.15,
+    "docs_count": 4,
+    "claims_count": 1
+  },
+  {
+    "name": "Postmark",
+    "domain": "postmarkapp.com",
+    "discovery_ms": 21520.7,
+    "crawl_ms": 10743.78,
+    "llm_ms": 3168.13,
+    "total_downstream_ms": 35432.61,
+    "docs_count": 4,
+    "claims_count": 0
+  },
+  {
+    "name": "Supabase",
+    "domain": "supabase.com",
+    "discovery_ms": 17559.43,
+    "crawl_ms": 4148.71,
+    "llm_ms": 5852.41,
+    "total_downstream_ms": 27560.55,
+    "docs_count": 4,
+    "claims_count": 7
+  },
+  {
+    "name": "Vercel",
+    "domain": "vercel.com",
+    "discovery_ms": 18882.7,
+    "crawl_ms": 6131.94,
+    "llm_ms": 8056.91,
+    "total_downstream_ms": 33071.55,
+    "docs_count": 4,
+    "claims_count": 22
+  }
+]

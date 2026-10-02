@@ -38,6 +38,13 @@ export interface ResearchEvidenceInput {
   confidence?: string | null;
 }
 
+export interface CompanyResearchIdentity {
+  confidence: 'CONFIDENT' | 'AMBIGUOUS' | 'UNRESOLVED';
+  domain?: string | null;
+  websiteUrl?: string | null;
+  reasoning?: string | null;
+}
+
 export interface CompanyResearchResult {
   summary: string;
   findings: ResearchFinding[];
@@ -46,6 +53,9 @@ export interface CompanyResearchResult {
   evidence: ResearchEvidenceInput[];
   unknowns: string[];
   status: 'COMPLETED' | 'PARTIAL' | 'FAILED';
+  errorCode?: 'IDENTITY_AMBIGUOUS' | 'IDENTITY_UNRESOLVED' | string | null;
+  errorMessage?: string | null;
+  identity?: CompanyResearchIdentity | null;
 }
 
 export const COMPANY_RESEARCH_PROVIDER_TOKEN = 'COMPANY_RESEARCH_PROVIDER';

@@ -1,0 +1,35 @@
+{
+  "description": "Empirical latency distributions combining real-world Serper identity snapshots (54 runs) and live discovery + crawling + Gemini LLM synthesis runs.",
+  "identity_confident_ms": {
+    "p50": 23084.2,
+    "p90": 40901.28,
+    "p95": 44448.2,
+    "p99": 47625.19,
+    "max": 165683.78
+  },
+  "identity_halted_ms": {
+    "p50": 11425.63,
+    "p90": 20318.41,
+    "p95": 21140.08,
+    "p99": 23772.95,
+    "max": 39482.32
+  },
+  "downstream_stages_ms": {
+    "p50": 33071.55,
+    "p90": 35432.61,
+    "p95": 35432.61,
+    "max": 37009.45
+  },
+  "total_end_to_end_confident_ms": {
+    "p50": 55521.06,
+    "p90": 73338.14,
+    "p95": 76885.06,
+    "p99": 80062.06,
+    "max": 198120.64
+  },
+  "calibrated_timeouts": {
+    "provider_timeout_ms": 96000,
+    "stale_threshold_ms": 126000,
+    "lock_ttl_ms": 156000
+  }
+}

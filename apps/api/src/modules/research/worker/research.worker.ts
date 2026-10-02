@@ -8,9 +8,18 @@ import {
   CompanyResearchResult,
 } from '../domain/research.provider.interface';
 import {
+  RESEARCH_WORKER_PROVIDER_TIMEOUT_MS,
+  RESEARCH_WORKER_STALE_THRESHOLD_MS,
+} from '../research.constants';
+import {
   type IResearchRepository,
   RESEARCH_REPOSITORY_TOKEN,
 } from '../domain/research.repository.interface';
+
+import {
+  ResearchProviderException,
+  ResearchProviderTimeoutException,
+} from '../domain/research-provider.exception';
 
 export interface ClaimedJob {
   job: Job;
@@ -20,8 +29,8 @@ export interface ClaimedJob {
 @Injectable()
 export class ResearchWorker {
   private readonly logger = new Logger(ResearchWorker.name);
-  private readonly PROVIDER_TIMEOUT_MS = 30000;
-  private readonly STALE_THRESHOLD_MS = 60000;
+  private readonly PROVIDER_TIMEOUT_MS = RESEARCH_WORKER_PROVIDER_TIMEOUT_MS;
+  private readonly STALE_THRESHOLD_MS = RESEARCH_WORKER_STALE_THRESHOLD_MS;
   private readonly MAX_ATTEMPTS = 3;
 
   constructor(
@@ -103,6 +112,8 @@ export class ResearchWorker {
     let providerResult: CompanyResearchResult | null = null;
     let safeErrorCode: string | null = null;
 
+    let isRetryableFailure = true;
+
     try {
       // Fetch company record to provide context to provider
       const company = this.prisma.company
@@ -111,7 +122,7 @@ export class ResearchWorker {
           })
         : null;
 
-      // Invoke provider with 30s timeout outside DB transaction
+      // Invoke provider with calibrated timeout outside DB transaction
       providerResult = await this.executeProviderWithTimeout({
         companyId,
         workspaceId,
@@ -124,9 +135,16 @@ export class ResearchWorker {
       this.logger.error(
         `Research provider failed for job ${job.id}: ${error?.message}`,
       );
-      safeErrorCode = error?.message?.includes('timeout')
-        ? 'PROVIDER_TIMEOUT'
-        : 'PROVIDER_FAILURE';
+
+      if (error instanceof ResearchProviderException) {
+        safeErrorCode = error.errorCode;
+        isRetryableFailure = error.retryable;
+      } else {
+        safeErrorCode = error?.message?.includes('timeout')
+          ? 'PROVIDER_TIMEOUT'
+          : 'PROVIDER_FAILURE';
+        isRetryableFailure = true;
+      }
     }
 
     // Atomic completion transaction checking lease generation
@@ -189,7 +207,8 @@ export class ResearchWorker {
       }
 
       // Handle Provider Failure / Timeout
-      if (claimedAttempt < this.MAX_ATTEMPTS) {
+      // If error is explicitly non-retryable OR max attempts reached -> DEAD_LETTER
+      if (isRetryableFailure && claimedAttempt < this.MAX_ATTEMPTS) {
         const backoffSeconds = Math.pow(2, claimedAttempt) * 5;
         const availableAt = new Date(Date.now() + backoffSeconds * 1000);
 
@@ -202,13 +221,16 @@ export class ResearchWorker {
           },
         });
       } else {
-        // Max attempts reached -> DEAD_LETTER & ResearchRun FAILED
+        // Non-retryable failure or max attempts reached -> DEAD_LETTER & ResearchRun FAILED
         await tx.job.update({
           where: { id: job.id },
           data: {
             status: JobStatus.DEAD_LETTER,
             failedAt: new Date(),
-            lastError: 'JOB_DEAD_LETTER',
+            lastError:
+              !isRetryableFailure && safeErrorCode
+                ? safeErrorCode
+                : 'JOB_DEAD_LETTER',
           },
         });
 
@@ -226,7 +248,7 @@ export class ResearchWorker {
   }
 
   /**
-   * Scans for stale RUNNING jobs (>60s old) and reclaims or dead-letters them.
+   * Scans for stale RUNNING jobs (>180s old) and reclaims or dead-letters them.
    */
   async recoverStaleJobs(): Promise<number> {
     const staleTime = new Date(Date.now() - this.STALE_THRESHOLD_MS);
@@ -297,7 +319,11 @@ export class ResearchWorker {
 
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        reject(new Error('Research provider execution timeout (30s exceeded)'));
+        reject(
+          new Error(
+            `Research provider execution timeout (${this.PROVIDER_TIMEOUT_MS}ms exceeded)`,
+          ),
+        );
       }, this.PROVIDER_TIMEOUT_MS);
     });
 
