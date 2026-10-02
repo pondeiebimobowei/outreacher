@@ -25,3 +25,6 @@ docs/*
 .env.*
 *.local
 
+# Live benchmark output artifacts
+live_serper_*.json
+
