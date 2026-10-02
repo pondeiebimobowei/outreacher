@@ -34,6 +34,7 @@ from core.models import (
 from discovery.classifier import TwoStageClassifier
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 
 
 # ── Test helpers ──────────────────────────────────────────────────────────────
@@ -72,9 +73,10 @@ class _Crawler:
 def _make(search_results, pages):
     s = _Search(search_results)
     c = _Crawler(pages)
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
-    return v, r
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
+    return a, v, r
 
 
 # ── 1–5. Structural invariants ────────────────────────────────────────────────
@@ -95,7 +97,7 @@ def test_classifier_job_listing():
     assert TwoStageClassifier.stage1_classify_url("https://a.com/careers/123-engineer") == PageType.JOB_LISTING
 
 def test_homepage_only_never_confident():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Widgetco", url="https://widgetco.com", snippet="")],
         {"https://widgetco.com": _doc("https://widgetco.com",
                                       title="Widgetco",
@@ -106,7 +108,7 @@ def test_homepage_only_never_confident():
     assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_blog_cannot_corroborate():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Widgetco", url="https://widgetco.com", snippet=""),
          SearchResult(title="Blog", url="https://widgetco.com/blog/company", snippet="")],
         {
@@ -123,7 +125,7 @@ def test_blog_cannot_corroborate():
     assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_careers_only_insufficient():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Widgetco", url="https://widgetco.com", snippet="")],
         {
             "https://widgetco.com": _doc("https://widgetco.com",
@@ -141,7 +143,7 @@ def test_careers_only_insufficient():
     assert res.confidence != IdentityConfidence.CONFIDENT
 
 def test_two_primary_candidates_is_ambiguous():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Stripe", url="https://stripe.com", snippet=""),
          SearchResult(title="Stripe", url="https://stripedev.io", snippet="")],
         {
@@ -157,7 +159,7 @@ def test_two_primary_candidates_is_ambiguous():
 # ── 6–7. Decision policy ──────────────────────────────────────────────────────
 
 def test_shape_risk_name_forces_ambiguous():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Acme Corp", url="https://acme.com", snippet="")],
         {
             "https://acme.com":       _doc("https://acme.com",       title="Acme Corp",       content="Acme Corp is a widget maker."),
@@ -169,7 +171,7 @@ def test_shape_risk_name_forces_ambiguous():
     assert "shape-risk" in result.reasoning
 
 def test_distinctive_single_primary_is_confident():
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Moniepoint", url="https://moniepoint.com", snippet="")],
         {
             "https://moniepoint.com":       _doc("https://moniepoint.com",       title="Moniepoint",       content="Moniepoint is Nigeria's leading business banking platform."),
@@ -195,7 +197,7 @@ def test_linear_solutions_is_not_primary_for_linear():
     Even if content self-identity fires (e.g. "Linear is a brand we distribute"),
     the secondary title confirmation is required for PRIMARY and is absent.
     """
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://linear-solutions.com": _doc(
             "https://linear-solutions.com",
             title="Linear Solutions - Electrical Component Distributor",
@@ -212,7 +214,8 @@ def test_linear_solutions_is_not_primary_for_linear():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Linear", "https://linear-solutions.com")
+    bundle = a.acquire("https://linear-solutions.com")
+    rel, msg, _ = v.classify_relationship("Linear", "https://linear-solutions.com", acquisition=bundle)
     assert rel != SiteRelationship.PRIMARY, (
         f"linear-solutions.com must not be PRIMARY for 'Linear'. Got {rel}: {msg}"
     )
@@ -231,7 +234,7 @@ def test_v0_app_is_related_for_vercel():
     Homepage content: "v0 is a product of Vercel."
     → _detect_relationship fires → RELATED.
     """
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://v0.app": _doc(
             "https://v0.app",
             title="v0 - Generative UI by Vercel",
@@ -248,7 +251,8 @@ def test_v0_app_is_related_for_vercel():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Vercel", "https://v0.app")
+    bundle = a.acquire("https://v0.app")
+    rel, msg, _ = v.classify_relationship("Vercel", "https://v0.app", acquisition=bundle)
     assert rel == SiteRelationship.RELATED, (
         f"v0.app should be RELATED for 'Vercel'. Got {rel}: {msg}"
     )
@@ -267,7 +271,7 @@ def test_monnify_is_legacy_for_moniepoint():
 
     LEGACY = company-controlled but not the canonical identity URL.
     """
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://atm.monnify.com": _doc(
             "https://atm.monnify.com",
             title="Moniepoint - ATM Services",
@@ -285,7 +289,8 @@ def test_monnify_is_legacy_for_moniepoint():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Moniepoint", "https://atm.monnify.com")
+    bundle = a.acquire("https://atm.monnify.com")
+    rel, msg, _ = v.classify_relationship("Moniepoint", "https://atm.monnify.com", acquisition=bundle)
     assert rel != SiteRelationship.PRIMARY, (
         f"atm.monnify.com must not be PRIMARY for 'Moniepoint'. Got {rel}: {msg}"
     )
@@ -305,7 +310,7 @@ def test_linear_app_is_primary():
     Domain signal: "linear" == "linear" → exact.
     → PRIMARY.
     """
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://linear.app": _doc(
             "https://linear.app",
             title="Linear – The system for product development",
@@ -318,7 +323,8 @@ def test_linear_app_is_primary():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Linear", "https://linear.app")
+    bundle = a.acquire("https://linear.app")
+    rel, msg, _ = v.classify_relationship("Linear", "https://linear.app", acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY, (
         f"linear.app must be PRIMARY for 'Linear'. Got {rel}: {msg}"
     )
@@ -327,7 +333,7 @@ def test_linear_app_is_primary():
 # ── 12. moniepoint.com IS PRIMARY for "Moniepoint" ───────────────────────────
 
 def test_moniepoint_com_is_primary():
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://moniepoint.com": _doc(
             "https://moniepoint.com",
             title="Moniepoint - Business Banking",
@@ -340,7 +346,8 @@ def test_moniepoint_com_is_primary():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Moniepoint", "https://moniepoint.com")
+    bundle = a.acquire("https://moniepoint.com")
+    rel, msg, _ = v.classify_relationship("Moniepoint", "https://moniepoint.com", acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY, (
         f"moniepoint.com must be PRIMARY for 'Moniepoint'. Got {rel}: {msg}"
     )
@@ -355,7 +362,7 @@ def test_vercel_com_is_primary():
       ": Build...", first char ":" is non-alpha → True.
     → PRIMARY (with about corroboration and exact domain).
     """
-    v, _ = _make([], {
+    a, v, _ = _make([], {
         "https://vercel.com": _doc(
             "https://vercel.com",
             title="Vercel: Build and deploy the best web experiences with the Frontend Cloud",
@@ -368,7 +375,8 @@ def test_vercel_com_is_primary():
             ptype=PageType.ABOUT,
         ),
     })
-    rel, msg, _ = v.classify_relationship("Vercel", "https://vercel.com")
+    bundle = a.acquire("https://vercel.com")
+    rel, msg, _ = v.classify_relationship("Vercel", "https://vercel.com", acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY, (
         f"vercel.com must be PRIMARY for 'Vercel'. Got {rel}: {msg}"
     )
@@ -419,7 +427,7 @@ def test_confident_result_always_backed_by_primary_relationship():
     because it verifies that the decision policy never bypasses the relationship
     layer (e.g. by promoting a LEGACY or UNKNOWN candidate to CONFIDENT).
     """
-    _, r = _make(
+    _, _, r = _make(
         [SearchResult(title="Moniepoint", url="https://moniepoint.com", snippet="")],
         {
             "https://moniepoint.com": _doc(
@@ -499,8 +507,9 @@ def test_moniepoint_resolves_confident_via_sentence_id_and_contact():
             ptype=PageType.CONTACT,
         ),
     })
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Moniepoint")
     assert result.confidence == IdentityConfidence.CONFIDENT, (
         f"Expected CONFIDENT, got {result.confidence.name}: {result.reasoning}"
@@ -543,8 +552,9 @@ def test_non_primary_candidate_never_produces_confident():
         "https://atm.monnify.com": hp,
         "https://atm.monnify.com/about": about,
     })
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Moniepoint")
 
     # atm.monnify.com should be LEGACY (self-identifies but domain != "moniepoint")
@@ -578,8 +588,9 @@ def test_zero_primary_related_candidate_is_unresolved():
     )
     s = _Search([SearchResult(title="v0 by Vercel", url="https://v0.app", snippet="")])
     c = _Crawler({"https://v0.app": v0_hp, "https://v0.app/about": v0_about})
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Vercel")
 
     assert result.confidence == IdentityConfidence.UNRESOLVED
@@ -603,8 +614,9 @@ def test_zero_primary_legacy_candidate_is_unresolved():
     )
     s = _Search([SearchResult(title="Moniepoint – ATM Services", url="https://atm.monnify.com", snippet="")])
     c = _Crawler({"https://atm.monnify.com": hp, "https://atm.monnify.com/about": about})
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Moniepoint")
 
     assert result.confidence == IdentityConfidence.UNRESOLVED
@@ -618,8 +630,9 @@ def test_zero_primary_unknown_candidate_is_unresolved():
     hp = _doc("https://moove.io", title="Moove", content="Moove is mobility fintech.")
     s = _Search([SearchResult(title="Moove", url="https://moove.io", snippet="")])
     c = _Crawler({"https://moove.io": hp, "https://moove.io/about": _fail("https://moove.io/about")})
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Moove")
 
     assert result.confidence == IdentityConfidence.UNRESOLVED
@@ -640,8 +653,9 @@ def test_two_primary_candidates_strictly_ambiguous():
         "https://stripedev.io": _doc("https://stripedev.io", title="Stripe", content="Stripe is dev platform."),
         "https://stripedev.io/about": _doc("https://stripedev.io/about", title="About Stripe", content="About Stripe.", ptype=PageType.ABOUT),
     })
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Stripe")
 
     assert result.confidence == IdentityConfidence.AMBIGUOUS
@@ -656,8 +670,9 @@ def test_single_primary_shape_risk_strictly_ambiguous():
         "https://acme.com": _doc("https://acme.com", title="Acme Corp", content="Acme Corp is a widget maker."),
         "https://acme.com/about": _doc("https://acme.com/about", title="About Acme Corp", content="About Acme Corp.", ptype=PageType.ABOUT),
     })
-    v = WebsiteVerifier(c, s)
-    r = IdentityResolver(s, v)
+    a = FirstPartyAcquirer(c, s)
+    v = WebsiteVerifier(s)
+    r = IdentityResolver(s, v, acquirer=a)
     result = r.resolve("Acme Corp")
 
     assert result.confidence == IdentityConfidence.AMBIGUOUS

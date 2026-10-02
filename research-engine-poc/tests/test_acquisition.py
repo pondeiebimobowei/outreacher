@@ -617,8 +617,12 @@ def test_verifier_catches_search_provider_error_in_corroboration():
 
     crawler = _MockCrawler()
     crawl_mgr = CrawlManager(crawler, crawler)
-    verifier = WebsiteVerifier(crawl_mgr, _FailingSearch())
+    search = _FailingSearch()
+    from crawling.acquirer import FirstPartyAcquirer
+    acquirer = FirstPartyAcquirer(crawl_mgr, search)
+    verifier = WebsiteVerifier(search)
+    bundle = acquirer.acquire("https://acme.com")
     
     # Even if secondary search raises SearchProviderError, fallback /about check runs safely
-    rel, msg, ev = verifier.classify_relationship("Acme Corporation", "https://acme.com")
+    rel, msg, ev = verifier.classify_relationship("Acme Corporation", "https://acme.com", acquisition=bundle)
     assert rel in [SiteRelationship.PRIMARY, SiteRelationship.UNKNOWN]

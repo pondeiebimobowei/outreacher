@@ -12,6 +12,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
     _DeterministicCrawlManager,
@@ -461,8 +462,9 @@ def evaluate_collision_blind_case(case: CollisionBlindCase) -> Dict[str, Any]:
         results=case.search_results,
     )
     crawl = _DeterministicCrawlManager(case.mock_documents)
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(case.query_name)
 

@@ -36,6 +36,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 
 console = Console()
 
@@ -618,8 +619,9 @@ class _DeterministicCrawlManager:
 def evaluate_identity_case(case: IdentityRecallCase) -> Dict[str, Any]:
     search_prov = _DeterministicSearchProvider(case.company, case.expected_domain, case.search_results)
     crawl_mgr = _DeterministicCrawlManager(case.mock_documents)
-    verifier = WebsiteVerifier(crawl_mgr, search_prov)
-    resolver = IdentityResolver(search_prov, verifier)
+    acquirer = FirstPartyAcquirer(crawl_mgr, search_prov)
+    verifier = WebsiteVerifier(search_prov)
+    resolver = IdentityResolver(search_prov, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(case.company, context=case.context)
     

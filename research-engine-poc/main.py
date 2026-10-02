@@ -9,6 +9,7 @@ from search.serper import SerperSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
+from crawling.acquirer import FirstPartyAcquirer
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 from discovery.discoverer import ScopedDiscoverer
@@ -45,8 +46,9 @@ def main():
     browser_crawler = PlaywrightCrawlerProvider()
     
     crawl_manager = CrawlManager(static_crawler, browser_crawler)
-    verifier = WebsiteVerifier(crawl_manager, discovery_search)
-    resolver = IdentityResolver(identity_search, verifier)
+    acquirer = FirstPartyAcquirer(crawl_manager, discovery_search)
+    verifier = WebsiteVerifier(discovery_search)
+    resolver = IdentityResolver(identity_search, verifier, acquirer=acquirer)
     discoverer = ScopedDiscoverer(discovery_search)
     ranker = DiversityBudgetRanker()
     

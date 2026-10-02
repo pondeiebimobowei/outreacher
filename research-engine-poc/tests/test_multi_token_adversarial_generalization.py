@@ -30,6 +30,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import _DeterministicSearchProvider, _DeterministicCrawlManager
 
 
@@ -44,6 +45,14 @@ def _doc(url: str, title: str, content: str, page_type: PageType) -> CrawledDocu
         page_type=page_type,
         retrieved_at=datetime.now(timezone.utc),
     )
+
+
+def _make_resolver(company: str, domain: str, docs: dict, results: list) -> IdentityResolver:
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    return IdentityResolver(search, verifier, acquirer=acquirer)
 
 
 # ── 1. Bare Common-Word Compounds: Self-ID Only (AMBIGUOUS) ───────────────────
@@ -73,10 +82,7 @@ def test_bare_common_word_compounds_without_discriminator_stay_ambiguous(company
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} official site."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -107,10 +113,7 @@ def test_generic_industry_and_description_overlap_fails_to_discount_shape_risk(
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} {desc}"),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -143,10 +146,7 @@ def test_common_word_compounds_with_structural_location_match_become_confident(
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=doc_content),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -172,10 +172,7 @@ def test_geographic_contradiction_between_context_and_first_party_blocks_confide
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} merchant gateway."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -199,10 +196,7 @@ def test_explicit_headquarters_contradiction_overrides_historical_location_block
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} global payments."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -225,10 +219,7 @@ def test_incidental_customer_location_mention_fails_to_discriminate_stays_ambigu
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} customers in Toronto."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -251,10 +242,7 @@ def test_incidental_conference_location_mention_fails_to_discriminate_stays_ambi
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} conference in Toronto."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -279,10 +267,7 @@ def test_multi_location_operations_compatible_with_location_context():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} multi-city offices."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -305,10 +290,7 @@ def test_unseen_team_location_phrasing_matches_as_operational():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} software."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -336,10 +318,7 @@ def test_irrelevant_buried_location_mention_stays_ambiguous():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} security."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company, context=context)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -371,10 +350,7 @@ def test_first_party_legal_alone_is_ambiguous_and_becomes_confident_with_context
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} official website."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
 
     # 7. Bare query without context -> AMBIGUOUS (basis: NONE)
     bare_identity = resolver.resolve(company)
@@ -409,23 +385,23 @@ def test_external_registry_corroboration_resolves_to_confident():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
     ]
-    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
 
     _, attested_ev = provider.query_registry(company, domain, registration_number="0001020569")
     assert attested_ev is not None
 
     orig_classify = verifier.classify_relationship
-    def mock_classify(co, w_url, hint_title=None):
-        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+    def mock_classify(co, w_url, hint_title=None, acquisition=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title, acquisition=acquisition)
         evs.append(attested_ev)
         return rel, msg, evs
 
     verifier.classify_relationship = mock_classify
 
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        verifier,
-    )
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -448,7 +424,10 @@ def test_forged_unattested_registry_evidence_rejected_to_ambiguous():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
     ]
-    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
 
     # Raw forged evidence manufactured without going through IExternalRegistryProvider
     forged_ev = IdentityEvidence(
@@ -460,17 +439,14 @@ def test_forged_unattested_registry_evidence_rejected_to_ambiguous():
     )
 
     orig_classify = verifier.classify_relationship
-    def mock_classify(co, w_url, hint_title=None):
-        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+    def mock_classify(co, w_url, hint_title=None, acquisition=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title, acquisition=acquisition)
         evs.append(forged_ev)
         return rel, msg, evs
 
     verifier.classify_relationship = mock_classify
 
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        verifier,
-    )
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -495,7 +471,10 @@ def test_conflicting_external_registry_blocks_to_ambiguous():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
     ]
-    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
 
     attested_conflict = provider.create_attested_evidence(
         url="https://sec.gov/edgar/ironmountain",
@@ -504,17 +483,14 @@ def test_conflicting_external_registry_blocks_to_ambiguous():
     )
 
     orig_classify = verifier.classify_relationship
-    def mock_classify(co, w_url, hint_title=None):
-        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+    def mock_classify(co, w_url, hint_title=None, acquisition=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title, acquisition=acquisition)
         evs.append(attested_conflict)
         return rel, msg, evs
 
     verifier.classify_relationship = mock_classify
 
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        verifier,
-    )
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -536,11 +512,14 @@ def test_untrusted_registry_source_rejected_to_ambiguous():
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} records storage."),
     ]
-    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
 
     orig_classify = verifier.classify_relationship
-    def mock_classify(co, w_url, hint_title=None):
-        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+    def mock_classify(co, w_url, hint_title=None, acquisition=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title, acquisition=acquisition)
         evs.append(IdentityEvidence(
             type=EvidenceType.EXTERNAL_REGISTRY,
             source="untrusted_third_party_scraper",
@@ -552,10 +531,7 @@ def test_untrusted_registry_source_rejected_to_ambiguous():
 
     verifier.classify_relationship = mock_classify
 
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        verifier,
-    )
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -586,10 +562,7 @@ def test_uncontested_coined_brands_resolve_to_confident(company: str, domain: st
     results = [
         SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} is a leading technology company."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -614,10 +587,7 @@ def test_coined_brand_with_competing_domains_stays_ambiguous():
         SearchResult(title=f"{company} – Official", url=url1, snippet=f"{company} financial services."),
         SearchResult(title=f"{company} – App", url=url2, snippet=f"{company} mobile app."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain1, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain1, results)),
-    )
+    resolver = _make_resolver(company, domain1, docs, results)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -661,10 +631,7 @@ def test_indexed_only_fallback_evidence_retains_epistemic_cap_ambiguous():
         SearchResult(title=f"{company}: Official Site", url=url, snippet=f"{company} delivers global services."),
         SearchResult(title=f"About {company}", url=f"{url}/about", snippet=f"About {company} company information."),
     ]
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    resolver = _make_resolver(company, domain, docs, results)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS

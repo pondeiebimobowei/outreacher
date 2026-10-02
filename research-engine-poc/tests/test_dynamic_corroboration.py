@@ -8,6 +8,7 @@ from core.models import (
     DocumentQuality, PageType, EvidenceType,
 )
 from crawling.manager import CrawlManager
+from crawling.acquirer import FirstPartyAcquirer
 from identity.verifier import WebsiteVerifier
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
@@ -68,9 +69,11 @@ def test_dynamic_corroboration_french_localized_route():
     })
     
     search = _DeterministicSearchProvider(company="Wave", domain="wave.com", results=[])
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl, search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    verifier = WebsiteVerifier(search_provider=search)
 
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY
     assert any("a-propos" in e.url for e in ev)
 
@@ -110,9 +113,11 @@ def test_dynamic_corroboration_german_impressum():
     })
 
     search = _DeterministicSearchProvider(company="Personio", domain="personio.com", results=[])
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl, search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    verifier = WebsiteVerifier(search_provider=search)
 
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY
     assert any("impressum" in e.url for e in ev)
 
@@ -160,9 +165,11 @@ def test_dynamic_corroboration_json_ld_schema():
     })
 
     search = _DeterministicSearchProvider(company="Numida", domain="numida.com", results=[])
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl, search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    verifier = WebsiteVerifier(search_provider=search)
 
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
     assert rel == SiteRelationship.PRIMARY
     assert any("company-profile" in e.url for e in ev)
 
@@ -192,8 +199,10 @@ def test_dynamic_corroboration_adversarial_rejected():
     })
 
     search = _DeterministicSearchProvider(company="FictitiousBrand", domain="fictitiousbrand.com", results=[])
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl, search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    verifier = WebsiteVerifier(search_provider=search)
 
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
     # Since only /blog existed and no valid secondary corroboration was found, must safely abstain
     assert rel == SiteRelationship.UNKNOWN

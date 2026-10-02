@@ -74,6 +74,7 @@ from search.duckduckgo import DuckDuckGoSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
+from crawling.acquirer import FirstPartyAcquirer
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 
@@ -819,8 +820,9 @@ class InstrumentedValidationRunner:
     ):
         self.search_provider = search_provider
         self.crawl_manager = crawl_manager
-        self.verifier = WebsiteVerifier(crawl_manager, search_provider)
-        self.resolver = IdentityResolver(search_provider, self.verifier)
+        self.acquirer = FirstPartyAcquirer(crawl_manager, search_provider)
+        self.verifier = WebsiteVerifier(search_provider)
+        self.resolver = IdentityResolver(search_provider, self.verifier, acquirer=self.acquirer)
         self.inter_case_delay = inter_case_delay
 
     def evaluate_case(self, case: ValidationIdentityCase) -> ValidationStageTelemetry:

@@ -8,12 +8,15 @@ from search.sanitizer import SearchResultSanitizer
 from core.models import (
     CompanyIdentity, IdentityConfidence, IdentityContext,
     IdentityCandidate, IdentityEvidence, EvidenceType, SiteRelationship,
-    IdentityDiagnosticTrace,
+    IdentityDiagnosticTrace, CrawledDocument, DocumentQuality,
 )
 from core.urls import normalize_domain, get_registrable_domain
 from identity.verifier import WebsiteVerifier
 from identity.lexicon import is_dictionary_word
 from identity.registry import verify_provider_attestation
+from crawling.acquirer import (
+    FirstPartyAcquirer, IFirstPartyAcquirer, AcquiredSiteDocuments,
+)
 
 # How many top candidates to run through the verifier.
 # This is an explicit policy constant, not a silent assumption.
@@ -30,13 +33,28 @@ ALLOWLISTED_REGISTRY_PROVIDERS = {
 
 
 class IdentityResolver:
-    def __init__(self, search_provider: ISearchProvider, verifier: WebsiteVerifier):
+    def __init__(
+        self,
+        search_provider: Optional[ISearchProvider],
+        verifier: Optional[WebsiteVerifier],
+        acquirer: Optional[IFirstPartyAcquirer] = None,
+        crawl_manager: Optional[Any] = None,
+    ):
         self.search_provider = search_provider
         self.verifier = verifier
+        if acquirer is not None:
+            self.acquirer = acquirer
+        elif crawl_manager is not None:
+            self.acquirer = FirstPartyAcquirer(crawl_manager=crawl_manager, search_provider=search_provider)
+        else:
+            self.acquirer = None
+
         self.provider_name = (
             search_provider.__class__.__name__
             .replace("SearchProvider", "")
             .lower()
+            if search_provider is not None
+            else "mock"
         )
 
     COMMON_GEOS = {
@@ -712,14 +730,18 @@ class IdentityResolver:
             first_url        = domain_top_result[domain].url
             scheme           = urlparse(first_url).scheme or "https"
             website_url_cand = f"{scheme}://{domain}"
+            search_title     = domain_top_result[domain].title or ""
 
-            # The search result title (from Google's index) is passed as hint_title.
-            # The verifier uses it only when the live crawler returns an empty title,
-            # which is common for JS-rendered SPA homepages.
-            search_title = domain_top_result[domain].title or ""
+            # Acquire first-party documents prior to verification
+            if self.acquirer is not None:
+                bundle = self.acquirer.acquire(website_url_cand)
+            else:
+                bundle = AcquiredSiteDocuments(
+                    homepage_doc=CrawledDocument(url=website_url_cand, quality=DocumentQuality.BLOCKED)
+                )
 
             rel, msg, ver_ev = self.verifier.classify_relationship(
-                company_name, website_url_cand, hint_title=search_title,
+                company_name, website_url_cand, hint_title=search_title, acquisition=bundle
             )
             is_primary = rel == SiteRelationship.PRIMARY
 

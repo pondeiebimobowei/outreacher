@@ -32,6 +32,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from identity.lexicon import is_dictionary_word, has_low_lexical_collision_risk, _get_dictionary
 import identity.lexicon as lexicon_module
 from benchmark_identity_recall import (
@@ -87,8 +88,10 @@ def test_subordinate_relationship_precedence_over_sentence_self_id():
         search = _DeterministicSearchProvider(company=company, domain=url.replace("https://", ""), results=[
             SearchResult(title=f"{company} – Official", url=url, snippet=hp_content),
         ])
-        verifier = WebsiteVerifier(crawl, search)
-        rel, msg, ev = verifier.classify_relationship(company, url)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        bundle = acquirer.acquire(url)
+        verifier = WebsiteVerifier(search)
+        rel, msg, ev = verifier.classify_relationship(company, url, acquisition=bundle)
 
         assert rel in (SiteRelationship.RELATED, SiteRelationship.LEGACY), (
             f"Expected {company} with subordinate phrasing to be RELATED/LEGACY, got {rel}. Msg: {msg}"
@@ -143,8 +146,9 @@ def test_common_dictionary_words_of_any_length_never_confident_uncontested():
             f"https://{domain}/about": _doc(f"https://{domain}/about", f"About {word}", f"About {word} platform.", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(word)
         assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
@@ -180,8 +184,9 @@ def test_single_coined_distinctive_word_resolves_to_confident():
             f"https://{domain}/about": _doc(f"https://{domain}/about", f"About {brand}", f"About {brand}: {desc}", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(brand)
         assert identity.confidence == IdentityConfidence.CONFIDENT, (
@@ -214,8 +219,9 @@ def test_multi_token_distinctive_phrase_resolves_to_confident():
             f"https://{domain}/about": _doc(f"https://{domain}/about", f"About {brand}", f"About {brand}: {desc}", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(brand, context=context)
         assert identity.confidence == IdentityConfidence.CONFIDENT, (
@@ -244,8 +250,9 @@ def test_competing_brand_domains_in_search_force_ambiguous():
         "https://stripedev.io/about": _doc("https://stripedev.io/about", "About Stripe IDE", "Stripe developer editor.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve("Stripe")
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -275,8 +282,9 @@ def test_subdomains_of_same_root_do_not_trigger_competing_collision():
         f"https://app.{domain}": _doc(f"https://app.{domain}", f"{brand} Portal", f"Portal for {brand}.", PageType.OTHER),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(brand)
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -301,8 +309,10 @@ def test_duplicate_homepage_content_cannot_act_as_secondary_corroboration():
         SearchResult(title=f"{company} – Official", url=f"https://{domain}", snippet=hp_content),
     ])
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(f"https://{domain}")
+    verifier = WebsiteVerifier(search)
+    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}", acquisition=bundle)
     assert rel == SiteRelationship.UNKNOWN
 
 
@@ -320,8 +330,10 @@ def test_soft_404_secondary_page_cannot_corroborate():
         SearchResult(title=f"{company} – Welcome", url=f"https://{domain}", snippet=f"{company} is an online service."),
     ])
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(f"https://{domain}")
+    verifier = WebsiteVerifier(search)
+    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}", acquisition=bundle)
     assert rel == SiteRelationship.UNKNOWN
 
 
@@ -349,8 +361,10 @@ def test_indexed_fallback_provenance_and_epistemic_cap():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, ev = verifier.classify_relationship(company, f"https://{domain}")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(f"https://{domain}")
+    verifier = WebsiteVerifier(search)
+    rel, msg, ev = verifier.classify_relationship(company, f"https://{domain}", acquisition=bundle)
 
     # Verifier establishes PRIMARY via indexed fallback
     assert rel == SiteRelationship.PRIMARY
@@ -358,7 +372,7 @@ def test_indexed_fallback_provenance_and_epistemic_cap():
     assert not any(e.type == EvidenceType.SELF_IDENTITY and e.source == "homepage" for e in ev)
 
     # Resolver evaluates the candidate and enforces the epistemic cap -> AMBIGUOUS
-    resolver = IdentityResolver(search, verifier)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     identity = resolver.resolve(company)
 
     assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
@@ -391,8 +405,10 @@ def test_indexed_fallback_rejects_blog_and_job_routes():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(f"https://{domain}")
+    verifier = WebsiteVerifier(search)
+    rel, msg, _ = verifier.classify_relationship(company, f"https://{domain}", acquisition=bundle)
 
     assert rel == SiteRelationship.UNKNOWN, (
         f"Indexed fallback must not corroborate on blog route. Got {rel}. Msg: {msg}"
@@ -427,8 +443,9 @@ def test_domain_suppressed_unless_confident():
         "https://atlas.com/about": _doc("https://atlas.com/about", "About Atlas", "About Atlas cloud.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve("Atlas")
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -458,8 +475,9 @@ def test_counterfactual_competitor_injection_forces_ambiguous():
         f"https://{primary_domain}/about": _doc(f"https://{primary_domain}/about", f"About {brand}", f"About {brand}.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search_base)
-    resolver = IdentityResolver(search_base, verifier)
+    acquirer_base = FirstPartyAcquirer(crawl, search_base)
+    verifier_base = WebsiteVerifier(search_base)
+    resolver = IdentityResolver(search_base, verifier_base, acquirer=acquirer_base)
     res_base = resolver.resolve(brand)
     assert res_base.confidence == IdentityConfidence.CONFIDENT
 
@@ -472,7 +490,9 @@ def test_counterfactual_competitor_injection_forces_ambiguous():
             SearchResult(title=f"{brand} Independent Solutions", url=f"https://{competitor_domain}", snippet=f"{brand} payments credit services."),
         ]
     )
-    resolver_injected = IdentityResolver(search_injected, verifier)
+    acquirer_injected = FirstPartyAcquirer(crawl, search_injected)
+    verifier_injected = WebsiteVerifier(search_injected)
+    resolver_injected = IdentityResolver(search_injected, verifier_injected, acquirer=acquirer_injected)
     res_injected = resolver_injected.resolve(brand)
     assert res_injected.confidence == IdentityConfidence.AMBIGUOUS, (
         f"Injected competitor must drop state to AMBIGUOUS, got {res_injected.confidence}"
@@ -503,8 +523,8 @@ def test_pruning_or_reordering_cannot_turn_unverified_into_confident():
     search1 = _DeterministicSearchProvider(company=company, domain=domain, results=results_order1)
     search2 = _DeterministicSearchProvider(company=company, domain=domain, results=results_order2)
 
-    res1 = IdentityResolver(search1, WebsiteVerifier(crawl, search1)).resolve(company)
-    res2 = IdentityResolver(search2, WebsiteVerifier(crawl, search2)).resolve(company)
+    res1 = IdentityResolver(search1, WebsiteVerifier(search1), acquirer=FirstPartyAcquirer(crawl, search1)).resolve(company)
+    res2 = IdentityResolver(search2, WebsiteVerifier(search2), acquirer=FirstPartyAcquirer(crawl, search2)).resolve(company)
 
     assert res1.confidence == IdentityConfidence.CONFIDENT
     assert res2.confidence == IdentityConfidence.CONFIDENT
@@ -698,8 +718,9 @@ def test_multi_token_generic_combinations_cannot_be_confident_uncontested():
             SearchResult(title=f"{company} – Official", url=f"https://{domain}", snippet=f"{company} services."),
         ])
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(company)
         assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
@@ -729,8 +750,10 @@ def test_footer_relationship_detection_past_character_cutoff():
         SearchResult(title=f"{company} – Official", url=url, snippet="Enterprise software solutions."),
     ])
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, _ = verifier.classify_relationship(company, url)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(url)
+    verifier = WebsiteVerifier(search)
+    rel, msg, _ = verifier.classify_relationship(company, url, acquisition=bundle)
 
     assert rel in (SiteRelationship.RELATED, SiteRelationship.LEGACY), (
         f"Footer subsidiary notice must classify as RELATED/LEGACY, got {rel}. Msg: {msg}"
@@ -755,8 +778,10 @@ def test_footer_self_attribution_preserves_primary_status():
         SearchResult(title="Foo – Official Platform", url=url, snippet="Foo is the leading developer platform."),
     ])
 
-    verifier = WebsiteVerifier(crawl, search)
-    rel, msg, _ = verifier.classify_relationship(company, url)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    bundle = acquirer.acquire(url)
+    verifier = WebsiteVerifier(search)
+    rel, msg, _ = verifier.classify_relationship(company, url, acquisition=bundle)
 
     assert rel == SiteRelationship.PRIMARY, f"Self-attribution on exact domain must remain PRIMARY, got {rel}. Msg: {msg}"
 
@@ -785,8 +810,9 @@ def test_unseen_generic_multi_token_adversaries_stay_ambiguous():
             SearchResult(title=f"{company} – Official", url=f"https://{domain}", snippet=f"{company} commercial software."),
         ])
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(company)
         assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
@@ -815,10 +841,11 @@ def test_mixed_provenance_indexed_fallback_preserves_epistemic_cap():
     
     assert candidate_mixed.is_indexed_only is True, "Mixed candidate with indexed fallback must have is_indexed_only == True"
 
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider("ThinBrand", "thinbrand.com", []),
-        WebsiteVerifier(_DeterministicCrawlManager({}), _DeterministicSearchProvider("ThinBrand", "thinbrand.com", []))
-    )
+    search_prov = _DeterministicSearchProvider("ThinBrand", "thinbrand.com", [])
+    crawl_mgr = _DeterministicCrawlManager({})
+    acquirer = FirstPartyAcquirer(crawl_mgr, search_prov)
+    verifier = WebsiteVerifier(search_prov)
+    resolver = IdentityResolver(search_prov, verifier, acquirer=acquirer)
     
     can_discount, reason, disc_basis = resolver._should_discount_shape_risk("ThinBrand", candidate_mixed, [candidate_mixed])
     assert can_discount is False

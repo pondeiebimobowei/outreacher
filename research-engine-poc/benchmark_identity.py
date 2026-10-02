@@ -34,6 +34,7 @@ from search.serper import SerperSearchProvider
 from crawling.trafilatura_crawler import TrafilaturaCrawlerProvider
 from crawling.playwright_crawler import PlaywrightCrawlerProvider
 from crawling.manager import CrawlManager
+from crawling.acquirer import FirstPartyAcquirer
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
 from core.models import IdentityConfidence, IdentityContext
@@ -132,8 +133,9 @@ def run_benchmark(provider_name: str, verbose: bool = False):
         TrafilaturaCrawlerProvider(),
         PlaywrightCrawlerProvider(),
     )
-    verifier  = WebsiteVerifier(crawl_manager, search_provider)
-    resolver  = IdentityResolver(search_provider, verifier)
+    acquirer  = FirstPartyAcquirer(crawl_manager, search_provider)
+    verifier  = WebsiteVerifier(search_provider)
+    resolver  = IdentityResolver(search_provider, verifier, acquirer=acquirer)
 
     # Summary table
     table = Table(title=f"Identity Results ({provider_name})", expand=True)

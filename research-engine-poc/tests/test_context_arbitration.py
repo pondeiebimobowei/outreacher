@@ -27,6 +27,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
     _DeterministicCrawlManager,
@@ -121,8 +122,9 @@ def test_verified_candidate_with_strong_context_overrides_unverified_competing_d
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # 1. With strong matching context -> CONFIDENT
     ctx = IdentityContext(legal_name="DocuSign, Inc.", headquarters="San Francisco")
@@ -170,8 +172,9 @@ def test_verified_candidate_with_non_matching_context_retains_competing_domain_a
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Context specifies completely different entity / location
     ctx = IdentityContext(legal_name="Unrelated Corp Inc.", headquarters="Tokyo")
@@ -213,8 +216,9 @@ def test_weak_context_only_with_competing_domain_preserves_ambiguity():
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Caller supplies only weak context
     ctx = IdentityContext(industry="software", description="electronic signatures")
@@ -273,8 +277,9 @@ def test_multiple_verified_primary_candidates_disambiguated_by_strong_context():
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # 1. Strong context matching Palantir Technologies (Denver) -> selects palantir.com
     ctx_a = IdentityContext(legal_name="Palantir Technologies Inc.", headquarters="Denver")
@@ -320,8 +325,9 @@ def test_multiple_verified_primary_candidates_context_matches_neither_remains_am
         f"https://{domain_b}/about": _doc(f"https://{domain_b}/about", "About Palantir.net", "Palantir.net consulting.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Context specifies London location that neither candidate has
     ctx = IdentityContext(legal_name="Palantir Healthcare Ltd.", headquarters="London")
@@ -356,8 +362,9 @@ def test_multiple_verified_primary_candidates_context_matches_both_remains_ambig
         f"https://{domain_b}/about": _doc(f"https://{domain_b}/about", "About Palantir.net", "Palantir.net Delaware operations.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Context matches location on both sites
     ctx = IdentityContext(headquarters="Delaware")
@@ -392,8 +399,9 @@ def test_multiple_verified_primary_candidates_no_context_remains_ambiguous():
         f"https://{domain_b}/about": _doc(f"https://{domain_b}/about", "About Palantir.net", "Palantir.net platform.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     res = resolver.resolve(company, context=None)
     assert res.confidence == IdentityConfidence.AMBIGUOUS
@@ -432,8 +440,9 @@ def test_active_namesake_collision_discounted_by_positive_first_party_context():
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Simulate active namesake probe detecting pleoworld.com
     resolver._check_active_namesake_collision = lambda co, cand: (True, "pleoworld.com")
@@ -478,8 +487,9 @@ def test_active_namesake_collision_with_non_matching_context_retains_ambiguity()
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     resolver._check_active_namesake_collision = lambda co, cand: (True, "pleoworld.com")
 
     ctx = IdentityContext(legal_name="Unrelated Pleo AG", headquarters="Zurich")
@@ -513,8 +523,9 @@ def test_indexed_only_fallback_candidate_cannot_receive_confident_context_overri
         f"https://{domain}/about": _blocked_doc(f"https://{domain}/about"),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Even with caller supplying strong context, bot-blocked candidate cannot resolve CONFIDENT
     ctx = IdentityContext(legal_name="Huel Limited", location="Tring")
@@ -569,8 +580,9 @@ def test_successful_context_override_requires_verified_primary_relationship():
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     ctx = IdentityContext(legal_name="Vercel Inc.", headquarters="San Francisco")
     res = resolver.resolve(company, context=ctx)
@@ -612,8 +624,9 @@ def test_dictionary_word_verified_primary_with_strong_legal_name_match_resolves_
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # 1. With matching strong legal_name context -> CONFIDENT
     ctx = IdentityContext(legal_name="Beacon Platform Inc.")
@@ -660,8 +673,9 @@ def test_dictionary_word_verified_primary_with_strong_headquarters_match_resolve
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # With matching strong headquarters context -> CONFIDENT
     ctx = IdentityContext(headquarters="New York")
@@ -704,8 +718,9 @@ def test_dictionary_word_verified_primary_with_strong_context_no_first_party_mat
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Strong context supplied, but site has no first-party evidence of this legal name
     ctx = IdentityContext(legal_name="Beacon Platform Inc.", headquarters="New York")
@@ -743,8 +758,9 @@ def test_dictionary_word_verified_primary_with_wrong_strong_context_remains_ambi
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Caller provides wrong legal name / location
     ctx = IdentityContext(legal_name="Beacon Maritime Logistics Ltd.", headquarters="London")
@@ -775,8 +791,9 @@ def test_dictionary_word_indexed_only_candidate_with_matching_strong_context_rem
         f"https://{domain}/about": _blocked_doc(f"https://{domain}/about"),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     ctx = IdentityContext(legal_name="Beacon Platform Inc.", headquarters="New York")
     identity = resolver.resolve(company, context=ctx)
@@ -813,8 +830,9 @@ def test_dictionary_word_verified_primary_with_weak_context_only_remains_ambiguo
         ),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     # Only weak context
     ctx = IdentityContext(industry="Fintech", description="Financial analytics software")

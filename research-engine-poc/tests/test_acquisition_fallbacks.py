@@ -9,6 +9,7 @@ from core.models import (
     DocumentQuality, PageType, EvidenceType,
 )
 from identity.verifier import WebsiteVerifier
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
     _DeterministicCrawlManager,
@@ -57,8 +58,10 @@ def test_blocked_homepage_with_dual_indexed_evidence_verifies_primary():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
-    rel, msg, ev = verifier.classify_relationship(company, website_url, hint_title="Personio: The HR Operating System")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, hint_title="Personio: The HR Operating System", acquisition=bundle)
 
     assert rel == SiteRelationship.PRIMARY
     assert any("INDEXED" in e.signal for e in ev)
@@ -87,8 +90,10 @@ def test_blocked_homepage_snippet_only_insufficient():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
 
     assert rel == SiteRelationship.UNKNOWN
     assert "insufficient" in msg.lower() or "blocked" in msg.lower()
@@ -121,8 +126,10 @@ def test_blocked_homepage_subpage_without_identity_evidence_insufficient():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
-    rel, msg, ev = verifier.classify_relationship(company, website_url, hint_title="TargetTech - Cloud Infrastructure")
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, hint_title="TargetTech - Cloud Infrastructure", acquisition=bundle)
 
     assert rel == SiteRelationship.UNKNOWN
     assert rel != SiteRelationship.PRIMARY
@@ -154,8 +161,10 @@ def test_blocked_homepage_subordinate_relationship_classified_related():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
 
     assert rel == SiteRelationship.RELATED
     assert rel != SiteRelationship.PRIMARY
@@ -187,8 +196,10 @@ def test_blocked_homepage_third_party_domain_rejected():
         ]
     )
 
-    verifier = WebsiteVerifier(crawl_manager=crawl, search_provider=search)
-    rel, msg, ev = verifier.classify_relationship(company, website_url)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search_provider=search)
+    bundle = acquirer.acquire(website_url)
+    rel, msg, ev = verifier.classify_relationship(company, website_url, acquisition=bundle)
 
     assert rel == SiteRelationship.UNKNOWN
     assert rel != SiteRelationship.PRIMARY

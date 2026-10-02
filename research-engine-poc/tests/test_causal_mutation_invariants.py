@@ -26,6 +26,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver, ALLOWLISTED_REGISTRY_PROVIDERS
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import _DeterministicSearchProvider, _DeterministicCrawlManager
 
 
@@ -59,10 +60,11 @@ def test_causal_mutation_geographic_contradiction_gate():
     results = [SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} gateway.")]
 
     # 1. Baseline: Gate active -> AMBIGUOUS (CONTRADICTION_BLOCKED)
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company, context=context)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "CONTRADICTION_BLOCKED"
@@ -97,10 +99,11 @@ def test_causal_mutation_weak_context_rejection_gate():
     results = [SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} in Canada.")]
 
     # 1. Baseline: Gate active -> AMBIGUOUS (WEAK_CONTEXT_INSUFFICIENT -> NONE)
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company, context=context)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "NONE"
@@ -136,10 +139,11 @@ def test_causal_mutation_first_party_crawl_restriction_gate():
     results = [SearchResult(title=f"{company} – Official", url=url, snippet="Beacon Systems Boston headquarters.")]
 
     # 1. Baseline: Gate active -> AMBIGUOUS (first-party text lacks Boston -> NONE)
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company, context=context)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "NONE"
@@ -175,10 +179,11 @@ def test_causal_mutation_legal_only_demotion_gate():
     results = [SearchResult(title=f"{company} – Official", url=url, snippet=f"{company} official site.")]
 
     # 1. Baseline: Gate active -> AMBIGUOUS (Invariant B: self legal form alone remains AMBIGUOUS)
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "NONE"
@@ -219,16 +224,19 @@ def test_causal_mutation_external_registry_provider_allowlist_gate():
         title="Unverified Registry Mirror",
     )
 
-    verifier = WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results))
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
     orig_classify = verifier.classify_relationship
-    def mock_classify(co, w_url, hint_title=None):
-        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title)
+    def mock_classify(co, w_url, hint_title=None, acquisition=None):
+        rel, msg, evs = orig_classify(co, w_url, hint_title=hint_title, acquisition=acquisition)
         evs.append(untrusted_ev)
         return rel, msg, evs
     verifier.classify_relationship = mock_classify
 
     # 1. Baseline: Gate active -> UNTRUSTED provider rejected -> AMBIGUOUS
-    resolver = IdentityResolver(_DeterministicSearchProvider(company, domain, results), verifier)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "UNTRUSTED_REGISTRY_SOURCE"
@@ -275,10 +283,11 @@ def test_causal_mutation_active_coined_collision_probe_gate():
             return results
 
     # 1. Baseline: Active collision probe discovers moove.com -> fails closed to AMBIGUOUS
-    resolver = IdentityResolver(
-        _ProbeAwareSearchProvider(),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _ProbeAwareSearchProvider()),
-    )
+    search = _ProbeAwareSearchProvider()
+    crawl = _DeterministicCrawlManager(docs)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.entity_discrimination_basis == "NONE"
@@ -319,18 +328,19 @@ def test_causal_mutation_indexed_fallback_epistemic_cap_gate():
     ]
 
     # 1. Baseline: Gate active -> is_indexed_only enforces epistemic cap -> AMBIGUOUS
-    resolver = IdentityResolver(
-        _DeterministicSearchProvider(company, domain, results),
-        WebsiteVerifier(_DeterministicCrawlManager(docs), _DeterministicSearchProvider(company, domain, results)),
-    )
+    crawl = _DeterministicCrawlManager(docs)
+    search = _DeterministicSearchProvider(company, domain, results)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
     baseline = resolver.resolve(company)
     assert baseline.confidence == IdentityConfidence.AMBIGUOUS
     assert baseline.diagnostic_trace.final_decision_rule == "INDEXED_ONLY_EPISTEMIC_CAP_AMBIGUOUS"
 
     # 2. Mutation: Disable strictly the is_indexed_only epistemic cap by clearing fallback indexed flag
     orig_classify = resolver.verifier.classify_relationship
-    def mock_classify(co, cand_url, hint_title=""):
-        rel, msg, evs = orig_classify(co, cand_url, hint_title=hint_title)
+    def mock_classify(co, cand_url, hint_title="", acquisition=None):
+        rel, msg, evs = orig_classify(co, cand_url, hint_title=hint_title, acquisition=acquisition)
         mutated_evs = []
         for ev in evs:
             if ev.type == EvidenceType.FALLBACK_INDEXED:

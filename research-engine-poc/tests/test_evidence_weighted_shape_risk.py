@@ -11,6 +11,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
     _DeterministicCrawlManager,
@@ -53,8 +54,9 @@ def test_coined_short_brand_uncontested_exact_domain_promoted_confident():
         "https://adyen.com/about": _valid_doc("https://adyen.com/about", "About Adyen", "About Adyen: The financial technology platform.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -84,8 +86,9 @@ def test_coined_4letter_brand_uncontested_exact_domain_promoted_confident():
         "https://yoco.com/about": _valid_doc("https://yoco.com/about", "About Yoco", "About Yoco: empowering small businesses across Africa.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -114,8 +117,9 @@ def test_generic_dictionary_shape_risk_stays_ambiguous():
         "https://acme.com/about": _valid_doc("https://acme.com/about", "About Acme Corp", "About Acme Corp.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -143,8 +147,9 @@ def test_short_brand_with_competing_primaries_stays_ambiguous():
         "https://linear.vc/about": _valid_doc("https://linear.vc/about", "About Linear", "About Linear venture capital.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -172,8 +177,9 @@ def test_short_generic_name_with_non_exact_domain_stays_ambiguous():
         "https://nexus-consulting-group.com/about": _valid_doc("https://nexus-consulting-group.com/about", "About Nexus", "About Nexus Consulting.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS

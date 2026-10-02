@@ -11,6 +11,7 @@ from core.models import (
 )
 from identity.verifier import WebsiteVerifier
 from identity.resolver import IdentityResolver
+from crawling.acquirer import FirstPartyAcquirer
 from benchmark_identity_recall import (
     _DeterministicSearchProvider,
     _DeterministicCrawlManager,
@@ -96,8 +97,9 @@ def test_bare_dictionary_word_collision_distribution_stays_ambiguous():
             f"https://{primary_domain}/about": _valid_doc(f"https://{primary_domain}/about", f"About {word}", f"About {word} platform.", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(word)
         assert identity.confidence == IdentityConfidence.AMBIGUOUS, (
@@ -131,8 +133,9 @@ def test_short_generic_dictionary_words_stay_ambiguous():
             f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {word}", f"About {word}.", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(word)
         assert identity.confidence == IdentityConfidence.AMBIGUOUS, f"Expected short generic word '{word}' to be AMBIGUOUS, got {identity.confidence}"
@@ -173,8 +176,9 @@ def test_coined_single_word_brand_uncontested_promoted_to_confident():
             f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {brand}", f"About {brand} enterprise.", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(brand)
         assert identity.confidence == IdentityConfidence.CONFIDENT, f"Expected coined brand '{brand}' to be CONFIDENT, but got {identity.confidence}"
@@ -209,8 +213,9 @@ def test_multi_token_distinctive_name_promoted_to_confident():
             f"https://{domain}/about": _valid_doc(f"https://{domain}/about", f"About {company}", f"About {company}: {desc}", PageType.ABOUT),
         })
 
-        verifier = WebsiteVerifier(crawl, search)
-        resolver = IdentityResolver(search, verifier)
+        acquirer = FirstPartyAcquirer(crawl, search)
+        verifier = WebsiteVerifier(search)
+        resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
         identity = resolver.resolve(company, context=context)
         assert identity.confidence == IdentityConfidence.CONFIDENT
@@ -235,8 +240,9 @@ def test_competing_domains_in_search_prevents_confident_promotion():
         "https://pennylane.ai/about": _valid_doc("https://pennylane.ai/about", "About PennyLane", "About PennyLane quantum software.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence == IdentityConfidence.AMBIGUOUS
@@ -259,8 +265,9 @@ def test_brand_domain_mismatch_prevents_confident_promotion():
         f"https://{domain}/about": _valid_doc(f"https://{domain}/about", "About Nexus Advisory Partners", "About Nexus Advisory Partners.", PageType.ABOUT),
     })
 
-    verifier = WebsiteVerifier(crawl, search)
-    resolver = IdentityResolver(search, verifier)
+    acquirer = FirstPartyAcquirer(crawl, search)
+    verifier = WebsiteVerifier(search)
+    resolver = IdentityResolver(search, verifier, acquirer=acquirer)
 
     identity = resolver.resolve(company)
     assert identity.confidence != IdentityConfidence.CONFIDENT
