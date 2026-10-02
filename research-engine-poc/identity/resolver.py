@@ -155,7 +155,7 @@ class IdentityResolver:
     def _evaluate_context_discrimination(
         self,
         candidate: IdentityCandidate,
-        context: IdentityContext,
+        context: Optional[IdentityContext],
     ) -> Tuple[bool, str, str]:
         """
         Evaluates caller-supplied structured context against first-party crawled evidence:
@@ -167,6 +167,16 @@ class IdentityResolver:
           provide full entity discrimination.
         - Contradictions block to AMBIGUOUS.
         """
+        if not context:
+            return False, "No caller context provided.", "NONE"
+
+        if candidate.is_indexed_only:
+            return (
+                False,
+                "Candidate established via search-indexed fallback (bot-blocked homepage) carries epistemic cap.",
+                "NO_FIRST_PARTY_EVIDENCE",
+            )
+
         strong_attrs, medium_attrs, weak_attrs = self._categorize_context_strength(context)
 
         # 1. Gate: Reject if context contains only WEAK attributes without any STRONG or MEDIUM discriminators
@@ -394,6 +404,9 @@ class IdentityResolver:
         if not distinctive:
             return False, "Query contains only generic corporate suffixes without a distinctive brand token.", "NONE"
 
+        # Evaluate context discrimination once for this candidate if context is present
+        ctx_matched, ctx_reason, ctx_basis = self._evaluate_context_discrimination(best_candidate, context)
+
         # 1. Domain correspondence check
         clean_co = re.sub(r'[^a-z0-9]', '', company_name.lower())
         clean_dist = self.canonical_brand_slug(company_name)
@@ -417,12 +430,8 @@ class IdentityResolver:
                 company_name, best_candidate, all_candidates
             )
             if has_competing:
-                if context:
-                    strong_fields, _, _ = self._categorize_context_strength(context)
-                    if strong_fields:
-                        is_matched, match_reason, _ = self._evaluate_context_discrimination(best_candidate, context)
-                        if is_matched:
-                            return True, match_reason, "USER_CONTEXT"
+                if ctx_matched:
+                    return True, ctx_reason, "USER_CONTEXT"
                 return False, f"Multiple distinct brand domains ({competing_str}) observed in search results.", "NONE"
 
         # 3. Check for External Registry Match
@@ -458,22 +467,16 @@ class IdentityResolver:
         if any(not is_dictionary_word(t) for t in distinctive):
             has_namesake, namesake_str = self._check_active_namesake_collision(company_name, best_candidate)
             if has_namesake:
-                if context:
-                    strong_fields, _, _ = self._categorize_context_strength(context)
-                    if strong_fields:
-                        is_matched, match_reason, _ = self._evaluate_context_discrimination(best_candidate, context)
-                        if is_matched:
-                            return True, match_reason, "USER_CONTEXT"
+                if ctx_matched:
+                    return True, ctx_reason, "USER_CONTEXT"
                 return False, f"Active collision probe detected competing brand domains ({namesake_str}).", "NONE"
             return True, "Entity collision risk discounted via coined brand token verified by active namesake collision probe.", "COINED_BRAND_TOKEN"
 
         # 5. Basis USER_CONTEXT: Caller-supplied structured context evaluated strictly against first-party crawled evidence
-        if context:
-            is_matched, match_reason, match_basis = self._evaluate_context_discrimination(best_candidate, context)
-            if is_matched:
-                return True, match_reason, "USER_CONTEXT"
-            if match_basis == "CONTRADICTION_BLOCKED":
-                return False, match_reason, "CONTRADICTION_BLOCKED"
+        if ctx_matched:
+            return True, ctx_reason, "USER_CONTEXT"
+        if ctx_basis == "CONTRADICTION_BLOCKED":
+            return False, ctx_reason, "CONTRADICTION_BLOCKED"
 
         # Invariant B: First-party legal entity registration on candidate's site alone is self-corroboration,
         # NOT cross-entity discrimination. It remains AMBIGUOUS without caller context or external registry match.
@@ -754,11 +757,7 @@ class IdentityResolver:
             best = disambiguated_candidate if disambiguated_candidate is not None else verified_candidates[0]
             is_indexed_only = best.is_indexed_only
 
-            ctx_matched = False
-            if context and not is_indexed_only:
-                strong_fields, _, _ = self._categorize_context_strength(context)
-                if strong_fields:
-                    ctx_matched, _, _ = self._evaluate_context_discrimination(best, context)
+            ctx_matched, _, _ = self._evaluate_context_discrimination(best, context)
 
             has_competing, competing_str = self._check_competing_brand_domains(
                 company_name, best, recorded_candidates

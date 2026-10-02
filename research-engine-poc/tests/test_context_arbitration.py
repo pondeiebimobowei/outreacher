@@ -578,3 +578,247 @@ def test_successful_context_override_requires_verified_primary_relationship():
     # Subordinate product must NOT resolve as CONFIDENT for V0
     assert res.confidence != IdentityConfidence.CONFIDENT
     assert res.domain == ""
+
+
+# ── 5. Dictionary-Word Shape Risk + Context Arbitration ──────────────────────────
+
+def test_dictionary_word_verified_primary_with_strong_legal_name_match_resolves_confident():
+    """A dictionary-word company name (shape-risk candidate) with verified PRIMARY candidate,
+    no competing domain, and strong legal_name match against live first-party crawled evidence
+    safely discounts shape risk and resolves as CONFIDENT."""
+    company = "Beacon"
+    domain = "beacon.com"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Beacon Platform – Enterprise Financial Analytics", url=f"https://{domain}", snippet="Beacon enterprise financial cloud."),
+        ]
+    )
+
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _doc(
+            f"https://{domain}",
+            "Beacon: Cloud-based Analytics",
+            "Beacon is a cloud financial analytics platform. Copyright 2026 Beacon Platform Inc.",
+            PageType.HOMEPAGE,
+        ),
+        f"https://{domain}/about": _doc(
+            f"https://{domain}/about",
+            "About Beacon",
+            "Beacon Platform Inc. provides enterprise risk management tools.",
+            PageType.ABOUT,
+        ),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    # 1. With matching strong legal_name context -> CONFIDENT
+    ctx = IdentityContext(legal_name="Beacon Platform Inc.")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.CONFIDENT, (
+        f"Expected CONFIDENT with strong legal_name match, got {identity.confidence}. "
+        f"Reasoning: {identity.reasoning}"
+    )
+    assert identity.domain == domain
+
+    # 2. Without context -> remains AMBIGUOUS due to dictionary-word shape risk
+    res_no_ctx = resolver.resolve(company, context=None)
+    assert res_no_ctx.confidence == IdentityConfidence.AMBIGUOUS
+    assert res_no_ctx.domain == ""
+
+
+def test_dictionary_word_verified_primary_with_strong_headquarters_match_resolves_confident():
+    """A dictionary-word company name with verified PRIMARY candidate, no competing domain,
+    and strong headquarters match against live first-party crawled evidence discounts shape risk
+    and resolves as CONFIDENT."""
+    company = "Anchor"
+    domain = "anchor.fm"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Anchor – The Easiest Way to Make a Podcast", url=f"https://{domain}", snippet="Anchor podcast hosting platform."),
+        ]
+    )
+
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _doc(
+            f"https://{domain}",
+            "Anchor: Podcast Creation",
+            "Anchor is the easiest way to make a podcast. Operating in New York, NY.",
+            PageType.HOMEPAGE,
+        ),
+        f"https://{domain}/about": _doc(
+            f"https://{domain}/about",
+            "About Anchor",
+            "Anchor is headquartered in New York, New York.",
+            PageType.ABOUT,
+        ),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    # With matching strong headquarters context -> CONFIDENT
+    ctx = IdentityContext(headquarters="New York")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.CONFIDENT, (
+        f"Expected CONFIDENT with strong headquarters match, got {identity.confidence}. "
+        f"Reasoning: {identity.reasoning}"
+    )
+    assert identity.domain == domain
+
+
+def test_dictionary_word_verified_primary_with_strong_context_no_first_party_match_remains_ambiguous():
+    """When strong context is provided for a dictionary-word entity but the crawled first-party
+    text contains NO corroborating legal name or headquarters, shape risk cannot be discounted;
+    resolution must remain AMBIGUOUS."""
+    company = "Beacon"
+    domain = "beacon.com"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Beacon Platform – Analytics", url=f"https://{domain}", snippet="Beacon financial cloud."),
+        ]
+    )
+
+    # Crawled pages lack legal name or headquarters mentions
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _doc(
+            f"https://{domain}",
+            "Beacon Platform",
+            "Beacon offers enterprise analytics and tools for finance teams.",
+            PageType.HOMEPAGE,
+        ),
+        f"https://{domain}/about": _doc(
+            f"https://{domain}/about",
+            "About Beacon",
+            "Beacon helps developers build and scale quantitative models.",
+            PageType.ABOUT,
+        ),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    # Strong context supplied, but site has no first-party evidence of this legal name
+    ctx = IdentityContext(legal_name="Beacon Platform Inc.", headquarters="New York")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+
+
+def test_dictionary_word_verified_primary_with_wrong_strong_context_remains_ambiguous():
+    """When strong context explicitly contradicts the first-party evidence on a dictionary-word
+    candidate, resolution must remain AMBIGUOUS."""
+    company = "Beacon"
+    domain = "beacon.com"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Beacon – Enterprise Financial Cloud", url=f"https://{domain}", snippet="Beacon is a financial analytics cloud."),
+        ]
+    )
+
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _doc(
+            f"https://{domain}",
+            "Beacon – Enterprise Financial Cloud",
+            "Beacon is a financial cloud platform. Beacon Platform Inc. is based in New York.",
+            PageType.HOMEPAGE,
+        ),
+        f"https://{domain}/about": _doc(
+            f"https://{domain}/about",
+            "About Beacon",
+            "Beacon Platform Inc., New York, NY.",
+            PageType.ABOUT,
+        ),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    # Caller provides wrong legal name / location
+    ctx = IdentityContext(legal_name="Beacon Maritime Logistics Ltd.", headquarters="London")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+
+
+def test_dictionary_word_indexed_only_candidate_with_matching_strong_context_remains_ambiguous():
+    """Invariant: A dictionary-word candidate that is indexed-only (bot-blocked) cannot have
+    shape risk discounted by caller context because live first-party evidence is absent;
+    epistemic cap at AMBIGUOUS is strictly preserved."""
+    company = "Beacon"
+    domain = "beacon.com"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Beacon – Enterprise Financial Cloud", url=f"https://{domain}", snippet="Beacon is an enterprise financial analytics cloud."),
+            SearchResult(title="About Beacon – Official Website", url=f"https://{domain}/about", snippet="Beacon Platform Inc. was founded to build financial cloud software in New York."),
+        ]
+    )
+
+    # Candidate is bot-blocked
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _blocked_doc(f"https://{domain}"),
+        f"https://{domain}/about": _blocked_doc(f"https://{domain}/about"),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    ctx = IdentityContext(legal_name="Beacon Platform Inc.", headquarters="New York")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+
+
+def test_dictionary_word_verified_primary_with_weak_context_only_remains_ambiguous():
+    """Weak context (e.g. industry, description, company size) is insufficient to discount
+    dictionary-word shape risk; resolution must remain AMBIGUOUS."""
+    company = "Beacon"
+    domain = "beacon.com"
+
+    search = _DeterministicSearchProvider(
+        company=company,
+        domain=domain,
+        results=[
+            SearchResult(title="Beacon Platform", url=f"https://{domain}", snippet="Beacon financial software."),
+        ]
+    )
+
+    crawl = _DeterministicCrawlManager({
+        f"https://{domain}": _doc(
+            f"https://{domain}",
+            "Beacon Platform",
+            "Beacon is a financial technology software platform. Copyright 2026 Beacon Platform Inc.",
+            PageType.HOMEPAGE,
+        ),
+        f"https://{domain}/about": _doc(
+            f"https://{domain}/about",
+            "About Beacon",
+            "Beacon provides financial software.",
+            PageType.ABOUT,
+        ),
+    })
+
+    verifier = WebsiteVerifier(crawl, search)
+    resolver = IdentityResolver(search, verifier)
+
+    # Only weak context
+    ctx = IdentityContext(industry="Fintech", description="Financial analytics software")
+    identity = resolver.resolve(company, context=ctx)
+    assert identity.confidence == IdentityConfidence.AMBIGUOUS
+    assert identity.domain == ""
+
