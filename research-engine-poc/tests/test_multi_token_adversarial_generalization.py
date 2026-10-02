@@ -581,6 +581,7 @@ def test_coined_brand_with_competing_domains_stays_ambiguous():
 
     docs = {
         url1: _doc(url1, f"{company} – Official", f"{company} financial services.", PageType.HOMEPAGE),
+        f"{url1}/about": _doc(f"{url1}/about", f"About {company}", f"{company} company profile.", PageType.ABOUT),
         url2: _doc(url2, f"{company} – Alternative", f"{company} tech platform.", PageType.HOMEPAGE),
     }
     results = [

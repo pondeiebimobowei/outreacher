@@ -10,10 +10,13 @@ from dataclasses import dataclass
 from html.parser import HTMLParser
 
 
+from core.urls import get_registrable_domain
+
+
 @dataclass(frozen=True)
 class SecondaryRouteCandidate:
     url: str
-    source: str          # INTERNAL_LINK | JSON_LD
+    source: str          # INTERNAL_LINK | JSON_LD | SITEMAP
     route_kind: str      # ABOUT | LEGAL | CONTACT | COMPANY | UNKNOWN
     relevance_score: float
     anchor_text: str = ""
@@ -162,7 +165,7 @@ def classify_route_kind(path_or_url: str, anchor_text: str = "") -> Tuple[str, f
 def normalize_internal_url(raw_url: str, base_url: str) -> Optional[str]:
     """
     Normalizes a link relative to base_url, stripping fragments, tracking parameters,
-    and enforcing same-origin constraints.
+    and enforcing same registrable domain constraints.
     """
     if not raw_url:
         return None
@@ -178,19 +181,11 @@ def normalize_internal_url(raw_url: str, base_url: str) -> Optional[str]:
     if parsed.scheme not in ("http", "https"):
         return None
 
-    # Host validation: Must match base host exactly (or be same primary domain)
-    base_host = (parsed_base.hostname or "").lower()
-    link_host = (parsed.hostname or "").lower()
-
-    if not base_host or not link_host:
+    # Host validation: Must match base host (ignoring www.)
+    base_host = (parsed_base.hostname or "").lower().removeprefix("www.")
+    link_host = (parsed.hostname or "").lower().removeprefix("www.")
+    if not base_host or not link_host or base_host != link_host:
         return None
-
-    if base_host != link_host:
-        # Strip leading www. if mismatched
-        clean_base = base_host.removeprefix("www.")
-        clean_link = link_host.removeprefix("www.")
-        if clean_base != clean_link:
-            return None
 
     # Clean path: normalize slashes
     clean_path = parsed.path
@@ -209,7 +204,7 @@ def normalize_internal_url(raw_url: str, base_url: str) -> Optional[str]:
 
     normalized = urlunparse((
         parsed_base.scheme,
-        base_host,
+        parsed_base.netloc,
         clean_path,
         "",  # params
         clean_query,
@@ -217,11 +212,87 @@ def normalize_internal_url(raw_url: str, base_url: str) -> Optional[str]:
     ))
 
     # Reject if normalized URL is simply the base homepage root
-    base_root = f"{parsed_base.scheme}://{base_host}"
+    base_root = f"{parsed_base.scheme}://{parsed_base.netloc}"
     if normalized.rstrip("/") == base_root:
         return None
 
     return normalized
+
+
+def extract_html_lang(html: str) -> Optional[str]:
+    """
+    Extracts the primary language code from <html lang="..."> attribute.
+    Example: '<html lang="de-DE">' -> 'de'
+    """
+    if not html:
+        return None
+    match = re.search(r'<html[^>]*\blang=["\']([a-zA-Z]{2,3})(?:-[a-zA-Z0-9]+)?["\']', html, re.IGNORECASE)
+    if match:
+        return match.group(1).lower()
+    return None
+
+
+def extract_path_locale(path: str) -> Optional[str]:
+    """
+    Extracts a leading locale prefix from a URL path if present.
+    Example: '/de/about' -> 'de', '/en-us/company' -> 'en-us'
+    """
+    if not path:
+        return None
+    clean = path.strip("/")
+    parts = clean.split("/")
+    if parts:
+        first = parts[0].lower()
+        if re.match(r'^[a-z]{2}(?:-[a-z]{2})?$', first):
+            return first
+    return None
+
+
+def extract_sitemap_urls(xml_text: str, base_url: str, max_entries: int = 500) -> List[str]:
+    """
+    Extracts and normalizes first-party URLs from a sitemap XML document,
+    bounded to max_entries to resist large sitemaps.
+    """
+    if not xml_text:
+        return []
+
+    # Generic regex for <loc>...</loc>
+    loc_matches = re.findall(r'<loc>(.*?)</loc>', xml_text, re.IGNORECASE | re.DOTALL)
+    urls: List[str] = []
+    seen = set()
+
+    for raw_loc in loc_matches[:max_entries]:
+        loc = raw_loc.strip()
+        if not loc:
+            continue
+        norm = normalize_internal_url(loc, base_url)
+        if norm and norm not in seen:
+            seen.add(norm)
+            urls.append(norm)
+
+    return urls
+
+
+def extract_robots_sitemaps(robots_text: str, base_url: str) -> List[str]:
+    """
+    Extracts sitemap declarations from robots.txt content.
+    """
+    if not robots_text:
+        return []
+
+    sitemaps: List[str] = []
+    seen = set()
+    for line in robots_text.splitlines():
+        line = line.strip()
+        if line.lower().startswith("sitemap:"):
+            parts = line.split(":", 1)
+            if len(parts) == 2:
+                s_url = parts[1].strip()
+                joined = urljoin(base_url, s_url)
+                if get_registrable_domain(joined) == get_registrable_domain(base_url) and joined not in seen:
+                    seen.add(joined)
+                    sitemaps.append(joined)
+    return sitemaps
 
 
 class _SimpleHTMLLinkParser(HTMLParser):
@@ -253,7 +324,8 @@ class _SimpleHTMLLinkParser(HTMLParser):
 
 def extract_json_ld_organizations(html: str, base_url: str) -> List[Dict[str, Any]]:
     """
-    Safely extracts Organization / Corporation schema objects from HTML script tags.
+    Safely extracts Organization / Corporation schema objects from HTML script tags,
+    including nested @graph items and sub-objects.
     """
     if not html:
         return []
@@ -261,11 +333,29 @@ def extract_json_ld_organizations(html: str, base_url: str) -> List[Dict[str, An
     org_types = {
         "organization", "corporation", "localbusiness",
         "financialservice", "technologyservice", "educationalorganization",
-        "medicalorganization", "ngo",
+        "medicalorganization", "ngo", "governmentorganization",
     }
 
     results: List[Dict[str, Any]] = []
     matches = re.findall(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.IGNORECASE | re.DOTALL)
+
+    def _collect_objects(obj: Any, depth: int = 0, collected: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+        if collected is None:
+            collected = []
+        if depth > 5 or len(collected) >= 50:
+            return collected
+        if isinstance(obj, dict):
+            collected.append(obj)
+            for v in obj.values():
+                if len(collected) >= 50:
+                    break
+                _collect_objects(v, depth + 1, collected)
+        elif isinstance(obj, list):
+            for item in obj:
+                if len(collected) >= 50:
+                    break
+                _collect_objects(item, depth + 1, collected)
+        return collected
 
     for m in matches:
         raw_text = m.strip()
@@ -276,36 +366,45 @@ def extract_json_ld_organizations(html: str, base_url: str) -> List[Dict[str, An
         except Exception:
             continue
 
-        items = []
-        if isinstance(data, dict):
-            if "@graph" in data and isinstance(data["@graph"], list):
-                items.extend(data["@graph"])
-            else:
-                items.append(data)
-        elif isinstance(data, list):
-            items.extend(data)
+        all_items = _collect_objects(data)
+        for item in all_items:
+            raw_type = item.get("@type", "")
+            item_types: List[str] = []
+            if isinstance(raw_type, str):
+                item_types = [raw_type.lower()]
+            elif isinstance(raw_type, list):
+                item_types = [str(t).lower() for t in raw_type]
 
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            item_type = str(item.get("@type", "")).lower()
-            if any(t == item_type or item_type.endswith(t) for t in org_types):
+            if any(any(t == ot or t.endswith(ot) for ot in org_types) for t in item_types):
                 name = str(item.get("name", "")).strip() or None
                 legal_name = str(item.get("legalName", "")).strip() or None
                 url = str(item.get("url", "")).strip() or None
                 
+                urls: List[str] = []
+                if url:
+                    urls.append(url)
+
                 same_as_raw = item.get("sameAs", [])
-                same_as_list: List[str] = []
                 if isinstance(same_as_raw, str):
-                    same_as_list = [same_as_raw.strip()]
+                    urls.append(same_as_raw.strip())
                 elif isinstance(same_as_raw, list):
-                    same_as_list = [str(s).strip() for s in same_as_raw if s]
+                    urls.extend(str(s).strip() for s in same_as_raw if s)
+
+                # Check nested contactPoint, department, parentOrganization
+                for sub_key in ("contactPoint", "department", "parentOrganization", "subOrganization"):
+                    sub_val = item.get(sub_key)
+                    if isinstance(sub_val, dict) and sub_val.get("url"):
+                        urls.append(str(sub_val["url"]).strip())
+                    elif isinstance(sub_val, list):
+                        for sub_item in sub_val:
+                            if isinstance(sub_item, dict) and sub_item.get("url"):
+                                urls.append(str(sub_item["url"]).strip())
 
                 results.append({
                     "name": name,
                     "legalName": legal_name,
                     "url": url,
-                    "sameAs": same_as_list,
+                    "urls": urls,
                 })
 
     return results
@@ -350,13 +449,7 @@ def extract_identity_candidates(html: str, base_url: str) -> List[SecondaryRoute
     # 2. Parse JSON-LD metadata
     json_ld_orgs = extract_json_ld_organizations(html, base_url)
     for org in json_ld_orgs:
-        # Check org url and sameAs for same-origin identity pages
-        urls_to_check = []
-        if org.get("url"):
-            urls_to_check.append(org["url"])
-        urls_to_check.extend(org.get("sameAs", []))
-
-        for u in urls_to_check:
+        for u in org.get("urls", []):
             norm_url = normalize_internal_url(u, base_url)
             if not norm_url:
                 continue

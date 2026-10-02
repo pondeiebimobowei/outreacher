@@ -17,8 +17,12 @@ from urllib.parse import urlparse
 from core.models import (
     CrawledDocument, PageType, DocumentQuality,
 )
-from crawling.manager import CrawlManager
-from crawling.link_extractor import extract_identity_candidates, classify_route_kind, SecondaryRouteCandidate
+from core.urls import get_registrable_domain
+from crawling.link_extractor import (
+    extract_identity_candidates, classify_route_kind,
+    extract_sitemap_urls, extract_robots_sitemaps,
+    extract_html_lang, extract_path_locale,
+)
 from search.base import ISearchProvider, SearchProviderError
 from search.sanitizer import SearchResultSanitizer
 from discovery.classifier import TwoStageClassifier
@@ -28,6 +32,8 @@ _CONVENTIONAL_PATHS: List[str] = [
     "/about", "/about-us", "/company", "/company/about", "/about/company",
     "/who-we-are", "/our-story", "/contact", "/contact-us",
     "/impressum", "/legal", "/mentions-legales", "/aviso-legal",
+    "/ueber-uns", "/uber-uns", "/a-propos", "/sobre-nosotros",
+    "/kontakt", "/contacto",
 ]
 
 _CORROBORATION_STRENGTH: Dict[PageType, str] = {
@@ -60,8 +66,8 @@ class IFirstPartyAcquirer(Protocol):
 class FirstPartyAcquirer:
     """
     Standard First-Party Acquisition Layer.
-    Coordinates homepage acquisition, dynamic route extraction, search-guided discovery,
-    and conventional route probing to build an AcquiredSiteDocuments bundle for downstream verification.
+    Coordinates homepage acquisition, canonical origin resolution, dynamic route extraction,
+    sitemap/robots discovery, locale-aware probing, and soft-404/duplicate filtering.
     """
     def __init__(
         self,
@@ -70,48 +76,128 @@ class FirstPartyAcquirer:
     ):
         self.crawl_manager = crawl_manager
         self.search_provider = search_provider
-        self.telemetry: Dict[str, Any] = {
-            "secondary_search_requests": 0,
-            "secondary_probe_count": 0,
+
+    def acquire(self, website_url: str) -> AcquiredSiteDocuments:
+        # Initialize comprehensive diagnostic telemetry
+        telemetry: Dict[str, Any] = {
+            "homepage_status": 0,
+            "homepage_quality": "",
+            "homepage_fetch_strategy": "STATIC",
+            "canonical_origin": "",
+            "discovered_route_count": 0,
+            "discovered_routes_by_source": {
+                "HTML_LINK": 0,
+                "JSON_LD": 0,
+                "SITEMAP": 0,
+                "SEARCH_DISCOVERY": 0,
+                "CONVENTIONAL_PATH": 0,
+            },
+            "fetches_attempted": 0,
+            "fetches_completed": 0,
+            "documents_accepted": 0,
+            "documents_rejected": 0,
+            "rejections_by_reason": {
+                "EXTERNAL_REDIRECT": 0,
+                "HOMEPAGE_REDIRECT": 0,
+                "DUPLICATE_CONTENT": 0,
+                "SOFT_404": 0,
+                "FETCH_FAILED": 0,
+                "EXCLUDED_ROUTE": 0,
+            },
             "acquired_secondary_count": 0,
         }
 
-    def acquire(self, website_url: str) -> AcquiredSiteDocuments:
-        domain = website_url.replace("https://", "").replace("http://", "").rstrip("/")
-        
         # 1. Acquire Homepage
         hp_doc = self.crawl_manager.fetch_with_fallback(website_url, PageType.OTHER)
+        telemetry["homepage_status"] = hp_doc.status_code
+        telemetry["homepage_quality"] = hp_doc.quality.name
+        telemetry["homepage_fetch_strategy"] = (
+            hp_doc.fetch_strategy if hasattr(hp_doc, "fetch_strategy") and hp_doc.fetch_strategy else "STATIC"
+        )
+
         if hp_doc.quality.name not in ["VALID", "TOO_SHORT"]:
             return AcquiredSiteDocuments(
                 homepage_doc=hp_doc,
                 secondary_docs=[],
-                telemetry=dict(self.telemetry),
+                telemetry=telemetry,
             )
+
+        # 2. Canonical Origin Resolution & Same-Domain Protection
+        input_reg = get_registrable_domain(website_url)
+        canonical_path = ""
+
+        if hp_doc.final_url:
+            final_reg = get_registrable_domain(hp_doc.final_url)
+            if final_reg == input_reg:
+                parsed_final = urlparse(hp_doc.final_url)
+                canonical_origin = f"{parsed_final.scheme}://{parsed_final.netloc}"
+                canonical_path = parsed_final.path or ""
+            else:
+                # Redirect left the registrable domain — reject external origin
+                parsed_in = urlparse(website_url if "://" in website_url else f"https://{website_url}")
+                canonical_origin = f"{parsed_in.scheme}://{parsed_in.netloc}"
+                telemetry["rejections_by_reason"]["EXTERNAL_REDIRECT"] += 1
+        else:
+            parsed_in = urlparse(website_url if "://" in website_url else f"https://{website_url}")
+            canonical_origin = f"{parsed_in.scheme}://{parsed_in.netloc}"
+
+        telemetry["canonical_origin"] = canonical_origin
+        domain = canonical_origin.replace("https://", "").replace("http://", "").rstrip("/")
 
         candidate_routes: Dict[str, Tuple[str, str, PageType]] = {}
 
-        # 2. Dynamic first-party route discovery (HTML links & JSON-LD)
+        # 3. Dynamic First-Party Route Discovery (HTML links & JSON-LD)
         dynamic_candidates = extract_identity_candidates(
-            hp_doc.raw_html or hp_doc.content or "", website_url
+            hp_doc.raw_html or hp_doc.content or "", canonical_origin
         )
         for dc in dynamic_candidates:
-            if dc.url.rstrip("/") != website_url.rstrip("/"):
+            if dc.url.rstrip("/") != canonical_origin.rstrip("/"):
                 ptype = (
                     PageType.ABOUT if dc.route_kind in ("ABOUT", "COMPANY")
                     else (PageType.CONTACT if dc.route_kind == "CONTACT" else PageType.OTHER)
                 )
                 candidate_routes[dc.url] = (dc.route_kind, dc.source, ptype)
 
-        # 3. Search-discovered secondary routes
+        # 4. Sitemap & robots.txt Discovery (Generic fallback when dynamic link discovery is sparse)
+        if len(candidate_routes) < 3:
+            sitemap_urls: List[str] = []
+
+            # Check robots.txt
+            robots_doc = self.crawl_manager.fetch_with_fallback(f"{canonical_origin}/robots.txt", PageType.OTHER)
+            if robots_doc.quality.name in ["VALID", "TOO_SHORT"] and robots_doc.content:
+                sitemap_declarations = extract_robots_sitemaps(robots_doc.content, canonical_origin)
+                sitemap_urls.extend(sitemap_declarations)
+
+            # Fall back to standard sitemap.xml if no robots declaration
+            if not sitemap_urls:
+                sitemap_urls.append(f"{canonical_origin}/sitemap.xml")
+
+            for s_url in sitemap_urls[:2]:  # Bound sitemap checks to at most 2
+                s_doc = self.crawl_manager.fetch_with_fallback(s_url, PageType.OTHER)
+                if s_doc.quality.name in ["VALID", "TOO_SHORT"] and (s_doc.raw_html or s_doc.content):
+                    raw_sitemap = s_doc.raw_html or s_doc.content
+                    discovered_locs = extract_sitemap_urls(raw_sitemap, canonical_origin)
+                    for loc in discovered_locs:
+                        if loc.rstrip("/") != canonical_origin.rstrip("/") and loc not in candidate_routes:
+                            kind, score = classify_route_kind(loc)
+                            if score > 0.0 and kind != "EXCLUDED":
+                                ptype = (
+                                    PageType.ABOUT if kind in ("ABOUT", "COMPANY")
+                                    else (PageType.CONTACT if kind == "CONTACT" else PageType.OTHER)
+                                )
+                                candidate_routes[loc] = (kind, "SITEMAP", ptype)
+
+        # 5. Search-Discovered Secondary Routes
         if self.search_provider:
             query = f'site:{domain} "about" OR "company" OR "contact"'
             try:
-                self.telemetry["secondary_search_requests"] += 1
                 raw = self.search_provider.search(query, num_results=5)
                 clean = SearchResultSanitizer.sanitize(raw)
                 for r in clean:
+                    if get_registrable_domain(r.url) != input_reg:
+                        continue
                     u = r.url.rstrip("/")
-                    if u != website_url.rstrip("/") and u not in candidate_routes:
+                    if u != canonical_origin.rstrip("/") and u not in candidate_routes:
                         ptype = TwoStageClassifier.stage1_classify_url(r.url)
                         if ptype == PageType.BLOG:
                             continue
@@ -131,10 +217,16 @@ class FirstPartyAcquirer:
             except SearchProviderError:
                 pass
 
-        # 4. Conventional route fallback probing
-        base_url = website_url.rstrip("/")
-        for path in _CONVENTIONAL_PATHS:
-            cand_url = base_url + path
+        # 6. Conservative Locale-Aware Route Generation
+        locale_hint = extract_path_locale(canonical_path) or extract_html_lang(hp_doc.raw_html or "")
+        conventional_paths_to_probe = list(_CONVENTIONAL_PATHS)
+        if locale_hint and locale_hint != "en" and len(locale_hint) in (2, 5):
+            for cp in _CONVENTIONAL_PATHS:
+                conventional_paths_to_probe.append(f"/{locale_hint}{cp}")
+
+        # 7. Conventional Route Probing
+        for path in conventional_paths_to_probe:
+            cand_url = f"{canonical_origin}{path}"
             if cand_url not in candidate_routes:
                 ptype = TwoStageClassifier.stage1_classify_url(cand_url)
                 kind, _ = classify_route_kind(cand_url)
@@ -142,13 +234,23 @@ class FirstPartyAcquirer:
                     kind = "ABOUT" if ptype == PageType.ABOUT else ("CONTACT" if ptype == PageType.CONTACT else "COMPANY")
                 candidate_routes[cand_url] = (kind, "CONVENTIONAL_PATH", ptype)
 
-        # 5. Acquire secondary routes with quality & soft-404 filtering
+        telemetry["discovered_route_count"] = len(candidate_routes)
+        for _, source, _ in candidate_routes.values():
+            if source in telemetry["discovered_routes_by_source"]:
+                telemetry["discovered_routes_by_source"][source] += 1
+            else:
+                telemetry["discovered_routes_by_source"][source] = 1
+
+        # 8. Secondary Route Acquisition, Soft-404 & Duplicate Filtering
         hp_clean_content = (hp_doc.content or "").strip()
         acquired_secondaries: List[AcquiredDocument] = []
 
         for url, (route_kind, source, ptype) in candidate_routes.items():
             if route_kind == "EXCLUDED" or ptype in (PageType.BLOG, PageType.JOB_LISTING):
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["EXCLUDED_ROUTE"] += 1
                 continue
+
             if route_kind in ("ABOUT", "LEGAL"):
                 strength = "strong"
             elif route_kind in ("COMPANY", "CONTACT"):
@@ -161,13 +263,29 @@ class FirstPartyAcquirer:
             if strength is None:
                 continue
 
-            self.telemetry["secondary_probe_count"] += 1
+            telemetry["fetches_attempted"] += 1
             doc = self.crawl_manager.fetch_with_fallback(url, ptype)
+
             if doc.quality not in {DocumentQuality.VALID, DocumentQuality.TOO_SHORT}:
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["FETCH_FAILED"] += 1
+                continue
+
+            telemetry["fetches_completed"] += 1
+
+            # Invariant: Discovered route redirecting to an external domain is rejected
+            if doc.final_url and get_registrable_domain(doc.final_url) != input_reg:
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["EXTERNAL_REDIRECT"] += 1
                 continue
 
             # Invariant: Discovered route redirecting back to homepage is not independent
-            if doc.final_url and doc.final_url.rstrip("/") == website_url.rstrip("/"):
+            if doc.final_url and (
+                doc.final_url.rstrip("/") == canonical_origin.rstrip("/")
+                or doc.final_url.rstrip("/") == website_url.rstrip("/")
+            ):
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["HOMEPAGE_REDIRECT"] += 1
                 continue
 
             doc_title = (doc.title or "").strip()
@@ -177,11 +295,15 @@ class FirstPartyAcquirer:
 
             # Invariant: Catch-all SPA duplicate content check
             if hp_clean_content and len(hp_clean_content) > 30 and doc_content.strip() == hp_clean_content:
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["DUPLICATE_CONTENT"] += 1
                 continue
 
             # Invariant: Soft-404 error page check
             soft_404_markers = ["404 not found", "page not found", "page cannot be found", "error 404", "does not exist", "page does not exist"]
             if any(marker in doc_sample for marker in soft_404_markers) and len(doc_content.split()) < 50:
+                telemetry["documents_rejected"] += 1
+                telemetry["rejections_by_reason"]["SOFT_404"] += 1
                 continue
 
             acquired_secondaries.append(AcquiredDocument(
@@ -190,10 +312,11 @@ class FirstPartyAcquirer:
                 source=source,
                 strength=strength,
             ))
+            telemetry["documents_accepted"] += 1
 
-        self.telemetry["acquired_secondary_count"] = len(acquired_secondaries)
+        telemetry["acquired_secondary_count"] = len(acquired_secondaries)
         return AcquiredSiteDocuments(
             homepage_doc=hp_doc,
             secondary_docs=acquired_secondaries,
-            telemetry=dict(self.telemetry),
+            telemetry=telemetry,
         )

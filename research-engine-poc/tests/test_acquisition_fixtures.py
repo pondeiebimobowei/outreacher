@@ -459,3 +459,339 @@ def test_verifier_contract_rejects_missing_acquisition_bundle():
     verifier = WebsiteVerifier()
     with pytest.raises(ValueError, match="requires an AcquiredSiteDocuments bundle"):
         verifier.classify_relationship("Acme", "https://acme.com", acquisition=None)
+
+
+# ==============================================================================
+# SECTION 3: Deep Acquisition Layer Feature & Mutation Suite
+# ==============================================================================
+
+def test_acquisition_canonical_origin_redirect_probing():
+    """Acquisition Phase 1: Canonical origin is resolved when homepage redirects to a subdomain/path,
+    and subsequent route probing is executed against the resolved origin."""
+    url = "http://target-domain.com"
+    final_url = "https://www.target-domain.com/landing"
+    about_url = "https://www.target-domain.com/about"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Target Domain", "Welcome to Target Domain.", final_url=final_url, ptype=PageType.HOMEPAGE),
+        about_url: _doc(about_url, "About Target Domain", "Target Domain Inc. was established in 2020.", ptype=PageType.ABOUT),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    assert bundle.telemetry["canonical_origin"] == "https://www.target-domain.com"
+    discovered = [d for d in bundle.secondary_docs if d.doc.url == about_url]
+    assert len(discovered) == 1
+    assert discovered[0].doc.url == about_url
+
+
+def test_acquisition_canonical_origin_external_redirect_rejected():
+    """Acquisition Phase 1 Mutation: Homepage redirecting to an external registrable domain
+    has its external origin rejected and records EXTERNAL_REDIRECT rejection telemetry."""
+    url = "https://phishing-mirror.com"
+    external_target = "https://legitimate-target.com/welcome"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Phishing Mirror", "Redirecting...", final_url=external_target, ptype=PageType.HOMEPAGE),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    assert bundle.telemetry["canonical_origin"] == "https://phishing-mirror.com"
+    assert bundle.telemetry["rejections_by_reason"]["EXTERNAL_REDIRECT"] >= 1
+
+
+def test_acquisition_robots_txt_sitemap_discovery():
+    """Acquisition Phase 2: Discovers custom sitemap declared in robots.txt,
+    extracts identity-bearing route from sitemap XML, and acquires secondary document."""
+    url = "https://custom-brand.io"
+    robots_url = "https://custom-brand.io/robots.txt"
+    sitemap_url = "https://custom-brand.io/custom-sitemap.xml"
+    discovered_route = "https://custom-brand.io/team/leadership"
+
+    robots_content = f"""
+    User-agent: *
+    Disallow: /admin/
+    Sitemap: {sitemap_url}
+    """
+
+    sitemap_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url><loc>{url}/</loc></url>
+        <url><loc>{url}/blog/post-1</loc></url>
+        <url><loc>{discovered_route}</loc></url>
+    </urlset>
+    """
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Custom Brand", "Sparse SPA shell.", ptype=PageType.HOMEPAGE),
+        robots_url: _doc(robots_url, "", robots_content, ptype=PageType.OTHER),
+        sitemap_url: _doc(sitemap_url, "", sitemap_xml, ptype=PageType.OTHER),
+        discovered_route: _doc(discovered_route, "Team Leadership", "Custom Brand Inc. team details.", ptype=PageType.ABOUT),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    discovered = [d for d in bundle.secondary_docs if d.doc.url == discovered_route]
+    assert len(discovered) == 1
+    assert discovered[0].source == "SITEMAP"
+    assert discovered[0].route_kind in ("ABOUT", "COMPANY")
+    assert bundle.telemetry["discovered_routes_by_source"]["SITEMAP"] >= 1
+
+
+def test_acquisition_sitemap_xml_fallback_and_exclusion_filtering():
+    """Acquisition Phase 2: Default sitemap.xml fallback discovers identity routes
+    while safely ignoring excluded blog, pricing, and login routes."""
+    url = "https://startup-hq.com"
+    sitemap_url = "https://startup-hq.com/sitemap.xml"
+    legal_url = "https://startup-hq.com/legal-notice"
+
+    sitemap_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url><loc>{url}/pricing</loc></url>
+        <url><loc>{url}/blog/announcements</loc></url>
+        <url><loc>{url}/app/login</loc></url>
+        <url><loc>{legal_url}</loc></url>
+    </urlset>
+    """
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Startup HQ", "Innovative technology.", ptype=PageType.HOMEPAGE),
+        sitemap_url: _doc(sitemap_url, "", sitemap_xml, ptype=PageType.OTHER),
+        legal_url: _doc(legal_url, "Legal Notice", "Startup HQ Corporation statutory details.", ptype=PageType.OTHER),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    acquired_urls = [d.doc.url for d in bundle.secondary_docs]
+    assert legal_url in acquired_urls
+    assert f"{url}/pricing" not in acquired_urls
+    assert f"{url}/blog/announcements" not in acquired_urls
+    assert f"{url}/app/login" not in acquired_urls
+
+
+def test_acquisition_locale_prefixed_route_probing():
+    """Acquisition Phase 3: Probes locale-prefixed conventional routes when HTML lang
+    or redirect path signals a non-English locale (e.g. 'de' -> '/de/ueber-uns')."""
+    url = "https://enterprise-cloud.de"
+    de_about_url = "https://enterprise-cloud.de/de/ueber-uns"
+
+    hp_html = """
+    <!DOCTYPE html>
+    <html lang="de-DE">
+    <head><title>Enterprise Cloud Deutschland</title></head>
+    <body><h1>Enterprise Cloud</h1></body>
+    </html>
+    """
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Enterprise Cloud Deutschland", "Enterprise Cloud Plattform.", raw_html=hp_html, ptype=PageType.HOMEPAGE),
+        de_about_url: _doc(de_about_url, "Über uns | Enterprise Cloud", "Enterprise Cloud GmbH, Frankfurt am Main.", ptype=PageType.ABOUT),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    discovered = [d for d in bundle.secondary_docs if d.doc.url == de_about_url]
+    assert len(discovered) == 1
+    assert discovered[0].route_kind == "ABOUT"
+
+
+def test_acquisition_json_ld_graph_and_nested_route_discovery():
+    """Acquisition Phase 4: Extracts identity routes from @graph and nested Organization objects
+    within JSON-LD markup and acquires them."""
+    url = "https://nordic-saas.com"
+    about_route = "https://nordic-saas.com/company/about-us"
+    legal_route = "https://nordic-saas.com/corporate-entity"
+
+    hp_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Nordic SaaS</title>
+        <script type="application/ld+json">
+        {{
+            "@context": "https://schema.org",
+            "@graph": [
+                {{
+                    "@type": "WebSite",
+                    "name": "Nordic SaaS Web",
+                    "url": "https://nordic-saas.com"
+                }},
+                {{
+                    "@type": "Organization",
+                    "name": "Nordic SaaS AB",
+                    "url": "{about_route}",
+                    "department": {{
+                        "@type": "Corporation",
+                        "name": "Nordic SaaS Legal Entity",
+                        "url": "{legal_route}"
+                    }}
+                }}
+            ]
+        }}
+        </script>
+    </head>
+    <body>
+        <h1>Nordic SaaS</h1>
+    </body>
+    </html>
+    """
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Nordic SaaS", "Nordic SaaS tools.", raw_html=hp_html, ptype=PageType.HOMEPAGE),
+        about_route: _doc(about_route, "About Nordic SaaS", "Nordic SaaS AB based in Stockholm.", ptype=PageType.ABOUT),
+        legal_route: _doc(legal_route, "Nordic SaaS Legal Entity", "Corporate registration 556000-0000.", ptype=PageType.OTHER),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    discovered_urls = [d.doc.url for d in bundle.secondary_docs]
+    assert about_route in discovered_urls
+    assert legal_route in discovered_urls
+    assert bundle.telemetry["discovered_routes_by_source"]["JSON_LD"] >= 2
+
+
+def test_acquisition_canonical_origin_mutation_ignoring_final_url():
+    """Acquisition Phase 1 Causal Mutation: If final_url resolution is disabled, conventional route probing
+    attempts to probe against the dead original origin and fails to acquire the secondary document."""
+    url = "http://target-domain.com"
+    final_url = "https://www.target-domain.com/landing"
+    about_url = "https://www.target-domain.com/about"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Target Domain", "Welcome to Target Domain.", final_url=final_url, ptype=PageType.HOMEPAGE),
+        about_url: _doc(about_url, "About Target Domain", "Target Domain Inc. was established in 2020.", ptype=PageType.ABOUT),
+    })
+
+    # Disable final_url resolution by mutating the homepage doc final_url to match url
+    with patch.object(crawl, "fetch_with_fallback", return_value=_doc(url, "Target Domain", "Welcome", final_url=url, ptype=PageType.HOMEPAGE)):
+        acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+        bundle = acquirer.acquire(url)
+        assert len(bundle.secondary_docs) == 0, "Without final_url canonical origin, probing against dead origin must fail"
+
+
+def test_acquisition_robots_txt_mutation_disabling_sitemap():
+    """Acquisition Phase 2 Causal Mutation: Disabling robots.txt sitemap extraction prevents
+    custom-declared sitemap routes from entering secondary_docs."""
+    url = "https://custom-brand.io"
+    robots_url = "https://custom-brand.io/robots.txt"
+    sitemap_url = "https://custom-brand.io/custom-sitemap.xml"
+    discovered_route = "https://custom-brand.io/team/leadership"
+
+    robots_content = f"User-agent: *\nSitemap: {sitemap_url}\n"
+    sitemap_xml = f"<urlset><url><loc>{discovered_route}</loc></url></urlset>"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Custom Brand", "Sparse SPA shell.", ptype=PageType.HOMEPAGE),
+        robots_url: _doc(robots_url, "", robots_content, ptype=PageType.OTHER),
+        sitemap_url: _doc(sitemap_url, "", sitemap_xml, ptype=PageType.OTHER),
+        discovered_route: _doc(discovered_route, "Team Leadership", "Custom Brand Inc. team details.", ptype=PageType.ABOUT),
+    })
+
+    with patch("crawling.acquirer.extract_robots_sitemaps", return_value=[]):
+        acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+        bundle = acquirer.acquire(url)
+        discovered = [d for d in bundle.secondary_docs if d.doc.url == discovered_route]
+        assert len(discovered) == 0
+
+
+def test_acquisition_sitemap_mutation_disabling_sitemap_xml():
+    """Acquisition Phase 2 Causal Mutation: Disabling sitemap XML parsing prevents sitemap fallback
+    routes from being acquired."""
+    url = "https://startup-hq.com"
+    sitemap_url = "https://startup-hq.com/sitemap.xml"
+    legal_url = "https://startup-hq.com/legal-notice"
+    sitemap_xml = f"<urlset><url><loc>{legal_url}</loc></url></urlset>"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Startup HQ", "Innovative technology.", ptype=PageType.HOMEPAGE),
+        sitemap_url: _doc(sitemap_url, "", sitemap_xml, ptype=PageType.OTHER),
+        legal_url: _doc(legal_url, "Legal Notice", "Startup HQ Corporation statutory details.", ptype=PageType.OTHER),
+    })
+
+    with patch("crawling.acquirer.extract_sitemap_urls", return_value=[]):
+        acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+        bundle = acquirer.acquire(url)
+        assert legal_url not in [d.doc.url for d in bundle.secondary_docs]
+
+
+def test_acquisition_locale_mutation_ignoring_lang():
+    """Acquisition Phase 3 Causal Mutation: Disabling HTML lang extraction prevents locale-prefixed
+    conventional routes from being generated and acquired."""
+    url = "https://enterprise-cloud.de"
+    de_about_url = "https://enterprise-cloud.de/de/ueber-uns"
+
+    hp_html = '<!DOCTYPE html><html lang="de-DE"><head><title>Enterprise Cloud</title></head><body>Cloud</body></html>'
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Enterprise Cloud Deutschland", "Enterprise Cloud Plattform.", raw_html=hp_html, ptype=PageType.HOMEPAGE),
+        de_about_url: _doc(de_about_url, "Über uns | Enterprise Cloud", "Enterprise Cloud GmbH, Frankfurt am Main.", ptype=PageType.ABOUT),
+    })
+
+    with patch("crawling.acquirer.extract_html_lang", return_value=None):
+        acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+        bundle = acquirer.acquire(url)
+        discovered = [d for d in bundle.secondary_docs if d.doc.url == de_about_url]
+        assert len(discovered) == 0
+
+
+def test_acquisition_json_ld_mutation_disabling_json_ld():
+    """Acquisition Phase 4 Causal Mutation: Disabling JSON-LD extraction prevents nested Organization
+    routes from entering secondary_docs."""
+    url = "https://nordic-saas.com"
+    about_route = "https://nordic-saas.com/company/about-us"
+    legal_route = "https://nordic-saas.com/corporate-entity"
+
+    hp_html = f"""
+    <!DOCTYPE html>
+    <html><head><script type="application/ld+json">{{"@type": "Organization", "url": "{about_route}"}}</script></head>
+    <body><h1>Nordic SaaS</h1></body></html>
+    """
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Nordic SaaS", "Nordic SaaS tools.", raw_html=hp_html, ptype=PageType.HOMEPAGE),
+        about_route: _doc(about_route, "About Nordic SaaS", "Nordic SaaS AB based in Stockholm.", ptype=PageType.ABOUT),
+        legal_route: _doc(legal_route, "Nordic SaaS Legal Entity", "Corporate registration 556000-0000.", ptype=PageType.OTHER),
+    })
+
+    with patch("crawling.acquirer.extract_identity_candidates", return_value=[]):
+        acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+        bundle = acquirer.acquire(url)
+        assert about_route not in [d.doc.url for d in bundle.secondary_docs]
+
+
+def test_acquisition_diagnostic_telemetry_schema():
+    """Acquisition Phase 5: Asserts comprehensive diagnostic telemetry schema is fully populated
+    with status, counters, reasons, and source breakdowns."""
+    url = "https://telemetry-test.org"
+    about_url = "https://telemetry-test.org/about"
+
+    crawl = _DeterministicCrawlManager({
+        url: _doc(url, "Telemetry Test", "Testing telemetry emission.", ptype=PageType.HOMEPAGE),
+        about_url: _doc(about_url, "About Telemetry Test", "Testing team and company info.", ptype=PageType.ABOUT),
+    })
+
+    acquirer = FirstPartyAcquirer(crawl_manager=crawl)
+    bundle = acquirer.acquire(url)
+
+    t = bundle.telemetry
+    assert t["homepage_status"] == 200
+    assert t["homepage_quality"] == "VALID"
+    assert t["homepage_fetch_strategy"] == "STATIC"
+    assert t["canonical_origin"] == "https://telemetry-test.org"
+    assert t["discovered_route_count"] >= 1
+    assert "HTML_LINK" in t["discovered_routes_by_source"]
+    assert "JSON_LD" in t["discovered_routes_by_source"]
+    assert "SITEMAP" in t["discovered_routes_by_source"]
+    assert "CONVENTIONAL_PATH" in t["discovered_routes_by_source"]
+    assert t["fetches_attempted"] >= 1
+    assert t["fetches_completed"] >= 1
+    assert t["documents_accepted"] >= 1
+    assert t["rejections_by_reason"]["DUPLICATE_CONTENT"] >= 0
+    assert t["rejections_by_reason"]["SOFT_404"] >= 0
+    assert t["acquired_secondary_count"] == len(bundle.secondary_docs)
