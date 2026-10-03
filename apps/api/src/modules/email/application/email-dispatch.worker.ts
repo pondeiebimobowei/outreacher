@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  CampaignMemberStatus,
   EmailSendStatus,
   Job,
   JobStatus,
@@ -71,22 +70,6 @@ export class EmailDispatchWorker {
         },
       });
 
-      const payload = updatedJob.payload as Record<string, unknown> | null;
-      const emailSendId = payload?.emailSendId as string | undefined;
-
-      if (emailSendId) {
-        const currentSend = await tx.emailSend.findUnique({
-          where: { id: emailSendId },
-        });
-
-        if (currentSend && currentSend.status === EmailSendStatus.RESERVED) {
-          await tx.emailSend.update({
-            where: { id: emailSendId },
-            data: { status: EmailSendStatus.SENDING },
-          });
-        }
-      }
-
       return {
         job: updatedJob,
         claimedAttempt,
@@ -115,39 +98,119 @@ export class EmailDispatchWorker {
     const { job, claimedAttempt } = claimed;
     const payload = job.payload as Record<string, unknown> | null;
     const emailSendId = payload?.emailSendId as string;
-    const campaignMemberId = payload?.campaignMemberId as string | undefined;
-    const outreachId = payload?.outreachId as string | undefined;
     const workspaceId = job.workspaceId;
 
+    // 1. Pre-dispatch boundary check & transition to SENDING inside transaction
+    const preDispatchResult = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const emailSend = await tx.emailSend.findUnique({
+          where: { id: emailSendId },
+          include: {
+            senderAccount: {
+              include: { integration: true },
+            },
+            outreach: {
+              include: {
+                personCompanyAssociation: { include: { person: true } },
+                campaignRecipient: { include: { campaign: true } },
+              },
+            },
+          },
+        });
+
+        if (!emailSend || emailSend.workspaceId !== workspaceId) {
+          throw new Error(
+            `EmailSend ${emailSendId} not found or tenant mismatch`,
+          );
+        }
+
+        const campaign = emailSend.outreach?.campaignRecipient?.campaign;
+        const recipient = emailSend.outreach?.campaignRecipient;
+
+        // Pre-dispatch campaign pause boundary
+        if (campaign && campaign.status !== 'ACTIVE') {
+          await tx.emailSend.update({
+            where: { id: emailSendId },
+            data: { status: 'CANCELLED' as any },
+          });
+          await tx.outreach.update({
+            where: { id: emailSend.outreachId },
+            data: { status: 'PAUSED' },
+          });
+          await tx.job.updateMany({
+            where: { id: job.id, leaseVersion: job.leaseVersion, status: 'RUNNING' },
+            data: {
+              status: 'COMPLETED',
+              cancellationReason: 'PAUSED',
+              completedAt: new Date(),
+            },
+          });
+          return { aborted: true, emailSend };
+        }
+
+        // Pre-dispatch recipient eligibility check
+        if (
+          recipient &&
+          (recipient.status === 'SUPPRESSED' || recipient.status === 'PAUSED')
+        ) {
+          await tx.emailSend.update({
+            where: { id: emailSendId },
+            data: { status: 'CANCELLED' as any },
+          });
+          await tx.outreach.update({
+            where: { id: emailSend.outreachId },
+            data: { status: 'PAUSED' },
+          });
+          await tx.job.updateMany({
+            where: { id: job.id, leaseVersion: job.leaseVersion, status: 'RUNNING' },
+            data: {
+              status: 'COMPLETED',
+              cancellationReason: 'SUPPRESSED',
+              completedAt: new Date(),
+            },
+          });
+          return { aborted: true, emailSend };
+        }
+
+        const now = new Date();
+        const updateData: any = { status: EmailSendStatus.SENDING };
+        if (!emailSend.firstProviderAttemptAt) {
+          updateData.firstProviderAttemptAt = now;
+        }
+
+        const updatedEmailSend = await tx.emailSend.update({
+          where: { id: emailSendId },
+          data: updateData,
+          include: {
+            senderAccount: {
+              include: { integration: true },
+            },
+            outreach: {
+              include: {
+                personCompanyAssociation: { include: { person: true } },
+                campaignRecipient: { include: { campaign: true } },
+              },
+            },
+          },
+        });
+
+        return { aborted: false, emailSend: updatedEmailSend };
+      },
+    );
+
+    if (preDispatchResult.aborted) {
+      return false;
+    }
+
+    const emailSend = preDispatchResult.emailSend;
+
+    // 2. Provider API dispatch outside transaction
     let sendResult: SendEmailResult | null = null;
     let dispatchError: Error | null = null;
     let isUncertainTimeout = false;
     let isTransient = false;
 
     try {
-      const emailSend = await this.prisma.emailSend.findUnique({
-        where: { id: emailSendId },
-        include: {
-          senderAccount: {
-            include: { integration: true },
-          },
-          campaignMember: {
-            include: { person: true, campaign: true },
-          },
-          outreach: {
-            include: {
-              personCompanyAssociation: { include: { person: true } },
-            },
-          },
-        },
-      });
-
-      if (!emailSend || emailSend.workspaceId !== workspaceId) {
-        throw new Error(
-          `EmailSend ${emailSendId} not found or tenant mismatch`,
-        );
-      }
-
       const senderAccount = emailSend.senderAccount;
       if (!senderAccount) {
         throw new Error('EmailSend is missing senderAccount');
@@ -173,11 +236,15 @@ export class EmailDispatchWorker {
       );
 
       const recipientEmail =
-        emailSend.campaignMember?.person?.email ||
+        emailSend.outreach?.personCompanyAssociation?.workEmail ||
         emailSend.outreach?.personCompanyAssociation?.person?.email;
-      if (!recipientEmail) throw new Error('Person recipient email is missing');
-      if (!emailSend.replyToToken)
+      if (!recipientEmail) {
+        throw new Error('Person recipient email is missing');
+      }
+
+      if (!emailSend.replyToToken) {
         throw new Error('Opaque replyToToken is missing for EmailSend');
+      }
 
       const canonicalIdempotencyKey = `send:${emailSendId}`;
 
@@ -221,161 +288,264 @@ export class EmailDispatchWorker {
           isUncertainTimeout = true;
         } else if (
           errorMessage.includes('network') ||
-          errorMessage.includes('econnrefused')
+          errorMessage.includes('econnrefused') ||
+          errorMessage.includes('rate limit')
         ) {
           isTransient = true;
         }
       }
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const now = new Date();
-      const errorMessage = dispatchError?.message || 'Unknown dispatch error';
+    // 3. Post-dispatch transaction handling
+    const now = new Date();
 
-      let jobUpdateData: any = {};
+    if (sendResult) {
+      return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // Atomic lease fencing check on Job
+        const leaseCheck = await tx.job.updateMany({
+          where: {
+            id: job.id,
+            leaseVersion: job.leaseVersion,
+            status: 'RUNNING',
+          },
+          data: {
+            status: JobStatus.COMPLETED,
+            completedAt: now,
+          },
+        });
 
-      if (sendResult) {
-        jobUpdateData = { status: 'COMPLETED', completedAt: now };
-      } else if (isUncertainTimeout) {
-        jobUpdateData = {
-          status: 'DEAD_LETTER',
-          failedAt: now,
-          lastError: errorMessage,
-        };
-      } else if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
-        const backoffMs = Math.pow(2, claimedAttempt) * 10000;
-        jobUpdateData = {
-          status: 'PENDING',
-          availableAt: new Date(now.getTime() + backoffMs),
-          lastError: errorMessage,
-        };
-      } else {
-        jobUpdateData = {
-          status: 'DEAD_LETTER',
-          failedAt: now,
-          lastError: errorMessage,
-        };
-      }
+        if (leaseCheck.count === 0) {
+          this.logger.warn(
+            `Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed. Aborting state transition.`,
+          );
+          return false;
+        }
 
-      // Perform atomic fencing update on Job
-      const leaseCheck = await tx.job.updateMany({
-        where: {
-          id: job.id,
-          leaseVersion: job.leaseVersion,
-          status: 'RUNNING',
-        },
-        data: jobUpdateData,
-      });
+        // Global lock order: Campaign -> CampaignRecipient -> PCA -> Outreach -> EmailSend
+        let campaign: any = null;
+        let recipient: any = null;
+        if (emailSend.outreach?.campaignRecipientId) {
+          recipient = await tx.campaignRecipient.findUnique({
+            where: { id: emailSend.outreach.campaignRecipientId },
+          });
+          if (recipient) {
+            campaign = await tx.campaign.findUnique({
+              where: { id: recipient.campaignId },
+            });
+          }
+        }
 
-      if (leaseCheck.count === 0) {
-        this.logger.warn(
-          `Job ${job.id} lease generation ${claimedAttempt} lost or reclaimed. Aborting state transition.`,
-        );
-        return false;
-      }
+        const pca = await tx.personCompanyAssociation.findUnique({
+          where: { id: emailSend.outreach.personCompanyAssociationId },
+        });
 
-      // If we got here, the Job was successfully mutated and we own the lease lock.
-      // Now safe to mutate related entities.
-      if (sendResult) {
-        const sendRecord = await tx.emailSend.update({
+        const outreach = await tx.outreach.findUnique({
+          where: { id: emailSend.outreachId },
+        });
+
+        // Update EmailSend -> SENT
+        await tx.emailSend.update({
           where: { id: emailSendId },
           data: {
-            status: 'SENT',
+            status: EmailSendStatus.SENT,
             providerMessageId: sendResult.providerMessageId,
             messageId: sendResult.messageId,
             sentAt: now,
           },
         });
 
-        if (campaignMemberId) {
-          await tx.campaignMember.update({
-            where: { id: campaignMemberId },
-            data: { status: 'SENT' },
-          });
+        // Record ConversationMessage
+        await tx.conversationMessage.create({
+          data: {
+            workspaceId,
+            outreachId: emailSend.outreachId,
+            kind: 'OUTBOUND',
+            subject: emailSend.subject,
+            body: emailSend.body,
+          },
+        });
+
+        // CAS update on PCA for initial send (sequence === 0)
+        if (
+          emailSend.sequence === 0 &&
+          emailSend.expectedStateVersion != null &&
+          pca
+        ) {
+          if (
+            pca.conversationState === 'NO_REPLY' &&
+            pca.stateVersion === emailSend.expectedStateVersion
+          ) {
+            await tx.personCompanyAssociation.update({
+              where: { id: pca.id },
+              data: {
+                conversationState: 'ACTIVE',
+                stateVersion: { increment: 1 },
+              },
+            });
+          }
         }
 
-        if (outreachId) {
-          await tx.outreach.update({
-            where: { id: outreachId },
-            data: { status: 'SENT' },
-          });
+        // Post-dispatch pause boundary: verify automation eligibility
+        const isCampaignActive = !campaign || campaign.status === 'ACTIVE';
+        const isRecipientActive = !recipient || recipient.status === 'ACTIVE';
+        const isOutreachSending = outreach?.status === 'SENDING';
+        const isPcaValid =
+          pca &&
+          pca.conversationState !== 'REPLIED' &&
+          pca.conversationState !== 'STOPPED';
 
-          await tx.conversationMessage.create({
-            data: {
-              workspaceId,
-              outreachId,
-              kind: 'OUTBOUND',
-              subject: sendRecord.subject,
-              body: sendRecord.body,
-            },
+        const canContinue =
+          isCampaignActive &&
+          isRecipientActive &&
+          isOutreachSending &&
+          isPcaValid;
+
+        if (canContinue) {
+          await tx.outreach.update({
+            where: { id: emailSend.outreachId },
+            data: { status: 'ACTIVE' },
+          });
+        } else {
+          // Ineligible due to in-flight pause/suppression: EmailSend is SENT, Outreach remains/becomes PAUSED, 0 follow-up jobs
+          await tx.outreach.update({
+            where: { id: emailSend.outreachId },
+            data: { status: 'PAUSED' },
           });
         }
 
         return true;
-      }
+      });
+    }
 
-      if (isUncertainTimeout) {
-        await tx.emailSend.update({
-          where: { id: emailSendId },
+    // Provider failed or threw error
+    const adapter = this.providerRegistry.getAdapter(emailSend.provider);
+    const idempotencyWindowMs =
+      adapter?.idempotencyWindowMs ?? 24 * 60 * 60 * 1000;
+    const safetyMarginMs = 60 * 1000;
+    const firstAttempt = emailSend.firstProviderAttemptAt ?? now;
+    const isInsideWindow =
+      now.getTime() - firstAttempt.getTime() <
+      idempotencyWindowMs - safetyMarginMs;
+
+    const canSafeRetry =
+      isTransient &&
+      !isUncertainTimeout &&
+      isInsideWindow &&
+      claimedAttempt < this.MAX_ATTEMPTS;
+
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const errorMessage = dispatchError?.message || 'Unknown dispatch error';
+
+      if (canSafeRetry) {
+        const backoffMs = Math.pow(2, claimedAttempt) * 10000;
+        const leaseCheck = await tx.job.updateMany({
+          where: {
+            id: job.id,
+            leaseVersion: job.leaseVersion,
+            status: 'RUNNING',
+          },
           data: {
-            status: 'FAILED',
-            failedAt: now,
-            errorCode: 'PROVIDER_TIMEOUT_UNCERTAIN',
-            errorMessage,
-            retryable: false,
+            status: JobStatus.PENDING,
+            availableAt: new Date(now.getTime() + backoffMs),
+            lastError: errorMessage,
           },
         });
-        if (campaignMemberId) {
-          await tx.campaignMember.update({
-            where: { id: campaignMemberId },
-            data: { status: 'FAILED' },
-          });
+
+        if (leaseCheck.count === 0) {
+          this.logger.warn(
+            `Job ${job.id} lease generation ${claimedAttempt} lost on retry.`,
+          );
+          return false;
         }
-        if (outreachId) {
-          await tx.outreach.update({
-            where: { id: outreachId },
-            data: { status: 'FAILED' },
-          });
-        }
+
+        // Transition EmailSend: SENDING -> PENDING
+        await tx.emailSend.update({
+          where: { id: emailSendId },
+          data: { status: EmailSendStatus.PENDING },
+        });
+
         return false;
       }
 
-      if (isTransient && claimedAttempt < this.MAX_ATTEMPTS) {
+      // Fatal failure path or DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION
+      const leaseCheck = await tx.job.updateMany({
+        where: {
+          id: job.id,
+          leaseVersion: job.leaseVersion,
+          status: 'RUNNING',
+        },
+        data: {
+          status: JobStatus.DEAD_LETTER,
+          failedAt: now,
+          lastError: errorMessage,
+        },
+      });
+
+      if (leaseCheck.count === 0) {
+        this.logger.warn(
+          `Job ${job.id} lease generation ${claimedAttempt} lost on failure.`,
+        );
         return false;
       }
 
-      let finalErrorCode = 'DISPATCH_ATTEMPTS_EXHAUSTED';
-      if (dispatchError && 'dispatchErrorCode' in dispatchError) {
-        if (
-          dispatchError.dispatchErrorCode !== 'PROVIDER_RATE_LIMIT' &&
-          dispatchError.dispatchErrorCode !== 'PROVIDER_CONNECT_FAILURE'
-        ) {
-          finalErrorCode = dispatchError.dispatchErrorCode as string;
-        }
+      let finalErrorCode: EmailDispatchErrorCode =
+        EmailDispatchErrorCode.DISPATCH_ATTEMPTS_EXHAUSTED;
+      if (isUncertainTimeout || !isInsideWindow) {
+        finalErrorCode =
+          EmailDispatchErrorCode.DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION;
+      } else if (dispatchError && 'dispatchErrorCode' in dispatchError) {
+        finalErrorCode = (dispatchError as any).dispatchErrorCode;
       }
 
       await tx.emailSend.update({
         where: { id: emailSendId },
         data: {
-          status: 'FAILED',
+          status: EmailSendStatus.FAILED,
           failedAt: now,
-          errorCode: finalErrorCode as any,
+          errorCode: finalErrorCode,
           errorMessage,
           retryable: false,
         },
       });
 
-      if (campaignMemberId) {
-        await tx.campaignMember.update({
-          where: { id: campaignMemberId },
+      await tx.outreach.update({
+        where: { id: emailSend.outreachId },
+        data: { status: 'FAILED' },
+      });
+
+      if (emailSend.outreach?.campaignRecipientId) {
+        await tx.campaignRecipient.update({
+          where: { id: emailSend.outreach.campaignRecipientId },
           data: { status: 'FAILED' },
         });
       }
-      if (outreachId) {
-        await tx.outreach.update({
-          where: { id: outreachId },
-          data: { status: 'FAILED' },
+
+      // Fatal failure immediate PCA release:
+      const pca = await tx.personCompanyAssociation.findUnique({
+        where: { id: emailSend.outreach.personCompanyAssociationId },
+      });
+
+      if (pca && pca.conversationState === 'ACTIVE') {
+        const openOutreach = await tx.outreach.findFirst({
+          where: {
+            personCompanyAssociationId: pca.id,
+            workspaceId,
+            id: { not: emailSend.outreachId },
+            status: {
+              in: ['DRAFT', 'APPROVED', 'SENDING', 'ACTIVE', 'PAUSED'],
+            },
+          },
         });
+
+        if (!openOutreach) {
+          await tx.personCompanyAssociation.update({
+            where: { id: pca.id },
+            data: {
+              conversationState: 'NO_REPLY',
+              stateVersion: { increment: 1 },
+            },
+          });
+        }
       }
 
       return false;

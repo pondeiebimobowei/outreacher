@@ -2,9 +2,9 @@ import * as crypto from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   CampaignStatus,
-  CampaignMemberStatus,
   Prisma,
   EmailSendStatus,
+  EmailSendType,
 } from '@repo/db';
 import {
   AppConflictException,
@@ -17,30 +17,16 @@ import {
 } from './suppression-checker.interface';
 import { EmailProviderRegistry } from '../infrastructure/email-provider.registry';
 
-export interface SendEligibilityCheckInput {
+export interface ReserveSendInput {
   workspaceId: string;
-  campaign: {
-    id: string;
-    workspaceId: string;
-    status: CampaignStatus;
-  };
-  campaignMember: {
-    id: string;
-    workspaceId: string;
-    status: CampaignMemberStatus;
-    currentSubject: string | null;
-    currentBody: string | null;
-    person: {
-      id: string;
-      email: string | null;
-    } | null;
-  };
-}
-
-export interface SendEligibilityResult {
-  canonicalEmail: string;
+  outreachId: string;
+  sequence: number;
+  type: EmailSendType;
+  expectedStateVersion: number | null;
   subject: string;
   body: string;
+  preferredSenderAccountId?: string | null;
+  campaignId?: string | null;
 }
 
 @Injectable()
@@ -51,192 +37,103 @@ export class SendEligibilityService {
     private readonly providerRegistry: EmailProviderRegistry,
   ) {}
 
-  public async checkCampaignMemberEligibility(
-    input: SendEligibilityCheckInput,
-  ): Promise<SendEligibilityResult> {
-    const { workspaceId, campaign, campaignMember } = input;
-
-    if (
-      campaign.workspaceId !== workspaceId ||
-      campaignMember.workspaceId !== workspaceId
-    ) {
-      throw new AppNotFoundException('Campaign or campaign contact not found');
-    }
-
-    if (campaign.status === CampaignStatus.SCHEDULED) {
-      throw new AppConflictException(
-        'Cannot dispatch immediate send: Campaign is SCHEDULED for automated start',
-      );
-    }
-
-    if (campaign.status === CampaignStatus.PAUSED) {
-      throw new AppConflictException(
-        'Cannot dispatch send: Campaign is PAUSED',
-      );
-    }
-
-    if (campaign.status === CampaignStatus.ARCHIVED) {
-      throw new AppConflictException(
-        'Cannot dispatch send: Campaign is ARCHIVED',
-      );
-    }
-
-    if (campaign.status === CampaignStatus.COMPLETED) {
-      throw new AppConflictException(
-        'Cannot dispatch send: Campaign is COMPLETED',
-      );
-    }
-
-    if (
-      campaign.status !== CampaignStatus.DRAFT &&
-      campaign.status !== CampaignStatus.ACTIVE
-    ) {
-      throw new AppConflictException(
-        `Cannot dispatch send for campaign in ${String(campaign.status)} status`,
-      );
-    }
-
-    if (campaignMember.status !== CampaignMemberStatus.READY) {
-      throw new AppConflictException(
-        `Cannot dispatch send for contact in ${campaignMember.status} status`,
-      );
-    }
-
-    return this.validateEmailContentAndSuppression(
-      workspaceId,
-      campaignMember.person?.email,
-      campaignMember.currentSubject,
-      campaignMember.currentBody,
-    );
-  }
-
   public async checkOutreachEligibility(
     workspaceId: string,
-    outreach: {
-      status: import('@repo/db').OutreachStatus;
-      subject: string;
-      message: string;
-    },
-    personEmail: string | null | undefined,
-  ): Promise<SendEligibilityResult> {
-    if (outreach.status !== 'DRAFT') {
+    outreach: any,
+    recipientEmail?: string | null,
+  ): Promise<void> {
+    if (!outreach || outreach.workspaceId !== workspaceId) {
+      throw new AppNotFoundException('Outreach not found');
+    }
+
+    if (outreach.status !== 'APPROVED') {
       throw new AppConflictException(
-        `Cannot dispatch send for outreach in ${outreach.status} status`,
+        `Cannot dispatch send for outreach in ${String(outreach.status)} status. Must be APPROVED.`,
       );
     }
 
-    return this.validateEmailContentAndSuppression(
-      workspaceId,
-      personEmail,
-      outreach.subject,
-      outreach.message,
-    );
-  }
-
-  private async validateEmailContentAndSuppression(
-    workspaceId: string,
-    rawEmail: string | null | undefined,
-    subject: string | null | undefined,
-    body: string | null | undefined,
-  ): Promise<SendEligibilityResult> {
-    if (!rawEmail || !rawEmail.trim()) {
-      throw new AppValidationException(
-        'Cannot dispatch send: contact has no recipient email',
-      );
+    if (!recipientEmail || recipientEmail.trim().length === 0) {
+      throw new AppValidationException('Recipient email is missing');
     }
-    const canonicalEmail = rawEmail.trim().toLowerCase();
 
     const isSuppressed = await this.suppressionChecker.isSuppressed(
       workspaceId,
-      canonicalEmail,
+      recipientEmail.trim().toLowerCase(),
     );
     if (isSuppressed) {
-      throw new AppConflictException('Recipient email is suppressed');
-    }
-
-    if (!subject || subject.length < 3 || subject.length > 150) {
-      throw new AppValidationException(
-        'Cannot dispatch send: subject must be between 3 and 150 characters',
+      throw new AppConflictException(
+        `Recipient email ${recipientEmail} is suppressed`,
       );
     }
-
-    if (!body || body.length < 20 || body.length > 4000) {
-      throw new AppValidationException(
-        'Cannot dispatch send: body must be between 20 and 4000 characters',
-      );
-    }
-
-    return { canonicalEmail, subject, body };
   }
 
   public async reserveSenderCapacityAndCreateEmailSend(
     tx: Prisma.TransactionClient,
-    workspaceId: string,
-    campaignId: string,
-    emailSendData: {
-      campaignMemberId: string;
-      type: import('@repo/db').EmailSendType;
-      subject: string;
-      body: string;
-    },
+    input: ReserveSendInput,
   ) {
     if ('$connect' in tx) {
       throw new Error(
         'Capacity invariant violation: reserveSenderCapacityAndCreateEmailSend must be called within an active transaction',
       );
     }
-    const selectedSender = await this.selectEligibleSenderAccountForCampaign(
-      tx,
+
+    const {
       workspaceId,
+      outreachId,
+      sequence,
+      type,
+      expectedStateVersion,
+      subject,
+      body,
+      preferredSenderAccountId,
       campaignId,
-    );
+    } = input;
 
-    return tx.emailSend.create({
-      data: {
-        workspaceId,
-        campaignId,
-        campaignMemberId: emailSendData.campaignMemberId,
-        type: emailSendData.type,
-        subject: emailSendData.subject,
-        body: emailSendData.body,
-        status: EmailSendStatus.RESERVED,
-        reservedAt: new Date(),
-        senderAccountId: selectedSender.id,
-        provider: selectedSender.provider,
-        replyToToken: crypto.randomBytes(20).toString('hex'),
-      },
-    });
-  }
+    let candidates: Array<{ id: string; daily_limit: number; provider: string }> = [];
 
-  public async reserveSenderCapacityAndCreateEmailSendForOutreach(
-    tx: Prisma.TransactionClient,
-    workspaceId: string,
-    outreachId: string,
-    senderAccountId: string,
-    emailSendData: {
-      subject: string;
-      body: string;
-    },
-  ) {
-    if ('$connect' in tx) {
-      throw new Error(
-        'Capacity invariant violation: reserveSenderCapacityAndCreateEmailSendForOutreach must be called within an active transaction',
-      );
+    if (preferredSenderAccountId) {
+      candidates = await tx.$queryRaw<
+        Array<{ id: string; daily_limit: number; provider: string }>
+      >`
+        SELECT sa.id, sa.daily_limit, i.provider
+        FROM sender_accounts sa
+        JOIN integrations i ON sa.integration_id = i.id
+        WHERE sa.id = ${preferredSenderAccountId}
+          AND sa.workspace_id = ${workspaceId}
+          AND sa.status = 'ACTIVE'
+          AND i.status = 'ACTIVE'
+        FOR UPDATE OF sa
+      `;
+    } else if (campaignId) {
+      candidates = await tx.$queryRaw<
+        Array<{ id: string; daily_limit: number; provider: string }>
+      >`
+        SELECT sa.id, sa.daily_limit, i.provider
+        FROM sender_accounts sa
+        JOIN campaign_sender_accounts csa ON csa.sender_account_id = sa.id
+        JOIN integrations i ON sa.integration_id = i.id
+        WHERE csa.campaign_id = ${campaignId}
+          AND csa.workspace_id = ${workspaceId}
+          AND csa.status = 'ACTIVE'
+          AND sa.status = 'ACTIVE'
+          AND i.status = 'ACTIVE'
+        ORDER BY sa.id ASC
+        FOR UPDATE OF sa
+      `;
+    } else {
+      candidates = await tx.$queryRaw<
+        Array<{ id: string; daily_limit: number; provider: string }>
+      >`
+        SELECT sa.id, sa.daily_limit, i.provider
+        FROM sender_accounts sa
+        JOIN integrations i ON sa.integration_id = i.id
+        WHERE sa.workspace_id = ${workspaceId}
+          AND sa.status = 'ACTIVE'
+          AND i.status = 'ACTIVE'
+        ORDER BY sa.id ASC
+        FOR UPDATE OF sa
+      `;
     }
-
-    // Validate the specific sender account
-    const candidates = await tx.$queryRaw<
-      Array<{ id: string; daily_limit: number; provider: string }>
-    >`
-      SELECT sa.id, sa.daily_limit, i.provider
-      FROM sender_accounts sa
-      JOIN integrations i ON sa.integration_id = i.id
-      WHERE sa.id = ${senderAccountId}
-        AND sa.workspace_id = ${workspaceId}
-        AND sa.status = 'ACTIVE'
-        AND i.status = 'ACTIVE'
-      FOR UPDATE OF sa
-    `;
 
     if (!candidates || candidates.length === 0) {
       throw new AppConflictException('NEEDS_SENDER');
@@ -252,10 +149,12 @@ export class SendEligibilityService {
       data: {
         workspaceId,
         outreachId,
-        type: 'INITIAL',
-        subject: emailSendData.subject,
-        body: emailSendData.body,
+        sequence,
+        type,
+        subject,
+        body,
         status: EmailSendStatus.RESERVED,
+        expectedStateVersion,
         reservedAt: new Date(),
         senderAccountId: selectedSender.id,
         provider: selectedSender.provider,
@@ -264,32 +163,48 @@ export class SendEligibilityService {
     });
   }
 
-  private async selectEligibleSenderAccountForCampaign(
+  public async reservePendingEmailSendForRetry(
     tx: Prisma.TransactionClient,
     workspaceId: string,
-    campaignId: string,
-  ): Promise<{ id: string; provider: string }> {
-    // Lock candidate sender accounts assigned to this campaign
+    emailSendId: string,
+    currentStateVersion: number,
+  ) {
+    const emailSend = await tx.emailSend.findFirst({
+      where: { id: emailSendId, workspaceId },
+    });
+
+    if (!emailSend || emailSend.status !== EmailSendStatus.PENDING) {
+      throw new AppConflictException('EmailSend is not in PENDING status');
+    }
+
+    // Lock existing sender account to verify capacity
     const candidates = await tx.$queryRaw<
       Array<{ id: string; daily_limit: number; provider: string }>
     >`
       SELECT sa.id, sa.daily_limit, i.provider
       FROM sender_accounts sa
-      JOIN campaign_sender_accounts csa ON csa.sender_account_id = sa.id
       JOIN integrations i ON sa.integration_id = i.id
-      WHERE csa.campaign_id = ${campaignId}
-        AND csa.workspace_id = ${workspaceId}
-        AND csa.status = 'ACTIVE'
+      WHERE sa.id = ${emailSend.senderAccountId}
+        AND sa.workspace_id = ${workspaceId}
         AND sa.status = 'ACTIVE'
         AND i.status = 'ACTIVE'
       FOR UPDATE OF sa
     `;
 
     if (!candidates || candidates.length === 0) {
-      throw new AppConflictException('NEEDS_SENDER');
+      throw new AppConflictException('SENDER_UNAVAILABLE');
     }
 
-    return this.checkSenderCapacity(tx, workspaceId, candidates);
+    await this.checkSenderCapacity(tx, workspaceId, candidates);
+
+    return tx.emailSend.update({
+      where: { id: emailSendId },
+      data: {
+        status: EmailSendStatus.RESERVED,
+        reservedAt: new Date(),
+        expectedStateVersion: currentStateVersion,
+      },
+    });
   }
 
   private async checkSenderCapacity(
@@ -305,7 +220,6 @@ export class SendEligibilityService {
       throw new AppConflictException('PROVIDER_UNSUPPORTED');
     }
 
-    // Determine UTC boundaries for today
     const nowUtc = new Date();
     const startOfDayUtc = new Date(
       Date.UTC(
@@ -318,7 +232,6 @@ export class SendEligibilityService {
     const candidateScores = [];
 
     for (const candidate of validCandidates) {
-      // Calculate consumed count for current UTC day
       const consumedCountResult = await tx.$queryRaw<Array<{ count: bigint }>>`
         SELECT COUNT(*) as count FROM email_sends
         WHERE workspace_id = ${workspaceId}
@@ -342,7 +255,7 @@ export class SendEligibilityService {
       if (a.consumedCount !== b.consumedCount) {
         return a.consumedCount - b.consumedCount;
       }
-      return a.id.localeCompare(b.id); // Tie-break by id ASC
+      return a.id.localeCompare(b.id);
     });
 
     return {

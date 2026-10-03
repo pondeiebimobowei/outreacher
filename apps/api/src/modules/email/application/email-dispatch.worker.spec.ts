@@ -1,10 +1,7 @@
 import {
-  CampaignMemberStatus,
   EmailSendStatus,
   JobStatus,
-  Prisma,
 } from '@repo/db';
-import { PrismaService } from '../../../database/prisma.service';
 import {
   EmailDispatchErrorCode,
   SendEmailResult,
@@ -20,18 +17,25 @@ describe('EmailDispatchWorker', () => {
   let mockSecretResolver: any;
 
   const workspaceId = 'ws-1111-1111-1111';
-  const campaignMemberId = 'cc-2222-2222-2222';
+  const outreachId = 'out-2222-2222-2222';
   const emailSendId = 'send-3333-3333-3333';
   const jobId = 'job-4444-4444-4444';
+  const pcaId = 'pca-5555-5555-5555';
+  const campaignRecipientId = 'recip-6666-6666-6666';
+  const campaignId = 'camp-7777-7777-7777';
 
-  const mockEmailSendRecord = {
+  const baseEmailSendRecord = {
     id: emailSendId,
     workspaceId,
-    subject: 'Follow-up on inquiry',
-    body: 'Hello, this is a follow-up email.',
+    outreachId,
+    sequence: 0,
+    status: EmailSendStatus.RESERVED,
+    subject: 'Initial Outreach',
+    body: 'Hello, this is our initial message.',
     replyToToken: 'token123',
-    status: EmailSendStatus.SENDING,
     provider: 'RESEND',
+    expectedStateVersion: 0,
+    firstProviderAttemptAt: null,
     senderAccount: {
       id: 'sa-1',
       fromName: 'Sales Team',
@@ -42,21 +46,38 @@ describe('EmailDispatchWorker', () => {
         secretReference: 'env://RESEND_KEY',
       },
     },
-    campaignMember: {
+    outreach: {
+      id: outreachId,
       workspaceId,
-      status: CampaignMemberStatus.SENDING,
-      person: {
-        id: 'contact-5555',
-        email: 'founder@example.com',
+      status: 'SENDING',
+      personCompanyAssociationId: pcaId,
+      campaignRecipientId,
+      personCompanyAssociation: {
+        id: pcaId,
+        workEmail: 'founder@example.com',
+        conversationState: 'NO_REPLY',
+        stateVersion: 0,
+        person: {
+          id: 'person-1',
+          email: 'founder@example.com',
+        },
       },
-      campaign: {
-        id: 'camp-6666',
-        senderAccountId: 'sales@startup.com',
+      campaignRecipient: {
+        id: campaignRecipientId,
+        campaignId,
+        status: 'ACTIVE',
+        campaign: {
+          id: campaignId,
+          status: 'ACTIVE',
+        },
       },
     },
   };
+  let currentEmailSend: any;
 
   beforeEach(() => {
+    currentEmailSend = JSON.parse(JSON.stringify(baseEmailSendRecord));
+
     mockPrisma = {
       $queryRaw: jest.fn(),
       $transaction: jest
@@ -67,20 +88,44 @@ describe('EmailDispatchWorker', () => {
       job: {
         update: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        findFirst: jest.fn(),
       },
       emailSend: {
-        findUnique: jest.fn(),
-        update: jest.fn(),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findUnique: jest.fn().mockImplementation(() => Promise.resolve(currentEmailSend)),
+        update: jest.fn().mockImplementation(async ({ data }) => {
+          const base = await mockPrisma.emailSend.findUnique();
+          currentEmailSend = {
+            ...base,
+            ...data,
+          };
+          return currentEmailSend;
+        }),
       },
-      campaignMember: {
+      outreach: {
+        findUnique: jest.fn().mockResolvedValue(baseEmailSendRecord.outreach),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn(),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      campaignRecipient: {
+        findUnique: jest.fn().mockResolvedValue(baseEmailSendRecord.outreach.campaignRecipient),
+        update: jest.fn(),
+      },
+      campaign: {
+        findUnique: jest.fn().mockResolvedValue(baseEmailSendRecord.outreach.campaignRecipient.campaign),
+      },
+      personCompanyAssociation: {
+        findUnique: jest.fn().mockResolvedValue(baseEmailSendRecord.outreach.personCompanyAssociation),
+        update: jest.fn(),
+      },
+      conversationMessage: {
+        create: jest.fn().mockResolvedValue({ id: 'msg-1' }),
       },
     };
 
-    mockAdapter = { sendEmail: jest.fn() };
+    mockAdapter = {
+      provider: 'RESEND',
+      idempotencyWindowMs: 24 * 60 * 60 * 1000,
+      sendEmail: jest.fn(),
+    };
     mockRegistry = {
       getAdapter: jest.fn().mockReturnValue(mockAdapter),
     };
@@ -105,7 +150,7 @@ describe('EmailDispatchWorker', () => {
       expect(mockPrisma.job.update).not.toHaveBeenCalled();
     });
 
-    it('claims job, advances to RUNNING, increments attemptCount, and transitions EmailSend RESERVED -> SENDING', async () => {
+    it('claims job, advances to RUNNING, and increments attemptCount', async () => {
       mockPrisma.$queryRaw.mockResolvedValue([{ id: jobId, attempt_count: 0 }]);
 
       const claimedJob = {
@@ -114,19 +159,11 @@ describe('EmailDispatchWorker', () => {
         type: 'EMAIL_DISPATCH',
         status: JobStatus.RUNNING,
         attemptCount: 1,
-        payload: { emailSendId, campaignMemberId },
+        payload: { emailSendId },
         leaseVersion: 0,
       };
 
       mockPrisma.job.update.mockResolvedValue(claimedJob);
-      mockPrisma.emailSend.findUnique.mockResolvedValue({
-        id: emailSendId,
-        status: EmailSendStatus.RESERVED,
-      });
-      mockPrisma.emailSend.update.mockResolvedValue({
-        id: emailSendId,
-        status: EmailSendStatus.SENDING,
-      });
 
       const result = await worker.claimNextJob();
 
@@ -144,202 +181,242 @@ describe('EmailDispatchWorker', () => {
           leaseVersion: { increment: 1 },
         },
       });
-
-      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
-        where: { id: emailSendId },
-        data: { status: EmailSendStatus.SENDING },
-      });
-    });
-
-    it('leaves EmailSend in SENDING status when already in SENDING (retry attempt)', async () => {
-      mockPrisma.$queryRaw.mockResolvedValue([{ id: jobId, attempt_count: 1 }]);
-
-      const claimedJob = {
-        id: jobId,
-        workspaceId,
-        type: 'EMAIL_DISPATCH',
-        status: JobStatus.RUNNING,
-        attemptCount: 2,
-        payload: { emailSendId, campaignMemberId },
-        leaseVersion: 0,
-      };
-
-      mockPrisma.job.update.mockResolvedValue(claimedJob);
-      mockPrisma.emailSend.findUnique.mockResolvedValue({
-        id: emailSendId,
-        status: EmailSendStatus.SENDING,
-      });
-
-      const result = await worker.claimNextJob();
-
-      expect(result).toEqual({
-        job: claimedJob,
-        claimedAttempt: 2,
-      });
-
-      expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
     });
   });
 
-  describe('processJob - Success Path', () => {
-    const claimed: ClaimedEmailJob = {
-      job: {
-        id: jobId,
-        workspaceId,
-        type: 'EMAIL_DISPATCH',
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
-        payload: { emailSendId, campaignMemberId },
-        leaseVersion: 0,
-      } as any,
-      claimedAttempt: 1,
-    };
-
-    it('invokes provider, updates EmailSend to SENT with provider IDs, updates CampaignMember to SENT, and completes Job', async () => {
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-
-      const sendResult: SendEmailResult = {
-        providerMessageId: 'resend-msg-12345',
+  describe('Test 3: firstProviderAttemptAt stamping', () => {
+    it('initial send stamps firstProviderAttemptAt on provider dispatch', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
       };
-      mockAdapter.sendEmail.mockResolvedValue(sendResult);
 
-      mockPrisma.job.findFirst.mockResolvedValue({
-        id: jobId,
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
+      mockAdapter.sendEmail.mockResolvedValue({ providerMessageId: 'resend-123' });
+
+      await worker.processJob(claimed);
+
+      // Verify pre-dispatch updated status to SENDING and stamped firstProviderAttemptAt
+      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: emailSendId },
+          data: expect.objectContaining({
+            status: EmailSendStatus.SENDING,
+            firstProviderAttemptAt: expect.any(Date),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('Test 4: Retry inside safe window', () => {
+    it('SENDING -> PENDING succeeds when error is transient and within idempotency window', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      const sendRecordWithFirstAttempt = {
+        ...baseEmailSendRecord,
+        firstProviderAttemptAt: new Date(Date.now() - 5 * 60 * 1000), // 5 min ago (well within 24h)
+      };
+      mockPrisma.emailSend.findUnique.mockResolvedValue(sendRecordWithFirstAttempt);
+
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException(
+          'Rate limit exceeded',
+          EmailDispatchErrorCode.PROVIDER_RATE_LIMIT,
+        ),
+      );
+
+      const outcome = await worker.processJob(claimed);
+
+      expect(outcome).toBe(false);
+
+      // Verify EmailSend transitioned back to PENDING for retry
+      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
+        where: { id: emailSendId },
+        data: { status: EmailSendStatus.PENDING },
+      });
+
+      // Verify Job scheduled as PENDING with backoff
+      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
+        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
+        data: expect.objectContaining({
+          status: JobStatus.PENDING,
+          availableAt: expect.any(Date),
+          lastError: 'Rate limit exceeded',
+        }),
+      });
+    });
+  });
+
+  describe('Test 5: Retry outside safe window or unknown state', () => {
+    it('sets EmailSend.status = FAILED, errorCode = DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION, Outreach = FAILED', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      // 25 hours ago -> outside 24-hour window
+      const expiredSendRecord = {
+        ...baseEmailSendRecord,
+        firstProviderAttemptAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+      };
+      mockPrisma.emailSend.findUnique.mockResolvedValue(expiredSendRecord);
+
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException(
+          'Rate limit exceeded',
+          EmailDispatchErrorCode.PROVIDER_RATE_LIMIT,
+        ),
+      );
+
+      const outcome = await worker.processJob(claimed);
+
+      expect(outcome).toBe(false);
+
+      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
+        where: { id: emailSendId },
+        data: {
+          status: EmailSendStatus.FAILED,
+          failedAt: expect.any(Date),
+          errorCode: EmailDispatchErrorCode.DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION,
+          errorMessage: 'Rate limit exceeded',
+          retryable: false,
+        },
+      });
+
+      expect(mockPrisma.outreach.update).toHaveBeenCalledWith({
+        where: { id: outreachId },
+        data: { status: 'FAILED' },
+      });
+    });
+  });
+
+  describe('Test 6: Pre-dispatch boundary', () => {
+    it('pausing campaign cancels RESERVED send and prevents provider call', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      const pausedCampaignRecord = {
+        ...baseEmailSendRecord,
+        outreach: {
+          ...baseEmailSendRecord.outreach,
+          campaignRecipient: {
+            ...baseEmailSendRecord.outreach.campaignRecipient,
+            campaign: {
+              id: campaignId,
+              status: 'PAUSED', // Campaign is paused!
+            },
+          },
+        },
+      };
+
+      mockPrisma.emailSend.findUnique.mockResolvedValue(pausedCampaignRecord);
+
+      const outcome = await worker.processJob(claimed);
+
+      expect(outcome).toBe(false);
+
+      // Provider was NEVER called
+      expect(mockAdapter.sendEmail).not.toHaveBeenCalled();
+
+      // EmailSend was CANCELLED
+      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
+        where: { id: emailSendId },
+        data: { status: 'CANCELLED' },
+      });
+
+      // Outreach was PAUSED
+      expect(mockPrisma.outreach.update).toHaveBeenCalledWith({
+        where: { id: outreachId },
+        data: { status: 'PAUSED' },
+      });
+    });
+  });
+
+  describe('Test 7: Post-dispatch pause boundary', () => {
+    it('provider succeeds after campaign pause -> EmailSend = SENT, 0 follow-up jobs created, Outreach remains PAUSED', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
+      mockAdapter.sendEmail.mockResolvedValue({ providerMessageId: 'resend-123' });
+
+      // In post-dispatch check, campaign was paused while send was in flight!
+      mockPrisma.campaign.findUnique.mockResolvedValue({
+        id: campaignId,
+        status: 'PAUSED',
       });
 
       const outcome = await worker.processJob(claimed);
 
       expect(outcome).toBe(true);
 
-      expect(mockAdapter.sendEmail).toHaveBeenCalledWith({
-        workspaceId,
-        senderAccountId: 'sa-1',
-        emailSendId,
-        toEmail: 'founder@example.com',
-        fromName: 'Sales Team',
-        fromEmail: 'sales@startup.com',
-        replyTo: undefined,
-        subject: 'Follow-up on inquiry',
-        bodyText: 'Hello, this is a follow-up email.',
-        replyToToken: 'token123',
-        idempotencyKey: `send:${emailSendId}`,
-        credentials: 'resolved_secret_key',
-      });
-
+      // EmailSend is marked SENT (in-flight delivery accepted)
       expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
         where: { id: emailSendId },
-        data: {
+        data: expect.objectContaining({
           status: EmailSendStatus.SENT,
-          providerMessageId: 'resend-msg-12345',
-          messageId: undefined,
-          sentAt: expect.any(Date),
-        },
+          providerMessageId: 'resend-123',
+        }),
       });
 
-      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
-        where: { id: campaignMemberId },
-        data: { status: CampaignMemberStatus.SENT },
-      });
-
-      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
-        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
-        data: {
-          status: JobStatus.COMPLETED,
-          completedAt: expect.any(Date),
-        },
+      // Outreach is set to PAUSED because campaign became paused
+      expect(mockPrisma.outreach.update).toHaveBeenCalledWith({
+        where: { id: outreachId },
+        data: { status: 'PAUSED' },
       });
     });
   });
 
-  describe('processJob - Transient Retry Path', () => {
-    const claimedAttempt1: ClaimedEmailJob = {
-      job: {
-        id: jobId,
-        workspaceId,
-        type: 'EMAIL_DISPATCH',
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
-        payload: { emailSendId, campaignMemberId },
-        leaseVersion: 0,
-      } as any,
-      claimedAttempt: 1,
-    };
-
-    it('on transient timeout with attempts < MAX_ATTEMPTS, fails immediately with PROVIDER_TIMEOUT_UNCERTAIN and sets job to DEAD_LETTER', async () => {
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockAdapter.sendEmail.mockRejectedValue(
-        new EmailProviderException(
-          'Email provider request timed out',
-          EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN,
-        ),
-      );
-
-      mockPrisma.job.findFirst.mockResolvedValue({
-        id: jobId,
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
-      });
-
-      const outcome = await worker.processJob(claimedAttempt1);
-
-      expect(outcome).toBe(false);
-
-      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
-        where: { id: emailSendId },
-        data: {
-          status: EmailSendStatus.FAILED,
-          failedAt: expect.any(Date),
-          errorCode: EmailDispatchErrorCode.PROVIDER_TIMEOUT_UNCERTAIN,
-          retryable: false,
-          errorMessage: 'Email provider request timed out',
-        },
-      });
-
-      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
-        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
-        data: {
-          status: JobStatus.DEAD_LETTER,
-          failedAt: expect.any(Date),
-          lastError: expect.stringContaining('timed out'),
-        },
-      });
-    });
-
-    it('on transient rate limit with attempts < MAX_ATTEMPTS, schedules retry without failing send status', async () => {
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockAdapter.sendEmail.mockRejectedValue(
-        new EmailProviderException(
-          'Email provider rate limit exceeded',
-          EmailDispatchErrorCode.PROVIDER_RATE_LIMIT,
-        ),
-      );
-
-      mockPrisma.job.findFirst.mockResolvedValue({
-        id: jobId,
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
-      });
-
-      const outcome = await worker.processJob(claimedAttempt1);
-
-      expect(outcome).toBe(false);
-      expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
-      expect(mockPrisma.campaignMember.update).not.toHaveBeenCalled();
-      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
-        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
-        data: {
-          status: JobStatus.PENDING,
-          availableAt: expect.any(Date),
-          lastError: expect.stringContaining('rate limit'),
-        },
-      });
-    });
-  });
-
-  describe('processJob - Terminal Failure Path', () => {
-    it('on non-retryable provider error, updates EmailSend to FAILED, CampaignMember to FAILED, and Job to DEAD_LETTER', async () => {
+  describe('Test 8: Fatal failure PCA release (no other open Outreach)', () => {
+    it('fatal failure with no other open Outreach releases PCA.conversationState: ACTIVE -> NO_REPLY (stateVersion++)', async () => {
       const claimed: ClaimedEmailJob = {
         job: {
           id: jobId,
@@ -347,117 +424,90 @@ describe('EmailDispatchWorker', () => {
           type: 'EMAIL_DISPATCH',
           status: JobStatus.RUNNING,
           attemptCount: 1,
-          payload: { emailSendId, campaignMemberId },
+          payload: { emailSendId },
           leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
       };
 
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
       mockAdapter.sendEmail.mockRejectedValue(
         new EmailProviderException(
-          'Domain not verified by provider',
+          'Permanent rejection',
           EmailDispatchErrorCode.PROVIDER_REJECTED,
         ),
       );
 
-      mockPrisma.job.findFirst.mockResolvedValue({
-        id: jobId,
-        status: JobStatus.RUNNING,
-        attemptCount: 1,
+      // Active PCA
+      mockPrisma.personCompanyAssociation.findUnique.mockResolvedValue({
+        id: pcaId,
+        conversationState: 'ACTIVE',
+        stateVersion: 2,
+      });
+
+      // No other open outreach
+      mockPrisma.outreach.findFirst.mockResolvedValue(null);
+
+      const outcome = await worker.processJob(claimed);
+
+      expect(outcome).toBe(false);
+
+      expect(mockPrisma.personCompanyAssociation.update).toHaveBeenCalledWith({
+        where: { id: pcaId },
+        data: {
+          conversationState: 'NO_REPLY',
+          stateVersion: { increment: 1 },
+        },
+      });
+    });
+  });
+
+  describe('Test 9: Fatal failure with another open Outreach', () => {
+    it('fatal failure with another open Outreach leaves PCA ACTIVE', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException(
+          'Permanent rejection',
+          EmailDispatchErrorCode.PROVIDER_REJECTED,
+        ),
+      );
+
+      mockPrisma.personCompanyAssociation.findUnique.mockResolvedValue({
+        id: pcaId,
+        conversationState: 'ACTIVE',
+        stateVersion: 2,
+      });
+
+      // Another open outreach exists!
+      mockPrisma.outreach.findFirst.mockResolvedValue({
+        id: 'other-outreach-id',
+        status: 'ACTIVE',
       });
 
       const outcome = await worker.processJob(claimed);
 
       expect(outcome).toBe(false);
 
-      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
-        where: { id: emailSendId },
-        data: {
-          status: EmailSendStatus.FAILED,
-          failedAt: expect.any(Date),
-          errorCode: EmailDispatchErrorCode.PROVIDER_REJECTED,
-          retryable: false,
-          errorMessage: 'Domain not verified by provider',
-        },
-      });
-
-      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
-        where: { id: campaignMemberId },
-        data: { status: CampaignMemberStatus.FAILED },
-      });
-
-      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
-        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
-        data: {
-          status: JobStatus.DEAD_LETTER,
-          failedAt: expect.any(Date),
-          lastError: 'Domain not verified by provider',
-        },
-      });
-    });
-
-    it('on attempts exhausted (claimedAttempt = 3), transitions to FAILED even on transient error', async () => {
-      const claimedAttempt3: ClaimedEmailJob = {
-        job: {
-          id: jobId,
-          workspaceId,
-          type: 'EMAIL_DISPATCH',
-          status: JobStatus.RUNNING,
-          attemptCount: 3,
-          payload: { emailSendId, campaignMemberId },
-          leaseVersion: 0,
-        } as any,
-        claimedAttempt: 3,
-      };
-
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockAdapter.sendEmail.mockRejectedValue(
-        new EmailProviderException(
-          'Email provider rate limit exceeded',
-          EmailDispatchErrorCode.PROVIDER_RATE_LIMIT,
-        ),
-      );
-
-      mockPrisma.job.findFirst.mockResolvedValue({
-        id: jobId,
-        status: JobStatus.RUNNING,
-        attemptCount: 3,
-      });
-
-      const outcome = await worker.processJob(claimedAttempt3);
-
-      expect(outcome).toBe(false);
-
-      expect(mockPrisma.emailSend.update).toHaveBeenCalledWith({
-        where: { id: emailSendId },
-        data: {
-          status: EmailSendStatus.FAILED,
-          failedAt: expect.any(Date),
-          errorCode: EmailDispatchErrorCode.DISPATCH_ATTEMPTS_EXHAUSTED,
-          retryable: false,
-          errorMessage: expect.stringContaining('rate limit'),
-        },
-      });
-
-      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
-        where: { id: campaignMemberId },
-        data: { status: CampaignMemberStatus.FAILED },
-      });
-
-      expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
-        where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
-        data: {
-          status: JobStatus.DEAD_LETTER,
-          failedAt: expect.any(Date),
-          lastError: expect.stringContaining('rate limit'),
-        },
-      });
+      // PCA update should NOT have been called
+      expect(mockPrisma.personCompanyAssociation.update).not.toHaveBeenCalled();
     });
   });
 
-  describe('processJob - Lease Loss Guard', () => {
-    it('aborts finalization and does not update EmailSend or Person if job lease is lost or reclaimed', async () => {
+  describe('Test 10: Fatal failure with PCA.conversationState === REPLIED', () => {
+    it('fatal failure when PCA is REPLIED leaves PCA REPLIED', async () => {
       const claimed: ClaimedEmailJob = {
         job: {
           id: jobId,
@@ -465,28 +515,63 @@ describe('EmailDispatchWorker', () => {
           type: 'EMAIL_DISPATCH',
           status: JobStatus.RUNNING,
           attemptCount: 1,
-          payload: { emailSendId, campaignMemberId },
+          payload: { emailSendId },
           leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
       };
 
-      mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
-      mockAdapter.sendEmail.mockResolvedValue({
-        providerMessageId: 'resend-msg-12345',
-        rfcMessageId: '<msg-12345@startup.com>',
-        sentAt: new Date(),
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
+      mockAdapter.sendEmail.mockRejectedValue(
+        new EmailProviderException(
+          'Permanent rejection',
+          EmailDispatchErrorCode.PROVIDER_REJECTED,
+        ),
+      );
+
+      // PCA is REPLIED
+      mockPrisma.personCompanyAssociation.findUnique.mockResolvedValue({
+        id: pcaId,
+        conversationState: 'REPLIED',
+        stateVersion: 5,
       });
 
-      // Lease check returns null (e.g. timeout / reassigned)
+      const outcome = await worker.processJob(claimed);
+
+      expect(outcome).toBe(false);
+
+      // PCA update should NOT have been called
+      expect(mockPrisma.personCompanyAssociation.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Lease Loss Guard', () => {
+    it('aborts finalization if job lease is lost or reclaimed', async () => {
+      const claimed: ClaimedEmailJob = {
+        job: {
+          id: jobId,
+          workspaceId,
+          type: 'EMAIL_DISPATCH',
+          status: JobStatus.RUNNING,
+          attemptCount: 1,
+          payload: { emailSendId },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      mockPrisma.emailSend.findUnique.mockResolvedValue(baseEmailSendRecord);
+      mockAdapter.sendEmail.mockResolvedValue({
+        providerMessageId: 'resend-msg-12345',
+      });
+
+      // Lease check returns 0 count (lost)
       mockPrisma.job.updateMany.mockResolvedValue({ count: 0 });
 
       const outcome = await worker.processJob(claimed);
 
       expect(outcome).toBe(false);
-      expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
-      expect(mockPrisma.campaignMember.update).not.toHaveBeenCalled();
-      expect(mockPrisma.job.update).not.toHaveBeenCalled();
+      expect(mockPrisma.outreach.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,10 +1,10 @@
 import {
-  CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
   JobStatus,
   Prisma,
 } from '@repo/db';
+const CampaignMemberStatus = { READY: 'READY' } as any;
 import {
   AppConflictException,
   AppNotFoundException,

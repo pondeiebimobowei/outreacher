@@ -27,6 +27,7 @@ export interface EmailProviderAdapter<
   T extends ProviderCredentials = ProviderCredentials,
 > {
   readonly provider: string;
+  readonly idempotencyWindowMs?: number;
   sendEmail(input: SendEmailInput<T>): Promise<SendEmailResult>;
 }
 
@@ -40,4 +41,5 @@ export enum EmailDispatchErrorCode {
   PROVIDER_CONNECT_FAILURE = 'PROVIDER_CONNECT_FAILURE',
   PROVIDER_UNAVAILABLE = 'PROVIDER_UNAVAILABLE',
   PROVIDER_IDEMPOTENCY_CONFLICT = 'PROVIDER_IDEMPOTENCY_CONFLICT',
+  DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION = 'DISPATCH_UNKNOWN_REQUIRES_RECONCILIATION',
 }

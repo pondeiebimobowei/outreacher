@@ -35,6 +35,7 @@ export class EmailProviderException extends AppException {
 @Injectable()
 export class ResendEmailProviderAdapter implements EmailProviderAdapter<ResendCredentials> {
   public readonly provider = 'RESEND';
+  public readonly idempotencyWindowMs = 24 * 60 * 60 * 1000;
   private readonly logger = new Logger(ResendEmailProviderAdapter.name);
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
