@@ -29,9 +29,12 @@ import { DeliveryWebhookController } from './application/delivery-webhook.contro
 import { DeliveryWebhookService } from './application/delivery-webhook.service';
 import { ProcessDeliveryEventUseCase } from './application/process-delivery-event.use-case';
 import { ResendDeliveryEventAdapter } from './infrastructure/resend-delivery-event.adapter';
+import { TemplateModule } from '../template/template.module';
+import { ScheduleFollowUpUseCase } from './application/schedule-follow-up.use-case';
+import { ScheduledFollowUpCheckWorker } from './application/scheduled-follow-up-check.worker';
 
 @Module({
-  imports: [PrismaModule, WorkspaceModule],
+  imports: [PrismaModule, WorkspaceModule, TemplateModule],
   controllers: [
     EmailController,
     InboundWebhookController,

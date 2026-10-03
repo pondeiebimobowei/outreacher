@@ -218,32 +218,21 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       );
 
       // 10C Transaction
+      let correlatedPcaId: string | null = null;
       await this.prisma.$transaction(async (tx: any) => {
-        // Tenant safety check - although correlation already scopes by workspaceId, we double check
-        if (correlation.status === 'CORRELATED') {
-          if (correlation.campaignMemberId) {
-            const contact = await tx.campaignMember.findUnique({
-              where: { id: correlation.campaignMemberId },
-            });
-            if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
-              throw new Error(
-                'Tenant safety violation: Correlated CampaignMember belongs to different workspace',
-              );
-            }
+        if (correlation.status === 'CORRELATED' && correlation.outreachId) {
+          const outreach = await tx.outreach.findUnique({
+            where: { id: correlation.outreachId },
+          });
+          if (
+            !outreach ||
+            outreach.workspaceId !== inboundReply.workspaceId
+          ) {
+            throw new Error(
+              'Tenant safety violation: Correlated Outreach belongs to different workspace',
+            );
           }
-          if (correlation.outreachId) {
-            const outreach = await tx.outreach.findUnique({
-              where: { id: correlation.outreachId },
-            });
-            if (
-              !outreach ||
-              outreach.workspaceId !== inboundReply.workspaceId
-            ) {
-              throw new Error(
-                'Tenant safety violation: Correlated Outreach belongs to different workspace',
-              );
-            }
-          }
+          correlatedPcaId = outreach.personCompanyAssociationId;
         }
 
         await tx.inboundReply.update({
@@ -256,17 +245,9 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
             inReplyTo: retrieved.inReplyTo,
             references: retrieved.references,
             status: correlation.status,
-            campaignMemberId:
-              correlation.status === 'CORRELATED'
-                ? correlation.campaignMemberId
-                : null,
             outreachId:
               correlation.status === 'CORRELATED'
                 ? correlation.outreachId
-                : null,
-            campaignId:
-              correlation.status === 'CORRELATED'
-                ? correlation.campaignId
                 : null,
           },
         });
@@ -284,10 +265,10 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
         }
       });
 
-      // 10D Transaction
-      if (correlation.status === 'CORRELATED' && correlation.campaignMemberId) {
+      // 10D Transaction: relationship-wide reply completion
+      if (correlation.status === 'CORRELATED' && correlatedPcaId) {
         await this.markContactRepliedUseCase.execute(
-          correlation.campaignMemberId,
+          correlatedPcaId,
           inboundReply.workspaceId,
         );
       }

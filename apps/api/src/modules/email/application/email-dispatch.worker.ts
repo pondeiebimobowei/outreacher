@@ -16,6 +16,7 @@ import {
   EmailDispatchErrorCode,
 } from '../domain/email-provider.adapter';
 import { EmailProviderException } from '../infrastructure/resend-email-provider.adapter';
+import { ScheduleFollowUpUseCase } from './schedule-follow-up.use-case';
 
 export interface ClaimedEmailJob {
   job: Job;
@@ -32,6 +33,7 @@ export class EmailDispatchWorker {
     private readonly providerRegistry: EmailProviderRegistry,
     @Inject(SECRET_RESOLVER_TOKEN)
     private readonly secretResolver: ISecretResolver,
+    private readonly scheduleFollowUpUseCase?: ScheduleFollowUpUseCase,
   ) {}
 
   /**
@@ -405,6 +407,23 @@ export class EmailDispatchWorker {
             where: { id: emailSend.outreachId },
             data: { status: 'ACTIVE' },
           });
+
+          const nextSequence = emailSend.sequence + 1;
+          if (outreach && nextSequence <= outreach.maxFollowUps) {
+            if (this.scheduleFollowUpUseCase) {
+              await this.scheduleFollowUpUseCase.scheduleFollowUpCheck(tx, {
+                workspaceId,
+                outreachId: outreach.id,
+                sequence: nextSequence,
+                delayDays: campaign?.followUpDelayBusinessDays ?? 3,
+              });
+            }
+          } else if (recipient) {
+            await tx.campaignRecipient.update({
+              where: { id: recipient.id },
+              data: { status: 'COMPLETED' },
+            });
+          }
         } else {
           // Ineligible due to in-flight pause/suppression: EmailSend is SENT, Outreach remains/becomes PAUSED, 0 follow-up jobs
           await tx.outreach.update({

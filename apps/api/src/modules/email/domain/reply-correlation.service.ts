@@ -6,9 +6,7 @@ export type CorrelationResult =
   | {
       status: 'CORRELATED';
       emailSendId: string;
-      campaignMemberId: string | null;
-      outreachId: string | null;
-      campaignId: string | null;
+      outreachId: string;
     }
   | { status: 'UNCORRELATED' }
   | { status: 'AMBIGUOUS' };
@@ -42,9 +40,7 @@ export class ReplyCorrelationService {
         },
         select: {
           id: true,
-          campaignMemberId: true,
           outreachId: true,
-          campaignId: true,
           workspaceId: true,
         },
       });
@@ -53,9 +49,7 @@ export class ReplyCorrelationService {
         return {
           status: 'CORRELATED',
           emailSendId: send.id,
-          campaignMemberId: send.campaignMemberId,
           outreachId: send.outreachId,
-          campaignId: send.campaignId,
         };
       }
     }
@@ -70,25 +64,18 @@ export class ReplyCorrelationService {
         },
         select: {
           id: true,
-          campaignMemberId: true,
           outreachId: true,
-          campaignId: true,
         },
         orderBy: { createdAt: 'desc' },
       });
 
       if (sends.length > 0) {
-        // Find distinct send sources
-        const distinctSources = new Set(
-          sends.map((s) => `${s.campaignMemberId}-${s.outreachId}`),
-        );
-        if (distinctSources.size === 1) {
+        const distinctOutreaches = new Set(sends.map((s) => s.outreachId));
+        if (distinctOutreaches.size === 1) {
           return {
             status: 'CORRELATED',
             emailSendId: sends[0].id,
-            campaignMemberId: sends[0].campaignMemberId,
             outreachId: sends[0].outreachId,
-            campaignId: sends[0].campaignId,
           };
         }
         return { status: 'AMBIGUOUS' };
@@ -107,24 +94,18 @@ export class ReplyCorrelationService {
         },
         select: {
           id: true,
-          campaignMemberId: true,
           outreachId: true,
-          campaignId: true,
         },
         orderBy: { createdAt: 'desc' },
       });
 
       if (sends.length > 0) {
-        const distinctSources = new Set(
-          sends.map((s) => `${s.campaignMemberId}-${s.outreachId}`),
-        );
-        if (distinctSources.size === 1) {
+        const distinctOutreaches = new Set(sends.map((s) => s.outreachId));
+        if (distinctOutreaches.size === 1) {
           return {
             status: 'CORRELATED',
             emailSendId: sends[0].id,
-            campaignMemberId: sends[0].campaignMemberId,
             outreachId: sends[0].outreachId,
-            campaignId: sends[0].campaignId,
           };
         }
         return { status: 'AMBIGUOUS' };

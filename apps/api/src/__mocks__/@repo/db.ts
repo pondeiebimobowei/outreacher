@@ -171,6 +171,12 @@ export enum OutcomeType {
   OTHER = 'OTHER',
 }
 
+export const Prisma: any = {
+  join: (items: any[], separator = ', ') => items.join(separator),
+  raw: (query: string) => query,
+  sql: (strings: TemplateStringsArray, ...values: any[]) => strings,
+};
+
 export class PrismaClient {
   $connect = jest.fn().mockResolvedValue(undefined);
   $disconnect = jest.fn().mockResolvedValue(undefined);
