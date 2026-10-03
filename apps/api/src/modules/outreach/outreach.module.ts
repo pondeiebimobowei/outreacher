@@ -16,6 +16,9 @@ import { MockAIProvider } from './infrastructure/mock-ai.provider';
 import { OpenRouterAIProvider } from './infrastructure/openrouter-ai.provider';
 import { AnthropicAIProvider } from './infrastructure/anthropic-ai.provider';
 
+import { TemplateModule } from '../template/template.module';
+import { CreateOutreachUseCase } from './application/create-outreach.use-case';
+
 const aiProviderFactory: Provider = {
   provide: 'AIProvider',
   useFactory: () => {
@@ -45,9 +48,10 @@ const aiProviderFactory: Provider = {
 };
 
 @Module({
-  imports: [PrismaModule, WorkspaceModule, EmailModule],
+  imports: [PrismaModule, WorkspaceModule, EmailModule, TemplateModule],
   controllers: [OutreachController, OutreachesController],
   providers: [
+    CreateOutreachUseCase,
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
@@ -57,8 +61,8 @@ const aiProviderFactory: Provider = {
     SendDirectOutreachUseCase,
     OutreachGenerationWorker,
     aiProviderFactory,
-  ],
   exports: [
+    CreateOutreachUseCase,
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,

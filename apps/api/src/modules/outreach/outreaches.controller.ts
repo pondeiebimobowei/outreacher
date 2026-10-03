@@ -4,6 +4,7 @@ import {
   Patch,
   Param,
   Body,
+  Headers,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -12,6 +13,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WorkspaceGuard } from '../workspaces/workspace.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
+import { CreateOutreachUseCase } from './application/create-outreach.use-case';
+import { CreateOutreachDto } from './dto/create-outreach.dto';
 import { GenerateDirectOutreachUseCase } from './application/generate-direct-outreach.use-case';
 import { UpdateDirectOutreachUseCase } from './application/update-direct-outreach.use-case';
 import { SendDirectOutreachUseCase } from './application/send-direct-outreach.use-case';
@@ -20,10 +23,21 @@ import { SendDirectOutreachUseCase } from './application/send-direct-outreach.us
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class OutreachesController {
   constructor(
+    private readonly createOutreachUseCase: CreateOutreachUseCase,
     private readonly generateDirectOutreachUseCase: GenerateDirectOutreachUseCase,
     private readonly updateDirectOutreachUseCase: UpdateDirectOutreachUseCase,
     private readonly sendDirectOutreachUseCase: SendDirectOutreachUseCase,
   ) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  public async createOutreach(
+    @CurrentWorkspace() workspace: { id: string },
+    @Headers('idempotency-key') idempotencyKey: string,
+    @Body() dto: CreateOutreachDto,
+  ) {
+    return this.createOutreachUseCase.execute(workspace.id, dto, idempotencyKey);
+  }
 
   @Post(':id/generate')
   @HttpCode(HttpStatus.ACCEPTED)

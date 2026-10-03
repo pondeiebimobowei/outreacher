@@ -88,6 +88,20 @@ export class AppConflictException extends AppException {
   }
 }
 
+export class AppUnprocessableEntityException extends AppException {
+  constructor(
+    message: string = 'Unprocessable entity',
+    details?: Record<string, unknown>,
+  ) {
+    super(
+      message,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      ErrorCode.UNPROCESSABLE_ENTITY,
+      details,
+    );
+  }
+}
+
 /**
  * Translates external provider failures (email delivery, AI services, research vendors)
  * at the infrastructure boundary into application-level error semantics.
