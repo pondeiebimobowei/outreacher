@@ -1,43 +1,12 @@
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-  IsEnum,
-} from 'class-validator';
-import { CAMPAIGN_STATUSES } from '@repo/shared';
-import type { CreateCampaignRequest, CampaignStatus } from '@repo/shared';
+import { CampaignStatus, CreateCampaignRequest } from '@repo/shared';
 
 export class CreateCampaignDto implements CreateCampaignRequest {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(1)
-  @MaxLength(150)
   name!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  companyId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  senderAccountId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  templateId!: string;
-
-  @IsEnum(CAMPAIGN_STATUSES)
-  @IsNotEmpty()
-  status!: CampaignStatus;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(30)
+  contentSource!: 'TEMPLATE' | 'AI';
+  templateId?: string | null;
+  aiPromptContext?: string | null;
   followUpDelayBusinessDays?: number;
+  maxFollowUps?: number;
+  senderAccountIds!: string[];
+  status?: CampaignStatus;
 }

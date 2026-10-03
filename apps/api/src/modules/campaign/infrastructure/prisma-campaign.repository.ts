@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Campaign, CampaignMember, CampaignStatus, Prisma } from '@repo/db';
+import { Campaign, CampaignRecipient, CampaignStatus, Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   CampaignDuplicateNameError,
@@ -7,7 +7,6 @@ import {
   ICampaignRepository,
   CampaignWithSenders,
 } from '../domain/campaign.repository.interface';
-import { CampaignSenderSummary } from '../dto/campaign-sender-summary.dto';
 
 const campaignInclude = {
   campaignSenderAccounts: {
@@ -50,13 +49,13 @@ export class PrismaCampaignRepository implements ICampaignRepository {
       const campaign = await this.prisma.campaign.create({
         data: {
           workspaceId: data.workspaceId,
-          companyId: data.companyId,
-          senderAccountId: data.senderAccountId,
-          templateId: data.templateId,
           name: data.name,
-          normalizedName: data.normalizedName,
           status: data.status,
-          followUpDelayBusinessDays: data.followUpDelayBusinessDays ?? 4,
+          contentSource: data.contentSource ?? 'TEMPLATE',
+          templateId: data.templateId ?? null,
+          aiPromptContext: data.aiPromptContext ?? null,
+          followUpDelayBusinessDays: data.followUpDelayBusinessDays ?? 3,
+          maxFollowUps: data.maxFollowUps ?? 2,
         },
         include: campaignInclude,
       });
@@ -65,8 +64,7 @@ export class PrismaCampaignRepository implements ICampaignRepository {
       if (this.isCampaignUniqueConstraintError(error)) {
         throw new CampaignDuplicateNameError(
           data.workspaceId,
-          data.companyId,
-          data.normalizedName,
+          data.name,
         );
       }
       throw error;
@@ -84,16 +82,14 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     return campaign ? mapCampaign(campaign) : null;
   }
 
-  async findByNormalizedName(
+  async findByName(
     workspaceId: string,
-    companyId: string,
-    normalizedName: string,
+    name: string,
   ): Promise<CampaignWithSenders | null> {
     const campaign = await this.prisma.campaign.findFirst({
       where: {
         workspaceId,
-        companyId,
-        normalizedName,
+        name,
       },
       include: campaignInclude,
     });
@@ -128,36 +124,21 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     return mapCampaign(campaign);
   }
 
-  async findExistingContactBindings(
+  async createRecipientBindings(
     workspaceId: string,
     campaignId: string,
-    contactIds: string[],
-  ): Promise<Set<string>> {
-    const existing = await this.prisma.campaignMember.findMany({
-      where: {
+    pcaIds: string[],
+  ): Promise<CampaignRecipient[]> {
+    await this.prisma.campaignRecipient.createMany({
+      data: pcaIds.map((pcaId) => ({
         workspaceId,
         campaignId,
-        personId: { in: contactIds },
-      },
-      select: { personId: true },
-    });
-    return new Set(existing.map((r) => r.personId));
-  }
-
-  async createContactBindings(
-    workspaceId: string,
-    campaignId: string,
-    contactIds: string[],
-  ): Promise<CampaignMember[]> {
-    await this.prisma.campaignMember.createMany({
-      data: contactIds.map((personId) => ({
-        workspaceId,
-        campaignId,
-        personId,
+        personCompanyAssociationId: pcaId,
+        status: 'PENDING',
       })),
     });
-    return this.prisma.campaignMember.findMany({
-      where: { workspaceId, campaignId, personId: { in: contactIds } },
+    return this.prisma.campaignRecipient.findMany({
+      where: { workspaceId, campaignId, personCompanyAssociationId: { in: pcaIds } },
     });
   }
 
@@ -168,35 +149,6 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     ) {
       return false;
     }
-    const e = error as any;
-    // 1. PrismaPg driver-adapter constraint field (Prisma 7 adapter path)
-    const driverConstraint =
-      e?.meta?.driverAdapterError?.cause?.constraint?.fields ||
-      e?.meta?.driverAdapterError?.cause?.constraint;
-    if (
-      typeof driverConstraint === 'string' &&
-      driverConstraint.includes('normalized_name')
-    ) {
-      return true;
-    }
-    if (
-      Array.isArray(driverConstraint) &&
-      driverConstraint.includes('normalized_name')
-    ) {
-      return true;
-    }
-    // 2. Standard Prisma meta.target field
-    const target = e?.meta?.target;
-    if (Array.isArray(target) && target.includes('normalized_name')) {
-      return true;
-    }
-    if (typeof target === 'string' && target.includes('normalized_name')) {
-      return true;
-    }
-    // 3. Fallback: if P2002 has no target info (driver adapter edge case), treat as potential campaign collision
-    if (!target && !driverConstraint && e?.code === 'P2002') {
-      return true;
-    }
-    return false;
+    return true;
   }
 }

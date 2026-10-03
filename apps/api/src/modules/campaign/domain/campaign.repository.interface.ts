@@ -1,4 +1,4 @@
-import { Campaign, CampaignMember, CampaignStatus } from '@repo/db';
+import { Campaign, CampaignRecipient, CampaignStatus } from '@repo/db';
 import { CampaignSenderSummary } from '../dto/campaign-sender-summary.dto';
 
 export type CampaignWithSenders = Campaign & {
@@ -8,11 +8,10 @@ export type CampaignWithSenders = Campaign & {
 export class CampaignDuplicateNameError extends Error {
   constructor(
     public readonly workspaceId: string,
-    public readonly companyId: string,
     public readonly normalizedName: string,
   ) {
     super(
-      `Campaign with normalized name "${normalizedName}" already exists for company "${companyId}" in workspace "${workspaceId}".`,
+      `Campaign with normalized name "${normalizedName}" already exists in workspace "${workspaceId}".`,
     );
     this.name = 'CampaignDuplicateNameError';
   }
@@ -20,13 +19,13 @@ export class CampaignDuplicateNameError extends Error {
 
 export interface CreateCampaignData {
   workspaceId: string;
-  companyId: string;
-  senderAccountId: string;
-  templateId: string;
   name: string;
-  normalizedName: string;
   status: CampaignStatus;
+  contentSource?: 'TEMPLATE' | 'AI';
+  templateId?: string | null;
+  aiPromptContext?: string | null;
   followUpDelayBusinessDays?: number;
+  maxFollowUps?: number;
 }
 
 export interface ICampaignRepository {
@@ -35,10 +34,9 @@ export interface ICampaignRepository {
     workspaceId: string,
     id: string,
   ): Promise<CampaignWithSenders | null>;
-  findByNormalizedName(
+  findByName(
     workspaceId: string,
-    companyId: string,
-    normalizedName: string,
+    name: string,
   ): Promise<CampaignWithSenders | null>;
   findManyByWorkspace(workspaceId: string): Promise<CampaignWithSenders[]>;
   updateStatus(
@@ -46,16 +44,11 @@ export interface ICampaignRepository {
     id: string,
     status: CampaignStatus,
   ): Promise<CampaignWithSenders | null>;
-  findExistingContactBindings(
+  createRecipientBindings(
     workspaceId: string,
     campaignId: string,
-    contactIds: string[],
-  ): Promise<Set<string>>;
-  createContactBindings(
-    workspaceId: string,
-    campaignId: string,
-    contactIds: string[],
-  ): Promise<CampaignMember[]>;
+    pcaIds: string[],
+  ): Promise<CampaignRecipient[]>;
 }
 
 export const CAMPAIGN_REPOSITORY_TOKEN = 'ICampaignRepository';
