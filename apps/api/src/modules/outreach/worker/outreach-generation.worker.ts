@@ -1,30 +1,18 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma.service';
+import { PrismaClient } from '@repo/db';
 import { type AIProvider } from '../domain/ai-provider.interface';
-import { OutreachContext } from '../domain/outreach-context.interface';
-import { OutreachReasonEvaluator } from '../domain/outreach-reason.evaluator';
-import { OutreachPromptBuilder } from '../domain/outreach-prompt.builder';
-import { OutreachValidator } from '../domain/outreach-validator';
-import { Prisma } from '@repo/db';
 
 export interface OutreachGenerationJobPayload {
-  userId: string;
-  workspaceId: string;
-  campaignMemberId?: string;
-  outreachId?: string;
-  personId: string;
-  companyId: string;
-  draftVersion: number;
+  outreachId: string;
+  expectedDraftVersion: number;
 }
 
 @Injectable()
 export class OutreachGenerationWorker {
   private readonly logger = new Logger(OutreachGenerationWorker.name);
-  private readonly evaluator = new OutreachReasonEvaluator();
-  private readonly validator = new OutreachValidator();
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaClient,
     @Inject('AIProvider') private readonly aiProvider: AIProvider,
   ) {}
 
@@ -42,164 +30,96 @@ export class OutreachGenerationWorker {
     }
 
     const payload = job.payload as unknown as OutreachGenerationJobPayload;
-    const { workspaceId, campaignMemberId, outreachId, companyId } = payload;
+    const { outreachId, expectedDraftVersion } = payload;
+    const workspaceId = job.workspaceId;
 
     try {
-      let company, contact, opportunity;
-      let modelUpdatedAt: Date;
+      const outreach = await this.prisma.outreach.findUnique({
+        where: { id: outreachId },
+        include: {
+          personCompanyAssociation: {
+            include: { person: true, company: true },
+          },
+        },
+      });
 
-      if (campaignMemberId) {
-        const campaignMember = await this.prisma.campaignMember.findUnique({
-          where: { id: campaignMemberId },
-          include: {
-            person: true,
-            campaign: { include: { company: true } },
-            selectedOpportunity: true,
-          },
-        });
-        if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
-          throw new Error(
-            `Tenant mismatch or CampaignMember ${campaignMemberId} not found`,
-          );
-        }
-        modelUpdatedAt = campaignMember.updatedAt;
-        company = campaignMember.campaign.company;
-        contact = campaignMember.person;
-        opportunity = campaignMember.selectedOpportunity;
-      } else if (outreachId) {
-        const outreach = await this.prisma.outreach.findUnique({
-          where: { id: outreachId },
-          include: {
-            personCompanyAssociation: {
-              include: { person: true, company: true },
-            },
-          },
-        });
-        if (!outreach || outreach.workspaceId !== workspaceId) {
-          throw new Error(
-            `Tenant mismatch or Outreach ${outreachId} not found`,
-          );
-        }
-        modelUpdatedAt = outreach.updatedAt;
-        company = outreach.personCompanyAssociation.company;
-        contact = outreach.personCompanyAssociation.person;
-        opportunity = null; // Outreach doesn't currently attach a specific opportunity in schema
-      } else {
+      if (!outreach || outreach.workspaceId !== workspaceId) {
         throw new Error(
-          `Job ${jobId} payload missing both campaignMemberId and outreachId`,
+          `Tenant mismatch or Outreach ${outreachId} not found in workspace ${workspaceId}`,
         );
       }
 
-      if (modelUpdatedAt > job.createdAt) {
-        this.logger.warn(
-          `Stale attempt detected for job ${jobId}; model updated after job creation. Aborting.`,
-        );
-        await this.prisma.job.update({
-          where: { id: jobId },
-          data: { status: 'COMPLETED', completedAt: new Date() },
+      const pca = outreach.personCompanyAssociation;
+      const prompt = [
+        `You are generating an email outreach.`,
+        `Contact: ${pca.person.firstName} ${pca.person.lastName}, Title: ${pca.role || 'Executive'}`,
+        `Company: ${pca.company.name}`,
+        outreach.aiPromptContext ? `Context: ${outreach.aiPromptContext}` : '',
+        `Return JSON format: { "subject": "...", "body": "..." }`,
+      ].filter(Boolean).join('\n');
+
+      const aiResponse = await this.aiProvider.complete(prompt);
+      let subject = 'Connecting with you';
+      let body = `Hello ${pca.person.firstName}, would love to connect with ${pca.company.name}.`;
+
+      try {
+        const parsed = JSON.parse(aiResponse.rawText);
+        if (parsed.subject) subject = parsed.subject;
+        if (parsed.body) body = parsed.body;
+      } catch {
+        // Fallback to text parsing or defaults
+        if (aiResponse.rawText.includes('\n')) {
+          const lines = aiResponse.rawText.split('\n');
+          subject = lines[0].replace(/^Subject:\s*/i, '');
+          body = lines.slice(1).join('\n').trim();
+        }
+      }
+
+      await this.prisma.$transaction(async (tx: any) => {
+        const currentOutreach = await tx.outreach.findUnique({
+          where: { id: outreachId },
         });
-        return true;
-      }
 
-      const careerProfile = await this.prisma.careerProfile.findUnique({
-        where: { workspaceId },
-      });
+        if (!currentOutreach) {
+          throw new Error(`Outreach ${outreachId} not found during generation commit`);
+        }
 
-      const evidenceList = await this.prisma.evidence.findMany({
-        where: { workspaceId, companyId },
-      });
-
-      const context: OutreachContext = {
-        workspaceId,
-        campaignMemberId,
-        outreachId,
-        person: {
-          id: contact.id,
-          firstName: contact.firstName,
-          lastName: contact.lastName,
-          title: contact.title,
-          kind: contact.personKind,
-        },
-        company: {
-          id: company.id,
-          name: company.name,
-          domain: company.domain,
-          description: company.description,
-          industry: company.industry,
-        },
-        opportunity: {
-          id: opportunity?.id,
-          type: opportunity?.opportunityType || 'UNCLASSIFIED',
-          roleTitle: opportunity?.roleTitle,
-          roleDescription: opportunity?.roleDescription,
-        },
-        careerProfile: {
-          headline: careerProfile?.headline,
-          summary: careerProfile?.summary,
-          experienceSummary: careerProfile?.experienceSummary,
-          targetRoles: careerProfile?.targetRoles || [],
-          skills: careerProfile?.skills || [],
-        },
-        evidence: evidenceList.map((e) => ({
-          id: e.id,
-          claim: e.claim,
-          classification: e.classification,
-          sourceName: e.sourceName,
-          sourceUrl: e.sourceUrl,
-        })),
-      };
-
-      const reasonResult = this.evaluator.evaluate(context);
-      const builtPrompt = OutreachPromptBuilder.build(context, reasonResult);
-      const completionResult = await this.aiProvider.complete(builtPrompt);
-      const validatedDraft = this.validator.validate(
-        completionResult.rawText,
-        context,
-      );
-
-      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        if (campaignMemberId) {
-          const currentCC = await tx.campaignMember.findUnique({
-            where: { id: campaignMemberId },
-          });
-          if (!currentCC || currentCC.updatedAt > job.createdAt)
-            throw new Error(
-              'Stale attempt concurrent update detected inside transaction',
-            );
-          await tx.campaignMember.update({
-            where: { id: campaignMemberId },
-            data: {
-              currentSubject: validatedDraft.subject,
-              currentBody: validatedDraft.body,
-              outreachReason: reasonResult.reasonText,
-            },
-          });
-        } else if (outreachId) {
-          const currentOutreach = await tx.outreach.findUnique({
-            where: { id: outreachId },
-          });
-          if (!currentOutreach || currentOutreach.updatedAt > job.createdAt)
-            throw new Error(
-              'Stale attempt concurrent update detected inside transaction',
-            );
+        let skippedDueToEdit = false;
+        if (currentOutreach.draftVersion !== expectedDraftVersion) {
+          this.logger.warn(
+            `Draft modified concurrently for outreach ${outreachId} (expected: ${expectedDraftVersion}, current: ${currentOutreach.draftVersion}); preserving manual edits.`,
+          );
+          skippedDueToEdit = true;
+        } else {
           await tx.outreach.update({
             where: { id: outreachId },
             data: {
-              subject: validatedDraft.subject,
-              message: validatedDraft.body,
+              subject,
+              message: body,
             },
           });
         }
 
-        await tx.job.update({
-          where: { id: jobId },
-          data: { status: 'COMPLETED', completedAt: new Date() },
+        const updateResult = await tx.job.updateMany({
+          where: {
+            id: jobId,
+            leaseVersion: job.leaseVersion,
+            status: 'RUNNING',
+          },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            lastError: skippedDueToEdit ? 'SKIPPED_DRAFT_MODIFIED' : null,
+            leaseVersion: { increment: 1 },
+          },
         });
+
+        if (updateResult.count === 0) {
+          throw new Error('Concurrent lease conflict: Job leaseVersion was incremented');
+        }
       });
 
-      this.logger.log(
-        `Successfully completed outreach generation for job ${jobId}`,
-      );
+      this.logger.log(`Completed outreach generation for job ${jobId}`);
       return true;
     } catch (error) {
       const errorMessage =
@@ -212,13 +132,14 @@ export class OutreachGenerationWorker {
       const isDeadLetter = nextAttempt >= job.maxAttempts;
       const backoffMs = Math.pow(2, nextAttempt) * 1000;
 
-      await this.prisma.job.update({
-        where: { id: jobId },
+      await this.prisma.job.updateMany({
+        where: { id: jobId, leaseVersion: job.leaseVersion },
         data: {
           status: isDeadLetter ? 'FAILED' : 'PENDING',
           failedAt: isDeadLetter ? new Date() : null,
           lastError: errorMessage,
           availableAt: new Date(Date.now() + backoffMs),
+          leaseVersion: { increment: 1 },
         },
       });
 

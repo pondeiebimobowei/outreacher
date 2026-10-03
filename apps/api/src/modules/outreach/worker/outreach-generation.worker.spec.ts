@@ -1,6 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { OutreachGenerationWorker } from './outreach-generation.worker';
-import { PrismaService } from '../../../database/prisma.service';
 
 describe('OutreachGenerationWorker', () => {
   let worker: OutreachGenerationWorker;
@@ -14,183 +12,133 @@ describe('OutreachGenerationWorker', () => {
     status: 'RUNNING',
     attemptCount: 1,
     maxAttempts: 3,
-    createdAt: new Date('2026-09-18T10:00:00Z'),
+    leaseVersion: 1,
+    createdAt: new Date('2026-10-01T10:00:00Z'),
     payload: {
-      userId: 'usr-123',
-      workspaceId: 'ws-123',
-      campaignMemberId: 'cc-123',
-      personId: 'cnt-1',
-      companyId: 'cmp-1',
-      draftVersion: 1,
+      outreachId: 'out-1',
+      expectedDraftVersion: 0,
     },
   };
 
-  const mockCampaignContact = {
-    id: 'cc-123',
+  const mockOutreach = {
+    id: 'out-1',
     workspaceId: 'ws-123',
-    personId: 'cnt-1',
-    updatedAt: new Date('2026-09-18T09:00:00Z'),
-    person: {
-      id: 'cnt-1',
-      firstName: 'Alice',
-      lastName: 'Smith',
-      title: 'VP Eng',
-      personKind: 'PERSON',
-    },
-    campaign: {
+    draftVersion: 0,
+    aiPromptContext: 'Focus on CFO value and 30-day ROI',
+    subject: '',
+    message: '',
+    updatedAt: new Date('2026-10-01T09:00:00Z'),
+    personCompanyAssociation: {
+      id: 'pca-1',
+      role: 'Chief Financial Officer',
+      person: {
+        id: 'p-1',
+        firstName: 'Jane',
+        lastName: 'Doe',
+      },
       company: {
-        id: 'cmp-1',
-        name: 'Alpha Corp',
-        domain: 'alpha.com',
-        industry: 'Tech',
-        description: 'AI platform',
+        id: 'c-1',
+        name: 'Enterprise Inc',
       },
     },
-    selectedOpportunity: {
-      id: 'opp-1',
-      opportunityType: 'PROACTIVE',
-      roleTitle: 'Lead Engineer',
-    },
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     prisma = {
       job: {
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
-      campaignMember: {
+      outreach: {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      careerProfile: {
-        findUnique: jest.fn(),
-      },
-      evidence: {
-        findMany: jest.fn(),
-      },
-      $transaction: jest.fn((cb) => cb(prisma)),
+      $transaction: jest.fn(async (cb) => cb(prisma)),
     };
 
     aiProvider = {
       complete: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        OutreachGenerationWorker,
-        { provide: PrismaService, useValue: prisma },
-        { provide: 'AIProvider', useValue: aiProvider },
-      ],
-    }).compile();
-
-    worker = module.get<OutreachGenerationWorker>(OutreachGenerationWorker);
+    worker = new OutreachGenerationWorker(prisma, aiProvider);
   });
 
-  it('processes valid job and updates CampaignMember atomically', async () => {
+  it('reads persisted Outreach.aiPromptContext and updates draft when draftVersion matches', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
-    prisma.careerProfile.findUnique.mockResolvedValue({
-      headline: 'Senior Engineer',
-      targetRoles: ['Lead Engineer'],
-      skills: ['TypeScript'],
-    });
-    prisma.evidence.findMany.mockResolvedValue([]);
+    prisma.outreach.findUnique.mockResolvedValue(mockOutreach);
     aiProvider.complete.mockResolvedValue({
       rawText: JSON.stringify({
-        subject: 'Engineering alignment with Alpha Corp',
-        body: 'Hello Alice, I have followed Alpha Corp work in AI platforms and wanted to connect regarding engineering background in TypeScript.',
+        subject: 'CFO ROI Evaluation',
+        body: 'Jane, how Enterprise Inc can achieve ROI in 30 days.',
       }),
     });
+    prisma.job.updateMany.mockResolvedValue({ count: 1 });
 
     const success = await worker.processJob('job-1');
     expect(success).toBe(true);
 
-    expect(prisma.campaignMember.update).toHaveBeenCalledWith({
-      where: { id: 'cc-123' },
-      data: expect.objectContaining({
-        currentSubject: 'Engineering alignment with Alpha Corp',
-        currentBody: expect.stringContaining('Hello Alice'),
-        outreachReason: expect.stringContaining(
-          'Proactive outreach to Alice Smith',
-        ),
-      }),
-    });
-
-    expect(prisma.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1' },
-      data: expect.objectContaining({ status: 'COMPLETED' }),
-    });
-  });
-
-  it('leaves CampaignMember completely untouched on AI validation failure', async () => {
-    prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
-    prisma.careerProfile.findUnique.mockResolvedValue(null);
-    prisma.evidence.findMany.mockResolvedValue([]);
-    // AI output contains illegal opening claim for PROACTIVE opportunity
-    aiProvider.complete.mockResolvedValue({
-      rawText: JSON.stringify({
-        subject: 'Applying for Lead Engineer opening',
-        body: 'Hi Alice, I saw your job posting for Lead Engineer and want to apply.',
-      }),
-    });
-
-    const success = await worker.processJob('job-1');
-    expect(success).toBe(false);
-
-    // Verify CampaignMember was NEVER updated
-    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
-
-    // Verify Job was marked PENDING for retry with error log
-    expect(prisma.job.update).toHaveBeenCalledWith({
-      where: { id: 'job-1' },
-      data: expect.objectContaining({
-        status: 'PENDING',
-        lastError: expect.stringContaining('illegal opening claim'),
-      }),
-    });
-  });
-
-  it('detects worker stale attempt before execution and aborts without modifying CampaignMember', async () => {
-    const staleCampaignContact = {
-      ...mockCampaignContact,
-      updatedAt: new Date('2026-09-18T11:00:00Z'), // Modified AFTER job creation at 10:00:00Z
-    };
-
-    prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignMember.findUnique.mockResolvedValue(staleCampaignContact);
-
-    const success = await worker.processJob('job-1');
-    expect(success).toBe(true);
-    expect(aiProvider.complete).not.toHaveBeenCalled();
-    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
-  });
-
-  it('aborts persistence inside transaction when CampaignMember is updated concurrently during AI execution', async () => {
-    prisma.job.findUnique.mockResolvedValue(mockJob);
-    // Initial fetch returns non-stale contact
-    prisma.campaignMember.findUnique.mockResolvedValueOnce(mockCampaignContact);
-    // Concurrent update occurs during AI execution -> transaction fetch returns stale contact
-    const concurrentlyUpdatedContact = {
-      ...mockCampaignContact,
-      updatedAt: new Date('2026-09-18T12:00:00Z'),
-    };
-    prisma.campaignMember.findUnique.mockResolvedValueOnce(
-      concurrentlyUpdatedContact,
+    expect(aiProvider.complete).toHaveBeenCalledWith(
+      expect.stringContaining('Focus on CFO value and 30-day ROI'),
     );
+    expect(prisma.outreach.update).toHaveBeenCalledWith({
+      where: { id: 'out-1' },
+      data: {
+        subject: 'CFO ROI Evaluation',
+        message: 'Jane, how Enterprise Inc can achieve ROI in 30 days.',
+      },
+    });
+    expect(prisma.job.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'job-1', leaseVersion: 1, status: 'RUNNING' },
+        data: expect.objectContaining({ status: 'COMPLETED' }),
+      }),
+    );
+  });
 
-    prisma.careerProfile.findUnique.mockResolvedValue(null);
-    prisma.evidence.findMany.mockResolvedValue([]);
+  it('skips AI overwrite when draftVersion has diverged (optimistic edit protection)', async () => {
+    prisma.job.findUnique.mockResolvedValue(mockJob);
+    // User edited the draft while AI was generating -> draftVersion is now 1
+    prisma.outreach.findUnique.mockResolvedValue({
+      ...mockOutreach,
+      draftVersion: 1,
+      subject: 'Manually edited subject',
+      message: 'Manually edited message body',
+    });
     aiProvider.complete.mockResolvedValue({
       rawText: JSON.stringify({
-        subject: 'Engineering alignment with Alpha Corp',
-        body: 'Hello Alice, I have followed Alpha Corp work in AI platforms and wanted to connect.',
+        subject: 'AI Generated Subject',
+        body: 'AI Generated Body',
       }),
     });
+    prisma.job.updateMany.mockResolvedValue({ count: 1 });
+
+    const success = await worker.processJob('job-1');
+    expect(success).toBe(true);
+
+    // AI must NOT overwrite manual edits
+    expect(prisma.outreach.update).not.toHaveBeenCalled();
+    expect(prisma.job.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'job-1', leaseVersion: 1, status: 'RUNNING' },
+        data: expect.objectContaining({
+          status: 'COMPLETED',
+          lastError: 'SKIPPED_DRAFT_MODIFIED',
+        }),
+      }),
+    );
+  });
+
+  it('fails job update if concurrent worker incremented leaseVersion', async () => {
+    prisma.job.findUnique.mockResolvedValue(mockJob);
+    prisma.outreach.findUnique.mockResolvedValue(mockOutreach);
+    aiProvider.complete.mockResolvedValue({
+      rawText: JSON.stringify({ subject: 'Sub', body: 'Body' }),
+    });
+    // Lease update matches 0 rows because another worker bumped leaseVersion
+    prisma.job.updateMany.mockResolvedValue({ count: 0 });
 
     const success = await worker.processJob('job-1');
     expect(success).toBe(false);
-    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
   });
 });

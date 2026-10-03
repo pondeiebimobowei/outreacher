@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Patch,
   Param,
@@ -15,8 +16,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CurrentWorkspace } from '../workspaces/decorators/current-workspace.decorator';
 import { CreateOutreachUseCase } from './application/create-outreach.use-case';
 import { CreateOutreachDto } from './dto/create-outreach.dto';
+import { GetOutreachUseCase } from './application/get-outreach.use-case';
+import { UpdateDraftUseCase } from './application/update-draft.use-case';
+import { ApproveDraftUseCase } from './application/approve-draft.use-case';
 import { GenerateDirectOutreachUseCase } from './application/generate-direct-outreach.use-case';
-import { UpdateDirectOutreachUseCase } from './application/update-direct-outreach.use-case';
 import { SendDirectOutreachUseCase } from './application/send-direct-outreach.use-case';
 
 @Controller('outreaches')
@@ -24,8 +27,10 @@ import { SendDirectOutreachUseCase } from './application/send-direct-outreach.us
 export class OutreachesController {
   constructor(
     private readonly createOutreachUseCase: CreateOutreachUseCase,
+    private readonly getOutreachUseCase: GetOutreachUseCase,
+    private readonly updateDraftUseCase: UpdateDraftUseCase,
+    private readonly approveDraftUseCase: ApproveDraftUseCase,
     private readonly generateDirectOutreachUseCase: GenerateDirectOutreachUseCase,
-    private readonly updateDirectOutreachUseCase: UpdateDirectOutreachUseCase,
     private readonly sendDirectOutreachUseCase: SendDirectOutreachUseCase,
   ) {}
 
@@ -39,6 +44,46 @@ export class OutreachesController {
     return this.createOutreachUseCase.execute(workspace.id, dto, idempotencyKey);
   }
 
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  public async getOutreach(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') outreachId: string,
+  ) {
+    return this.getOutreachUseCase.execute(workspace.id, outreachId);
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  public async updateDraft(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') outreachId: string,
+    @Body()
+    body: { subject?: string; message?: string; expectedUpdatedAt?: Date },
+  ) {
+    return this.updateDraftUseCase.execute({
+      workspaceId: workspace.id,
+      outreachId,
+      subject: body.subject,
+      message: body.message,
+      expectedUpdatedAt: body.expectedUpdatedAt,
+    });
+  }
+
+  @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  public async approveDraft(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') outreachId: string,
+    @Body() body?: { expectedUpdatedAt?: Date },
+  ) {
+    return this.approveDraftUseCase.execute({
+      workspaceId: workspace.id,
+      outreachId,
+      expectedUpdatedAt: body?.expectedUpdatedAt,
+    });
+  }
+
   @Post(':id/generate')
   @HttpCode(HttpStatus.ACCEPTED)
   public async generateOutreach(
@@ -50,23 +95,6 @@ export class OutreachesController {
       userId: user.id,
       workspaceId: workspace.id,
       outreachId,
-    });
-  }
-
-  @Patch(':id')
-  @HttpCode(HttpStatus.OK)
-  public async updateDraft(
-    @CurrentWorkspace() workspace: { id: string },
-    @Param('id') outreachId: string,
-    @Body()
-    body: { subject?: string; message?: string; expectedUpdatedAt?: Date },
-  ) {
-    return this.updateDirectOutreachUseCase.execute({
-      workspaceId: workspace.id,
-      outreachId,
-      subject: body.subject,
-      message: body.message,
-      expectedUpdatedAt: body.expectedUpdatedAt,
     });
   }
 

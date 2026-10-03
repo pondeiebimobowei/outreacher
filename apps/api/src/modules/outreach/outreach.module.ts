@@ -52,6 +52,7 @@ const aiProviderFactory: Provider = {
   controllers: [OutreachController, OutreachesController],
   providers: [
     CreateOutreachUseCase,
+    GetOutreachUseCase,
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
@@ -61,8 +62,10 @@ const aiProviderFactory: Provider = {
     SendDirectOutreachUseCase,
     OutreachGenerationWorker,
     aiProviderFactory,
+  ],
   exports: [
     CreateOutreachUseCase,
+    GetOutreachUseCase,
     GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
