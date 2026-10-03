@@ -24,6 +24,7 @@ import { SenderAccountModule } from './modules/sender-account/sender-account.mod
 import { CampaignSenderModule } from './modules/campaign-sender/campaign-sender.module';
 import { WorkspaceSummaryModule } from './modules/workspace-summary/workspace-summary.module';
 import { OutcomeModule } from './modules/outcome/outcome.module';
+import { TemplateModule } from './modules/template/template.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { OutcomeModule } from './modules/outcome/outcome.module';
     CampaignSenderModule,
     WorkspaceSummaryModule,
     OutcomeModule,
+    TemplateModule,
   ],
   controllers: [AppController],
   providers: [
