@@ -54,9 +54,11 @@ enum PersonKind {
 
 enum OutreachStatus {
   DRAFT
-  SCHEDULED
+  APPROVED
   SENDING
-  SENT
+  ACTIVE
+  PAUSED
+  COMPLETED
   FAILED
   CANCELLED
 }
@@ -76,18 +78,20 @@ enum CampaignStatus {
   ARCHIVED
 }
 
-enum CampaignMemberStatus {
+enum CampaignRecipientStatus {
   PENDING
-  READY
-  SCHEDULED
-  SENDING
-  SENT
-  FOLLOW_UP_DUE
-  REPLIED
+  ACTIVE
+  PAUSED
   COMPLETED
   SUPPRESSED
   FAILED
-  ARCHIVED
+  REMOVED
+}
+
+enum ContentSource {
+  MANUAL
+  TEMPLATE
+  AI
 }
 
 enum EmailSendType {
@@ -119,6 +123,17 @@ enum SuppressionReason {
   COMPLAINT
   MANUAL
   SYSTEM
+}
+
+enum SuppressionAction {
+  SUPPRESSED
+  UNSUPPRESSED
+}
+
+enum JobCancellationReason {
+  PAUSED
+  SUPPRESSED
+  CANCELLED_BY_USER
 }
 
 enum OutcomeType {
@@ -162,6 +177,28 @@ enum AssignmentStatus {
   REMOVED
 }
 
+enum ReplyStatus {
+  UNCORRELATED
+  CORRELATED
+  AMBIGUOUS
+}
+
+enum JobType {
+  COMPANY_RESEARCH
+  CONTACT_DISCOVERY
+  OUTREACH_GENERATION
+  EMAIL_DISPATCH
+  SCHEDULED_FOLLOW_UP_CHECK
+  WEBHOOK_PROCESSING
+}
+
+enum ConversationState {
+  NO_REPLY
+  REPLIED
+  ACTIVE
+  STOPPED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -170,9 +207,11 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  workspaceMembers WorkspaceMember[]
-  authIdentities   AuthIdentity[]
-  recordedOutcomes Outcome[]
+  workspaceMembers     WorkspaceMember[]
+  authIdentities       AuthIdentity[]
+  recordedOutcomes     Outcome[]
+  createdSuppressions  Suppression[]
+  suppressionHistories SuppressionHistory[]
 
   @@map("users")
 }
@@ -194,35 +233,6 @@ model AuthIdentity {
   @@map("auth_identities")
 }
 
-model Outreach {
-  id                         String         @id @default(uuid())
-  workspaceId                String         @map("workspace_id")
-  personCompanyAssociationId String         @map("person_company_association_id")
-  campaignId                 String?        @map("campaign_id")
-  templateId                 String?        @map("template_id")
-  senderAccountId            String         @map("sender_account_id")
-  subject                    String
-  message                    String
-  status                     OutreachStatus
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  workspace                Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  personCompanyAssociation PersonCompanyAssociation @relation(fields: [personCompanyAssociationId], references: [id], onDelete: Cascade)
-  campaign                 Campaign?                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  template                 EmailTemplate?           @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  senderAccount            SenderAccount            @relation(fields: [senderAccountId], references: [id], onDelete: Cascade)
-  conversationMessages     ConversationMessage[]
-  emailSends               EmailSend[]
-  inboundReplies           InboundReply[]
-
-  @@index([workspaceId])
-  @@index([personCompanyAssociationId])
-  @@index([workspaceId, status])
-  @@map("outreaches")
-}
-
 model Workspace {
   id        String   @id @default(uuid())
   name      String
@@ -237,15 +247,15 @@ model Workspace {
   evidence                  Evidence[]
   outreaches                Outreach[]
   campaigns                 Campaign[]
-  campaignMembers           CampaignMember[]
+  campaignRecipients        CampaignRecipient[]
   personCompanyAssociations PersonCompanyAssociation[]
   emailSends                EmailSend[]
   emailEvents               EmailEvent[]
   suppressions              Suppression[]
+  suppressionHistories      SuppressionHistory[]
   outcomes                  Outcome[]
   emailTemplates            EmailTemplate[]
   jobs                      Job[]
-  companyContactSelections  CompanyContactSelection[]
   idempotencyRecords        IdempotencyRecord[]
   integrations              Integration[]
   senderAccounts            SenderAccount[]
@@ -318,8 +328,6 @@ model Company {
   researchRuns              ResearchRun[]
   opportunities             Opportunity[]
   evidence                  Evidence[]
-  campaigns                 Campaign[]
-  companyContactSelections  CompanyContactSelection[]
 
   @@unique([workspaceId, normalizedName])
   @@index([workspaceId])
@@ -386,11 +394,11 @@ model Opportunity {
   createdAt           DateTime          @default(now()) @map("created_at")
   updatedAt           DateTime          @updatedAt @map("updated_at")
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  company         Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  researchRun     ResearchRun?     @relation(fields: [researchRunId], references: [id], onDelete: SetNull)
-  evidence        Evidence[]
-  campaignPersons CampaignMember[]
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  researchRun        ResearchRun?        @relation(fields: [researchRunId], references: [id], onDelete: SetNull)
+  evidence           Evidence[]
+  campaignRecipients CampaignRecipient[]
 
   @@index([workspaceId, companyId])
   @@index([workspaceId, status])
@@ -418,10 +426,6 @@ model Person {
   workspace                 Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   evidence                  Evidence[]
   personCompanyAssociations PersonCompanyAssociation[]
-  campaignMembers           CampaignMember[]
-  companyPersonSelections   CompanyContactSelection[]
-  campaign                  Campaign?                  @relation(fields: [campaignId], references: [id])
-  campaignId                String?
 
   @@unique([workspaceId, email])
   @@index([workspaceId])
@@ -430,38 +434,30 @@ model Person {
 }
 
 model PersonCompanyAssociation {
-  id                String     @id @default(uuid())
-  workspaceId       String     @map("workspace_id")
-  personId          String     @map("person_id")
-  workEmail         String?    @map("work_email")
-  companyId         String     @map("company_id")
+  id                String            @id @default(uuid())
+  workspaceId       String            @map("workspace_id")
+  personId          String            @map("person_id")
+  workEmail         String?           @map("work_email")
+  companyId         String            @map("company_id")
   role              String?
   team              String?
-  whyThisPerson     String?    @map("why_this_person")
-  conversationAngle String?            @map("conversation_angle")
-  conversationState ConversationState  @default(NO_REPLY) @map("conversation_state")
-  outreaches        Outreach[]
+  whyThisPerson     String?           @map("why_this_person")
+  conversationAngle String?           @map("conversation_angle")
+  conversationState ConversationState @default(NO_REPLY) @map("conversation_state")
+  stateVersion      Int               @default(0) @map("state_version")
 
-  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  person    Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-}
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-model CompanyContactSelection {
-  id          String   @id @default(uuid())
-  workspaceId String   @map("workspace_id")
-  companyId   String   @map("company_id")
-  personId    String   @map("person_id")
-  selectedAt  DateTime @default(now()) @map("selected_at")
+  company            Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  person             Person              @relation(fields: [personId], references: [id], onDelete: Cascade)
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  outreaches         Outreach[]
+  campaignRecipients CampaignRecipient[]
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  person    Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, companyId])
-  @@index([workspaceId, companyId])
-  @@index([workspaceId, personId])
-  @@map("company_person_selections")
+  @@unique([workspaceId, personId, companyId])
+  @@index([workspaceId, conversationState])
+  @@map("person_company_associations")
 }
 
 model Evidence {
@@ -494,97 +490,152 @@ model Evidence {
   @@map("evidence")
 }
 
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  isArchived  Boolean  @default(false) @map("is_archived")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  steps      EmailTemplateStep[]
+  campaigns  Campaign[]
+  outreaches Outreach[]
+
+  @@unique([workspaceId, name])
+  @@map("email_templates")
+}
+
+model EmailTemplateStep {
+  id              String   @id @default(uuid())
+  templateId      String   @map("template_id")
+  sequence        Int      @default(0)
+  subjectTemplate String   @map("subject_template")
+  bodyTemplate    String   @map("body_template")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, sequence])
+  @@map("email_template_steps")
+}
+
 model Campaign {
   id                        String         @id @default(uuid())
   workspaceId               String         @map("workspace_id")
-  companyId                 String         @map("company_id")
-  senderAccountId           String         @map("sender_account_id")
-  templateId                String         @map("template_id")
   name                      String
-  normalizedName            String         @map("normalized_name")
   status                    CampaignStatus @default(DRAFT)
+  contentSource             ContentSource  @default(TEMPLATE) @map("content_source")
+  templateId                String?        @map("template_id")
+  aiPromptContext           String?        @map("ai_prompt_context")
   followUpDelayBusinessDays Int            @default(4) @map("follow_up_delay_business_days")
+  maxFollowUps              Int            @default(2) @map("max_follow_ups")
   createdAt                 DateTime       @default(now()) @map("created_at")
   updatedAt                 DateTime       @updatedAt @map("updated_at")
 
   workspace              Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  person                 Person[]
-  emailSends             EmailSend[]
+  template               EmailTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  recipients             CampaignRecipient[]
   campaignSenderAccounts CampaignSenderAccount[]
-  inboundReplies         InboundReply[]
-  outreaches             Outreach[]
-  campaignMembers        CampaignMember[]
 
   @@unique([workspaceId, id])
-  @@unique([workspaceId, companyId, normalizedName])
+  @@unique([workspaceId, name])
   @@index([workspaceId, status])
-  @@index([workspaceId, companyId])
   @@map("campaigns")
 }
 
-model CampaignMember {
-  id                    String               @id @default(uuid())
-  workspaceId           String               @map("workspace_id")
-  campaignId            String               @map("campaign_id")
-  personId              String               @map("person_id")
-  status                CampaignMemberStatus @default(PENDING)
-  targetRole            String?              @map("target_role")
-  outreachReason        String?              @map("outreach_reason")
-  currentSubject        String?              @map("current_subject")
-  currentBody           String?              @map("current_body")
-  selectedOpportunityId String?              @map("selected_opportunity_id")
-  createdAt             DateTime             @default(now()) @map("created_at")
-  updatedAt             DateTime             @updatedAt @map("updated_at")
+model CampaignRecipient {
+  id                         String                  @id @default(uuid())
+  workspaceId                String                  @map("workspace_id")
+  campaignId                 String                  @map("campaign_id")
+  personCompanyAssociationId String                  @map("person_company_association_id")
+  status                     CampaignRecipientStatus @default(PENDING)
+  targetRole                 String?                 @map("target_role")
+  selectedOpportunityId      String?                 @map("selected_opportunity_id")
+  createdAt                  DateTime                @default(now()) @map("created_at")
+  updatedAt                  DateTime                @updatedAt @map("updated_at")
 
-  workspace           Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign            Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  person              Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
-  selectedOpportunity Opportunity?   @relation(fields: [selectedOpportunityId], references: [id], onDelete: SetNull)
-  emailSends          EmailSend[]
-  outcomes            Outcome[]
-  inboundReplies      InboundReply[]
+  workspace                Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign                 Campaign                 @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  personCompanyAssociation PersonCompanyAssociation @relation(fields: [personCompanyAssociationId], references: [id], onDelete: Cascade)
+  opportunity              Opportunity?             @relation(fields: [selectedOpportunityId], references: [id], onDelete: SetNull)
+  outreach                 Outreach?
 
-  @@unique([workspaceId, campaignId, personId])
+  @@unique([workspaceId, campaignId, personCompanyAssociationId])
   @@index([workspaceId, campaignId])
-  @@index([workspaceId, personId])
+  @@index([workspaceId, personCompanyAssociationId])
   @@index([workspaceId, status])
-  @@map("members")
+  @@map("campaign_recipients")
+}
+
+model Outreach {
+  id                         String         @id @default(uuid())
+  workspaceId                String         @map("workspace_id")
+  personCompanyAssociationId String         @map("person_company_association_id")
+  campaignRecipientId        String?        @unique @map("campaign_recipient_id")
+  senderAccountId            String?        @map("sender_account_id")
+  contentSource              ContentSource  @default(MANUAL) @map("content_source")
+  templateId                 String?        @map("template_id")
+  aiPromptContext            String?        @map("ai_prompt_context")
+  draftVersion               Int            @default(0) @map("draft_version")
+  subject                    String         @default("")
+  message                    String         @default("")
+  outreachReason             String?        @map("outreach_reason")
+  status                     OutreachStatus @default(DRAFT)
+  maxFollowUps               Int            @default(2) @map("max_follow_ups")
+  createdAt                  DateTime       @default(now()) @map("created_at")
+  updatedAt                  DateTime       @updatedAt @map("updated_at")
+
+  workspace                Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  personCompanyAssociation PersonCompanyAssociation @relation(fields: [personCompanyAssociationId], references: [id], onDelete: Cascade)
+  campaignRecipient        CampaignRecipient?       @relation(fields: [campaignRecipientId], references: [id], onDelete: SetNull)
+  senderAccount            SenderAccount?           @relation(fields: [senderAccountId], references: [id], onDelete: SetNull)
+  template                 EmailTemplate?           @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  emailSends               EmailSend[]
+  conversationMessages     ConversationMessage[]
+  inboundReplies           InboundReply[]
+  outcome                  Outcome?
+
+  @@index([workspaceId])
+  @@index([personCompanyAssociationId])
+  @@index([workspaceId, status])
+  @@map("outreaches")
 }
 
 model EmailSend {
-  id                String          @id @default(uuid())
-  workspaceId       String          @map("workspace_id")
-  campaignId        String?         @map("campaign_id")
-  campaignMemberId  String?         @map("campaign_member_id")
-  outreachId        String?         @map("outreach_id")
-  type              EmailSendType   @default(INITIAL)
-  subject           String
-  body              String
-  status            EmailSendStatus @default(PENDING)
-  scheduledAt       DateTime?       @map("scheduled_at")
-  reservedAt        DateTime?       @map("reserved_at")
-  sentAt            DateTime?       @map("sent_at")
-  failedAt          DateTime?       @map("failed_at")
-  providerMessageId String?         @map("provider_message_id")
-  messageId         String?         @map("message_id")
-  replyToToken      String?         @unique @map("reply_to_token")
-  provider          String?
-  senderAccountId   String?         @map("sender_account_id")
-  errorCode         String?         @map("error_code")
-  errorMessage      String?         @map("error_message")
-  retryable         Boolean         @default(true)
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  id                     String          @id @default(uuid())
+  workspaceId            String          @map("workspace_id")
+  outreachId             String          @map("outreach_id")
+  senderAccountId        String          @map("sender_account_id")
+  sequence               Int             @default(0)
+  type                   EmailSendType   @default(INITIAL)
+  subject                String
+  body                   String
+  status                 EmailSendStatus @default(PENDING)
+  expectedStateVersion   Int?            @map("expected_state_version")
+  scheduledAt            DateTime?       @map("scheduled_at")
+  reservedAt             DateTime?       @map("reserved_at")
+  sentAt                 DateTime?       @map("sent_at")
+  failedAt               DateTime?       @map("failed_at")
+  firstProviderAttemptAt DateTime?       @map("first_provider_attempt_at")
+  providerMessageId      String?         @map("provider_message_id")
+  messageId              String?         @map("message_id")
+  replyToToken           String?         @unique @map("reply_to_token")
+  provider               String?
+  errorCode              String?         @map("error_code")
+  errorMessage           String?         @map("error_message")
+  retryable              Boolean         @default(true)
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
 
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign       Campaign?       @relation(fields: [workspaceId, campaignId], references: [workspaceId, id], onDelete: Cascade)
-  campaignMember CampaignMember? @relation(fields: [campaignMemberId], references: [id], onDelete: Cascade)
-  senderAccount  SenderAccount?  @relation(fields: [workspaceId, senderAccountId], references: [workspaceId, id], onDelete: Restrict)
-  outreach       Outreach?       @relation(fields: [outreachId], references: [id], onDelete: Cascade)
-  emailEvents    EmailEvent[]
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  outreach      Outreach       @relation(fields: [outreachId], references: [id], onDelete: Cascade)
+  senderAccount SenderAccount  @relation(fields: [senderAccountId], references: [id], onDelete: Restrict)
+  emailEvents   EmailEvent[]
 
-  @@index([workspaceId, campaignMemberId])
+  @@unique([outreachId, sequence])
   @@index([workspaceId, outreachId])
   @@index([workspaceId, status])
   @@index([workspaceId, scheduledAt])
@@ -615,25 +666,44 @@ model EmailEvent {
 }
 
 model Suppression {
-  id          String            @id @default(uuid())
-  workspaceId String            @map("workspace_id")
-  email       String
-  reason      SuppressionReason @default(MANUAL)
-  source      String?
-  expiresAt   DateTime?         @map("expires_at")
-  createdAt   DateTime          @default(now()) @map("created_at")
+  id              String            @id @default(uuid())
+  workspaceId     String            @map("workspace_id")
+  email           String
+  reason          SuppressionReason @default(MANUAL)
+  source          String?
+  createdByUserId String?           @map("created_by_user_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdByUser User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@unique([workspaceId, email])
   @@index([workspaceId, email])
   @@map("suppressions")
 }
 
+model SuppressionHistory {
+  id          String            @id @default(uuid())
+  workspaceId String            @map("workspace_id")
+  email       String
+  action      SuppressionAction
+  reason      SuppressionReason @default(MANUAL)
+  source      String?
+  notes       String?
+  actorUserId String?           @map("actor_user_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorUser User?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, email])
+  @@map("suppression_history")
+}
+
 model Outcome {
   id               String      @id @default(uuid())
   workspaceId      String      @map("workspace_id")
-  campaignMemberId String      @map("campaign_member_id")
+  outreachId       String      @unique @map("outreach_id")
   recordedByUserId String      @map("recorded_by_user_id")
   type             OutcomeType
   notes            String?
@@ -641,71 +711,56 @@ model Outcome {
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
-  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaignMember CampaignMember @relation(fields: [campaignMemberId], references: [id], onDelete: Cascade)
-  recordedByUser User           @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  outreach       Outreach  @relation(fields: [outreachId], references: [id], onDelete: Cascade)
+  recordedByUser User      @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
 
-  @@index([workspaceId, campaignMemberId])
+  @@index([workspaceId, outreachId])
   @@map("outcomes")
 }
 
-model EmailTemplate {
-  id          String     @id @default(uuid())
-  workspaceId String     @map("workspace_id")
-  name        String
-  subject     String
-  body        String
-  isArchived  Boolean    @map("is_archived")
-  outreaches  Outreach[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, name])
-  @@map("email_templates")
-}
-
 model Job {
-  id             String    @id @default(uuid())
-  workspaceId    String    @map("workspace_id")
-  type           JobType
-  status         JobStatus @default(PENDING)
-  payload        Json
-  attemptCount   Int       @default(0) @map("attempt_count")
-  maxAttempts    Int       @default(3) @map("max_attempts")
-  availableAt    DateTime  @default(now()) @map("available_at")
-  startedAt      DateTime? @map("started_at")
-  completedAt    DateTime? @map("completed_at")
-  failedAt       DateTime? @map("failed_at")
-  lastError      String?   @map("last_error")
-  idempotencyKey String?   @map("idempotency_key")
-  leaseVersion   Int       @default(0) @map("lease_version")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                 String                 @id @default(uuid())
+  workspaceId        String                 @map("workspace_id")
+  type               JobType
+  status             JobStatus              @default(PENDING)
+  payload            Json
+  attemptCount       Int                    @default(0) @map("attempt_count")
+  maxAttempts        Int                    @default(3) @map("max_attempts")
+  availableAt        DateTime               @default(now()) @map("available_at")
+  startedAt          DateTime?              @map("started_at")
+  completedAt        DateTime?              @map("completed_at")
+  failedAt           DateTime?              @map("failed_at")
+  lastError          String?                @map("last_error")
+  idempotencyKey     String                 @map("idempotency_key")
+  cancellationReason JobCancellationReason? @map("cancellation_reason")
+  leaseVersion       Int                    @default(0) @map("lease_version")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, idempotencyKey])
+  @@unique([workspaceId, type, idempotencyKey])
   @@index([workspaceId, status, availableAt])
   @@map("jobs")
 }
 
 model IdempotencyRecord {
-  id             String   @id @default(uuid())
-  workspaceId    String   @map("workspace_id")
+  id             String    @id @default(uuid())
+  workspaceId    String    @map("workspace_id")
+  operation      String
   key            String
-  route          String
-  targetId       String   @map("target_id")
-  jobId          String?  @map("job_id")
-  responseStatus Int      @default(202) @map("response_status")
-  responseBody   Json     @map("response_body")
-  createdAt      DateTime @default(now()) @map("created_at")
+  targetId       String    @map("target_id")
+  requestHash    String    @map("request_hash")
+  jobId          String?   @map("job_id")
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, key])
+  @@unique([workspaceId, operation, key])
   @@index([workspaceId, targetId])
   @@map("idempotency_records")
 }
@@ -776,18 +831,10 @@ model CampaignSenderAccount {
   @@map("campaign_sender_accounts")
 }
 
-enum ReplyStatus {
-  UNCORRELATED
-  CORRELATED
-  AMBIGUOUS
-}
-
 model InboundReply {
-  id               String  @id @default(uuid())
-  workspaceId      String  @map("workspace_id")
-  campaignId       String? @map("campaign_id")
-  campaignMemberId String? @map("campaign_member_id")
-  outreachId       String? @map("outreach_id")
+  id          String  @id @default(uuid())
+  workspaceId String  @map("workspace_id")
+  outreachId  String? @map("outreach_id")
 
   provider        String   @default("RESEND")
   providerEventId String   @map("provider_event_id")
@@ -811,29 +858,11 @@ model InboundReply {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id])
-  campaign       Campaign?       @relation(fields: [campaignId], references: [id])
-  campaignMember CampaignMember? @relation(fields: [campaignMemberId], references: [id])
-  outreach       Outreach?       @relation(fields: [outreachId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  outreach  Outreach? @relation(fields: [outreachId], references: [id], onDelete: SetNull)
 
   @@unique([workspaceId, provider, providerEventId])
   @@index([workspaceId])
   @@index([workspaceId, outreachId])
   @@map("inbound_replies")
-}
-
-enum JobType {
-  COMPANY_RESEARCH
-  CONTACT_DISCOVERY
-  OUTREACH_GENERATION
-  EMAIL_DISPATCH
-  SCHEDULED_FOLLOW_UP_CHECK
-  WEBHOOK_PROCESSING
-}
-
-enum ConversationState {
-  NO_REPLY
-  REPLIED
-  ACTIVE
-  STOPPED
 }

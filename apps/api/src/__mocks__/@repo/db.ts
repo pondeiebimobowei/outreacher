@@ -60,18 +60,31 @@ export enum CampaignStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
-export enum CampaignMemberStatus {
+export enum CampaignRecipientStatus {
   PENDING = 'PENDING',
-  READY = 'READY',
-  SCHEDULED = 'SCHEDULED',
-  SENDING = 'SENDING',
-  SENT = 'SENT',
-  FOLLOW_UP_DUE = 'FOLLOW_UP_DUE',
-  REPLIED = 'REPLIED',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
   COMPLETED = 'COMPLETED',
   SUPPRESSED = 'SUPPRESSED',
   FAILED = 'FAILED',
-  ARCHIVED = 'ARCHIVED',
+  REMOVED = 'REMOVED',
+}
+
+export enum ContentSource {
+  MANUAL = 'MANUAL',
+  TEMPLATE = 'TEMPLATE',
+  AI = 'AI',
+}
+
+export enum OutreachStatus {
+  DRAFT = 'DRAFT',
+  APPROVED = 'APPROVED',
+  SENDING = 'SENDING',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum EmailSendType {
@@ -95,13 +108,27 @@ export enum EmailEventType {
   CLICKED = 'CLICKED',
   BOUNCED = 'BOUNCED',
   COMPLAINED = 'COMPLAINED',
+  FAILED = 'FAILED',
 }
 
 export enum SuppressionReason {
-  MANUAL = 'MANUAL',
-  UNSUBSCRIBE = 'UNSUBSCRIBE',
-  BOUNCE = 'BOUNCE',
+  USER_REQUEST = 'USER_REQUEST',
+  UNSUBSCRIBED = 'UNSUBSCRIBED',
+  BOUNCED = 'BOUNCED',
   COMPLAINT = 'COMPLAINT',
+  MANUAL = 'MANUAL',
+  SYSTEM = 'SYSTEM',
+}
+
+export enum SuppressionAction {
+  SUPPRESSED = 'SUPPRESSED',
+  UNSUPPRESSED = 'UNSUPPRESSED',
+}
+
+export enum JobCancellationReason {
+  PAUSED = 'PAUSED',
+  SUPPRESSED = 'SUPPRESSED',
+  CANCELLED_BY_USER = 'CANCELLED_BY_USER',
 }
 
 export enum IntegrationProvider {
@@ -125,6 +152,23 @@ export enum SenderStatus {
 export enum AssignmentStatus {
   ACTIVE = 'ACTIVE',
   REMOVED = 'REMOVED',
+}
+
+export enum ConversationState {
+  NO_REPLY = 'NO_REPLY',
+  REPLIED = 'REPLIED',
+  ACTIVE = 'ACTIVE',
+  STOPPED = 'STOPPED',
+}
+
+export enum OutcomeType {
+  QUALIFIED_CONVERSATION = 'QUALIFIED_CONVERSATION',
+  INTERESTED_NOT_QUALIFIED = 'INTERESTED_NOT_QUALIFIED',
+  REFERRAL = 'REFERRAL',
+  NOT_INTERESTED = 'NOT_INTERESTED',
+  REJECTED = 'REJECTED',
+  NO_RESPONSE = 'NO_RESPONSE',
+  OTHER = 'OTHER',
 }
 
 export class PrismaClient {
@@ -202,6 +246,16 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
+  person = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    upsert: jest.fn(),
+  };
+
   contact = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
@@ -212,13 +266,12 @@ export class PrismaClient {
     upsert: jest.fn(),
   };
 
-  companyContactSelection = {
+  personCompanyAssociation = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    upsert: jest.fn(),
     delete: jest.fn(),
   };
 
@@ -231,13 +284,24 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
-  job = {
+  emailTemplate = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+  };
+
+  emailTemplateStep = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
   };
 
   campaign = {
@@ -250,7 +314,7 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
-  campaignMember = {
+  campaignRecipient = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
@@ -258,6 +322,25 @@ export class PrismaClient {
     createMany: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  outreach = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  emailSend = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
   };
 
@@ -270,7 +353,25 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
-  emailSend = {
+  suppressionHistory = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  outcome = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  job = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
@@ -315,7 +416,7 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
-  outcome = {
+  inboundReply = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),
@@ -323,14 +424,26 @@ export class PrismaClient {
     update: jest.fn(),
     delete: jest.fn(),
   };
-}
 
-export enum OutcomeType {
-  QUALIFIED_CONVERSATION = 'QUALIFIED_CONVERSATION',
-  REFERRAL = 'REFERRAL',
-  MEETING_BOOKED = 'MEETING_BOOKED',
-  NOT_INTERESTED = 'NOT_INTERESTED',
-  NO_REPLY = 'NO_REPLY',
-  BOUNCED = 'BOUNCED',
-  OTHER = 'OTHER',
+  // Legacy delegates preserved for temporary multi-task backward compatibility
+  campaignMember = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  companyContactSelection = {
+    findUnique: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+    delete: jest.fn(),
+  };
 }

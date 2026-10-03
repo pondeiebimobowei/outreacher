@@ -60,7 +60,7 @@ export async function evaluateCampaigns(prisma: any): Promise<CampaignBackfillEv
       },
     },
     orderBy: { createdAt: 'asc' },
-  }) as Campaign[];
+  }) as any[];
 
   const evaluations: CampaignBackfillEvaluation[] = [];
 
