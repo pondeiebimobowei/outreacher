@@ -6,13 +6,31 @@ import { WorkspaceGuard } from '../workspaces/workspace.guard';
 import { RecordUserOutcomeUseCase } from './application/record-user-outcome.use-case';
 import { RecordOutcomeDto } from './dto/record-outcome.dto';
 
-@Controller('campaign-contacts')
+@Controller()
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class OutcomeController {
   constructor(private readonly recordUserOutcome: RecordUserOutcomeUseCase) {}
 
-  @Post(':id/outcome')
+  @Post('outreaches/:id/outcome')
   async recordOutcome(
+    @Param('id') outreachId: string,
+    @Body() dto: RecordOutcomeDto,
+    @CurrentUser() user: { id: string },
+    @CurrentWorkspace() workspace: { id: string },
+  ) {
+    const outcomeId = await this.recordUserOutcome.execute(
+      outreachId,
+      workspace.id,
+      user.id,
+      dto.outcomeType,
+      dto.notes,
+    );
+
+    return { id: outcomeId };
+  }
+
+  @Post('campaign-contacts/:id/outcome')
+  async recordLegacyOutcome(
     @Param('id') id: string,
     @Body() dto: RecordOutcomeDto,
     @CurrentUser() user: { id: string },

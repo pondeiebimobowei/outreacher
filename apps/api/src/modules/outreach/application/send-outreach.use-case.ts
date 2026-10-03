@@ -3,6 +3,7 @@ import { PrismaClient } from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
+  AppUnprocessableEntityException,
   AppValidationException,
 } from '../../../common/errors/application.exception';
 import { SendEligibilityService } from '../../email/domain/send-eligibility.service';
@@ -89,7 +90,7 @@ export class SendOutreachUseCase {
       }
 
       if (pca.conversationState === 'STOPPED') {
-        throw new AppConflictException('Contact is stopped/suppressed');
+        throw new AppUnprocessableEntityException('Contact is suppressed/stopped');
       }
 
       if (outreach.campaignRecipientId) {
@@ -114,7 +115,7 @@ export class SendOutreachUseCase {
           },
         });
         if (suppressed) {
-          throw new AppConflictException('Contact is stopped/suppressed');
+          throw new AppUnprocessableEntityException('Contact is suppressed/stopped');
         }
       }
 

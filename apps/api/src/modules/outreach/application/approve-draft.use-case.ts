@@ -53,6 +53,28 @@ export class ApproveDraftUseCase {
         throw new AppValidationException('Message must not be empty to approve draft');
       }
 
+      const pca = await tx.personCompanyAssociation.findUnique({
+        where: { id: outreach.personCompanyAssociationId },
+        include: { person: true },
+      });
+      if (pca) {
+        if (pca.conversationState === 'STOPPED') {
+          throw new AppUnprocessableEntityException('Contact is suppressed/stopped');
+        }
+        const email = pca.workEmail || pca.person?.email;
+        if (email) {
+          const suppressed = await tx.suppression.findFirst({
+            where: {
+              workspaceId,
+              email: email.trim().toLowerCase(),
+            },
+          });
+          if (suppressed) {
+            throw new AppUnprocessableEntityException('Contact is suppressed/stopped');
+          }
+        }
+      }
+
       const updated = await tx.outreach.update({
         where: { id: outreachId },
         data: {

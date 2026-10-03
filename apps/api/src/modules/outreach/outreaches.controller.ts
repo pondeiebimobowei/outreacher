@@ -22,6 +22,7 @@ import { ApproveDraftUseCase } from './application/approve-draft.use-case';
 import { GenerateDirectOutreachUseCase } from './application/generate-direct-outreach.use-case';
 import { SendDirectOutreachUseCase } from './application/send-direct-outreach.use-case';
 import { SendOutreachUseCase } from './application/send-outreach.use-case';
+import { ResumeOutreachUseCase } from './application/resume-outreach.use-case';
 
 @Controller('outreaches')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
@@ -34,6 +35,7 @@ export class OutreachesController {
     private readonly generateDirectOutreachUseCase: GenerateDirectOutreachUseCase,
     private readonly sendDirectOutreachUseCase: SendDirectOutreachUseCase,
     private readonly sendOutreachUseCase: SendOutreachUseCase,
+    private readonly resumeOutreachUseCase: ResumeOutreachUseCase,
   ) {}
 
   @Post()
@@ -112,5 +114,14 @@ export class OutreachesController {
       outreachId,
       idempotencyKey,
     });
+  }
+
+  @Post(':id/resume')
+  @HttpCode(HttpStatus.OK)
+  public async resumeOutreach(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') outreachId: string,
+  ) {
+    return this.resumeOutreachUseCase.execute(workspace.id, outreachId);
   }
 }

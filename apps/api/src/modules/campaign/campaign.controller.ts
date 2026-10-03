@@ -20,6 +20,7 @@ import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
 import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.use-case';
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 import { GetCampaignContactsUseCase } from './application/get-campaign-contacts.use-case';
+import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-recipient.use-case';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { AddCampaignRecipientsDto } from './dto/add-campaign-recipients.dto';
@@ -37,6 +38,7 @@ export class CampaignController {
     private readonly addCampaignContactsUseCase: AddCampaignContactsUseCase,
     private readonly changeCampaignStatusUseCase: ChangeCampaignStatusUseCase,
     private readonly getCampaignContactsUseCase: GetCampaignContactsUseCase,
+    private readonly resumeCampaignRecipientUseCase: ResumeCampaignRecipientUseCase,
   ) {}
 
   @Post()
@@ -63,6 +65,20 @@ export class CampaignController {
     @Body() dto: AddCampaignRecipientsDto,
   ) {
     return this.addCampaignRecipientsUseCase.execute(workspace.id, id, dto);
+  }
+
+  @Post(':id/recipients/:recipientId/resume')
+  @HttpCode(HttpStatus.OK)
+  public async resumeRecipient(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') campaignId: string,
+    @Param('recipientId') recipientId: string,
+  ) {
+    return this.resumeCampaignRecipientUseCase.execute(
+      workspace.id,
+      campaignId,
+      recipientId,
+    );
   }
 
   @Get()

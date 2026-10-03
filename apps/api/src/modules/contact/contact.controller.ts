@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import express from 'express';
+import { SuppressionReason } from '@repo/db';
 import { AppUnauthorizedException } from '../../common/errors/application.exception';
 import { RequestWorkspace } from '../../types/express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,6 +19,8 @@ import { DiscoverContactsUseCase } from './application/discover-contacts.use-cas
 import { GetCompanyContactsUseCase } from './application/get-company-contacts.use-case';
 import { GetContactByIdUseCase } from './application/get-contact-by-id.use-case';
 import { SelectContactUseCase } from './application/select-contact.use-case';
+import { SuppressContactUseCase } from './application/suppress-contact.use-case';
+import { UnsuppressContactUseCase } from './application/unsuppress-contact.use-case';
 import { CreateContactRequestDto } from './dto/create-contact-request.dto';
 import { DiscoverContactsRequestDto } from './dto/discover-contacts-request.dto';
 
@@ -30,6 +33,8 @@ export class ContactController {
     private readonly getCompanyContactsUseCase: GetCompanyContactsUseCase,
     private readonly getContactByIdUseCase: GetContactByIdUseCase,
     private readonly selectContactUseCase: SelectContactUseCase,
+    private readonly suppressContactUseCase: SuppressContactUseCase,
+    private readonly unsuppressContactUseCase: UnsuppressContactUseCase,
   ) {}
 
   @Post('companies/:companyId/contacts')
@@ -89,12 +94,49 @@ export class ContactController {
     return this.getContactByIdUseCase.execute(workspace.id, personId);
   }
 
+  @Post('contacts/:id/suppress')
+  async suppressContact(
+    @Req() req: express.Request,
+    @Param('id') contactId: string,
+    @Body() dto?: { reason?: SuppressionReason; notes?: string },
+  ) {
+    const workspace = req.workspace as RequestWorkspace;
+    if (!workspace?.id) {
+      throw new AppUnauthorizedException('Workspace context is missing.');
+    }
+    const user = (req as any).user;
+    return this.suppressContactUseCase.execute(
+      workspace.id,
+      contactId,
+      user?.id,
+      dto?.reason,
+      dto?.notes,
+    );
+  }
+
+  @Post('contacts/:id/unsuppress')
+  async unsuppressContact(
+    @Req() req: express.Request,
+    @Param('id') contactId: string,
+  ) {
+    const workspace = req.workspace as RequestWorkspace;
+    if (!workspace?.id) {
+      throw new AppUnauthorizedException('Workspace context is missing.');
+    }
+    const user = (req as any).user;
+    return this.unsuppressContactUseCase.execute(
+      workspace.id,
+      contactId,
+      user?.id,
+    );
+  }
+
   @Post('companies/:companyId/contacts/:personId/select')
   async selectContact(
     @Req() req: express.Request,
     @Param('companyId') companyId: string,
     @Param('personId') personId: string,
-    @Param('companyAssociationId') companyAssociationId: string,
+    @Body('companyAssociationId') companyAssociationId?: string,
   ) {
     const workspace = req.workspace as RequestWorkspace;
     if (!workspace?.id) {

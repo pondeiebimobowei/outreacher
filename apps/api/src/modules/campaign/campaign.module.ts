@@ -15,6 +15,7 @@ import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
 import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.use-case';
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 import { GetCampaignContactsUseCase } from './application/get-campaign-contacts.use-case';
+import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-recipient.use-case';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { GetCampaignContactsUseCase } from './application/get-campaign-contacts.
     AddCampaignContactsUseCase,
     ChangeCampaignStatusUseCase,
     GetCampaignContactsUseCase,
+    ResumeCampaignRecipientUseCase,
   ],
   exports: [
     CAMPAIGN_REPOSITORY_TOKEN,
@@ -49,6 +51,7 @@ import { GetCampaignContactsUseCase } from './application/get-campaign-contacts.
     AddCampaignContactsUseCase,
     ChangeCampaignStatusUseCase,
     GetCampaignContactsUseCase,
+    ResumeCampaignRecipientUseCase,
   ],
 })
 export class CampaignModule {}

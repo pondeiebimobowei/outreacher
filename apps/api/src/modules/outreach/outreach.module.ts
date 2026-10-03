@@ -18,7 +18,9 @@ import { AnthropicAIProvider } from './infrastructure/anthropic-ai.provider';
 
 import { TemplateModule } from '../template/template.module';
 import { CreateOutreachUseCase } from './application/create-outreach.use-case';
+import { GetOutreachUseCase } from './application/get-outreach.use-case';
 import { SendOutreachUseCase } from './application/send-outreach.use-case';
+import { ResumeOutreachUseCase } from './application/resume-outreach.use-case';
 
 const aiProviderFactory: Provider = {
   provide: 'AIProvider',
@@ -62,6 +64,7 @@ const aiProviderFactory: Provider = {
     UpdateDirectOutreachUseCase,
     SendDirectOutreachUseCase,
     SendOutreachUseCase,
+    ResumeOutreachUseCase,
     OutreachGenerationWorker,
     aiProviderFactory,
   ],
@@ -76,6 +79,7 @@ const aiProviderFactory: Provider = {
     UpdateDirectOutreachUseCase,
     SendDirectOutreachUseCase,
     SendOutreachUseCase,
+    ResumeOutreachUseCase,
     OutreachGenerationWorker,
     'AIProvider',
   ],
