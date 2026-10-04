@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCampaigns, CampaignStatus } from '../../api/campaigns';
 import { LoadingState, ErrorState } from '../../components/states';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { SendIcon, SearchIcon, ArrowRightIcon, MailIcon, InfoIcon } from '@hugeicons/core-free-icons';;
+import { SendIcon, SearchIcon, ArrowRightIcon, MailIcon, InfoIcon } from '@hugeicons/core-free-icons';
+import { OutreachReviewDrawer } from '../../components/outreach/outreach-review-drawer';
 
 export const Route = createFileRoute('/_authed/outreaches/')({
   component: OutreachesIndexComponent,
@@ -72,6 +73,16 @@ function OutreachesIndexComponent() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterStatus>('ALL');
+  const [selectedOutreachId, setSelectedOutreachId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const qId = new URLSearchParams(window.location.search).get('outreachId');
+      if (qId) {
+        setSelectedOutreachId(qId);
+      }
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -142,6 +153,19 @@ function OutreachesIndexComponent() {
           >
             Outreach messages and contact delivery are managed across campaigns.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const id = window.prompt('Enter Outreach ID to review:') || 'out-one-off-direct';
+              setSelectedOutreachId(id);
+            }}
+            className="px-3.5 py-2 text-xs font-semibold rounded-none border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 cursor-pointer"
+            style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+          >
+            Review One-off Outreach
+          </button>
         </div>
       </div>
 
@@ -402,6 +426,13 @@ function OutreachesIndexComponent() {
           )}
         </>
       )}
+
+      <OutreachReviewDrawer
+        isOpen={Boolean(selectedOutreachId)}
+        onClose={() => setSelectedOutreachId(null)}
+        outreachId={selectedOutreachId}
+        companyName="One-off Outreach"
+      />
     </div>
   );
 }

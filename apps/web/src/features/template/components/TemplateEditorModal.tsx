@@ -155,7 +155,24 @@ export function TemplateEditorModal({
       onClose();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        setErrorMessage(err.message);
+        if (err.statusCode === 409 && templateId) {
+          setErrorMessage(`Conflict: ${err.message}`);
+          try {
+            const fresh = await fetchTemplateById(templateId);
+            setName(fresh.name);
+            setSteps(
+              fresh.steps.map((s) => ({
+                sequence: s.sequence,
+                subjectTemplate: s.subjectTemplate,
+                bodyTemplate: s.bodyTemplate,
+              })),
+            );
+          } catch {
+            // Keep existing form state if reload fails
+          }
+        } else {
+          setErrorMessage(err.message);
+        }
       } else if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {

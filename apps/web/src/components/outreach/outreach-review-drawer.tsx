@@ -13,6 +13,7 @@ import {
   updateOutreach,
   approveOutreach,
   sendOutreach,
+  resumeOutreach,
   type OutreachDto,
 } from '../../api/outreach';
 import { SendConfirmationModal } from './send-confirmation-modal';
@@ -92,6 +93,8 @@ export function OutreachReviewDrawer({
   const [approvalSuccessBanner, setApprovalSuccessBanner] =
     useState<boolean>(false);
   const [suppressionError, setSuppressionError] = useState<string | null>(null);
+  const [isResuming, setIsResuming] = useState<boolean>(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
   // State: Packet 5 Consequential Send, Hold & Polling
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
@@ -162,6 +165,8 @@ export function OutreachReviewDrawer({
     setConcurrencyError(null);
     setSuppressionError(null);
     setSendError(null);
+    setResumeError(null);
+    setIsResuming(false);
     setApprovalSuccessBanner(false);
     setSaveStatusText('');
 
@@ -215,6 +220,8 @@ export function OutreachReviewDrawer({
       setIsDispatching(false);
       setIsPollingDispatch(false);
       setSendError(null);
+      setIsResuming(false);
+      setResumeError(null);
     }
   }, [isOpen, outreachId, campaignContactId, loadOutreachDetails, loadContactDetails]);
 
@@ -693,13 +700,34 @@ export function OutreachReviewDrawer({
     };
   }, [isPollingDispatch, campaignContactId]);
 
+  const handleResumeOutreach = async () => {
+    if (!outreachId || isResuming) return;
+    setIsResuming(true);
+    setResumeError(null);
+    try {
+      const updated = await resumeOutreach(outreachId);
+      setOutreachData(updated);
+      setExpectedUpdatedAt(updated.updatedAt);
+      setAriaAnnouncement('Outreach resumed successfully.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to resume outreach.';
+      setResumeError(msg);
+      setAriaAnnouncement(`Resume failed: ${msg}`);
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
   const isOperationLocked =
     isAutosaving ||
     isApproving ||
     isGenerating ||
     isPreDispatchHoldActive ||
     isDispatching ||
-    contactDetails?.status === 'SENDING';
+    isResuming ||
+    contactDetails?.status === 'SENDING' ||
+    outreachData?.status === 'SENDING' ||
+    outreachData?.aiGenerationStatus === 'PENDING';
 
   // Sequential cycling handler
   const handleNavigate = (direction: 'PREV' | 'NEXT') => {
@@ -997,6 +1025,30 @@ export function OutreachReviewDrawer({
                 </div>
               )}
 
+              {outreachData?.aiGenerationStatus === 'FAILED' && (
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-50 border border-rose-200 rounded-none text-xs text-rose-800 space-y-1"
+                >
+                  <p className="font-bold">AI Generation Failed</p>
+                  <p className="text-[11px] leading-relaxed">
+                    Automated draft generation encountered an error. You may write your message manually or retry.
+                  </p>
+                </div>
+              )}
+
+              {outreachData?.aiGenerationStatus === 'SKIPPED' && (
+                <div
+                  role="note"
+                  className="p-3.5 bg-amber-50 border border-amber-200 rounded-none text-xs text-amber-800 space-y-1"
+                >
+                  <p className="font-bold">AI Generation Skipped</p>
+                  <p className="text-[11px] leading-relaxed">
+                    AI generation was superseded because manual edits were saved to this draft.
+                  </p>
+                </div>
+              )}
+
               {/* 1. MANDATORY NOTICE BANNER (AI Assisted — Review Required) */}
               <div
                 role="note"
@@ -1063,10 +1115,20 @@ export function OutreachReviewDrawer({
               {sendError && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none-none text-xs text-rose-900 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none text-xs text-rose-900 space-y-1"
                 >
                   <p className="font-bold">Send Dispatch Failed</p>
                   <p>{sendError}</p>
+                </div>
+              )}
+
+              {resumeError && (
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none text-xs text-rose-900 space-y-1"
+                >
+                  <p className="font-bold">Resume Failed</p>
+                  <p>{resumeError}</p>
                 </div>
               )}
 
@@ -1423,6 +1485,17 @@ export function OutreachReviewDrawer({
             />
           ) : outreachData ? (
             <div className="flex items-center justify-end w-full space-x-2">
+              {outreachData.status === 'PAUSED' && (
+                <button
+                  type="button"
+                  onClick={handleResumeOutreach}
+                  disabled={isOperationLocked || isResuming}
+                  className="min-h-12 sm:min-h-11 px-5 py-2 text-xs font-bold rounded-none bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                >
+                  {isResuming ? 'Resuming...' : 'Resume Outreach'}
+                </button>
+              )}
               {(outreachData.status === 'DRAFT' || outreachData.status === 'APPROVED') && (
                 <button
                   type="button"

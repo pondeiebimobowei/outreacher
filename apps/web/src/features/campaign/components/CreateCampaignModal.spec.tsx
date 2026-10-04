@@ -205,4 +205,28 @@ describe('CreateCampaignModal - Multi-Company & Content Source Redesign', () => 
       );
     });
   });
+
+  it('surfaces backend 4xx errors when createCampaign is rejected by the API', async () => {
+    (campaignsApi.createCampaign as jest.Mock).mockRejectedValue(
+      new Error('Template step count is insufficient for requested follow-up steps.'),
+    );
+
+    renderWithClient(<CreateCampaignModal isOpen={true} onClose={jest.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/Campaign Name/i), {
+      target: { value: 'Invalid Campaign' },
+    });
+
+    fireEvent.click(screen.getByRole('radio', { name: /AI Generation/i }));
+
+    fireEvent.change(screen.getByLabelText(/AI Prompt Context/i), {
+      target: { value: 'Valid context' },
+    });
+
+    const submitBtn = screen.getByRole('button', { name: /Create Campaign/i });
+    fireEvent.click(submitBtn);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/Template step count is insufficient for requested follow-up steps\./i);
+  });
 });

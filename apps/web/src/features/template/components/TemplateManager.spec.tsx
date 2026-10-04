@@ -237,7 +237,12 @@ describe('TemplateManager', () => {
     fireEvent.click(saveBtn);
 
     expect(
-      await screen.findByText(/Cannot delete step: Step 1 is required by active campaign "Q3 Sales"/i),
+      await screen.findByText(/Conflict: Cannot delete step: Step 1 is required by active campaign "Q3 Sales"/i),
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      // 1st call on opening edit modal, 2nd call on 409 reconciliation
+      expect(templatesApi.fetchTemplateById).toHaveBeenCalledTimes(2);
+    });
   });
 });

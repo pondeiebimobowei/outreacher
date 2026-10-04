@@ -1092,6 +1092,293 @@ describe('OutreachReviewDrawer', () => {
 
       jest.useRealTimers();
     });
+
+    it('displays Resume Outreach button when status is PAUSED and calls resumeOutreach', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      const resumedOutreach: outreachApi.OutreachDto = {
+        ...pausedOutreach,
+        status: 'ACTIVE',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+      (outreachApi.resumeOutreach as jest.Mock).mockResolvedValue(resumedOutreach);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      expect(await screen.findByRole('button', { name: /Resume Outreach/i })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Resume Outreach/i }));
+
+      await waitFor(() => {
+        expect(outreachApi.resumeOutreach).toHaveBeenCalledWith('out-1');
+      });
+
+      expect(await screen.findByText('ACTIVE')).toBeInTheDocument();
+    });
+
+    it('surfaces backend 409 conflict when resumeOutreach fails', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          message: 'Campaign is currently PAUSED. Cannot resume individual outreach.',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
+      fireEvent.click(resumeBtn);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/Campaign is currently PAUSED. Cannot resume individual outreach./i);
+    });
+
+    it('displays AI generation FAILED alert and SKIPPED note', async () => {
+      const failedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        aiGenerationStatus: 'FAILED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(failedOutreach);
+
+      const { unmount } = render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-failed"
+          companyName="Acme Corp"
+        />,
+      );
+
+      expect(await screen.findByText('AI Generation Failed')).toBeInTheDocument();
+      expect(
+        screen.getByText(/Automated draft generation encountered an error/i),
+      ).toBeInTheDocument();
+
+      unmount();
+
+      const skippedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        aiGenerationStatus: 'SKIPPED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(skippedOutreach);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-skipped"
+          companyName="Acme Corp"
+        />,
+      );
+
+      expect(await screen.findByText('AI Generation Skipped')).toBeInTheDocument();
+      expect(
+        screen.getByText(/AI generation was superseded because manual edits were saved/i),
+      ).toBeInTheDocument();
+    });
+
+    it('disables subject and message inputs when status is not DRAFT', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByDisplayValue('Regarding distributed cache performance');
+
+      const subjectInput = screen.getByLabelText(/Subject/i);
+      const bodyInput = screen.getByLabelText(/Body Text/i);
+
+      expect(subjectInput).toBeDisabled();
+      expect(bodyInput).toBeDisabled();
+    });
+
+    it('surfaces backend 409 when resume fails due to PCA in REPLIED state', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          message: 'PCA conversation state is REPLIED. Cannot resume outreach.',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
+      fireEvent.click(resumeBtn);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/PCA conversation state is REPLIED\. Cannot resume outreach\./i);
+    });
+
+    it('surfaces backend 409 when resume fails due to suppressed recipient email', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          message: 'Recipient email is suppressed. Cannot resume outreach.',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
+      fireEvent.click(resumeBtn);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/Recipient email is suppressed\. Cannot resume outreach\./i);
+    });
+
+    it('surfaces backend 409 when resume fails due to ineligible CampaignRecipient', async () => {
+      const pausedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'PAUSED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
+      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
+        new ApiError(409, {
+          message: 'Campaign recipient is no longer eligible for automation.',
+        }),
+      );
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
+      fireEvent.click(resumeBtn);
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent(/Campaign recipient is no longer eligible for automation\./i);
+    });
+
+    it('successfully resumes a one-off Outreach (campaignRecipientId = null)', async () => {
+      const oneOffPaused: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        campaignRecipientId: null,
+        status: 'PAUSED',
+      };
+      const oneOffActive: outreachApi.OutreachDto = {
+        ...oneOffPaused,
+        status: 'ACTIVE',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(oneOffPaused);
+      (outreachApi.resumeOutreach as jest.Mock).mockResolvedValue(oneOffActive);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-one-off"
+          companyName="Acme Corp"
+        />,
+      );
+
+      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
+      fireEvent.click(resumeBtn);
+
+      await waitFor(() => {
+        expect(outreachApi.resumeOutreach).toHaveBeenCalledWith('out-one-off');
+      });
+      expect(await screen.findByText('ACTIVE')).toBeInTheDocument();
+    });
+
+    it('disables subject and message inputs when status is terminal COMPLETED or FAILED even if aiGenerationStatus is SUCCEEDED', async () => {
+      const completedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'COMPLETED',
+        aiGenerationStatus: 'SUCCEEDED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(completedOutreach);
+
+      const { unmount } = render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-completed"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByDisplayValue('Regarding distributed cache performance');
+      expect(screen.getByLabelText(/Subject/i)).toBeDisabled();
+      expect(screen.getByLabelText(/Body Text/i)).toBeDisabled();
+
+      unmount();
+
+      const failedOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        status: 'FAILED',
+        aiGenerationStatus: 'SUCCEEDED',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(failedOutreach);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-failed-terminal"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByDisplayValue('Regarding distributed cache performance');
+      expect(screen.getByLabelText(/Subject/i)).toBeDisabled();
+      expect(screen.getByLabelText(/Body Text/i)).toBeDisabled();
+    });
   });
 });
 

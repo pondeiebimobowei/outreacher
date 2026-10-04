@@ -1,108 +1,69 @@
-/**
- * Templates route — coming-soon surface tests
- *
- * Templates is an honest roadmap surface with no backend API.
- * Tests verify correct headings, accessibility, "Coming soon" badge presence,
- * and the explicit distinction between planned features and live functionality.
- */
-
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Route as TemplatesRoute } from './templates';
-
-// ─── Router mock ──────────────────────────────────────────────────────────────
+import * as templatesApi from '../../api/templates';
 
 jest.mock('@tanstack/react-router', () => ({
   createFileRoute: () => (config: Record<string, unknown>) => config,
 }));
 
-// ─── Render helper ────────────────────────────────────────────────────────────
-
-function renderTemplates() {
-  // Route config shape: { component: ComponentFn }
-  const config = TemplatesRoute as unknown as {
-    component: React.ComponentType;
-  };
-  const Component = config.component;
-  render(<Component />);
-}
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
+jest.mock('../../api/templates', () => ({
+  ...jest.requireActual('../../api/templates'),
+  fetchTemplates: jest.fn(),
+  fetchTemplateById: jest.fn(),
+  createTemplate: jest.fn(),
+  updateTemplate: jest.fn(),
+  setTemplateSteps: jest.fn(),
+  deleteTemplate: jest.fn(),
+}));
 
 describe('Templates route — /templates', () => {
-  it('renders h1 "Email templates" page heading', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (templatesApi.fetchTemplates as jest.Mock).mockResolvedValue([
+      {
+        id: 'tpl-1',
+        workspaceId: 'ws-1',
+        name: 'Executive Networking Sequence',
+        stepCount: 3,
+        createdAt: '2026-10-01T10:00:00Z',
+        updatedAt: '2026-10-02T10:00:00Z',
+        deletedAt: null,
+      },
+    ]);
+  });
+
+  function renderTemplates() {
+    const config = TemplatesRoute as unknown as {
+      component: React.ComponentType;
+    };
+    const Component = config.component;
+    render(<Component />);
+  }
+
+  it('renders page heading and subtitle', async () => {
     renderTemplates();
     expect(
       screen.getByRole('heading', { level: 1, name: /email templates/i }),
     ).toBeInTheDocument();
-  });
-
-  it('renders h2 "Template library" section heading', () => {
-    renderTemplates();
     expect(
-      screen.getByRole('heading', { level: 2, name: /template library/i }),
+      screen.getByText(/create reusable outreach messages and ordered follow-up sequences/i),
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(templatesApi.fetchTemplates).toHaveBeenCalled();
+    });
   });
 
-  it('displays a "Coming soon" status badge', () => {
+  it('mounts TemplateManager and fetches templates from API', async () => {
     renderTemplates();
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
-  });
 
-  it('shows roadmap copy that makes the surface honest (not functional)', () => {
-    renderTemplates();
-    expect(screen.getByText(/on the roadmap/i)).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(templatesApi.fetchTemplates).toHaveBeenCalledWith({ includeArchived: false });
+    });
 
-  it('labels the planned categories section correctly', () => {
-    renderTemplates();
-    expect(
-      screen.getByText(/planned template categories/i),
-    ).toBeInTheDocument();
-  });
-
-  it('labels the planned personalisation variables section correctly', () => {
-    renderTemplates();
-    expect(
-      screen.getByText(/planned personalisation variables/i),
-    ).toBeInTheDocument();
-  });
-
-  it('renders all 5 planned category pills', () => {
-    renderTemplates();
-    const expectedCategories = [
-      'Networking',
-      'Referral',
-      'Hiring Manager',
-      'Recruiter',
-      'Follow-up',
-    ];
-    for (const cat of expectedCategories) {
-      expect(screen.getByText(cat)).toBeInTheDocument();
-    }
-  });
-
-  it('renders all 3 planned personalisation variable tags', () => {
-    renderTemplates();
-    // getByText treats {{ }} as a literal text match against rendered content
-    expect(screen.getByText('{{firstName}}')).toBeInTheDocument();
-    expect(screen.getByText('{{company}}')).toBeInTheDocument();
-    expect(screen.getByText('{{role}}')).toBeInTheDocument();
-  });
-
-  it('renders no interactive template-action buttons — surface is read-only', () => {
-    renderTemplates();
-    // Coming-soon surface must not contain create/edit/save/archive buttons
-    const buttons = screen.queryAllByRole('button');
-    const templateActionLabels = buttons
-      .map((b) => b.textContent?.toLowerCase() ?? '')
-      .filter(
-        (label) =>
-          label.includes('create') ||
-          label.includes('edit') ||
-          label.includes('save') ||
-          label.includes('archive'),
-      );
-    expect(templateActionLabels).toHaveLength(0);
+    expect(await screen.findByText('Executive Networking Sequence')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /new template/i })).toBeInTheDocument();
+    expect(screen.getByText('3 steps')).toBeInTheDocument();
   });
 });
