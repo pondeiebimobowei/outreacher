@@ -33,6 +33,14 @@ export const OUTREACH_STATUSES = [
 ] as const;
 export type OutreachStatus = (typeof OUTREACH_STATUSES)[number];
 
+export const AI_GENERATION_STATUSES = [
+  'PENDING',
+  'SUCCEEDED',
+  'FAILED',
+  'SKIPPED',
+] as const;
+export type AiGenerationStatus = (typeof AI_GENERATION_STATUSES)[number];
+
 export const CONVERSATION_STATES = [
   'NO_REPLY',
   'ACTIVE',
@@ -134,6 +142,7 @@ export interface OutreachDto {
   contentSource: ContentSource;
   templateId: string | null;
   aiPromptContext: string | null;
+  aiGenerationStatus: AiGenerationStatus | null;
   draftVersion: number;
   subject: string;
   message: string;

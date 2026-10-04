@@ -1,4 +1,9 @@
-import { Person, CompanyContactSelection } from '@repo/db';
+import {
+  Person,
+  PersonCompanyAssociation,
+  Prisma,
+} from '@repo/db';
+import { DiscoveredContactCandidate } from './contact.provider.interface';
 
 export const CONTACT_REPOSITORY_TOKEN = 'CONTACT_REPOSITORY_TOKEN';
 
@@ -16,6 +21,22 @@ export interface UpsertContactInput {
   discoveredAt?: Date | null;
 }
 
+export interface ContactCandidateRejection {
+  candidateEmail?: string | null;
+  candidateName?: string | null;
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
+  reason: 'PERSON_KIND_CONFLICT';
+  message: string;
+}
+
+export interface ContactPersistenceResult {
+  acceptedCount: number;
+  rejectedConflictCount: number;
+  persistedAssociations: PersonCompanyAssociation[];
+  rejectedCandidates: ContactCandidateRejection[];
+  diagnostics: string[];
+}
+
 export interface IContactRepository {
   findCompanyContacts(
     workspaceId: string,
@@ -30,14 +51,10 @@ export interface IContactRepository {
     companyId: string,
     contacts: UpsertContactInput[],
   ): Promise<Person[]>;
-  getCompanyContactSelection(
+  persistDiscoveredContacts(
     workspaceId: string,
     companyId: string,
-  ): Promise<CompanyContactSelection | null>;
-  setCompanyContactSelection(
-    workspaceId: string,
-    companyId: string,
-    personId: string,
-    companyAssociationId: string,
-  ): Promise<CompanyContactSelection>;
+    contacts: DiscoveredContactCandidate[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<ContactPersistenceResult>;
 }

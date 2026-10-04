@@ -18,7 +18,6 @@ import { CreateContactUseCase } from './application/create-contact.use-case';
 import { DiscoverContactsUseCase } from './application/discover-contacts.use-case';
 import { GetCompanyContactsUseCase } from './application/get-company-contacts.use-case';
 import { GetContactByIdUseCase } from './application/get-contact-by-id.use-case';
-import { SelectContactUseCase } from './application/select-contact.use-case';
 import { SuppressContactUseCase } from './application/suppress-contact.use-case';
 import { UnsuppressContactUseCase } from './application/unsuppress-contact.use-case';
 import { CreateContactRequestDto } from './dto/create-contact-request.dto';
@@ -32,7 +31,6 @@ export class ContactController {
     private readonly discoverContactsUseCase: DiscoverContactsUseCase,
     private readonly getCompanyContactsUseCase: GetCompanyContactsUseCase,
     private readonly getContactByIdUseCase: GetContactByIdUseCase,
-    private readonly selectContactUseCase: SelectContactUseCase,
     private readonly suppressContactUseCase: SuppressContactUseCase,
     private readonly unsuppressContactUseCase: UnsuppressContactUseCase,
   ) {}
@@ -128,25 +126,6 @@ export class ContactController {
       workspace.id,
       contactId,
       user?.id,
-    );
-  }
-
-  @Post('companies/:companyId/contacts/:personId/select')
-  async selectContact(
-    @Req() req: express.Request,
-    @Param('companyId') companyId: string,
-    @Param('personId') personId: string,
-    @Body('companyAssociationId') companyAssociationId?: string,
-  ) {
-    const workspace = req.workspace as RequestWorkspace;
-    if (!workspace?.id) {
-      throw new AppUnauthorizedException('Workspace context is missing.');
-    }
-    return this.selectContactUseCase.execute(
-      workspace.id,
-      companyId,
-      personId,
-      companyAssociationId,
     );
   }
 }

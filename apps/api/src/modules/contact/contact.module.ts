@@ -6,7 +6,6 @@ import { CreateContactUseCase } from './application/create-contact.use-case';
 import { DiscoverContactsUseCase } from './application/discover-contacts.use-case';
 import { GetCompanyContactsUseCase } from './application/get-company-contacts.use-case';
 import { GetContactByIdUseCase } from './application/get-contact-by-id.use-case';
-import { SelectContactUseCase } from './application/select-contact.use-case';
 import { SuppressContactUseCase } from './application/suppress-contact.use-case';
 import { UnsuppressContactUseCase } from './application/unsuppress-contact.use-case';
 import { ContactController } from './contact.controller';
@@ -41,7 +40,6 @@ import { ContactDiscoveryWorkerRunner } from './worker/contact-discovery-worker.
     DiscoverContactsUseCase,
     GetCompanyContactsUseCase,
     GetContactByIdUseCase,
-    SelectContactUseCase,
     SuppressContactUseCase,
     UnsuppressContactUseCase,
     ContactDiscoveryWorker,
@@ -53,7 +51,6 @@ import { ContactDiscoveryWorkerRunner } from './worker/contact-discovery-worker.
     CreateContactUseCase,
     GetCompanyContactsUseCase,
     GetContactByIdUseCase,
-    SelectContactUseCase,
     SuppressContactUseCase,
     UnsuppressContactUseCase,
     ContactDiscoveryWorker,

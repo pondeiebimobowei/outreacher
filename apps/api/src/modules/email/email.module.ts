@@ -9,9 +9,7 @@ import { PrismaEmailSendRepository } from './infrastructure/prisma-email-send.re
 import { IDEMPOTENCY_REPOSITORY_TOKEN } from './domain/idempotency.repository.interface';
 import { PrismaIdempotencyRepository } from './infrastructure/prisma-idempotency.repository';
 import { SendEligibilityService } from './domain/send-eligibility.service';
-import { SendEmailUseCase } from './application/send-email.use-case';
 import { EmailDispatchWorker } from './application/email-dispatch.worker';
-import { EmailController } from './email.controller';
 import { InboundWebhookController } from './application/inbound-webhook.controller';
 import { InboundWebhookService } from './application/inbound-webhook.service';
 
@@ -36,7 +34,6 @@ import { ScheduledFollowUpCheckWorker } from './application/scheduled-follow-up-
 @Module({
   imports: [PrismaModule, WorkspaceModule, TemplateModule],
   controllers: [
-    EmailController,
     InboundWebhookController,
     DeliveryWebhookController,
   ],
@@ -59,7 +56,8 @@ import { ScheduledFollowUpCheckWorker } from './application/scheduled-follow-up-
       useClass: SecretResolverService,
     },
     SendEligibilityService,
-    SendEmailUseCase,
+    ScheduleFollowUpUseCase,
+    ScheduledFollowUpCheckWorker,
     EmailDispatchWorker,
     EmailProviderRegistry,
     ResendEmailProviderAdapter,
@@ -79,7 +77,8 @@ import { ScheduledFollowUpCheckWorker } from './application/scheduled-follow-up-
   ],
   exports: [
     SendEligibilityService,
-    SendEmailUseCase,
+    ScheduleFollowUpUseCase,
+    ScheduledFollowUpCheckWorker,
     EmailDispatchWorker,
     SUPPRESSION_CHECKER_TOKEN,
     EMAIL_SEND_REPOSITORY_TOKEN,

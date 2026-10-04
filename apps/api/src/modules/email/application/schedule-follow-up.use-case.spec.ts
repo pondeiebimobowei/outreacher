@@ -361,6 +361,60 @@ describe('Task 8: Follow-up Scheduling, Template Rendering, 3-Phase AI Follow-Up
       expect(mockPrisma.outreach.update).not.toHaveBeenCalled();
     });
 
+    it('AI follow-up succeeds across unrelated PCA version increments while conversation remains ACTIVE (semantic eligibility)', async () => {
+      // Phase 1 snapshots expectedStateVersion = 5
+      mockPrisma.outreach.findUnique.mockResolvedValue({
+        ...aiOutreach,
+        personCompanyAssociation: {
+          ...aiOutreach.personCompanyAssociation,
+          stateVersion: 5,
+          conversationState: 'ACTIVE',
+        },
+      });
+
+      // Independent Outreach on same PCA sends concurrently: PCA.stateVersion advances to 6, but conversationState remains ACTIVE!
+      mockPrisma.personCompanyAssociation.findUnique.mockResolvedValue({
+        ...aiOutreach.personCompanyAssociation,
+        stateVersion: 6,
+        conversationState: 'ACTIVE',
+      });
+
+      mockAiProvider.complete.mockResolvedValue({
+        rawText: JSON.stringify({
+          subject: 'Re: Cloud Cost Optimization',
+          body: 'Semantic follow up text',
+        }),
+      });
+
+      const claimed = {
+        job: {
+          id: 'job-ai-semantic',
+          workspaceId,
+          type: 'SCHEDULED_FOLLOW_UP_CHECK',
+          payload: { outreachId, sequence: 1 },
+          leaseVersion: 0,
+        } as any,
+        claimedAttempt: 1,
+      };
+
+      const result = await followUpWorker.processJob(claimed);
+      expect(result).toBe(true);
+
+      // Successfully reserved EmailSend using current stateVersion (6)!
+      expect(mockEligibilityService.reserveSenderCapacityAndCreateEmailSend).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          expectedStateVersion: 6,
+          sequence: 1,
+          type: 'FOLLOW_UP',
+        }),
+      );
+      expect(mockPrisma.outreach.update).toHaveBeenCalledWith({
+        where: { id: outreachId },
+        data: { status: 'SENDING' },
+      });
+    });
+
     it('Follow-up reservation produces Outreach.status === SENDING and populates EmailSend.expectedStateVersion', async () => {
       mockPrisma.outreach.findUnique.mockResolvedValue(aiOutreach);
       mockPrisma.personCompanyAssociation.findUnique.mockResolvedValue(aiOutreach.personCompanyAssociation);

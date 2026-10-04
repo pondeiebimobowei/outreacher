@@ -11,12 +11,15 @@ describe('ResendEmailSender', () => {
 
   const validEmailInput = {
     workspaceId: 'ws-1',
-    campaignMemberId: 'cc-1',
+    senderAccountId: 'sa-1',
+    emailSendId: 'send-1',
     toEmail: 'target@enterprise.com',
+    fromName: 'Sales',
     fromEmail: 'sales@proactive.com',
+    replyToToken: 'token-1',
     subject: 'Strategic outreach',
     bodyText: 'Let us connect this week.',
-    idempotencyKey: 'send:cc-1:1',
+    idempotencyKey: 'send:outreach-1:1',
   };
 
   beforeEach(() => {
@@ -57,7 +60,7 @@ describe('ResendEmailSender', () => {
         method: 'POST',
         headers: expect.objectContaining({
           Authorization: 'Bearer re_test_key_123',
-          'Idempotency-Key': 'send:cc-1:1',
+          'Idempotency-Key': 'send:outreach-1:1',
           'Content-Type': 'application/json',
         }),
       }),

@@ -10,7 +10,7 @@ describe('OutreachReasonEvaluator', () => {
 
   const baseContext: OutreachContext = {
     workspaceId: 'ws-123',
-    campaignMemberId: 'cc-123',
+    outreachId: 'outreach-123',
     person: {
       id: 'cnt-1',
       firstName: 'Jane',

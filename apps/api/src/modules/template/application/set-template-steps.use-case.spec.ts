@@ -142,4 +142,32 @@ describe('SetTemplateStepsUseCase', () => {
     const result = await useCase.execute('ws-1', 'tmpl-1', { steps: expandedSteps });
     expect(result.steps).toHaveLength(4);
   });
+
+  it('should succeed when storing arbitrary non-contiguous sequences (e.g. 0, 2) for an unreferenced template', async () => {
+    prisma.emailTemplate.findFirst.mockResolvedValue({
+      id: 'tmpl-1',
+      workspaceId: 'ws-1',
+      name: 'Custom Sequence',
+      isArchived: false,
+    });
+
+    prisma.campaign.findMany.mockResolvedValue([]);
+    prisma.outreach.findMany.mockResolvedValue([]);
+
+    const nonContiguousSteps = [
+      { sequence: 0, subjectTemplate: 'Initial S0', bodyTemplate: 'Initial B0' },
+      { sequence: 2, subjectTemplate: 'Follow-up S2', bodyTemplate: 'Follow-up B2' },
+    ];
+
+    prisma.emailTemplateStep.findMany.mockResolvedValue(nonContiguousSteps);
+
+    const result = await useCase.execute('ws-1', 'tmpl-1', { steps: nonContiguousSteps });
+    expect(result.steps).toHaveLength(2);
+    expect(prisma.emailTemplateStep.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ sequence: 0 }),
+        expect.objectContaining({ sequence: 2 }),
+      ]),
+    });
+  });
 });

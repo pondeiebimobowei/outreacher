@@ -49,6 +49,7 @@ export enum JobStatus {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   DEAD_LETTER = 'DEAD_LETTER',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum CampaignStatus {
@@ -85,6 +86,13 @@ export enum OutreachStatus {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
+}
+
+export enum AiGenerationStatus {
+  PENDING = 'PENDING',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED',
 }
 
 export enum EmailSendType {
@@ -428,28 +436,6 @@ export class PrismaClient {
     findMany: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  // Legacy delegates preserved for temporary multi-task backward compatibility
-  campaignMember = {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-    update: jest.fn(),
-    updateMany: jest.fn(),
-    delete: jest.fn(),
-  };
-
-  companyContactSelection = {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    upsert: jest.fn(),
     delete: jest.fn(),
   };
 }

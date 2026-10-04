@@ -423,14 +423,30 @@ export class ScheduledFollowUpCheckWorker {
         where: { id: outreachId },
       });
 
-      // Re-validate state version & eligibility
+      const lockedCampaign = campaign
+        ? await tx.campaign.findUnique({ where: { id: campaign.id } })
+        : null;
+      const lockedRecipient = recipient
+        ? await tx.campaignRecipient.findUnique({ where: { id: recipient.id } })
+        : null;
+      const ineligibleRecipientStatuses = [
+        'COMPLETED',
+        'SUPPRESSED',
+        'FAILED',
+        'REMOVED',
+      ];
+
+      // Re-validate semantic eligibility (NOT exact stateVersion equality)
       if (
         !lockedPca ||
-        lockedPca.stateVersion !== expectedStateVersion ||
         lockedPca.conversationState === 'REPLIED' ||
         lockedPca.conversationState === 'STOPPED' ||
         !lockedOutreach ||
-        lockedOutreach.status !== 'ACTIVE'
+        lockedOutreach.status !== 'ACTIVE' ||
+        (campaign && (!lockedCampaign || lockedCampaign.status !== 'ACTIVE')) ||
+        (recipient &&
+          (!lockedRecipient ||
+            ineligibleRecipientStatuses.includes(lockedRecipient.status)))
       ) {
         this.logger.warn(
           `Phase 3 validation failed: state changed during AI synthesis. Aborting reservation.`,

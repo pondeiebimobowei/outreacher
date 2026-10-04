@@ -28,22 +28,4 @@ export class OutcomeController {
 
     return { id: outcomeId };
   }
-
-  @Post('campaign-contacts/:id/outcome')
-  async recordLegacyOutcome(
-    @Param('id') id: string,
-    @Body() dto: RecordOutcomeDto,
-    @CurrentUser() user: { id: string },
-    @CurrentWorkspace() workspace: { id: string },
-  ) {
-    const outcomeId = await this.recordUserOutcome.execute(
-      id,
-      workspace.id,
-      user.id,
-      dto.outcomeType,
-      dto.notes,
-    );
-
-    return { id: outcomeId };
-  }
 }

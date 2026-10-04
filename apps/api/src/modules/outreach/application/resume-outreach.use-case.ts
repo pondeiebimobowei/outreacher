@@ -16,7 +16,7 @@ export class ResumeOutreachUseCase {
     outreachId: string,
   ): Promise<{ id: string; status: string }> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // 1. Fetch Outreach with PCA & Person
+      // 1. Fetch Outreach with PCA, Person, and CampaignRecipient
       const outreach = await tx.outreach.findFirst({
         where: {
           id: outreachId,
@@ -25,6 +25,9 @@ export class ResumeOutreachUseCase {
         include: {
           personCompanyAssociation: {
             include: { person: true },
+          },
+          campaignRecipient: {
+            include: { campaign: true },
           },
         },
       });
@@ -35,7 +38,55 @@ export class ResumeOutreachUseCase {
         );
       }
 
-      // 2. Lock PCA -> Outreach -> EmailSends
+      // 2. Global Lock Order:
+      // Campaigns -> CampaignRecipients -> PCAs -> Outreaches -> EmailSends
+      if (outreach.campaignRecipient) {
+        const campaignId = outreach.campaignRecipient.campaignId;
+        const recipientId = outreach.campaignRecipient.id;
+
+        await tx.$queryRaw`
+          SELECT id FROM campaigns
+          WHERE id = ${campaignId}
+            AND workspace_id = ${workspaceId}
+          FOR UPDATE
+        `;
+
+        await tx.$queryRaw`
+          SELECT id FROM campaign_recipients
+          WHERE id = ${recipientId}
+            AND workspace_id = ${workspaceId}
+          FOR UPDATE
+        `;
+
+        const freshCampaign = await tx.campaign.findUnique({
+          where: { id: campaignId },
+        });
+        const freshRecipient = await tx.campaignRecipient.findUnique({
+          where: { id: recipientId },
+        });
+
+        if (!freshCampaign || freshCampaign.status !== 'ACTIVE') {
+          throw new ConflictException(
+            `Cannot resume campaign-linked outreach while campaign is ${freshCampaign?.status ?? 'UNKNOWN'}. Expected ACTIVE.`,
+          );
+        }
+
+        const ineligibleRecipientStatuses = [
+          'COMPLETED',
+          'SUPPRESSED',
+          'FAILED',
+          'REMOVED',
+        ];
+        if (
+          !freshRecipient ||
+          ineligibleRecipientStatuses.includes(freshRecipient.status)
+        ) {
+          throw new ConflictException(
+            `Cannot resume outreach: campaign recipient is in status ${freshRecipient?.status ?? 'UNKNOWN'}.`,
+          );
+        }
+      }
+
       await tx.$queryRaw`
         SELECT id FROM person_company_associations
         WHERE id = ${outreach.personCompanyAssociationId}
@@ -67,10 +118,16 @@ export class ResumeOutreachUseCase {
 
       const pca = outreach.personCompanyAssociation;
 
-      // 4. Verify PCA conversationState is not STOPPED
+      // 4. Verify PCA conversationState is not STOPPED or REPLIED
       if (pca.conversationState === 'STOPPED') {
         throw new AppUnprocessableEntityException(
           'Contact is suppressed/stopped',
+        );
+      }
+
+      if (pca.conversationState === 'REPLIED') {
+        throw new ConflictException(
+          'Cannot resume outreach when contact has replied',
         );
       }
 
@@ -103,7 +160,15 @@ export class ResumeOutreachUseCase {
 
       const targetStatus = sentSends.length > 0 ? 'ACTIVE' : 'APPROVED';
 
-      // 7. Reopen jobs: Reopens CANCELLED(PAUSED) jobs, but STRICTLY REFUSES to reopen CANCELLED(SUPPRESSED)
+      // 7. If campaign-linked and recipient was PAUSED, restore recipient status
+      if (outreach.campaignRecipient && outreach.campaignRecipient.status === 'PAUSED') {
+        await tx.campaignRecipient.update({
+          where: { id: outreach.campaignRecipient.id },
+          data: { status: sentSends.length > 0 ? 'ACTIVE' : 'PENDING' },
+        });
+      }
+
+      // 8. Reopen jobs: Reopens CANCELLED(PAUSED) jobs, but STRICTLY REFUSES to reopen CANCELLED(SUPPRESSED)
       await tx.$executeRaw`
         UPDATE jobs
         SET status = 'PENDING'::"JobStatus",
@@ -115,7 +180,7 @@ export class ResumeOutreachUseCase {
           AND payload->>'outreachId' = ${outreachId}
       `;
 
-      // 8. Update Outreach status
+      // 9. Update Outreach status
       const updated = await tx.outreach.update({
         where: { id: outreachId },
         data: { status: targetStatus },

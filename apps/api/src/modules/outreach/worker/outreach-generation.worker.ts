@@ -90,12 +90,19 @@ export class OutreachGenerationWorker {
             `Draft modified concurrently for outreach ${outreachId} (expected: ${expectedDraftVersion}, current: ${currentOutreach.draftVersion}); preserving manual edits.`,
           );
           skippedDueToEdit = true;
+          await tx.outreach.update({
+            where: { id: outreachId },
+            data: {
+              aiGenerationStatus: 'SKIPPED',
+            },
+          });
         } else {
           await tx.outreach.update({
             where: { id: outreachId },
             data: {
               subject,
               message: body,
+              aiGenerationStatus: 'SUCCEEDED',
             },
           });
         }
@@ -131,6 +138,13 @@ export class OutreachGenerationWorker {
       const nextAttempt = job.attemptCount;
       const isDeadLetter = nextAttempt >= job.maxAttempts;
       const backoffMs = Math.pow(2, nextAttempt) * 1000;
+
+      if (isDeadLetter) {
+        await this.prisma.outreach.updateMany({
+          where: { id: outreachId },
+          data: { aiGenerationStatus: 'FAILED' },
+        });
+      }
 
       await this.prisma.job.updateMany({
         where: { id: jobId, leaseVersion: job.leaseVersion },

@@ -44,34 +44,54 @@ describe('ContactValidator', () => {
     it('deduplicates by email and by name+title when email is null', () => {
       const input = [
         {
-          name: 'Jane Doe',
+          firstName: 'Jane',
+          lastName: 'Doe',
           title: 'VP Engineering',
           email: 'Jane@Acme.com',
           personKind: 'PERSON' as const,
+          confidence: 'HIGH' as const,
+          source: 'PUBLIC_WEB',
+          sourceUrl: 'https://example.com/team',
         },
         {
-          name: 'Jane Doe Duplicate',
+          firstName: 'Jane',
+          lastName: 'Doe Duplicate',
           title: 'VP Engineering',
           email: 'jane@acme.com', // duplicate email
           personKind: 'PERSON' as const,
+          confidence: 'HIGH' as const,
+          source: 'PUBLIC_WEB',
+          sourceUrl: 'https://example.com/team',
         },
         {
-          name: 'John Smith',
+          firstName: 'John',
+          lastName: 'Smith',
           title: 'Recruiter',
           email: null,
           personKind: 'PERSON' as const,
+          confidence: 'MEDIUM' as const,
+          source: 'PUBLIC_WEB',
+          sourceUrl: 'https://example.com/team',
         },
         {
-          name: 'John Smith',
+          firstName: 'John',
+          lastName: 'Smith',
           title: 'Recruiter',
           email: null, // duplicate name+title without email
           personKind: 'PERSON' as const,
+          confidence: 'MEDIUM' as const,
+          source: 'PUBLIC_WEB',
+          sourceUrl: 'https://example.com/team',
         },
         {
-          name: 'Engineering Team',
+          firstName: null,
+          lastName: null,
           title: 'Support',
           email: 'careers@acme.com',
           personKind: 'ROLE_ADDRESS' as const,
+          confidence: 'HIGH' as const,
+          source: 'PUBLIC_WEB',
+          sourceUrl: 'https://example.com/team',
         },
       ];
 

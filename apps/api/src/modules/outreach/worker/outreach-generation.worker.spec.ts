@@ -53,6 +53,7 @@ describe('OutreachGenerationWorker', () => {
       outreach: {
         findUnique: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
       $transaction: jest.fn(async (cb) => cb(prisma)),
     };
@@ -64,7 +65,7 @@ describe('OutreachGenerationWorker', () => {
     worker = new OutreachGenerationWorker(prisma, aiProvider);
   });
 
-  it('reads persisted Outreach.aiPromptContext and updates draft when draftVersion matches', async () => {
+  it('reads persisted Outreach.aiPromptContext and updates draft when draftVersion matches (sets SUCCEEDED)', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
     prisma.outreach.findUnique.mockResolvedValue(mockOutreach);
     aiProvider.complete.mockResolvedValue({
@@ -86,6 +87,7 @@ describe('OutreachGenerationWorker', () => {
       data: {
         subject: 'CFO ROI Evaluation',
         message: 'Jane, how Enterprise Inc can achieve ROI in 30 days.',
+        aiGenerationStatus: 'SUCCEEDED',
       },
     });
     expect(prisma.job.updateMany).toHaveBeenCalledWith(
@@ -96,7 +98,7 @@ describe('OutreachGenerationWorker', () => {
     );
   });
 
-  it('skips AI overwrite when draftVersion has diverged (optimistic edit protection)', async () => {
+  it('skips AI overwrite when draftVersion has diverged (sets SKIPPED)', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
     // User edited the draft while AI was generating -> draftVersion is now 1
     prisma.outreach.findUnique.mockResolvedValue({
@@ -116,8 +118,13 @@ describe('OutreachGenerationWorker', () => {
     const success = await worker.processJob('job-1');
     expect(success).toBe(true);
 
-    // AI must NOT overwrite manual edits
-    expect(prisma.outreach.update).not.toHaveBeenCalled();
+    // AI must NOT overwrite manual edits; marks SKIPPED
+    expect(prisma.outreach.update).toHaveBeenCalledWith({
+      where: { id: 'out-1' },
+      data: {
+        aiGenerationStatus: 'SKIPPED',
+      },
+    });
     expect(prisma.job.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'job-1', leaseVersion: 1, status: 'RUNNING' },
@@ -125,6 +132,30 @@ describe('OutreachGenerationWorker', () => {
           status: 'COMPLETED',
           lastError: 'SKIPPED_DRAFT_MODIFIED',
         }),
+      }),
+    );
+  });
+
+  it('marks Outreach aiGenerationStatus = FAILED when job reaches dead letter', async () => {
+    prisma.job.findUnique.mockResolvedValue({
+      ...mockJob,
+      attemptCount: 3,
+      maxAttempts: 3, // dead letter!
+    });
+    prisma.outreach.findUnique.mockResolvedValue(mockOutreach);
+    aiProvider.complete.mockRejectedValue(new Error('LLM service permanently unavailable'));
+
+    const success = await worker.processJob('job-1');
+    expect(success).toBe(false);
+
+    expect(prisma.outreach.updateMany).toHaveBeenCalledWith({
+      where: { id: 'out-1' },
+      data: { aiGenerationStatus: 'FAILED' },
+    });
+    expect(prisma.job.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'job-1', leaseVersion: 1 },
+        data: expect.objectContaining({ status: 'FAILED' }),
       }),
     );
   });

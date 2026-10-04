@@ -138,7 +138,7 @@ export class DiscoverContactsUseCase {
       // Enqueue new Job
       const idempotencyKey = forceRefresh
         ? `contact-discovery:${workspaceId}:${companyId}:force:${now.getTime()}`
-        : `contact-discovery:${workspaceId}:${companyId}`;
+        : `contact-discovery:${workspaceId}:${companyId}:${now.getTime()}`;
 
       const newJob = await tx.job.create({
         data: {

@@ -66,6 +66,9 @@ export class UpdateDraftUseCase {
         data: {
           ...(subject !== undefined ? { subject: subject.trim() } : {}),
           ...(message !== undefined ? { message: message.trim() } : {}),
+          ...(outreach.contentSource === 'AI' && outreach.aiGenerationStatus === 'PENDING'
+            ? { aiGenerationStatus: 'SKIPPED' }
+            : {}),
           draftVersion: { increment: 1 },
         },
       });
@@ -79,6 +82,7 @@ export class UpdateDraftUseCase {
         contentSource: updated.contentSource,
         templateId: updated.templateId,
         aiPromptContext: updated.aiPromptContext,
+        aiGenerationStatus: updated.aiGenerationStatus ?? null,
         draftVersion: updated.draftVersion,
         subject: updated.subject,
         message: updated.message,

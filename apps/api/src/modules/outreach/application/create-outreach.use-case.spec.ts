@@ -204,6 +204,7 @@ describe('CreateOutreachUseCase', () => {
             contentSource: 'AI',
             templateId: null,
             aiPromptContext: 'Focus on recent funding round',
+            aiGenerationStatus: 'PENDING',
             draftVersion: 0,
             subject: '',
             message: '',
@@ -220,6 +221,7 @@ describe('CreateOutreachUseCase', () => {
         }),
       );
       expect(result.aiPromptContext).toBe('Focus on recent funding round');
+      expect(result.aiGenerationStatus).toBe('PENDING');
     });
 
     it('throws 400 Bad Request for one-off TEMPLATE with {{sender.name}} if senderAccountId is missing', async () => {

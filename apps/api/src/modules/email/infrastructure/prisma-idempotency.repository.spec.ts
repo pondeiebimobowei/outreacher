@@ -54,8 +54,8 @@ describe('PrismaIdempotencyRepository', () => {
       const input = {
         workspaceId: 'ws-1',
         key: 'key-123',
-        route: '/api/v1/campaign-contacts/:id/send',
-        targetId: 'cc-1',
+        route: '/api/v1/outreaches/:id/send',
+        targetId: 'outreach-1',
         jobId: 'job-1',
         responseBody: { jobId: 'job-1', message: 'Dispatch enqueued' },
       };
@@ -74,8 +74,8 @@ describe('PrismaIdempotencyRepository', () => {
         data: {
           workspaceId: 'ws-1',
           key: 'key-123',
-          route: '/api/v1/campaign-contacts/:id/send',
-          targetId: 'cc-1',
+          route: '/api/v1/outreaches/:id/send',
+          targetId: 'outreach-1',
           jobId: 'job-1',
           responseStatus: 202,
           responseBody: { jobId: 'job-1', message: 'Dispatch enqueued' },
@@ -94,8 +94,8 @@ describe('PrismaIdempotencyRepository', () => {
         {
           workspaceId: 'ws-1',
           key: 'key-123',
-          route: '/api/v1/campaign-contacts/:id/send',
-          targetId: 'cc-1',
+          route: '/api/v1/outreaches/:id/send',
+          targetId: 'outreach-1',
           responseBody: { ok: true },
         },
         txMock,

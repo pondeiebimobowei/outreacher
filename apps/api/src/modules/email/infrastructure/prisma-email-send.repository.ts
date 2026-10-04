@@ -23,8 +23,9 @@ export class PrismaEmailSendRepository implements IEmailSendRepository {
     return client.emailSend.create({
       data: {
         workspaceId: data.workspaceId,
-        campaignId: data.campaignId,
-        campaignMemberId: data.campaignMemberId,
+        outreachId: data.outreachId,
+        senderAccountId: data.senderAccountId ?? null,
+        sequence: data.sequence ?? 0,
         type: data.type ?? EmailSendType.INITIAL,
         subject: data.subject,
         body: data.body,
@@ -86,15 +87,15 @@ export class PrismaEmailSendRepository implements IEmailSendRepository {
     });
   }
 
-  public async findByCampaignContactId(
+  public async findByOutreachId(
     workspaceId: string,
-    campaignMemberId: string,
+    outreachId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<EmailSend[]> {
     const client = this.getClient(tx);
     return client.emailSend.findMany({
-      where: { workspaceId, campaignMemberId },
-      orderBy: { createdAt: 'desc' },
+      where: { workspaceId, outreachId },
+      orderBy: { sequence: 'asc' },
     });
   }
 }

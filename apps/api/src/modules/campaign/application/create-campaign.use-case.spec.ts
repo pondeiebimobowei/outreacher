@@ -29,7 +29,7 @@ describe('CreateCampaignUseCase', () => {
     useCase = new CreateCampaignUseCase(prisma, templateEngine);
   });
 
-  it('throws 400 Bad Request if TEMPLATE campaign is missing required sequence (e.g. non-contiguous 0, 2 for maxFollowUps = 2)', async () => {
+  it('throws 400 Bad Request if TEMPLATE campaign is missing required sequence by identity (e.g. template has 0, 2 for maxFollowUps = 2)', async () => {
     prisma.emailTemplate.findFirst.mockResolvedValue({
       id: 'tmpl-1',
       workspaceId: 'ws-1',

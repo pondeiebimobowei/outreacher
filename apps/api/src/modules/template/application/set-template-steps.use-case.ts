@@ -25,8 +25,8 @@ export class SetTemplateStepsUseCase {
       throw new AppValidationException('At least one step is required');
     }
 
-    // 1. Validate placeholders and contiguous sequence order
-    this.templateEngine.validateContiguousSequences(dto.steps);
+    // 1. Validate placeholders and unique non-negative sequence order for storage
+    this.templateEngine.validateUniqueNonNegativeSequences(dto.steps);
     for (const step of dto.steps) {
       this.templateEngine.assertValidPlaceholders(step.subjectTemplate);
       this.templateEngine.assertValidPlaceholders(step.bodyTemplate);

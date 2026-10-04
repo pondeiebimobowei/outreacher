@@ -124,4 +124,48 @@ describe('UpdateDraftUseCase', () => {
     expect(res.draftVersion).toBe(1);
     expect(res.subject).toBe('Refined Subject');
   });
+
+  it('sets aiGenerationStatus = SKIPPED when editing an in-flight PENDING AI draft', async () => {
+    const updatedAt = new Date('2026-10-01T12:00:00Z');
+    prisma.outreach.findFirst.mockResolvedValue({
+      id: 'out-1',
+      workspaceId: 'ws-1',
+      status: 'DRAFT',
+      contentSource: 'AI',
+      aiGenerationStatus: 'PENDING',
+      draftVersion: 0,
+      updatedAt,
+    });
+
+    prisma.outreach.update.mockResolvedValue({
+      id: 'out-1',
+      workspaceId: 'ws-1',
+      contentSource: 'AI',
+      aiGenerationStatus: 'SKIPPED',
+      draftVersion: 1,
+      subject: 'Manual Subject Override',
+      message: 'Manual Body Override',
+      status: 'DRAFT',
+      updatedAt: new Date(),
+    });
+
+    const res = await useCase.execute({
+      workspaceId: 'ws-1',
+      outreachId: 'out-1',
+      subject: 'Manual Subject Override',
+      message: 'Manual Body Override',
+      expectedUpdatedAt: updatedAt,
+    });
+
+    expect(prisma.outreach.update).toHaveBeenCalledWith({
+      where: { id: 'out-1' },
+      data: {
+        subject: 'Manual Subject Override',
+        message: 'Manual Body Override',
+        aiGenerationStatus: 'SKIPPED',
+        draftVersion: { increment: 1 },
+      },
+    });
+    expect(res.aiGenerationStatus).toBe('SKIPPED');
+  });
 });

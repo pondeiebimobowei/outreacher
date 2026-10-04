@@ -20,7 +20,6 @@ import { GetOutreachUseCase } from './application/get-outreach.use-case';
 import { UpdateDraftUseCase } from './application/update-draft.use-case';
 import { ApproveDraftUseCase } from './application/approve-draft.use-case';
 import { GenerateDirectOutreachUseCase } from './application/generate-direct-outreach.use-case';
-import { SendDirectOutreachUseCase } from './application/send-direct-outreach.use-case';
 import { SendOutreachUseCase } from './application/send-outreach.use-case';
 import { ResumeOutreachUseCase } from './application/resume-outreach.use-case';
 
@@ -33,7 +32,6 @@ export class OutreachesController {
     private readonly updateDraftUseCase: UpdateDraftUseCase,
     private readonly approveDraftUseCase: ApproveDraftUseCase,
     private readonly generateDirectOutreachUseCase: GenerateDirectOutreachUseCase,
-    private readonly sendDirectOutreachUseCase: SendDirectOutreachUseCase,
     private readonly sendOutreachUseCase: SendOutreachUseCase,
     private readonly resumeOutreachUseCase: ResumeOutreachUseCase,
   ) {}

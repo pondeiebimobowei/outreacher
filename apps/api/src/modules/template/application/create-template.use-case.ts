@@ -23,7 +23,8 @@ export class CreateTemplateUseCase {
       throw new AppValidationException('At least one step is required');
     }
 
-    // Validate placeholders in all steps
+    // Validate unique non-negative sequences and placeholders in all steps
+    this.templateEngine.validateUniqueNonNegativeSequences(dto.steps);
     for (const step of dto.steps) {
       this.templateEngine.assertValidPlaceholders(step.subjectTemplate);
       this.templateEngine.assertValidPlaceholders(step.bodyTemplate);

@@ -5,10 +5,16 @@ CREATE TYPE "CampaignRecipientStatus" AS ENUM ('PENDING', 'ACTIVE', 'PAUSED', 'C
 CREATE TYPE "ContentSource" AS ENUM ('MANUAL', 'TEMPLATE', 'AI');
 
 -- CreateEnum
+CREATE TYPE "AiGenerationStatus" AS ENUM ('PENDING', 'SUCCEEDED', 'FAILED', 'SKIPPED');
+
+-- CreateEnum
 CREATE TYPE "SuppressionAction" AS ENUM ('SUPPRESSED', 'UNSUPPRESSED');
 
 -- CreateEnum
 CREATE TYPE "JobCancellationReason" AS ENUM ('PAUSED', 'SUPPRESSED', 'CANCELLED_BY_USER');
+
+-- AlterEnum
+ALTER TYPE "JobStatus" ADD VALUE 'CANCELLED';
 
 -- AlterEnum
 BEGIN;
@@ -153,6 +159,7 @@ ADD COLUMN     "outreach_id" TEXT NOT NULL;
 -- AlterTable
 ALTER TABLE "outreaches" DROP COLUMN "campaign_id",
 ADD COLUMN     "ai_prompt_context" TEXT,
+ADD COLUMN     "ai_generation_status" "AiGenerationStatus",
 ADD COLUMN     "campaign_recipient_id" TEXT,
 ADD COLUMN     "content_source" "ContentSource" NOT NULL DEFAULT 'MANUAL',
 ADD COLUMN     "draft_version" INTEGER NOT NULL DEFAULT 0,

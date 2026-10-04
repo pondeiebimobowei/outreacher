@@ -6,7 +6,6 @@ describe('ContactController - Suppression Endpoints', () => {
   let discoverContactsUseCase: any;
   let getCompanyContactsUseCase: any;
   let getContactByIdUseCase: any;
-  let selectContactUseCase: any;
   let suppressContactUseCase: any;
   let unsuppressContactUseCase: any;
 
@@ -15,7 +14,6 @@ describe('ContactController - Suppression Endpoints', () => {
     discoverContactsUseCase = { execute: jest.fn() };
     getCompanyContactsUseCase = { execute: jest.fn() };
     getContactByIdUseCase = { execute: jest.fn() };
-    selectContactUseCase = { execute: jest.fn() };
     suppressContactUseCase = { execute: jest.fn() };
     unsuppressContactUseCase = { execute: jest.fn() };
 
@@ -24,7 +22,6 @@ describe('ContactController - Suppression Endpoints', () => {
       discoverContactsUseCase,
       getCompanyContactsUseCase,
       getContactByIdUseCase,
-      selectContactUseCase,
       suppressContactUseCase,
       unsuppressContactUseCase,
     );

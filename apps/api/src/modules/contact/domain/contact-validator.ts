@@ -57,9 +57,11 @@ export class ContactValidator {
       email,
       personKind:
         candidate.personKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON',
-      source: candidate.source?.trim() || undefined,
-      sourceUrl: sourceUrl || undefined,
+      source: candidate.source?.trim() || 'PUBLIC_WEB',
+      sourceUrl: sourceUrl || candidate.sourceUrl || '',
       confidence: candidate.confidence || 'MEDIUM',
+      roleFamily: candidate.roleFamily,
+      evidence: candidate.evidence,
     };
   }
 

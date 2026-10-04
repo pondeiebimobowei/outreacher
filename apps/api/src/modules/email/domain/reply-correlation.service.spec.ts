@@ -32,7 +32,7 @@ describe('ReplyCorrelationService', () => {
   it('Rule 1: Correlates by exact token match, ignoring In-Reply-To and References', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue({
       id: 'es-1',
-      campaignMemberId: 'contact-a',
+      outreachId: 'outreach-a',
       workspaceId: 'ws-1',
     });
 
@@ -44,7 +44,7 @@ describe('ReplyCorrelationService', () => {
     );
 
     expect(result.status).toBe('CORRELATED');
-    expect((result as any).campaignMemberId).toBe('contact-a');
+    expect((result as any).outreachId).toBe('outreach-a');
     expect(prismaMock.emailSend.findUnique).toHaveBeenCalledWith({
       where: { replyToToken: 'TOKEN123' },
       select: expect.any(Object),
@@ -55,7 +55,7 @@ describe('ReplyCorrelationService', () => {
   it('Rule 2: Correlates by In-Reply-To if no token match, ignoring References', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { id: 'es-1', campaignMemberId: 'contact-a' },
+      { id: 'es-1', outreachId: 'outreach-a' },
     ]);
 
     const result = await service.correlate(
@@ -66,7 +66,7 @@ describe('ReplyCorrelationService', () => {
     );
 
     expect(result.status).toBe('CORRELATED');
-    expect((result as any).campaignMemberId).toBe('contact-a');
+    expect((result as any).outreachId).toBe('outreach-a');
     expect(prismaMock.emailSend.findMany).toHaveBeenCalledWith({
       where: { workspaceId: 'ws-1', messageId: '<msg-a>' },
       select: expect.any(Object),
@@ -77,7 +77,7 @@ describe('ReplyCorrelationService', () => {
   it('Rule 3: Correlates by References if no token or In-Reply-To match', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { id: 'es-1', campaignMemberId: 'contact-a' },
+      { id: 'es-1', outreachId: 'outreach-a' },
     ]);
 
     const result = await service.correlate(
@@ -88,7 +88,7 @@ describe('ReplyCorrelationService', () => {
     );
 
     expect(result.status).toBe('CORRELATED');
-    expect((result as any).campaignMemberId).toBe('contact-a');
+    expect((result as any).outreachId).toBe('outreach-a');
     expect(prismaMock.emailSend.findMany).toHaveBeenCalledWith({
       where: { workspaceId: 'ws-1', messageId: { in: ['<msg-a>', '<msg-b>'] } },
       select: expect.any(Object),
@@ -100,8 +100,8 @@ describe('ReplyCorrelationService', () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
 
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { id: 'es-1', campaignMemberId: 'contact-a' },
-      { id: 'es-2', campaignMemberId: 'contact-b' },
+      { id: 'es-1', outreachId: 'outreach-a' },
+      { id: 'es-2', outreachId: 'outreach-b' },
     ]);
 
     const result = await service.correlate(
@@ -118,8 +118,8 @@ describe('ReplyCorrelationService', () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
 
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { id: 'es-2', campaignMemberId: 'contact-a' },
-      { id: 'es-1', campaignMemberId: 'contact-a' },
+      { id: 'es-2', outreachId: 'outreach-a' },
+      { id: 'es-1', outreachId: 'outreach-a' },
     ]);
 
     const result = await service.correlate(
@@ -130,7 +130,7 @@ describe('ReplyCorrelationService', () => {
     );
 
     expect(result.status).toBe('CORRELATED');
-    expect((result as any).campaignMemberId).toBe('contact-a');
+    expect((result as any).outreachId).toBe('outreach-a');
   });
 
   it('Returns UNCORRELATED if no matches found', async () => {

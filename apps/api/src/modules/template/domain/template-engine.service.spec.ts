@@ -39,8 +39,54 @@ describe('TemplateEngineService', () => {
     });
   });
 
-  describe('validateTemplateSequences', () => {
-    it('should succeed when steps match 0..maxFollowUps contiguously', () => {
+  describe('validateUniqueNonNegativeSequences (Storage Validation)', () => {
+    it('should succeed with arbitrary unique non-negative sequences (e.g. 0, 2)', () => {
+      const steps = [{ sequence: 0 }, { sequence: 2 }];
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).not.toThrow();
+    });
+
+    it('should succeed with non-zero start sequences (e.g. 1, 5)', () => {
+      const steps = [{ sequence: 1 }, { sequence: 5 }];
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).not.toThrow();
+    });
+
+    it('should throw AppValidationException on duplicate sequences', () => {
+      const steps = [{ sequence: 0 }, { sequence: 0 }];
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(AppValidationException);
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(/duplicate template step sequence/i);
+    });
+
+    it('should throw AppValidationException on negative sequence numbers', () => {
+      const steps = [{ sequence: -1 }, { sequence: 0 }];
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(AppValidationException);
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(/must be a non-negative integer/i);
+    });
+
+    it('should throw AppValidationException on non-integer sequence numbers', () => {
+      const steps = [{ sequence: 1.5 }];
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(AppValidationException);
+      expect(() => {
+        service.validateUniqueNonNegativeSequences(steps);
+      }).toThrow(/must be a non-negative integer/i);
+    });
+  });
+
+  describe('validateTemplateSequences (Consumption Validation)', () => {
+    it('should succeed when steps contain required sequences 0..maxFollowUps by identity', () => {
       const steps = [{ sequence: 0 }, { sequence: 1 }, { sequence: 2 }];
       expect(() => {
         service.validateTemplateSequences(steps, 2);

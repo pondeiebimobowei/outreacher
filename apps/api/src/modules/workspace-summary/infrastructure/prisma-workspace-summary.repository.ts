@@ -6,15 +6,20 @@ export class PrismaWorkspaceSummaryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOutreachReviews(workspaceId: string, limit: number) {
-    return this.prisma.campaignMember.findMany({
-      where: { workspaceId, status: 'PENDING' },
+    return this.prisma.outreach.findMany({
+      where: { workspaceId, status: 'DRAFT' },
       include: {
-        person: {
+        personCompanyAssociation: {
           include: {
-            personCompanyAssociations: { include: { company: true } },
+            person: true,
+            company: true,
           },
         },
-        campaign: true,
+        campaignRecipient: {
+          include: {
+            campaign: true,
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,
@@ -22,15 +27,20 @@ export class PrismaWorkspaceSummaryRepository {
   }
 
   async getSendFailures(workspaceId: string, limit: number) {
-    return this.prisma.campaignMember.findMany({
+    return this.prisma.outreach.findMany({
       where: { workspaceId, status: 'FAILED' },
       include: {
-        person: {
+        personCompanyAssociation: {
           include: {
-            personCompanyAssociations: { include: { company: true } },
+            person: true,
+            company: true,
           },
         },
-        campaign: true,
+        campaignRecipient: {
+          include: {
+            campaign: true,
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,
@@ -54,9 +64,6 @@ export class PrismaWorkspaceSummaryRepository {
   async getPausedCampaigns(workspaceId: string, limit: number) {
     return this.prisma.campaign.findMany({
       where: { workspaceId, status: 'PAUSED' },
-      include: {
-        company: true,
-      },
       orderBy: { updatedAt: 'desc' },
       take: limit,
     });
@@ -76,28 +83,26 @@ export class PrismaWorkspaceSummaryRepository {
   }
 
   async getContactSelectedActivity(workspaceId: string, limit: number) {
-    return this.prisma.companyContactSelection.findMany({
-      where: { workspaceId },
-      include: {
-        company: true,
-      },
-      orderBy: { selectedAt: 'desc' },
-      take: limit,
-    });
+    return [];
   }
 
   async getEmailSentActivity(workspaceId: string, limit: number) {
     return this.prisma.emailSend.findMany({
       where: { workspaceId, status: 'SENT' },
       include: {
-        campaignMember: {
+        outreach: {
           include: {
-            person: {
+            personCompanyAssociation: {
               include: {
-                personCompanyAssociations: { include: { company: true } },
+                person: true,
+                company: true,
               },
             },
-            campaign: true,
+            campaignRecipient: {
+              include: {
+                campaign: true,
+              },
+            },
           },
         },
       },
@@ -110,14 +115,19 @@ export class PrismaWorkspaceSummaryRepository {
     return this.prisma.outcome.findMany({
       where: { workspaceId },
       include: {
-        campaignMember: {
+        outreach: {
           include: {
-            person: {
+            personCompanyAssociation: {
               include: {
-                personCompanyAssociations: { include: { company: true } },
+                person: true,
+                company: true,
               },
             },
-            campaign: true,
+            campaignRecipient: {
+              include: {
+                campaign: true,
+              },
+            },
           },
         },
       },

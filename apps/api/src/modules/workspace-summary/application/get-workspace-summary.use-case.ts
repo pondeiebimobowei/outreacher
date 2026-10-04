@@ -31,21 +31,23 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[0].status === 'fulfilled') {
       workItems.push(
-        ...results[0].value.map((item) => ({
+        ...results[0].value.map((item: any) => ({
           id: `review_${item.id}`,
           kind: 'OUTREACH_REVIEW' as const,
           company: {
-            id: item.person.personCompanyAssociations?.[0]?.company.id,
-            name: item.person.personCompanyAssociations?.[0]?.company.name,
+            id: item.personCompanyAssociation?.company?.id ?? '',
+            name: item.personCompanyAssociation?.company?.name ?? '',
           },
-          campaign: item.campaign
+          campaign: item.campaignRecipient?.campaign
             ? {
-                id: item.campaign.id,
-                name: item.campaign.name,
-                status: item.campaign.status,
+                id: item.campaignRecipient.campaign.id,
+                name: item.campaignRecipient.campaign.name,
+                status: item.campaignRecipient.campaign.status,
               }
             : undefined,
-          campaignMember: { id: item.id, status: item.status },
+          campaignMember: item.campaignRecipient
+            ? { id: item.campaignRecipient.id, status: item.campaignRecipient.status }
+            : undefined,
           updatedAt: item.updatedAt.toISOString(),
           source: { domain: 'OUTREACH' as const, state: item.status },
           destination: { type: 'CONTACT_REVIEW' as const },
@@ -61,21 +63,23 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[1].status === 'fulfilled') {
       workItems.push(
-        ...results[1].value.map((item) => ({
+        ...results[1].value.map((item: any) => ({
           id: `failure_${item.id}`,
           kind: 'SEND_FAILURE' as const,
           company: {
-            id: item.person.personCompanyAssociations?.[0]?.company.id,
-            name: item.person.personCompanyAssociations?.[0]?.company.name,
+            id: item.personCompanyAssociation?.company?.id ?? '',
+            name: item.personCompanyAssociation?.company?.name ?? '',
           },
-          campaign: item.campaign
+          campaign: item.campaignRecipient?.campaign
             ? {
-                id: item.campaign.id,
-                name: item.campaign.name,
-                status: item.campaign.status,
+                id: item.campaignRecipient.campaign.id,
+                name: item.campaignRecipient.campaign.name,
+                status: item.campaignRecipient.campaign.status,
               }
             : undefined,
-          campaignMember: { id: item.id, status: item.status },
+          campaignMember: item.campaignRecipient
+            ? { id: item.campaignRecipient.id, status: item.campaignRecipient.status }
+            : undefined,
           updatedAt: item.updatedAt.toISOString(),
           source: { domain: 'OUTREACH' as const, state: item.status },
           destination: { type: 'CAMPAIGN' as const },
@@ -91,7 +95,7 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[2].status === 'fulfilled') {
       workItems.push(
-        ...results[2].value.map((item) => ({
+        ...results[2].value.map((item: any) => ({
           id: `research_${item.id}`,
           kind: 'RESEARCH_INCOMPLETE' as const,
           company: { id: item.company.id, name: item.company.name },
@@ -113,10 +117,10 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[3].status === 'fulfilled') {
       workItems.push(
-        ...results[3].value.map((item) => ({
+        ...results[3].value.map((item: any) => ({
           id: `campaign_${item.id}`,
           kind: 'CAMPAIGN_PAUSED' as const,
-          company: { id: item.company.id, name: item.company.name },
+          company: { id: '', name: '' },
           campaign: { id: item.id, name: item.name, status: item.status },
           updatedAt: item.updatedAt.toISOString(),
           source: { domain: 'CAMPAIGN' as const, state: item.status },
@@ -133,7 +137,7 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[4].status === 'fulfilled') {
       recentActivity.push(
-        ...results[4].value.map((item) => ({
+        ...results[4].value.map((item: any) => ({
           id: `act_res_${item.id}`,
           sourceType: 'RESEARCH_RUN',
           sourceId: item.id,
@@ -155,13 +159,13 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[5].status === 'fulfilled') {
       recentActivity.push(
-        ...results[5].value.map((item) => ({
+        ...results[5].value.map((item: any) => ({
           id: `act_sel_${item.id}`,
           sourceType: 'COMPANY_CONTACT_SELECTION',
           sourceId: item.id,
           type: 'CONTACT_SELECTED' as const,
-          company: { id: item.company.id, name: item.company.name },
-          occurredAt: item.selectedAt.toISOString(),
+          company: { id: item.company?.id ?? '', name: item.company?.name ?? '' },
+          occurredAt: item.selectedAt?.toISOString() ?? new Date().toISOString(),
         })),
       );
     } else {
@@ -177,28 +181,22 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[6].status === 'fulfilled') {
       recentActivity.push(
-        ...results[6].value.map((item) => ({
+        ...results[6].value.map((item: any) => ({
           id: `act_sent_${item.id}`,
           sourceType: 'EMAIL_SEND',
           sourceId: item.id,
           type: 'EMAIL_SENT' as const,
           company: {
-            id:
-              item.campaignMember?.person.personCompanyAssociations?.[0]
-                ?.company.id ||
-              (item as any).outreach?.personCompanyAssociation?.company.id,
-            name:
-              item.campaignMember?.person.personCompanyAssociations?.[0]
-                ?.company.name ||
-              (item as any).outreach?.personCompanyAssociation?.company.name,
+            id: item.outreach?.personCompanyAssociation?.company?.id ?? '',
+            name: item.outreach?.personCompanyAssociation?.company?.name ?? '',
           },
-          campaign: item.campaignMember?.campaign
+          campaign: item.outreach?.campaignRecipient?.campaign
             ? {
-                id: item.campaignMember.campaign.id,
-                name: item.campaignMember.campaign.name,
+                id: item.outreach.campaignRecipient.campaign.id,
+                name: item.outreach.campaignRecipient.campaign.name,
               }
             : undefined,
-          occurredAt: item.sentAt!.toISOString(),
+          occurredAt: item.sentAt ? item.sentAt.toISOString() : new Date().toISOString(),
         })),
       );
     } else {
@@ -211,25 +209,19 @@ export class GetWorkspaceSummaryUseCase {
 
     if (results[7].status === 'fulfilled') {
       recentActivity.push(
-        ...results[7].value.map((item) => ({
+        ...results[7].value.map((item: any) => ({
           id: `act_out_${item.id}`,
           sourceType: 'OUTCOME',
           sourceId: item.id,
           type: 'OUTCOME_RECORDED' as const,
           company: {
-            id:
-              item.campaignMember?.person.personCompanyAssociations?.[0]
-                ?.company.id ||
-              (item as any).outreach?.personCompanyAssociation?.company.id,
-            name:
-              item.campaignMember?.person.personCompanyAssociations?.[0]
-                ?.company.name ||
-              (item as any).outreach?.personCompanyAssociation?.company.name,
+            id: item.outreach?.personCompanyAssociation?.company?.id ?? '',
+            name: item.outreach?.personCompanyAssociation?.company?.name ?? '',
           },
-          campaign: item.campaignMember?.campaign
+          campaign: item.outreach?.campaignRecipient?.campaign
             ? {
-                id: item.campaignMember.campaign.id,
-                name: item.campaignMember.campaign.name,
+                id: item.outreach.campaignRecipient.campaign.id,
+                name: item.outreach.campaignRecipient.campaign.name,
               }
             : undefined,
           occurredAt: item.recordedAt.toISOString(),

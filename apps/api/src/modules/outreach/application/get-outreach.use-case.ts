@@ -36,6 +36,7 @@ export class GetOutreachUseCase {
       contentSource: outreach.contentSource,
       templateId: outreach.templateId,
       aiPromptContext: outreach.aiPromptContext,
+      aiGenerationStatus: outreach.aiGenerationStatus ?? null,
       draftVersion: outreach.draftVersion,
       subject: outreach.subject,
       message: outreach.message,

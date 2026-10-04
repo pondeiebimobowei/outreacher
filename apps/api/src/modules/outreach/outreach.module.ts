@@ -2,15 +2,11 @@ import { Module, Provider } from '@nestjs/common';
 import { PrismaModule } from '../../database/prisma.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
 import { EmailModule } from '../email/email.module';
-import { OutreachController } from './outreach.controller';
 import { OutreachesController } from './outreaches.controller';
-import { GenerateOutreachUseCase } from './application/generate-outreach.use-case';
 import { UpdateDraftUseCase } from './application/update-draft.use-case';
 import { ApproveDraftUseCase } from './application/approve-draft.use-case';
-import { GetCampaignContactUseCase } from './application/get-campaign-contact.use-case';
 import { GenerateDirectOutreachUseCase } from './application/generate-direct-outreach.use-case';
 import { UpdateDirectOutreachUseCase } from './application/update-direct-outreach.use-case';
-import { SendDirectOutreachUseCase } from './application/send-direct-outreach.use-case';
 import { OutreachGenerationWorker } from './worker/outreach-generation.worker';
 import { MockAIProvider } from './infrastructure/mock-ai.provider';
 import { OpenRouterAIProvider } from './infrastructure/openrouter-ai.provider';
@@ -52,17 +48,14 @@ const aiProviderFactory: Provider = {
 
 @Module({
   imports: [PrismaModule, WorkspaceModule, EmailModule, TemplateModule],
-  controllers: [OutreachController, OutreachesController],
+  controllers: [OutreachesController],
   providers: [
     CreateOutreachUseCase,
     GetOutreachUseCase,
-    GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
-    GetCampaignContactUseCase,
     GenerateDirectOutreachUseCase,
     UpdateDirectOutreachUseCase,
-    SendDirectOutreachUseCase,
     SendOutreachUseCase,
     ResumeOutreachUseCase,
     OutreachGenerationWorker,
@@ -71,13 +64,10 @@ const aiProviderFactory: Provider = {
   exports: [
     CreateOutreachUseCase,
     GetOutreachUseCase,
-    GenerateOutreachUseCase,
     UpdateDraftUseCase,
     ApproveDraftUseCase,
-    GetCampaignContactUseCase,
     GenerateDirectOutreachUseCase,
     UpdateDirectOutreachUseCase,
-    SendDirectOutreachUseCase,
     SendOutreachUseCase,
     ResumeOutreachUseCase,
     OutreachGenerationWorker,

@@ -16,6 +16,17 @@ describe('ApproveDraftUseCase', () => {
         findFirst: jest.fn(),
         update: jest.fn(),
       },
+      personCompanyAssociation: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'pca-1',
+          conversationState: 'NO_REPLY',
+          workEmail: 'alex@example.com',
+          person: { email: 'alex@example.com' },
+        }),
+      },
+      suppression: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
     useCase = new ApproveDraftUseCase(prisma);
   });

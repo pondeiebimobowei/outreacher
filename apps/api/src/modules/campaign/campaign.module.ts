@@ -12,9 +12,7 @@ import { UpdateCampaignUseCase } from './application/update-campaign.use-case';
 import { AddCampaignRecipientsUseCase } from './application/add-campaign-recipients.use-case';
 import { GetCampaignUseCase } from './application/get-campaign.use-case';
 import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
-import { AddCampaignContactsUseCase } from './application/add-campaign-contacts.use-case';
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
-import { GetCampaignContactsUseCase } from './application/get-campaign-contacts.use-case';
 import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-recipient.use-case';
 
 @Module({
@@ -36,9 +34,7 @@ import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-re
     AddCampaignRecipientsUseCase,
     GetCampaignUseCase,
     ListCampaignsUseCase,
-    AddCampaignContactsUseCase,
     ChangeCampaignStatusUseCase,
-    GetCampaignContactsUseCase,
     ResumeCampaignRecipientUseCase,
   ],
   exports: [
@@ -48,9 +44,7 @@ import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-re
     AddCampaignRecipientsUseCase,
     GetCampaignUseCase,
     ListCampaignsUseCase,
-    AddCampaignContactsUseCase,
     ChangeCampaignStatusUseCase,
-    GetCampaignContactsUseCase,
     ResumeCampaignRecipientUseCase,
   ],
 })

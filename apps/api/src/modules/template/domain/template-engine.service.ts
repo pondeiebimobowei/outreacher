@@ -99,23 +99,33 @@ export class TemplateEngineService {
   }
 
   /**
-   * Asserts sequences start at 0 and are strictly contiguous: 0, 1, ..., N-1.
+   * Asserts steps have unique non-negative integer sequences for storage (e.g. 0, 2 is allowed).
    */
-  validateContiguousSequences(steps: Array<{ sequence: number }>): void {
-    const sorted = [...steps].sort((a, b) => a.sequence - b.sequence);
-    for (let i = 0; i < sorted.length; i++) {
-      if (sorted[i].sequence !== i) {
+  validateUniqueNonNegativeSequences(steps: Array<{ sequence: number }>): void {
+    const seen = new Set<number>();
+    for (const step of steps) {
+      if (
+        typeof step.sequence !== 'number' ||
+        !Number.isInteger(step.sequence) ||
+        step.sequence < 0
+      ) {
         throw new AppValidationException(
-          `Template steps must be contiguous starting from sequence 0. Found missing or non-contiguous sequence ${i}`,
+          `Template step sequence must be a non-negative integer. Found: ${step.sequence}`,
         );
       }
+      if (seen.has(step.sequence)) {
+        throw new AppValidationException(
+          `Duplicate template step sequence found: ${step.sequence}`,
+        );
+      }
+      seen.add(step.sequence);
     }
   }
 
   /**
    * Validates template for campaign use:
    * - Must not be archived
-   * - Must have contiguous sequences 0..maxFollowUps
+   * - Must have required sequences 0..maxFollowUps by identity
    * - Must NOT contain {{sender.name}}
    */
   validateTemplateForCampaign(
@@ -142,7 +152,7 @@ export class TemplateEngineService {
   /**
    * Validates template for one-off outreach:
    * - Must not be archived
-   * - Must have contiguous sequences 0..maxFollowUps
+   * - Must have required sequences 0..maxFollowUps by identity
    * - If {{sender.name}} used, senderAccountId must be provided
    */
   validateTemplateForOneOff(

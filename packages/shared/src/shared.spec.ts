@@ -3,6 +3,7 @@ import {
   ALLOWED_PLACEHOLDERS,
   CAMPAIGN_RECIPIENT_STATUSES,
   OUTREACH_STATUSES,
+  AI_GENERATION_STATUSES,
   CONVERSATION_STATES,
   JOB_CANCELLATION_REASONS,
   SUPPRESSION_REASONS,
@@ -51,6 +52,12 @@ describe('@repo/shared domain contracts & lifecycle types', () => {
       'COMPLETED',
       'FAILED',
       'CANCELLED',
+    ]);
+    expect(AI_GENERATION_STATUSES).toEqual([
+      'PENDING',
+      'SUCCEEDED',
+      'FAILED',
+      'SKIPPED',
     ]);
     expect(CONVERSATION_STATES).toEqual([
       'NO_REPLY',
@@ -173,6 +180,7 @@ describe('@repo/shared domain contracts & lifecycle types', () => {
       contentSource: 'MANUAL',
       templateId: null,
       aiPromptContext: null,
+      aiGenerationStatus: null,
       draftVersion: 0,
       subject: 'Hello',
       message: 'World',

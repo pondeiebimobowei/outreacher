@@ -85,17 +85,12 @@ export class GetCompanyContactsUseCase {
       .map((o) => o.roleTitle)
       .filter((t): t is string => Boolean(t));
 
-    // 4. Fetch Discovered Contacts & Active Selection
+    // 4. Fetch Discovered Contacts
     const rawContacts = await this.contactRepository.findCompanyContacts(
       workspaceId,
       companyId,
     );
-    const activeSelection =
-      await this.contactRepository.getCompanyContactSelection(
-        workspaceId,
-        companyId,
-      );
-    const selectedContactId = activeSelection?.personId ?? null;
+    const selectedContactId: string | null = null;
 
     // 5. Fetch Latest Discovery Job Status
     const latestJob = await this.prisma.job.findFirst({

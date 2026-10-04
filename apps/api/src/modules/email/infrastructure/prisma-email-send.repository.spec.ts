@@ -24,8 +24,7 @@ describe('PrismaEmailSendRepository', () => {
       const mockResult = {
         id: 'send-1',
         workspaceId: 'ws-1',
-        campaignId: 'camp-1',
-        campaignMemberId: 'cc-1',
+        outreachId: 'out-1',
         type: EmailSendType.INITIAL,
         subject: 'Hello',
         body: 'World',
@@ -36,8 +35,7 @@ describe('PrismaEmailSendRepository', () => {
 
       const result = await repository.createReserved({
         workspaceId: 'ws-1',
-        campaignId: 'camp-1',
-        campaignMemberId: 'cc-1',
+        outreachId: 'out-1',
         subject: 'Hello',
         body: 'World',
         reservedAt: now,
@@ -47,8 +45,7 @@ describe('PrismaEmailSendRepository', () => {
       expect(mockPrisma.emailSend.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           workspaceId: 'ws-1',
-          campaignId: 'camp-1',
-          campaignMemberId: 'cc-1',
+          outreachId: 'out-1',
           type: EmailSendType.INITIAL,
           subject: 'Hello',
           body: 'World',
@@ -68,8 +65,7 @@ describe('PrismaEmailSendRepository', () => {
       const result = await repository.createReserved(
         {
           workspaceId: 'ws-1',
-          campaignId: 'camp-1',
-          campaignMemberId: 'cc-1',
+          outreachId: 'out-1',
           subject: 'Hello',
           body: 'World',
         },
@@ -144,16 +140,16 @@ describe('PrismaEmailSendRepository', () => {
     });
   });
 
-  describe('findByCampaignContactId', () => {
-    it('queries by campaignMemberId and workspaceId ordered by createdAt desc', async () => {
+  describe('findByOutreachId', () => {
+    it('queries by outreachId and workspaceId ordered by sequence asc', async () => {
       mockPrisma.emailSend.findMany.mockResolvedValue([{ id: 'send-1' }]);
 
-      const result = await repository.findByCampaignContactId('ws-1', 'cc-1');
+      const result = await repository.findByOutreachId('ws-1', 'out-1');
 
       expect(result).toHaveLength(1);
       expect(mockPrisma.emailSend.findMany).toHaveBeenCalledWith({
-        where: { workspaceId: 'ws-1', campaignMemberId: 'cc-1' },
-        orderBy: { createdAt: 'desc' },
+        where: { workspaceId: 'ws-1', outreachId: 'out-1' },
+        orderBy: { sequence: 'asc' },
       });
     });
   });

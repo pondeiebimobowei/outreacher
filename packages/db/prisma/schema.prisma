@@ -63,6 +63,13 @@ enum OutreachStatus {
   CANCELLED
 }
 
+enum AiGenerationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
 enum EvidenceClassification {
   FACT
   INFERENCE
@@ -152,6 +159,7 @@ enum JobStatus {
   COMPLETED
   FAILED
   DEAD_LETTER
+  CANCELLED
 }
 
 enum IntegrationProvider {
@@ -579,6 +587,7 @@ model Outreach {
   contentSource              ContentSource  @default(MANUAL) @map("content_source")
   templateId                 String?        @map("template_id")
   aiPromptContext            String?        @map("ai_prompt_context")
+  aiGenerationStatus         AiGenerationStatus? @map("ai_generation_status")
   draftVersion               Int            @default(0) @map("draft_version")
   subject                    String         @default("")
   message                    String         @default("")

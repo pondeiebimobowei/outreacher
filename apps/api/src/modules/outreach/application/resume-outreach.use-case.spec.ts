@@ -166,4 +166,87 @@ describe('ResumeOutreachUseCase', () => {
 
     expect(prismaMock.outreach.update).not.toHaveBeenCalled();
   });
+
+  describe('Campaign-linked Outreach Resume Rules', () => {
+    const campaignId = 'camp-1';
+    const recipientId = 'recip-1';
+
+    const mockCampaignOutreach = (campaignStatus: string, recipientStatus: string) => ({
+      id: outreachId,
+      workspaceId,
+      status: 'PAUSED',
+      personCompanyAssociationId: pcaId,
+      campaignRecipientId: recipientId,
+      personCompanyAssociation: {
+        id: pcaId,
+        conversationState: 'ACTIVE',
+        workEmail: 'lead@example.com',
+        person: { email: 'lead@example.com' },
+      },
+      campaignRecipient: {
+        id: recipientId,
+        campaignId,
+        status: recipientStatus,
+        campaign: { id: campaignId, status: campaignStatus },
+      },
+    });
+
+    it('rejects resume if Campaign is PAUSED (cannot bypass campaign pause)', async () => {
+      prismaMock.outreach.findFirst.mockResolvedValue(
+        mockCampaignOutreach('PAUSED', 'PAUSED'),
+      );
+      prismaMock.campaign = { findUnique: jest.fn().mockResolvedValue({ id: campaignId, status: 'PAUSED' }) };
+      prismaMock.campaignRecipient = { findUnique: jest.fn().mockResolvedValue({ id: recipientId, status: 'PAUSED' }) };
+
+      await expect(
+        useCase.execute(workspaceId, outreachId),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prismaMock.$executeRaw).not.toHaveBeenCalled();
+      expect(prismaMock.outreach.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects resume if CampaignRecipient is in terminal/ineligible status (COMPLETED, SUPPRESSED, FAILED, REMOVED)', async () => {
+      for (const ineligibleStatus of ['COMPLETED', 'SUPPRESSED', 'FAILED', 'REMOVED']) {
+        prismaMock.outreach.findFirst.mockResolvedValue(
+          mockCampaignOutreach('ACTIVE', ineligibleStatus),
+        );
+        prismaMock.campaign = { findUnique: jest.fn().mockResolvedValue({ id: campaignId, status: 'ACTIVE' }) };
+        prismaMock.campaignRecipient = { findUnique: jest.fn().mockResolvedValue({ id: recipientId, status: ineligibleStatus }) };
+
+        await expect(
+          useCase.execute(workspaceId, outreachId),
+        ).rejects.toThrow(ConflictException);
+      }
+    });
+
+    it('succeeds when Campaign is ACTIVE and Recipient was PAUSED (restores recipient and jobs)', async () => {
+      prismaMock.outreach.findFirst.mockResolvedValue(
+        mockCampaignOutreach('ACTIVE', 'PAUSED'),
+      );
+      prismaMock.campaign = { findUnique: jest.fn().mockResolvedValue({ id: campaignId, status: 'ACTIVE' }) };
+      prismaMock.campaignRecipient = {
+        findUnique: jest.fn().mockResolvedValue({ id: recipientId, status: 'PAUSED' }),
+        update: jest.fn().mockResolvedValue({ id: recipientId, status: 'ACTIVE' }),
+      };
+      prismaMock.$queryRaw.mockResolvedValue([{ id: campaignId }]);
+      prismaMock.suppression.findUnique.mockResolvedValue(null);
+      prismaMock.emailSend.findMany.mockResolvedValue([
+        { id: 'es-1', sequence: 0, status: 'SENT' },
+      ]);
+      prismaMock.outreach.update.mockResolvedValue({
+        id: outreachId,
+        status: 'ACTIVE',
+      });
+
+      const result = await useCase.execute(workspaceId, outreachId);
+
+      expect(result.status).toBe('ACTIVE');
+      expect(prismaMock.campaignRecipient.update).toHaveBeenCalledWith({
+        where: { id: recipientId },
+        data: { status: 'ACTIVE' },
+      });
+      expect(prismaMock.$executeRaw).toHaveBeenCalled();
+    });
+  });
 });

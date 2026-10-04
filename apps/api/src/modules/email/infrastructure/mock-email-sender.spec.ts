@@ -6,12 +6,15 @@ describe('MockEmailSender', () => {
 
   const validEmailInput = {
     workspaceId: 'ws-1',
-    campaignMemberId: 'cc-1',
+    senderAccountId: 'sa-1',
+    emailSendId: 'send-1',
     toEmail: 'lead@company.com',
+    fromName: 'Founder',
     fromEmail: 'founder@startup.com',
+    replyToToken: 'token-1',
     subject: 'Introductory chat',
     bodyText: 'Hi, would love to connect.',
-    idempotencyKey: 'send:cc-1:1',
+    idempotencyKey: 'send:outreach-1:1',
   };
 
   beforeEach(() => {

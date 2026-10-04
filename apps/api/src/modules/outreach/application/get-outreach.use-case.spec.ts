@@ -30,6 +30,7 @@ describe('GetOutreachUseCase', () => {
       contentSource: 'AI',
       templateId: null,
       aiPromptContext: 'Focus on CFO value',
+      aiGenerationStatus: 'SUCCEEDED',
       draftVersion: 2,
       subject: 'Generated Subject',
       message: 'Generated Body',
@@ -46,6 +47,7 @@ describe('GetOutreachUseCase', () => {
     expect(res.contentSource).toBe('AI');
     expect(res.templateId).toBeNull();
     expect(res.aiPromptContext).toBe('Focus on CFO value');
+    expect(res.aiGenerationStatus).toBe('SUCCEEDED');
     expect(res.draftVersion).toBe(2);
   });
 });
