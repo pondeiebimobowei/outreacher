@@ -1,23 +1,28 @@
 import { apiClient } from './client';
 import { normalizeCampaignName } from '@repo/shared';
 import type {
-  CampaignDto,
+  CampaignDto as SharedCampaignDto,
   CreateCampaignRequest,
   AddCampaignContactsResponse,
   CampaignStatus,
   CampaignContactStatus,
   CampaignSenderSummary,
-  CampaignContactDto
+  CampaignContactDto,
 } from '@repo/shared';
 
+export interface CampaignDto extends SharedCampaignDto {
+  companyId?: string | null;
+  senderAccountId?: string;
+  normalizedName?: string;
+}
+
 export type {
-  CampaignDto,
   CreateCampaignRequest,
   AddCampaignContactsResponse,
   CampaignStatus,
   CampaignContactStatus,
   CampaignSenderSummary,
-  CampaignContactDto
+  CampaignContactDto,
 };
 
 /**
@@ -80,11 +85,11 @@ export async function resolveCanonicalCompanyCampaign(
       const canonicalName = `Outreach — ${companyName ? companyName.trim() : 'Company'}`;
       const normalizedTarget = normalizeCampaignName(canonicalName);
       const existingCampaigns = await fetchCampaigns();
-      const canonical = existingCampaigns.find(
-        (c) =>
-          c.companyId === companyId &&
-          normalizeCampaignName(c.name) === normalizedTarget,
-      );
+      const canonical = existingCampaigns.find((c) => {
+        const matchesName = normalizeCampaignName(c.name) === normalizedTarget;
+        const matchesCompany = (c as any).companyId ? (c as any).companyId === companyId : true;
+        return matchesName && matchesCompany;
+      });
 
       return canonical || null;
     } finally {

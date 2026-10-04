@@ -9,6 +9,11 @@ import {
   updateOutreachDraft,
   approveOutreachDraft,
   sendCampaignContact,
+  fetchOutreachById,
+  updateOutreach,
+  approveOutreach,
+  sendOutreach,
+  type OutreachDto,
 } from '../../api/outreach';
 import { SendConfirmationModal } from './send-confirmation-modal';
 import { PreDispatchHold } from './pre-dispatch-hold';
@@ -27,7 +32,8 @@ function generateUUID(): string {
 export interface OutreachReviewDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  campaignContactId: string | null;
+  campaignContactId?: string | null;
+  outreachId?: string | null;
   boundContacts?: CampaignContactSummaryDto[];
   onSelectCampaignContact?: (id: string) => void;
   companyName: string;
@@ -39,6 +45,7 @@ export function OutreachReviewDrawer({
   isOpen,
   onClose,
   campaignContactId,
+  outreachId,
   boundContacts = [],
   onSelectCampaignContact,
   companyName,
@@ -48,9 +55,11 @@ export function OutreachReviewDrawer({
   // Drawer DOM container for focus trapping
   const drawerRef = useRef<HTMLDivElement | null>(null);
 
-  // State: Hydrated Campaign Contact
+  // State: Hydrated Campaign Contact / Modern Outreach
   const [contactDetails, setContactDetails] =
     useState<CampaignContactDetailsDto | null>(null);
+  const [outreachData, setOutreachData] =
+    useState<OutreachDto | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -146,11 +155,49 @@ export function OutreachReviewDrawer({
     }
   }, []);
 
+  // Hydrate outreach details whenever outreachId changes
+  const loadOutreachDetails = useCallback(async (id: string) => {
+    setIsLoadingDetails(true);
+    setFetchError(null);
+    setConcurrencyError(null);
+    setSuppressionError(null);
+    setSendError(null);
+    setApprovalSuccessBanner(false);
+    setSaveStatusText('');
+
+    try {
+      const data = await fetchOutreachById(id);
+      setOutreachData(data);
+      setSubject(data.subject || '');
+      setBodyText(data.message || '');
+      setExpectedUpdatedAt(data.updatedAt);
+      if (data.status === 'APPROVED') {
+        setApprovalSuccessBanner(true);
+      }
+      if (data.status === 'SENDING') {
+        setIsDispatching(true);
+        setIsPollingDispatch(true);
+      } else {
+        setIsDispatching(false);
+        setIsPollingDispatch(false);
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Failed to load outreach draft.';
+      setFetchError(msg);
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (isOpen && campaignContactId) {
+    if (isOpen && outreachId) {
+      void loadOutreachDetails(outreachId);
+    } else if (isOpen && campaignContactId) {
       void loadContactDetails(campaignContactId);
     } else if (!isOpen) {
       setContactDetails(null);
+      setOutreachData(null);
       setSubject('');
       setBodyText('');
       setExpectedUpdatedAt(undefined);
@@ -169,7 +216,7 @@ export function OutreachReviewDrawer({
       setIsPollingDispatch(false);
       setSendError(null);
     }
-  }, [isOpen, campaignContactId, loadContactDetails]);
+  }, [isOpen, outreachId, campaignContactId, loadOutreachDetails, loadContactDetails]);
 
   // Serialized & Coalesced Autosave on Blur
   const executeAutosave = useCallback(
@@ -178,6 +225,47 @@ export function OutreachReviewDrawer({
       saveBody: string,
       concurrencyToken?: string,
     ) => {
+      if (outreachId) {
+        if (outreachData && outreachData.status !== 'DRAFT') return;
+        isAutosavingRef.current = true;
+        setIsAutosaving(true);
+        setSaveStatusText('Saving changes...');
+        setConcurrencyError(null);
+
+        try {
+          const res = await updateOutreach(outreachId, {
+            subject: saveSubject.trim() ? saveSubject : undefined,
+            message: saveBody.trim() ? saveBody : undefined,
+            expectedUpdatedAt: concurrencyToken,
+          });
+          setExpectedUpdatedAt(res.updatedAt);
+          setOutreachData(res);
+          setSaveStatusText('All changes saved');
+          setAriaAnnouncement('Changes saved.');
+        } catch (err: unknown) {
+          if (err instanceof ApiError && err.statusCode === 409) {
+            setConcurrencyError(
+              'A newer version of this draft was updated in another session. Your local edits have been preserved.',
+            );
+            setAriaAnnouncement('Conflict detected: draft was updated in another session.');
+          } else {
+            const msg = err instanceof Error ? err.message : 'Failed to save changes.';
+            setConcurrencyError(msg);
+            setAriaAnnouncement(`Autosave failed: ${msg}`);
+          }
+          setSaveStatusText('Save failed');
+        } finally {
+          isAutosavingRef.current = false;
+          setIsAutosaving(false);
+          if (pendingSaveRef.current) {
+            const next = pendingSaveRef.current;
+            pendingSaveRef.current = null;
+            void executeAutosave(next.subject, next.bodyText, expectedUpdatedAt);
+          }
+        }
+        return;
+      }
+
       if (!campaignContactId) return;
 
       isAutosavingRef.current = true;
@@ -236,12 +324,12 @@ export function OutreachReviewDrawer({
         }
       }
     },
-    [campaignContactId, expectedUpdatedAt],
+    [outreachId, outreachData, campaignContactId, expectedUpdatedAt],
   );
 
   const handleBlur = () => {
-    // Only autosave if we have a valid contact and changes aren't blank
-    if (!campaignContactId) return;
+    // Only autosave if we have a valid contact or outreach
+    if (!campaignContactId && !outreachId) return;
 
     if (isAutosavingRef.current) {
       // Queue latest changes for coalesced save
@@ -350,12 +438,50 @@ export function OutreachReviewDrawer({
 
   // Approval Action (BL-012)
   const handleApprove = async () => {
-    if (!campaignContactId || isAutosaving || isApproving) return;
+    if ((!campaignContactId && !outreachId) || isAutosaving || isApproving) return;
 
     setIsApproving(true);
     setSuppressionError(null);
     setConcurrencyError(null);
     setAriaAnnouncement('Approving outreach draft...');
+
+    if (outreachId) {
+      try {
+        const res = await approveOutreach(
+          outreachId,
+          expectedUpdatedAt ? { expectedUpdatedAt } : undefined,
+        );
+        setExpectedUpdatedAt(res.updatedAt);
+        setOutreachData(res);
+        setApprovalSuccessBanner(true);
+        setAriaAnnouncement('Outreach draft approved and staged for dispatch.');
+      } catch (err: unknown) {
+        if (err instanceof ApiError && err.statusCode === 409) {
+          if (
+            err.message.toLowerCase().includes('suppress') ||
+            err.code === 'RECIPIENT_SUPPRESSED'
+          ) {
+            setSuppressionError('Recipient email is suppressed. Cannot approve.');
+            setAriaAnnouncement('Approval blocked: recipient email is suppressed.');
+          } else {
+            setConcurrencyError(
+              'Concurrent update detected; draft was modified. Approval aborted.',
+            );
+            setAriaAnnouncement('Approval aborted due to concurrent update.');
+          }
+        } else {
+          const msg =
+            err instanceof Error ? err.message : 'Failed to approve outreach draft.';
+          setSuppressionError(msg);
+          setAriaAnnouncement(`Approval failed: ${msg}`);
+        }
+      } finally {
+        setIsApproving(false);
+      }
+      return;
+    }
+
+    if (!campaignContactId) return;
 
     try {
       const input: ApproveDraftInput = {
@@ -419,6 +545,11 @@ export function OutreachReviewDrawer({
   }, []);
 
   const handleSendNowClick = useCallback(() => {
+    if (outreachData) {
+      setShowConfirmModal(true);
+      return;
+    }
+
     if (!contactDetails || contactDetails.status !== 'READY') return;
 
     const key = getPreferenceStorageKey();
@@ -430,7 +561,7 @@ export function OutreachReviewDrawer({
     } else {
       setShowConfirmModal(true);
     }
-  }, [contactDetails, getPreferenceStorageKey, startPreDispatchHold]);
+  }, [outreachData, contactDetails, getPreferenceStorageKey, startPreDispatchHold]);
 
   const handleConfirmModalSubmit = useCallback(
     (dontAskAgain: boolean) => {
@@ -451,7 +582,28 @@ export function OutreachReviewDrawer({
   }, []);
 
   const handleExecuteSend = useCallback(async () => {
-    if (!campaignContactId || !activeSendIdempotencyKey) return;
+    if (!activeSendIdempotencyKey) return;
+
+    if (outreachId) {
+      setIsPreDispatchHoldActive(false);
+      setIsDispatching(true);
+      setSendError(null);
+      setAriaAnnouncement('Dispatching outreach email...');
+
+      try {
+        await sendOutreach(outreachId, activeSendIdempotencyKey);
+        const updated = await fetchOutreachById(outreachId);
+        setOutreachData(updated);
+        setAriaAnnouncement('Email dispatched successfully.');
+      } catch (err: unknown) {
+        setSendError(err instanceof Error ? err.message : 'Failed to dispatch email.');
+      } finally {
+        setIsDispatching(false);
+      }
+      return;
+    }
+
+    if (!campaignContactId) return;
 
     setIsPreDispatchHoldActive(false);
     setIsDispatching(true);
@@ -699,10 +851,28 @@ export function OutreachReviewDrawer({
                 className="text-sm font-bold text-slate-900 truncate"
                 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
               >
-                {contactDetails?.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : 'Contact Outreach'}
+                {contactDetails?.person
+                  ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}`
+                  : outreachData
+                    ? (outreachData.subject || 'Direct Outreach Draft')
+                    : 'Contact Outreach'}
               </h2>
-              {/* Status Badge (CampaignContact.status is primary authority) */}
-              {isGenerating ? (
+              {/* Badges */}
+              {outreachData ? (
+                <>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-300">
+                    {outreachData.contentSource}
+                  </span>
+                  {outreachData.aiGenerationStatus && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+                      {outreachData.aiGenerationStatus}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {outreachData.status}
+                  </span>
+                </>
+              ) : isGenerating ? (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-300 animate-pulse">
                   Generating Draft...
                 </span>
@@ -813,8 +983,20 @@ export function OutreachReviewDrawer({
             </div>
           )}
 
-          {!isLoadingDetails && !fetchError && contactDetails && (
+          {!isLoadingDetails && !fetchError && (contactDetails || outreachData) && (
             <>
+
+
+              {outreachData?.aiGenerationStatus === 'PENDING' && (
+                <div
+                  role="status"
+                  className="p-4 bg-sky-50 border border-sky-200 rounded-none text-xs text-sky-900 flex items-center gap-2"
+                >
+                  <span className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin" />
+                  <span>AI generation in progress...</span>
+                </div>
+              )}
+
               {/* 1. MANDATORY NOTICE BANNER (AI Assisted — Review Required) */}
               <div
                 role="note"
@@ -892,7 +1074,7 @@ export function OutreachReviewDrawer({
               {currentStatus === 'SENT' && (
                 <div
                   role="status"
-                  className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-none-none text-xs text-emerald-900 space-y-1"
+                  className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-none text-xs text-emerald-900 space-y-1"
                 >
                   <div className="flex items-center space-x-1.5 font-bold text-emerald-950">
                     <span>&#10003;</span>
@@ -900,7 +1082,7 @@ export function OutreachReviewDrawer({
                   </div>
                   <p className="text-[11px] text-emerald-800">
                     Dispatched successfully
-                    {contactDetails.latestEmailSend?.sentAt
+                    {contactDetails?.latestEmailSend?.sentAt
                       ? ` at ${new Date(
                         contactDetails.latestEmailSend.sentAt,
                       ).toLocaleTimeString()}`
@@ -914,115 +1096,128 @@ export function OutreachReviewDrawer({
               {currentStatus === 'FAILED' && (
                 <div
                   role="alert"
-                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none-none text-xs text-rose-900 space-y-1"
+                  className="p-3.5 bg-rose-50 border border-rose-300 rounded-none text-xs text-rose-900 space-y-1"
                 >
                   <div className="flex items-center space-x-1.5 font-bold text-rose-950">
                     <span>&#9888;</span>
                     <span>Outreach Dispatch Failed</span>
                   </div>
                   <p className="text-[11px] text-rose-800">
-                    {contactDetails.latestEmailSend?.errorMessage ||
+                    {contactDetails?.latestEmailSend?.errorMessage ||
                       'Delivery provider reported a terminal dispatch failure.'}
                   </p>
                 </div>
               )}
 
               {/* 2. EVIDENTIARY BASIS & OUTREACH REASON CARD */}
-              <section
-                aria-labelledby="evidentiary-basis-heading"
-                className="bg-slate-50 border border-slate-200 rounded-none-none p-4 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <h3
-                    id="evidentiary-basis-heading"
-                    className="text-xs font-bold uppercase tracking-wider text-slate-900"
-                  >
-                    Outreach Context & Evidence
-                  </h3>
-                  {contactDetails.selectedOpportunity && (
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase ${contactDetails.selectedOpportunity.opportunityType ===
-                        'CONFIRMED'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-sky-100 text-sky-800 border border-sky-300'
-                        }`}
+              {(contactDetails || outreachData?.outreachReason || outreachData?.aiPromptContext) && (
+                <section
+                  aria-labelledby="evidentiary-basis-heading"
+                  className="bg-slate-50 border border-slate-200 rounded-none p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3
+                      id="evidentiary-basis-heading"
+                      className="text-xs font-bold uppercase tracking-wider text-slate-900"
                     >
-                      {contactDetails.selectedOpportunity.opportunityType}:{' '}
-                      {contactDetails.selectedOpportunity.roleTitle}
-                    </span>
-                  )}
-                </div>
-
-                {contactDetails.outreachReason && (
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                      Deterministic Outreach Reason:
-                    </span>
-                    <p className="text-xs text-slate-800 bg-slate-50 p-2.5 rounded-none border border-slate-200 leading-relaxed font-medium">
-                      "{contactDetails.outreachReason}"
-                    </p>
-                  </div>
-                )}
-
-                {/* Evidence Claims Accordion (collapsible on mobile) */}
-                {contactDetails.evidence && contactDetails.evidence.length > 0 && (
-                  <div className="space-y-2 pt-1 border-t border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                        Dossier Citations ({contactDetails.evidence.length})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setIsMobileEvidenceExpanded((prev) => !prev)
-                        }
-                        className="text-[11px] font-bold text-slate-700 hover:text-slate-900 focus:outline-none"
+                      Outreach Context & Evidence
+                    </h3>
+                    {contactDetails?.selectedOpportunity && (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold uppercase ${contactDetails.selectedOpportunity.opportunityType ===
+                          'CONFIRMED'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-sky-100 text-sky-800 border border-sky-300'
+                          }`}
                       >
-                        {isMobileEvidenceExpanded ? 'Collapse ▲' : 'Expand ▼'}
-                      </button>
-                    </div>
-
-                    {isMobileEvidenceExpanded && (
-                      <div className="space-y-2 pt-1">
-                        {contactDetails.evidence.map((ev) => (
-                          <div
-                            key={ev.id}
-                            className="bg-slate-50 p-2.5 rounded-none border border-slate-200 text-xs space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <span
-                                className={`px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider ${ev.classification === 'FACT'
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
-                                  }`}
-                              >
-                                {ev.classification}
-                              </span>
-                              <span className="font-semibold text-slate-900 truncate">
-                                {ev.sourceName || 'Dossier Source'}
-                              </span>
-                            </div>
-                            <p className="text-slate-700 text-[11px] leading-relaxed">
-                              {ev.claim}
-                            </p>
-                            {ev.sourceUrl && (
-                              <a
-                                href={ev.sourceUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[10px] text-slate-600 hover:underline font-semibold inline-flex items-center gap-0.5"
-                              >
-                                <span>Source link</span>
-                                <span aria-hidden="true">&#8599;</span>
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                        {contactDetails.selectedOpportunity.opportunityType}:{' '}
+                        {contactDetails.selectedOpportunity.roleTitle}
+                      </span>
                     )}
                   </div>
-                )}
-              </section>
+
+                  {(contactDetails?.outreachReason || outreachData?.outreachReason) && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        Deterministic Outreach Reason:
+                      </span>
+                      <p className="text-xs text-slate-800 bg-slate-50 p-2.5 rounded-none border border-slate-200 leading-relaxed font-medium">
+                        "{contactDetails?.outreachReason || outreachData?.outreachReason}"
+                      </p>
+                    </div>
+                  )}
+
+                  {outreachData?.aiPromptContext && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        AI Prompt Context:
+                      </span>
+                      <p className="text-xs text-slate-800 bg-slate-50 p-2.5 rounded-none border border-slate-200 leading-relaxed font-mono text-[11px]">
+                        {outreachData.aiPromptContext}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Evidence Claims Accordion (collapsible on mobile) */}
+                  {contactDetails?.evidence && contactDetails.evidence.length > 0 && (
+                    <div className="space-y-2 pt-1 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                          Dossier Citations ({contactDetails.evidence.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setIsMobileEvidenceExpanded((prev) => !prev)
+                          }
+                          className="text-[11px] font-bold text-slate-700 hover:text-slate-900 focus:outline-none"
+                        >
+                          {isMobileEvidenceExpanded ? 'Collapse ▲' : 'Expand ▼'}
+                        </button>
+                      </div>
+
+                      {isMobileEvidenceExpanded && (
+                        <div className="space-y-2 pt-1">
+                          {contactDetails.evidence.map((ev) => (
+                            <div
+                              key={ev.id}
+                              className="bg-slate-50 p-2.5 rounded-none border border-slate-200 text-xs space-y-1"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded-none text-[9px] font-bold uppercase tracking-wider ${ev.classification === 'FACT'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    }`}
+                                >
+                                  {ev.classification}
+                                </span>
+                                <span className="font-semibold text-slate-900 truncate">
+                                  {ev.sourceName || 'Dossier Source'}
+                                </span>
+                              </div>
+                              <p className="text-slate-700 text-[11px] leading-relaxed">
+                                {ev.claim}
+                              </p>
+                              {ev.sourceUrl && (
+                                <a
+                                  href={ev.sourceUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-slate-600 hover:underline font-semibold inline-flex items-center gap-0.5"
+                                >
+                                  <span>Source link</span>
+                                  <span aria-hidden="true">&#8599;</span>
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* 3. ASYNCHRONOUS GENERATION & PULSE SKELETON */}
               {isGenerating && (
@@ -1126,7 +1321,7 @@ export function OutreachReviewDrawer({
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       onBlur={handleBlur}
-                      disabled={isOperationLocked || currentStatus !== 'PENDING'}
+                      disabled={isOperationLocked || (outreachData ? outreachData.status !== 'DRAFT' : currentStatus !== 'PENDING')}
                       placeholder="e.g. Acme platform scaling & lead architect role"
                       className={`w-full px-3 py-2 text-base sm:text-xs rounded-none-none border -xs  focus:outline-none focus:ring-2 ${isSubjectTooLong || isSubjectTooShort
                         ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
@@ -1173,7 +1368,7 @@ export function OutreachReviewDrawer({
                       value={bodyText}
                       onChange={(e) => setBodyText(e.target.value)}
                       onBlur={handleBlur}
-                      disabled={isOperationLocked || currentStatus !== 'PENDING'}
+                      disabled={isOperationLocked || (outreachData ? outreachData.status !== 'DRAFT' : currentStatus !== 'PENDING')}
                       placeholder="Hi Sarah,\n\nI noticed Acme is scaling its distributed architecture..."
                       className={`w-full p-3 text-base sm:text-xs rounded-none-none border -xs  leading-relaxed focus:outline-none focus:ring-2 ${isBodyTooLong || isBodyTooShort
                         ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
@@ -1226,6 +1421,25 @@ export function OutreachReviewDrawer({
               onCancel={handleCancelSend}
               onComplete={handleExecuteSend}
             />
+          ) : outreachData ? (
+            <div className="flex items-center justify-end w-full space-x-2">
+              {(outreachData.status === 'DRAFT' || outreachData.status === 'APPROVED') && (
+                <button
+                  type="button"
+                  onClick={handleSendNowClick}
+                  disabled={isOperationLocked || isDispatching}
+                  className="min-h-12 sm:min-h-11 px-5 py-2 text-xs font-bold rounded-none bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                  style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
+                >
+                  Send Now
+                </button>
+              )}
+              {outreachData.status === 'SENDING' && (
+                <span className="min-h-12 sm:min-h-11 px-4 py-2 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 rounded-none inline-flex items-center justify-center">
+                  Sending...
+                </span>
+              )}
+            </div>
           ) : (
             <>
               <div className="flex items-center space-x-2">
@@ -1296,15 +1510,15 @@ export function OutreachReviewDrawer({
       </div>
 
       {/* Send Confirmation Modal */}
-      {contactDetails && (
+      {(contactDetails || outreachData) && (
         <SendConfirmationModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
           onConfirm={handleConfirmModalSubmit}
-          contactName={contactDetails.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : 'Contact'}
-          contactTitle={contactDetails.person?.title}
+          contactName={contactDetails?.person ? `${contactDetails.person.firstName} ${contactDetails.person.lastName}` : (outreachData?.subject || 'Contact')}
+          contactTitle={contactDetails?.person?.title}
           companyName={companyName}
-          recipientEmail={contactDetails.person?.email || ''}
+          recipientEmail={contactDetails?.person?.email || 'contact@example.com'}
           subject={subject}
           bodyPreview={bodyText}
         />

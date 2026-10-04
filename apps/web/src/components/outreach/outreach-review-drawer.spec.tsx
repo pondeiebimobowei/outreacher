@@ -953,5 +953,145 @@ describe('OutreachReviewDrawer', () => {
       jest.useRealTimers();
     });
   });
+
+  describe('OutreachReviewDrawer - Modern Outreach Domain Contract', () => {
+    const mockOutreachAI: outreachApi.OutreachDto = {
+      id: 'out-1',
+      workspaceId: 'ws-1',
+      personCompanyAssociationId: 'pca-1',
+      campaignRecipientId: null,
+      senderAccountId: 'snd-1',
+      contentSource: 'AI',
+      templateId: null,
+      aiPromptContext: 'Target engineering director with focus on latency improvements',
+      aiGenerationStatus: 'SUCCEEDED',
+      draftVersion: 1,
+      subject: 'Regarding distributed cache performance',
+      message: 'Hi Alex, I saw your recent engineering post on cache coherency and wanted to connect...',
+      outreachReason: 'Engineering leadership for high throughput pipelines',
+      status: 'DRAFT',
+      maxFollowUps: 2,
+      createdAt: '2026-10-02T10:00:00Z',
+      updatedAt: '2026-10-02T10:00:00Z',
+    };
+
+    it('fetches OutreachDto from GET /outreaches/:id and displays contentSource and aiGenerationStatus badges', async () => {
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await waitFor(() => {
+        expect(outreachApi.fetchOutreachById).toHaveBeenCalledWith('out-1');
+      });
+
+      expect(await screen.findByText('Regarding distributed cache performance')).toBeInTheDocument();
+      expect(screen.getByText('AI')).toBeInTheDocument();
+      expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
+      expect(
+        screen.getByText('Target engineering director with focus on latency improvements'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows polling spinner and draft status when aiGenerationStatus is PENDING', async () => {
+      const pendingOutreach: outreachApi.OutreachDto = {
+        ...mockOutreachAI,
+        aiGenerationStatus: 'PENDING',
+        subject: '',
+        message: '',
+      };
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pendingOutreach);
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      expect(await screen.findByText('PENDING')).toBeInTheDocument();
+      expect(screen.getByText(/AI generation in progress/i)).toBeInTheDocument();
+    });
+
+    it('allows editing draft only when status is DRAFT and updates via updateOutreach', async () => {
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
+      (outreachApi.updateOutreach as jest.Mock).mockResolvedValue({
+        ...mockOutreachAI,
+        subject: 'Updated Distributed Cache Subject',
+      });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByDisplayValue('Regarding distributed cache performance');
+
+      const subjectInput = screen.getByLabelText(/Subject/i);
+      fireEvent.change(subjectInput, {
+        target: { value: 'Updated Distributed Cache Subject' },
+      });
+      fireEvent.blur(subjectInput);
+
+      await waitFor(() => {
+        expect(outreachApi.updateOutreach).toHaveBeenCalledWith('out-1', {
+          subject: 'Updated Distributed Cache Subject',
+          message: mockOutreachAI.message,
+          expectedUpdatedAt: mockOutreachAI.updatedAt,
+        });
+      });
+    });
+
+    it('dispatches send via sendOutreach with Idempotency-Key header', async () => {
+      jest.useFakeTimers();
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
+      (outreachApi.sendOutreach as jest.Mock).mockResolvedValue({ message: 'Dispatched' });
+
+      render(
+        <OutreachReviewDrawer
+          isOpen={true}
+          onClose={jest.fn()}
+          outreachId="out-1"
+          companyName="Acme Corp"
+        />,
+      );
+
+      await screen.findByDisplayValue('Regarding distributed cache performance');
+
+      const sendBtn = screen.getByRole('button', { name: /Send Now/i });
+      fireEvent.click(sendBtn);
+
+      // Confirm modal
+      const confirmBtn = screen.getByRole('button', { name: /Confirm & Send/i });
+      fireEvent.click(confirmBtn);
+
+      expect(screen.getByTestId('pre-dispatch-hold')).toBeInTheDocument();
+
+      await act(async () => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(outreachApi.sendOutreach).toHaveBeenCalledWith('out-1', expect.any(String));
+      const [calledId, calledKey] = (outreachApi.sendOutreach as jest.Mock).mock.calls[0];
+      expect(calledId).toBe('out-1');
+      expect(calledKey).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
+
+      jest.useRealTimers();
+    });
+  });
 });
 

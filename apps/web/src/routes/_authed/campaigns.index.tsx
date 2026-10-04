@@ -183,7 +183,7 @@ function CampaignsIndexComponent() {
               <CampaignCard
                 key={c.id}
                 campaign={c}
-                company={companies?.find((comp) => comp.id === c.companyId)}
+                company={c.companyId ? companies?.find((comp) => comp.id === c.companyId) : undefined}
                 onClick={() => navigate({ to: '/campaigns/$campaignId/review', params: { campaignId: c.id } })}
                 onPause={() => pauseMutation.mutate(c.id)}
                 onResume={() => resumeMutation.mutate(c.id)}

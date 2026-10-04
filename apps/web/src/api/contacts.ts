@@ -56,3 +56,14 @@ export async function createCompanyContact(
 ): Promise<EvaluatedPersonDto> {
   return apiClient.post<EvaluatedPersonDto>(`/companies/${companyId}/contacts`, input);
 }
+
+export async function suppressContact(
+  contactId: string,
+  input?: { reason?: string; notes?: string },
+): Promise<void> {
+  return apiClient.post<void>(`/contacts/${contactId}/suppress`, input ?? {});
+}
+
+export async function unsuppressContact(contactId: string): Promise<void> {
+  return apiClient.post<void>(`/contacts/${contactId}/unsuppress`);
+}

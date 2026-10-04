@@ -28,12 +28,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const canonicalDraft: CampaignDto = {
         id: 'camp-draft',
         workspaceId: 'ws-1',
-        companyId: 'comp-10',
         name: 'Outreach — Acme Technologies',
         status: 'DRAFT',
-        senderAccountId: '',
+        contentSource: 'TEMPLATE',
         templateId: '',
-        normalizedName: '',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 4,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -52,12 +53,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const unrelatedActive: CampaignDto = {
         id: 'camp-unrelated',
         workspaceId: 'ws-1',
-        companyId: 'comp-10',
         name: 'Backend Outreach - September',
         status: 'ACTIVE',
-        normalizedName: 'Backend Outreach - September',
+        contentSource: 'TEMPLATE',
         templateId: 'template-1',
-        senderAccountId: '',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 3,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -75,12 +77,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const canonicalDraft: CampaignDto = {
         id: 'camp-dedup',
         workspaceId: 'ws-1',
-        companyId: 'comp-race',
         name: 'Outreach — Concurrent Inc',
         status: 'DRAFT',
-        senderAccountId: '',
+        contentSource: 'TEMPLATE',
         templateId: '',
-        normalizedName: 'Outreach — Concurrent Inc',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 4,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -111,12 +114,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const canonicalA: CampaignDto = {
         id: 'camp-1',
         workspaceId: 'ws-1',
-        companyId: 'comp-lifecycle',
         name: 'Outreach — Lifecycle Corp',
         status: 'DRAFT',
-        senderAccountId: '',
+        contentSource: 'TEMPLATE',
         templateId: '',
-        normalizedName: 'Outreach — Lifecycle Corp',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 4,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -153,12 +157,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const canonical: CampaignDto = {
         id: 'camp-recovered',
         workspaceId: 'ws-1',
-        companyId: 'comp-err',
         name: 'Outreach — Error Corp',
         status: 'ACTIVE',
-        senderAccountId: '',
+        contentSource: 'TEMPLATE',
         templateId: '',
-        normalizedName: 'Outreach — Error Corp',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 4,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -175,12 +180,13 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
       const existingWithHyphen: CampaignDto = {
         id: 'camp-hyphen',
         workspaceId: 'ws-1',
-        companyId: 'comp-dash',
         name: 'Outreach - Dash Corp', // hyphen instead of em dash
         status: 'DRAFT',
-        senderAccountId: '',
+        contentSource: 'TEMPLATE',
         templateId: '',
-        normalizedName: 'Outreach - Dash Corp',
+        aiPromptContext: null,
+        senderAccountIds: [],
+        maxFollowUps: 2,
         followUpDelayBusinessDays: 4,
         createdAt: '2026-09-18T00:00:00Z',
         updatedAt: '2026-09-18T00:00:00Z',
@@ -237,13 +243,17 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
 
     it('createCampaign calls POST /campaigns with payload', async () => {
       mockPost.mockResolvedValue({ id: 'c-1' });
-      await createCampaign({ companyId: 'comp-1', name: 'New Campaign', senderAccountId: 'acc-1', templateId: 'tpl-1', status: 'DRAFT' });
-      expect(mockPost).toHaveBeenCalledWith('/campaigns', {
-        companyId: 'comp-1',
+      await createCampaign({
         name: 'New Campaign',
-        senderAccountId: 'acc-1',
+        contentSource: 'TEMPLATE',
         templateId: 'tpl-1',
-        status: 'DRAFT',
+        senderAccountIds: ['acc-1'],
+      });
+      expect(mockPost).toHaveBeenCalledWith('/campaigns', {
+        name: 'New Campaign',
+        contentSource: 'TEMPLATE',
+        templateId: 'tpl-1',
+        senderAccountIds: ['acc-1'],
       });
     });
   });
