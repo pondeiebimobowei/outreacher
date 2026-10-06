@@ -12,6 +12,7 @@ describe('SetTemplateStepsUseCase', () => {
     prisma = {
       $transaction: jest.fn().mockImplementation(async (cb) => cb(prisma)),
       $executeRaw: jest.fn().mockResolvedValue(1),
+      $queryRaw: jest.fn().mockResolvedValue([]),
       emailTemplate: {
         findFirst: jest.fn(),
         update: jest.fn(),

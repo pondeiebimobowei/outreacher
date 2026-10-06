@@ -35,7 +35,15 @@ export class SetTemplateStepsUseCase {
     const newSeqSet = new Set(dto.steps.map((s) => s.sequence));
 
     return this.prisma.$transaction(async (tx: any) => {
-      // Lock template row
+      // Lock template row in PostgreSQL
+      if (typeof tx.$queryRaw === 'function') {
+        await tx.$queryRaw`
+          SELECT id FROM email_templates
+          WHERE id = ${templateId} AND workspace_id = ${workspaceId}
+          FOR UPDATE
+        `;
+      }
+
       const template = await tx.emailTemplate.findFirst({
         where: {
           id: templateId,

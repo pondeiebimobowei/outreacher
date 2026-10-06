@@ -14,6 +14,7 @@ import {
   cleanTestDatabase,
   setupTestDatabase,
   teardownTestDatabase,
+  getTestPgPool,
 } from '../helpers/db-test-harness';
 import { PrismaService } from '../../src/database/prisma.service';
 import { CreateOutreachUseCase } from '../../src/modules/outreach/application/create-outreach.use-case';
@@ -29,10 +30,14 @@ import { CreateTemplateUseCase } from '../../src/modules/template/application/cr
 import { SetTemplateStepsUseCase } from '../../src/modules/template/application/set-template-steps.use-case';
 import { DeleteTemplateUseCase } from '../../src/modules/template/application/delete-template.use-case';
 import { MarkContactRepliedUseCase } from '../../src/modules/email/application/mark-contact-replied.use-case';
-import { AppConflictException } from '../../src/common/errors/application.exception';
+import {
+  AppConflictException,
+  AppUnprocessableEntityException,
+} from '../../src/common/errors/application.exception';
 import { randomUUID } from 'crypto';
 
 jest.unmock('@repo/db');
+jest.setTimeout(30000);
 
 describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL Integration)', () => {
   let prisma: PrismaClient;
@@ -620,5 +625,378 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
       where: { id: recipient.id },
     });
     expect(updatedRecipient.status).toBe(CampaignRecipientStatus.COMPLETED);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 7. Same CampaignRecipient Concurrency (Gap 1)
+  // ─────────────────────────────────────────────────────────────────────────────
+  it('7. Handles concurrent operations on same CampaignRecipient: prevents duplicate Outreach/EmailSend, enforces lifecycle and campaign eligibility', async () => {
+    const sender = await seedSenderAccount(currentWorkspaceId);
+    const { pca } = await seedContact(
+      currentWorkspaceId,
+      'samerecipient@load.test',
+      'Same Recipient Co',
+      'Same',
+      'Recipient',
+    );
+
+    const template = await createTemplateUseCase.execute(currentWorkspaceId, {
+      name: 'Recipient Concurrency Template',
+      steps: [
+        {
+          sequence: 0,
+          subjectTemplate: 'Hello {{contact.firstName}}',
+          bodyTemplate: 'Step 0 body for {{company.name}}',
+        },
+      ],
+    });
+
+    const campaign = await prisma.campaign.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        name: 'Recipient Concurrency Campaign',
+        status: CampaignStatus.ACTIVE,
+        contentSource: 'TEMPLATE',
+        templateId: template.id,
+        maxFollowUps: 0,
+        campaignSenderAccounts: {
+          create: [{ senderAccountId: sender.id }],
+        },
+      },
+    });
+
+    const recipient = await prisma.campaignRecipient.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaign.id,
+        personCompanyAssociationId: pca.id,
+        status: CampaignRecipientStatus.PENDING,
+      },
+    });
+
+    // Phase A: Concurrent Outreach Creation against same CampaignRecipient
+    const createResults = await Promise.allSettled([
+      createOutreachUseCase.execute(
+        currentWorkspaceId,
+        {
+          campaignRecipientId: recipient.id,
+          personCompanyAssociationId: pca.id,
+        },
+        'create-key-1',
+      ),
+      createOutreachUseCase.execute(
+        currentWorkspaceId,
+        {
+          campaignRecipientId: recipient.id,
+          personCompanyAssociationId: pca.id,
+        },
+        'create-key-2',
+      ),
+    ]);
+
+    const createdFulfilled = createResults.filter((r) => r.status === 'fulfilled');
+    const createdRejected = createResults.filter((r) => r.status === 'rejected');
+
+    // Exactly 1 creates the Outreach, second is rejected with 409 AppConflictException
+    expect(createdFulfilled).toHaveLength(1);
+    expect(createdRejected).toHaveLength(1);
+
+    const rejectionReason = (createdRejected[0] as PromiseRejectedResult).reason;
+    expect(
+      rejectionReason instanceof AppConflictException ||
+        (rejectionReason as any)?.code === 'P2002',
+    ).toBe(true);
+
+    // Exactly 1 Outreach row in PostgreSQL
+    const outreachCount = await prisma.outreach.count({
+      where: { campaignRecipientId: recipient.id },
+    });
+    expect(outreachCount).toBe(1);
+
+    const winningOutreach = (createdFulfilled[0] as PromiseFulfilledResult<any>).value;
+
+    // Approve the outreach draft
+    await approveDraftUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: winningOutreach.id,
+    });
+
+    // Phase B: Concurrent Send against same CampaignRecipient's Outreach
+    const sendResults = await Promise.allSettled([
+      sendOutreachUseCase.execute({
+        workspaceId: currentWorkspaceId,
+        outreachId: winningOutreach.id,
+        idempotencyKey: 'send-key-1',
+      }),
+      sendOutreachUseCase.execute({
+        workspaceId: currentWorkspaceId,
+        outreachId: winningOutreach.id,
+        idempotencyKey: 'send-key-2',
+      }),
+    ]);
+
+    const sendFulfilled = sendResults.filter((r) => r.status === 'fulfilled');
+    const sendRejected = sendResults.filter((r) => r.status === 'rejected');
+
+    // Exactly 1 send reservation succeeds, 1 fails
+    expect(sendFulfilled).toHaveLength(1);
+    expect(sendRejected).toHaveLength(1);
+
+    const sendRejection = (sendRejected[0] as PromiseRejectedResult).reason;
+    expect(sendRejection).toBeInstanceOf(AppConflictException);
+
+    // Verification of final database state:
+    // 1. Recipient lifecycle status strictly ACTIVE (not corrupted or completed prematurely)
+    const finalRecipient = await prisma.campaignRecipient.findUniqueOrThrow({
+      where: { id: recipient.id },
+    });
+    expect(finalRecipient.status).toBe(CampaignRecipientStatus.ACTIVE);
+
+    // 2. Exactly 1 EmailSend record (sequence 0)
+    const sendRecords = await prisma.emailSend.findMany({
+      where: { outreachId: winningOutreach.id },
+    });
+    expect(sendRecords).toHaveLength(1);
+    expect(sendRecords[0].sequence).toBe(0);
+    expect(sendRecords[0].status).toBe(EmailSendStatus.RESERVED);
+
+    // 3. Exactly 1 EMAIL_DISPATCH job (0 conflicting sends)
+    const dispatchJobs = await prisma.job.findMany({
+      where: {
+        workspaceId: currentWorkspaceId,
+        type: 'EMAIL_DISPATCH',
+      },
+    });
+    expect(dispatchJobs).toHaveLength(1);
+
+    // 4. Outreach status is SENDING
+    const finalOutreach = await prisma.outreach.findUniqueOrThrow({
+      where: { id: winningOutreach.id },
+    });
+    expect(finalOutreach.status).toBe(OutreachStatus.SENDING);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 8. Same PCA Concurrency & Conversation State Invariants (Gap 2)
+  // ─────────────────────────────────────────────────────────────────────────────
+  it('8. Enforces PCA conversation-state invariants: REPLIED/STOPPED cannot be bypassed, and concurrent sends do not advance stateVersion twice', async () => {
+    const sender = await seedSenderAccount(currentWorkspaceId);
+
+    // Part A: REPLIED cannot be bypassed by concurrent send (throws 409 AppConflictException)
+    const { pca: pcaReplied } = await seedContact(
+      currentWorkspaceId,
+      'replied.guard@domain.test',
+      'Replied Guard Co',
+      'Rep',
+      'Guard',
+    );
+    await prisma.personCompanyAssociation.update({
+      where: { id: pcaReplied.id },
+      data: { conversationState: ConversationState.REPLIED, stateVersion: 1 },
+    });
+
+    const campaignA = await prisma.campaign.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        name: 'Replied Guard Campaign',
+        status: CampaignStatus.ACTIVE,
+        maxFollowUps: 0,
+        campaignSenderAccounts: { create: [{ senderAccountId: sender.id }] },
+      },
+    });
+
+    const recipientA = await prisma.campaignRecipient.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaignA.id,
+        personCompanyAssociationId: pcaReplied.id,
+        status: CampaignRecipientStatus.PENDING,
+      },
+    });
+
+    const outreachA = await prisma.outreach.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        personCompanyAssociationId: pcaReplied.id,
+        campaignRecipientId: recipientA.id,
+        senderAccountId: sender.id,
+        contentSource: 'MANUAL',
+        subject: 'Bypass Attempt',
+        message: 'Body',
+        status: OutreachStatus.APPROVED,
+        maxFollowUps: 0,
+      },
+    });
+
+    await expect(
+      sendOutreachUseCase.execute({
+        workspaceId: currentWorkspaceId,
+        outreachId: outreachA.id,
+        idempotencyKey: randomUUID(),
+      }),
+    ).rejects.toThrow(AppConflictException);
+
+    // Part B: STOPPED cannot be bypassed by send (throws 422 AppUnprocessableEntityException)
+    const { pca: pcaStopped } = await seedContact(
+      currentWorkspaceId,
+      'stopped.guard@domain.test',
+      'Stopped Guard Co',
+      'Stop',
+      'Guard',
+    );
+    await prisma.personCompanyAssociation.update({
+      where: { id: pcaStopped.id },
+      data: { conversationState: ConversationState.STOPPED, stateVersion: 1 },
+    });
+
+    const outreachB = await prisma.outreach.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        personCompanyAssociationId: pcaStopped.id,
+        senderAccountId: sender.id,
+        contentSource: 'MANUAL',
+        subject: 'Stopped Send Attempt',
+        message: 'Body',
+        status: OutreachStatus.APPROVED,
+        maxFollowUps: 0,
+      },
+    });
+
+    await expect(
+      sendOutreachUseCase.execute({
+        workspaceId: currentWorkspaceId,
+        outreachId: outreachB.id,
+        idempotencyKey: randomUUID(),
+      }),
+    ).rejects.toThrow(AppUnprocessableEntityException);
+
+    // Part C: Multiple concurrent sends/dispatches cannot advance PCA stateVersion twice
+    const { pca: pcaConcurrent } = await seedContact(
+      currentWorkspaceId,
+      'cas.advance@domain.test',
+      'CAS Advance Co',
+      'Cas',
+      'Advance',
+    );
+
+    // Initial state: NO_REPLY, stateVersion = 0
+    expect(pcaConcurrent.conversationState).toBe(ConversationState.NO_REPLY);
+    expect(pcaConcurrent.stateVersion).toBe(0);
+
+    // Create 2 one-off outreaches on the same PCA
+    const outreach1 = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pcaConcurrent.id,
+        contentSource: 'MANUAL',
+        subject: 'CAS Outreach 1',
+        message: 'Body 1',
+        senderAccountId: sender.id,
+        maxFollowUps: 0,
+      },
+      randomUUID(),
+    );
+    const outreach2 = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pcaConcurrent.id,
+        contentSource: 'MANUAL',
+        subject: 'CAS Outreach 2',
+        message: 'Body 2',
+        senderAccountId: sender.id,
+        maxFollowUps: 0,
+      },
+      randomUUID(),
+    );
+
+    await approveDraftUseCase.execute({ workspaceId: currentWorkspaceId, outreachId: outreach1.id });
+    await approveDraftUseCase.execute({ workspaceId: currentWorkspaceId, outreachId: outreach2.id });
+
+    await sendOutreachUseCase.execute({ workspaceId: currentWorkspaceId, outreachId: outreach1.id, idempotencyKey: randomUUID() });
+    await sendOutreachUseCase.execute({ workspaceId: currentWorkspaceId, outreachId: outreach2.id, idempotencyKey: randomUUID() });
+
+    // Process dispatch job 1
+    const job1 = await dispatchWorker.claimNextJob();
+    expect(job1).not.toBeNull();
+    const result1 = await dispatchWorker.processJob(job1!);
+    expect(result1).toBe(true);
+
+    const pcaAfterFirstDispatch = await prisma.personCompanyAssociation.findUniqueOrThrow({
+      where: { id: pcaConcurrent.id },
+    });
+    // First dispatch advanced NO_REPLY -> ACTIVE (stateVersion 0 -> 1)
+    expect(pcaAfterFirstDispatch.conversationState).toBe(ConversationState.ACTIVE);
+    expect(pcaAfterFirstDispatch.stateVersion).toBe(1);
+
+    // Process dispatch job 2
+    const job2 = await dispatchWorker.claimNextJob();
+    expect(job2).not.toBeNull();
+    const result2 = await dispatchWorker.processJob(job2!);
+    expect(result2).toBe(true);
+
+    const pcaAfterSecondDispatch = await prisma.personCompanyAssociation.findUniqueOrThrow({
+      where: { id: pcaConcurrent.id },
+    });
+    // Second dispatch found PCA already ACTIVE -> stateVersion must NOT be incremented again!
+    expect(pcaAfterSecondDispatch.conversationState).toBe(ConversationState.ACTIVE);
+    expect(pcaAfterSecondDispatch.stateVersion).toBe(1);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 9. Template Mutation / Consumption Concurrency with PostgreSQL Locks (Gap 6)
+  // ─────────────────────────────────────────────────────────────────────────────
+  it('9. Overlaps template structural mutation with campaign consumption under PostgreSQL row locks: race cannot produce structurally invalid active campaign', async () => {
+    await seedSenderAccount(currentWorkspaceId);
+
+    const template = await createTemplateUseCase.execute(currentWorkspaceId, {
+      name: 'Locked Template Concurrency',
+      steps: [
+        { sequence: 0, subjectTemplate: 'Step 0: {{contact.firstName}}', bodyTemplate: 'Body 0' },
+        { sequence: 1, subjectTemplate: 'Step 1: {{contact.firstName}}', bodyTemplate: 'Body 1' },
+      ],
+    });
+
+    const pool = getTestPgPool();
+    const client = await pool.connect();
+    const campaignId = randomUUID();
+
+    try {
+      await client.query('BEGIN');
+
+      // Acquire exclusive row lock on the template row in PostgreSQL
+      await client.query('SELECT id FROM email_templates WHERE id = $1 FOR UPDATE', [template.id]);
+
+      // Insert active campaign inside transaction (same connection, no FK deadlock)
+      await client.query(
+        `INSERT INTO campaigns (id, workspace_id, name, status, content_source, template_id, max_follow_ups, updated_at) 
+         VALUES ($1, $2, $3, 'ACTIVE', 'TEMPLATE', $4, 1, NOW())`,
+        [campaignId, currentWorkspaceId, 'Concurrent Locked Campaign', template.id],
+      );
+
+      // Start concurrent mutation in background (blocks on SELECT ... FOR UPDATE in PostgreSQL)
+      const mutationPromise = setTemplateStepsUseCase.execute(currentWorkspaceId, template.id, {
+        steps: [{ sequence: 0, subjectTemplate: 'Modified Step 0', bodyTemplate: 'Body' }],
+      }).catch((err) => err);
+
+      // Brief delay to allow mutation query to queue behind the exclusive PostgreSQL lock
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Commit transaction, releasing the template lock
+      await client.query('COMMIT');
+
+      // The unblocked mutation executes its validation, finds the active campaign, and throws AppConflictException
+      const mutationError = await mutationPromise;
+      expect(mutationError).toBeInstanceOf(AppConflictException);
+    } finally {
+      client.release();
+    }
+
+    // Verify template steps in PostgreSQL remain structurally valid and intact (0 and 1 exist)
+    const steps = await prisma.emailTemplateStep.findMany({
+      where: { templateId: template.id },
+      orderBy: { sequence: 'asc' },
+    });
+    expect(steps).toHaveLength(2);
+    expect(steps.map((s) => s.sequence)).toEqual([0, 1]);
   });
 });

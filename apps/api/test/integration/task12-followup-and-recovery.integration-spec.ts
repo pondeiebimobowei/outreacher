@@ -9,6 +9,7 @@ import {
   IntegrationProvider,
   IntegrationStatus,
   SenderStatus,
+  ConversationState,
   Prisma,
 } from '@repo/db';
 import {
@@ -26,21 +27,38 @@ import { ScheduleFollowUpUseCase } from '../../src/modules/email/application/sch
 import { SendEligibilityService } from '../../src/modules/email/domain/send-eligibility.service';
 import { PrismaSuppressionChecker } from '../../src/modules/email/infrastructure/prisma-suppression-checker';
 import { TemplateEngineService } from '../../src/modules/template/domain/template-engine.service';
+import { SetTemplateStepsUseCase } from '../../src/modules/template/application/set-template-steps.use-case';
 import { EmailProviderRegistry } from '../../src/modules/email/infrastructure/email-provider.registry';
+import { AIProvider } from '../../src/modules/outreach/domain/ai-provider.interface';
 import { randomUUID } from 'crypto';
 
+function createBarrier(): { wait: () => Promise<void>; release: () => void } {
+  let resolve: () => void;
+  const promise = new Promise<void>((r) => {
+    resolve = r;
+  });
+  return {
+    wait: () => promise,
+    release: () => resolve(),
+  };
+}
+
 jest.unmock('@repo/db');
+jest.setTimeout(30000);
 
 describe('Task 12: Follow-Up Progression & EmailSend Recovery Semantics (PostgreSQL Integration)', () => {
   let prisma: PrismaClient;
   let prismaService: PrismaService;
   let templateEngine: TemplateEngineService;
+  let eligibilityService: SendEligibilityService;
   let createOutreachUseCase: CreateOutreachUseCase;
   let approveDraftUseCase: ApproveDraftUseCase;
   let sendOutreachUseCase: SendOutreachUseCase;
+  let setTemplateStepsUseCase: SetTemplateStepsUseCase;
   let dispatchWorker: EmailDispatchWorker;
   let followUpWorker: ScheduledFollowUpCheckWorker;
   let mockProviderAdapter: any;
+  let mockAiProvider: jest.Mocked<AIProvider>;
 
   let currentWorkspaceId: string;
 
@@ -70,8 +88,12 @@ describe('Task 12: Follow-Up Progression & EmailSend Recovery Semantics (Postgre
       }),
     };
 
+    mockAiProvider = {
+      complete: jest.fn(),
+    };
+
     const suppressionChecker = new PrismaSuppressionChecker(prismaService);
-    const eligibilityService = new SendEligibilityService(
+    eligibilityService = new SendEligibilityService(
       suppressionChecker,
       providerRegistry,
     );
@@ -79,6 +101,7 @@ describe('Task 12: Follow-Up Progression & EmailSend Recovery Semantics (Postgre
     createOutreachUseCase = new CreateOutreachUseCase(prismaService, templateEngine);
     approveDraftUseCase = new ApproveDraftUseCase(prismaService);
     sendOutreachUseCase = new SendOutreachUseCase(prismaService, eligibilityService);
+    setTemplateStepsUseCase = new SetTemplateStepsUseCase(prismaService, templateEngine);
 
     const scheduleFollowUpUseCase = new ScheduleFollowUpUseCase(prismaService);
 
@@ -93,6 +116,7 @@ describe('Task 12: Follow-Up Progression & EmailSend Recovery Semantics (Postgre
       prismaService,
       templateEngine,
       eligibilityService,
+      mockAiProvider,
     );
   });
 
@@ -447,5 +471,342 @@ describe('Task 12: Follow-Up Progression & EmailSend Recovery Semantics (Postgre
       where: { outreachId: outreachDto.id },
     });
     expect(totalSends).toBe(1);
+  });
+
+  it('3. Template future-follow-up mutation: updating template step content preserves initial outreach draft snapshot and renders updated content for subsequent sequence', async () => {
+    const sender = await seedSenderAccount(currentWorkspaceId);
+    const { pca } = await seedContact(
+      currentWorkspaceId,
+      'dwight@dundermifflin.example.com',
+      'Dunder Mifflin',
+      'Dwight',
+      'Schrute',
+    );
+
+    // 1. Create Template with initial Step 0 and Step 1
+    const template = await prisma.emailTemplate.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        name: 'Mutable Follow-Up Sequence',
+        steps: {
+          create: [
+            {
+              sequence: 0,
+              subjectTemplate: 'Initial intro to {{contact.firstName}}',
+              bodyTemplate: 'Step 0 body for {{company.name}}',
+            },
+            {
+              sequence: 1,
+              subjectTemplate: 'Original follow-up for {{contact.firstName}}',
+              bodyTemplate: 'Step 1 original body for {{company.name}}',
+            },
+          ],
+        },
+      },
+    });
+
+    // 2. Create Active Campaign requiring steps 0..1
+    const campaign = await prisma.campaign.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        name: 'Template Follow-Up Campaign',
+        status: CampaignStatus.ACTIVE,
+        contentSource: 'TEMPLATE',
+        templateId: template.id,
+        maxFollowUps: 1,
+        followUpDelayBusinessDays: 1,
+      },
+    });
+
+    await prisma.campaignSenderAccount.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaign.id,
+        senderAccountId: sender.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    const recipient = await prisma.campaignRecipient.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaign.id,
+        personCompanyAssociationId: pca.id,
+        status: CampaignRecipientStatus.PENDING,
+      },
+    });
+
+    // 3. Create Outreach: initial draft must snapshot Step 0
+    const outreachDto = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pca.id,
+        campaignRecipientId: recipient.id,
+      },
+      randomUUID(),
+    );
+
+    expect(outreachDto.subject).toBe('Initial intro to Dwight');
+    expect(outreachDto.message).toBe('Step 0 body for Dunder Mifflin');
+
+    // 4. Update Template Step 1 content via SetTemplateStepsUseCase
+    // Retains sequence 0 & 1, but modifies Step 1 content
+    await setTemplateStepsUseCase.execute(currentWorkspaceId, template.id, {
+      steps: [
+        {
+          sequence: 0,
+          subjectTemplate: 'Initial intro to {{contact.firstName}}',
+          bodyTemplate: 'Step 0 body for {{company.name}}',
+        },
+        {
+          sequence: 1,
+          subjectTemplate: 'UPDATED Step 1 for {{contact.firstName}}',
+          bodyTemplate: 'UPDATED Step 1 body for {{company.name}}',
+        },
+      ],
+    });
+
+    // 5. Approve draft and send Outreach (Sequence 0)
+    await approveDraftUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+    });
+
+    await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+      idempotencyKey: randomUUID(),
+    });
+
+    // Worker dispatches sequence 0
+    const job0 = await dispatchWorker.claimNextJob();
+    expect(job0).not.toBeNull();
+    const success0 = await dispatchWorker.processJob(job0!);
+    expect(success0).toBe(true);
+
+    const send0 = await prisma.emailSend.findFirstOrThrow({
+      where: { outreachId: outreachDto.id, sequence: 0 },
+    });
+    expect(send0.status).toBe(EmailSendStatus.SENT);
+    expect(send0.subject).toBe('Initial intro to Dwight');
+
+    // Assert initial outreach draft content remains strictly untouched in DB
+    const outreachAfter = await prisma.outreach.findUniqueOrThrow({
+      where: { id: outreachDto.id },
+    });
+    expect(outreachAfter.subject).toBe('Initial intro to Dwight');
+    expect(outreachAfter.message).toBe('Step 0 body for Dunder Mifflin');
+
+    // 6. Execute Follow-Up Worker for Sequence 1
+    const followUpJobRecord = await prisma.job.findFirstOrThrow({
+      where: {
+        workspaceId: currentWorkspaceId,
+        type: 'SCHEDULED_FOLLOW_UP_CHECK',
+      },
+    });
+
+    await prisma.job.update({
+      where: { id: followUpJobRecord.id },
+      data: { availableAt: new Date(Date.now() - 1000) },
+    });
+
+    const claimedFollowUp = await followUpWorker.claimNextJob();
+    expect(claimedFollowUp).not.toBeNull();
+    const followUpSuccess = await followUpWorker.processJob(claimedFollowUp!);
+    expect(followUpSuccess).toBe(true);
+
+    // 7. Verify sequence 1 EmailSend used the UPDATED template step content!
+    const send1 = await prisma.emailSend.findFirstOrThrow({
+      where: { outreachId: outreachDto.id, sequence: 1 },
+    });
+    expect(send1.type).toBe(EmailSendType.FOLLOW_UP);
+    expect(send1.status).toBe(EmailSendStatus.RESERVED);
+    expect(send1.subject).toBe('UPDATED Step 1 for Dwight');
+    expect(send1.body).toBe('UPDATED Step 1 body for Dunder Mifflin');
+
+    // Dispatch sequence 1
+    const dispatchJob1 = await dispatchWorker.claimNextJob();
+    expect(dispatchJob1).not.toBeNull();
+    const dispatchSuccess1 = await dispatchWorker.processJob(dispatchJob1!);
+    expect(dispatchSuccess1).toBe(true);
+
+    const completedSend1 = await prisma.emailSend.findUniqueOrThrow({
+      where: { id: send1.id },
+    });
+    expect(completedSend1.status).toBe(EmailSendStatus.SENT);
+
+    // Campaign recipient reaches COMPLETED
+    const finalRecipient = await prisma.campaignRecipient.findUniqueOrThrow({
+      where: { id: recipient.id },
+    });
+    expect(finalRecipient.status).toBe(CampaignRecipientStatus.COMPLETED);
+  });
+
+  it('4. AI follow-up 3-phase protocol: synthesizes follow-up outside DB locks, and cleanly aborts reservation if contact replies during synthesis', async () => {
+    const sender = await seedSenderAccount(currentWorkspaceId);
+    const { pca } = await seedContact(
+      currentWorkspaceId,
+      'jim@dundermifflin.example.com',
+      'Dunder Mifflin',
+      'Jim',
+      'Halpert',
+    );
+
+    // 1. Create AI Campaign with maxFollowUps = 1
+    const campaign = await prisma.campaign.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        name: 'AI Follow-Up Campaign',
+        status: CampaignStatus.ACTIVE,
+        contentSource: 'AI',
+        aiPromptContext: 'Focus on paper supply advantages.',
+        maxFollowUps: 1,
+        followUpDelayBusinessDays: 1,
+      },
+    });
+
+    await prisma.campaignSenderAccount.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaign.id,
+        senderAccountId: sender.id,
+        status: 'ACTIVE',
+      },
+    });
+
+    const recipient = await prisma.campaignRecipient.create({
+      data: {
+        workspaceId: currentWorkspaceId,
+        campaignId: campaign.id,
+        personCompanyAssociationId: pca.id,
+        status: CampaignRecipientStatus.PENDING,
+      },
+    });
+
+    // 2. Create Outreach
+    const outreachDto = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pca.id,
+        campaignRecipientId: recipient.id,
+      },
+      randomUUID(),
+    );
+
+    // Seed initial message and subject for draft approval
+    await prisma.outreach.update({
+      where: { id: outreachDto.id },
+      data: {
+        subject: 'Initial AI outreach to Jim',
+        message: 'Initial message proposing partnership',
+      },
+    });
+
+    await approveDraftUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+    });
+
+    await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+      idempotencyKey: randomUUID(),
+    });
+
+    // Worker dispatches sequence 0
+    const job0 = await dispatchWorker.claimNextJob();
+    expect(job0).not.toBeNull();
+    const success0 = await dispatchWorker.processJob(job0!);
+    expect(success0).toBe(true);
+
+    const send0 = await prisma.emailSend.findFirstOrThrow({
+      where: { outreachId: outreachDto.id, sequence: 0 },
+    });
+    expect(send0.status).toBe(EmailSendStatus.SENT);
+
+    // 3. Setup AI provider barrier for Phase 2 synthesis
+    const followUpJobRecord = await prisma.job.findFirstOrThrow({
+      where: {
+        workspaceId: currentWorkspaceId,
+        type: 'SCHEDULED_FOLLOW_UP_CHECK',
+      },
+    });
+
+    await prisma.job.update({
+      where: { id: followUpJobRecord.id },
+      data: { availableAt: new Date(Date.now() - 1000) },
+    });
+
+    const llmStarted = createBarrier();
+    const llmCanFinish = createBarrier();
+    let llmCallCount = 0;
+
+    mockAiProvider.complete.mockImplementationOnce(async () => {
+      llmCallCount++;
+      llmStarted.release();
+      await llmCanFinish.wait();
+      return {
+        rawText: JSON.stringify({
+          subject: 'AI In-Flight Follow-up to Jim',
+          body: 'Following up with Jim on paper pricing.',
+        }),
+      };
+    });
+
+    // 4. Claim follow-up job (Phase 1 begins and completes)
+    const claimedJob = await followUpWorker.claimNextJob();
+    expect(claimedJob).not.toBeNull();
+
+    // Start Phase 2 in worker
+    const workerPromise = followUpWorker.processJob(claimedJob!);
+
+    // Wait until worker is inside Phase 2 (external LLM call outside DB locks)
+    await llmStarted.wait();
+    expect(llmCallCount).toBe(1);
+
+    // 5. Simulate Contact REPLIED while LLM was computing
+    await prisma.personCompanyAssociation.update({
+      where: { id: pca.id },
+      data: {
+        conversationState: ConversationState.REPLIED,
+        stateVersion: { increment: 1 },
+      },
+    });
+
+    // 6. Release LLM to proceed to Phase 3 (re-validation & atomic reservation)
+    llmCanFinish.release();
+    const workerResult = await workerPromise;
+
+    // Worker must detect invalid state in Phase 3 and abort
+    expect(workerResult).toBe(false);
+
+    // 7. Assert follow-up job is CANCELLED with CANCELLED_BY_USER
+    const jobAfterAbort = await prisma.job.findUniqueOrThrow({
+      where: { id: claimedJob!.job.id },
+    });
+    expect(jobAfterAbort.status).toBe(JobStatus.CANCELLED);
+    expect(jobAfterAbort.cancellationReason).toBe('CANCELLED_BY_USER');
+
+    // 8. Assert NO sequence 1 EmailSend was created
+    const send1 = await prisma.emailSend.findFirst({
+      where: { outreachId: outreachDto.id, sequence: 1 },
+    });
+    expect(send1).toBeNull();
+
+    // 9. Assert NO EMAIL_DISPATCH job was enqueued for follow-up
+    const pendingDispatchJobs = await prisma.job.findMany({
+      where: {
+        workspaceId: currentWorkspaceId,
+        type: 'EMAIL_DISPATCH',
+        status: JobStatus.PENDING,
+      },
+    });
+    expect(pendingDispatchJobs).toHaveLength(0);
+
+    // 10. Assert PCA conversationState remains REPLIED
+    const pcaAfter = await prisma.personCompanyAssociation.findUniqueOrThrow({
+      where: { id: pca.id },
+    });
+    expect(pcaAfter.conversationState).toBe(ConversationState.REPLIED);
   });
 });
