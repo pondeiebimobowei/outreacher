@@ -58,6 +58,11 @@ export function getTestPrismaClient(): PrismaClient {
   return prismaTestClient;
 }
 
+export function getTestPgPool(): pg.Pool {
+  getTestPrismaClient();
+  return testPgPool!;
+}
+
 export const APPLICATION_TABLES = [
   'users',
   'auth_identities',
@@ -67,20 +72,26 @@ export const APPLICATION_TABLES = [
   'companies',
   'research_runs',
   'opportunities',
-  'contacts',
+  'persons',
+  'person_company_associations',
   'evidence',
   'campaigns',
-  'campaign_contacts',
+  'campaign_recipients',
+  'outreaches',
+  'conversation_messages',
   'email_sends',
   'email_events',
   'suppressions',
+  'suppression_history',
   'outcomes',
   'email_templates',
+  'email_template_steps',
   'jobs',
   'inbound_replies',
   'integrations',
   'sender_accounts',
   'campaign_sender_accounts',
+  'idempotency_records',
 ];
 
 export async function cleanTestDatabase(): Promise<void> {

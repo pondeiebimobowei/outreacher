@@ -34,7 +34,8 @@ export async function createTestUser(
     data: {
       id,
       email,
-      name,
+      firstName: overrides.name ? overrides.name.split(' ')[0] : 'Test',
+      lastName: overrides.name && overrides.name.includes(' ') ? overrides.name.split(' ').slice(1).join(' ') : 'User',
     },
   });
 }

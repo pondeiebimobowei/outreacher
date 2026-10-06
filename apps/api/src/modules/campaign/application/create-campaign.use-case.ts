@@ -99,6 +99,7 @@ export class CreateCampaignUseCase {
       if (senderAccountIds.length > 0) {
         await tx.campaignSenderAccount.createMany({
           data: senderAccountIds.map((saId) => ({
+            workspaceId,
             campaignId: campaign.id,
             senderAccountId: saId,
           })),

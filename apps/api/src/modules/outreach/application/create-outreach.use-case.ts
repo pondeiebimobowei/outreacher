@@ -108,10 +108,45 @@ export class CreateOutreachUseCase {
         }
       }
 
+      let recipient: any = null;
+      let pcaId = dto.personCompanyAssociationId;
+
+      if (dto.campaignRecipientId) {
+        // Campaign-linked outreach
+        recipient = await tx.campaignRecipient.findFirst({
+          where: {
+            id: dto.campaignRecipientId,
+            workspaceId,
+          },
+        });
+        if (!recipient) {
+          throw new AppNotFoundException(
+            `Campaign recipient ${dto.campaignRecipientId} not found`,
+          );
+        }
+
+        const existingOutreach = await tx.outreach.findFirst({
+          where: { campaignRecipientId: dto.campaignRecipientId },
+        });
+        if (existingOutreach) {
+          throw new AppConflictException(
+            'An outreach already exists for this campaign recipient',
+          );
+        }
+
+        pcaId = recipient.personCompanyAssociationId;
+      }
+
+      if (!pcaId) {
+        throw new AppValidationException(
+          'Either campaignRecipientId or personCompanyAssociationId is required',
+        );
+      }
+
       // Step 2: Fetch PCA & check suppression / stopped state
       const pca = await tx.personCompanyAssociation.findFirst({
         where: {
-          id: dto.personCompanyAssociationId,
+          id: pcaId,
           workspaceId,
         },
         include: {
@@ -122,7 +157,7 @@ export class CreateOutreachUseCase {
 
       if (!pca) {
         throw new AppNotFoundException(
-          `PersonCompanyAssociation ${dto.personCompanyAssociationId} not found`,
+          `PersonCompanyAssociation ${pcaId} not found`,
         );
       }
 
@@ -153,28 +188,6 @@ export class CreateOutreachUseCase {
       let senderAccountId: string | null = dto.senderAccountId ?? null;
 
       if (dto.campaignRecipientId) {
-        // Campaign-linked outreach
-        const recipient = await tx.campaignRecipient.findFirst({
-          where: {
-            id: dto.campaignRecipientId,
-            workspaceId,
-          },
-        });
-        if (!recipient) {
-          throw new AppNotFoundException(
-            `Campaign recipient ${dto.campaignRecipientId} not found`,
-          );
-        }
-
-        const existingOutreach = await tx.outreach.findFirst({
-          where: { campaignRecipientId: dto.campaignRecipientId },
-        });
-        if (existingOutreach) {
-          throw new AppConflictException(
-            'An outreach already exists for this campaign recipient',
-          );
-        }
-
         const campaign = await tx.campaign.findFirst({
           where: {
             id: recipient.campaignId,
@@ -319,7 +332,7 @@ export class CreateOutreachUseCase {
       const outreach = await tx.outreach.create({
         data: {
           workspaceId,
-          personCompanyAssociationId: dto.personCompanyAssociationId,
+          personCompanyAssociationId: pcaId,
           campaignRecipientId: dto.campaignRecipientId ?? null,
           senderAccountId,
           contentSource,

@@ -29,7 +29,25 @@ export class SendOutreachUseCase {
     }
 
     return this.prisma.$transaction(async (tx: any) => {
-      // 1. Fetch and lock Outreach
+      // 0. Check Idempotency Record
+      const existingRecord = await tx.idempotencyRecord.findFirst({
+        where: {
+          workspaceId,
+          operation: 'POST:/outreaches/:id/send',
+          key: idempotencyKey,
+        },
+      });
+
+      if (existingRecord) {
+        if (existingRecord.targetId !== outreachId) {
+          throw new AppConflictException(
+            'Idempotency key reused for different target',
+          );
+        }
+        return { jobId: existingRecord.jobId, status: 'QUEUED' };
+      }
+
+      // 1. Fetch Outreach
       const outreach = await tx.outreach.findFirst({
         where: { id: outreachId, workspaceId },
       });
@@ -42,6 +60,24 @@ export class SendOutreachUseCase {
         throw new AppConflictException(
           `Cannot send outreach in ${outreach.status} status. Only APPROVED outreaches can be sent.`,
         );
+      }
+
+      // Real PostgreSQL row locking
+      if (typeof tx.$queryRaw === 'function') {
+        const lockedOutreaches = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+          SELECT id, status FROM outreaches
+          WHERE id = ${outreachId} AND workspace_id = ${workspaceId}
+          FOR UPDATE
+        `;
+
+        if (Array.isArray(lockedOutreaches) && lockedOutreaches.length > 0) {
+          const lockedOutreach = lockedOutreaches[0];
+          if (lockedOutreach.status !== 'APPROVED') {
+            throw new AppConflictException(
+              `Cannot send outreach in ${lockedOutreach.status} status. Only APPROVED outreaches can be sent.`,
+            );
+          }
+        }
       }
 
       // 2. Fetch Campaign and CampaignRecipient if linked

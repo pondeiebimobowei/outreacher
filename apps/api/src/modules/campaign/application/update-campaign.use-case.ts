@@ -123,6 +123,7 @@ export class UpdateCampaignUseCase {
         if (dto.senderAccountIds.length > 0) {
           await tx.campaignSenderAccount.createMany({
             data: dto.senderAccountIds.map((saId) => ({
+              workspaceId,
               campaignId,
               senderAccountId: saId,
             })),

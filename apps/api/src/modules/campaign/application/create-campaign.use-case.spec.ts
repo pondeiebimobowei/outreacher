@@ -144,7 +144,7 @@ describe('CreateCampaignUseCase', () => {
     expect(res.contentSource).toBe('AI');
     expect(res.aiPromptContext).toBe('Target CFOs with ROI focus');
     expect(prisma.campaignSenderAccount.createMany).toHaveBeenCalledWith({
-      data: [{ campaignId: 'camp-1', senderAccountId: 'sa-1' }],
+      data: [{ campaignId: 'camp-1', senderAccountId: 'sa-1', workspaceId: 'ws-1' }],
     });
   });
 });
