@@ -133,14 +133,16 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
       }
       if (url.startsWith('/campaigns')) {
-        if (url.includes('/contacts')) {
+        if (url.includes('/recipients') || url.includes('/contacts')) {
           return Promise.resolve([
             {
               id: 'cc-1',
               workspaceId: 'ws-1',
               campaignId: 'camp-1',
               contactId: 'cont-1',
+              personCompanyAssociationId: 'cont-1',
               status: 'PENDING',
+              outreachId: 'outreach-1',
               contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
             },
           ]);
@@ -155,17 +157,20 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           },
         ]);
       }
-      if (url.startsWith('/campaign-contacts/')) {
+      if (url.startsWith('/outreaches/')) {
         return Promise.resolve({
-          id: 'cc-1',
+          id: 'outreach-1',
           workspaceId: 'ws-1',
-          campaignId: 'camp-1',
-          contactId: 'cont-1',
-          status: 'PENDING',
+          personCompanyAssociationId: 'cont-1',
+          campaignRecipientId: 'recip-1',
+          status: 'DRAFT',
+          subject: 'Acme distributed systems',
+          message: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           currentSubject: 'Acme distributed systems',
           currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           updatedAt: '2026-09-19T00:00:00.000Z',
           contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
+          person: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe', email: 'jane.doe@acme.com' },
           campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
         });
       }
@@ -173,7 +178,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     });
 
     mockPost.mockImplementation((url: string) => {
-      if (url.includes('/contacts') && url.includes('/campaigns')) {
+      if ((url.includes('/recipients') || url.includes('/contacts')) && url.includes('/campaigns')) {
         return Promise.resolve({
           bound: [
             {
@@ -181,6 +186,7 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
               workspaceId: 'ws-1',
               campaignId: 'camp-1',
               contactId: 'cont-1',
+              personCompanyAssociationId: 'cont-1',
               status: 'PENDING',
             },
           ],
@@ -258,14 +264,16 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
         return Promise.resolve(mockResponse as unknown as CompanyContactsResponse);
       }
       if (url.startsWith('/campaigns')) {
-        if (url.includes('/contacts')) {
+        if (url.includes('/recipients') || url.includes('/contacts')) {
           return Promise.resolve([
             {
               id: 'cc-1',
               workspaceId: 'ws-1',
               campaignId: 'camp-1',
               contactId: 'cont-1',
+              personCompanyAssociationId: 'cont-1',
               status: 'PENDING',
+              outreachId: 'outreach-1',
               contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
             },
           ]);
@@ -280,17 +288,20 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           },
         ]);
       }
-      if (url.startsWith('/campaign-contacts/')) {
+      if (url.startsWith('/outreaches/')) {
         return Promise.resolve({
-          id: 'cc-1',
+          id: 'outreach-1',
           workspaceId: 'ws-1',
-          campaignId: 'camp-1',
-          contactId: 'cont-1',
-          status: 'PENDING',
+          personCompanyAssociationId: 'cont-1',
+          campaignRecipientId: 'recip-1',
+          status: 'DRAFT',
+          subject: 'Acme distributed systems',
+          message: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           currentSubject: 'Acme distributed systems',
           currentBody: 'Hi Jane, reaching out regarding distributed systems at Acme.',
           updatedAt: '2026-09-19T00:00:00.000Z',
           contact: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe' },
+          person: { id: 'cont-1', firstName: 'Jane', lastName: 'Doe', email: 'jane.doe@acme.com' },
           campaign: { id: 'camp-1', name: 'Outreach — Acme Corp' },
         });
       }
@@ -498,26 +509,23 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           selectedAt: '2026-09-18T00:00:00Z',
         });
       }
-      if (url === '/campaigns/camp-42/contacts') {
-        return Promise.resolve({
-          bound: [
-            {
-              id: 'cc-99',
-              workspaceId: 'ws-1',
-              campaignId: 'camp-42',
-              contactId: 'cont-2',
-              status: 'PENDING',
-              targetRole: null,
-              outreachReason: null,
-              currentSubject: null,
-              currentBody: null,
-              selectedOpportunityId: null,
-              createdAt: '2026-09-18T00:00:00Z',
-              updatedAt: '2026-09-18T00:00:00Z',
-            },
-          ],
-          ignoredDuplicateCount: 0,
-        });
+      if (url === '/campaigns/camp-42/recipients' || url === '/campaigns/camp-42/contacts') {
+        return Promise.resolve([
+          {
+            id: 'recip-99',
+            workspaceId: 'ws-1',
+            campaignId: 'camp-42',
+            personCompanyAssociationId: 'cont-2',
+            status: 'PENDING',
+            targetRole: null,
+            outreachReason: null,
+            currentSubject: null,
+            currentBody: null,
+            selectedOpportunityId: null,
+            createdAt: '2026-09-18T00:00:00Z',
+            updatedAt: '2026-09-18T00:00:00Z',
+          },
+        ]);
       }
       return Promise.reject(new Error(`Unhandled POST url: ${url}`));
     });
@@ -543,8 +551,8 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(mockGet).toHaveBeenCalledWith('/campaigns');
 
     // Verify bind contacts called
-    expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-42/contacts', {
-      contactIds: ['cont-2'],
+    expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-42/recipients', {
+      recipients: [{ personCompanyAssociationId: 'cont-2' }],
     });
   });
 
@@ -609,26 +617,23 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           updatedAt: '2026-09-18T00:00:00Z',
         });
       }
-      if (url === '/campaigns/camp-new/contacts') {
-        return Promise.resolve({
-          bound: [
-            {
-              id: 'cc-101',
-              workspaceId: 'ws-1',
-              campaignId: 'camp-new',
-              contactId: 'cont-3',
-              status: 'PENDING',
-              targetRole: null,
-              outreachReason: null,
-              currentSubject: null,
-              currentBody: null,
-              selectedOpportunityId: null,
-              createdAt: '2026-09-18T00:00:00Z',
-              updatedAt: '2026-09-18T00:00:00Z',
-            },
-          ],
-          ignoredDuplicateCount: 0,
-        });
+      if (url === '/campaigns/camp-new/recipients' || url === '/campaigns/camp-new/contacts') {
+        return Promise.resolve([
+          {
+            id: 'recip-101',
+            workspaceId: 'ws-1',
+            campaignId: 'camp-new',
+            personCompanyAssociationId: 'cont-3',
+            status: 'PENDING',
+            targetRole: null,
+            outreachReason: null,
+            currentSubject: null,
+            currentBody: null,
+            selectedOpportunityId: null,
+            createdAt: '2026-09-18T00:00:00Z',
+            updatedAt: '2026-09-18T00:00:00Z',
+          },
+        ]);
       }
       return Promise.reject(new Error(`Unhandled POST url: ${url}`));
     });
@@ -850,26 +855,20 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           selectedAt: '2026-09-18T00:00:00Z',
         });
       }
-      if (url === '/campaigns/camp-draft-1/contacts') {
-        return Promise.resolve({
-          bound: [
-            {
-              id: 'cc-99',
-              workspaceId: 'ws-1',
-              campaignId: 'camp-draft-1',
-              contactId: 'cont-2',
-              status: 'PENDING',
-              targetRole: null,
-              outreachReason: null,
-              currentSubject: null,
-              currentBody: null,
-              selectedOpportunityId: null,
-              createdAt: '2026-09-18T00:00:00Z',
-              updatedAt: '2026-09-18T00:00:00Z',
-            },
-          ],
-          ignoredDuplicateCount: 0,
-        });
+      if (url === '/campaigns/camp-draft-1/recipients') {
+        return Promise.resolve([
+          {
+            id: 'recip-99',
+            workspaceId: 'ws-1',
+            campaignId: 'camp-draft-1',
+            personCompanyAssociationId: 'cont-2',
+            status: 'PENDING',
+            targetRole: null,
+            selectedOpportunityId: null,
+            createdAt: '2026-09-18T00:00:00Z',
+            updatedAt: '2026-09-18T00:00:00Z',
+          },
+        ]);
       }
       return Promise.reject(new Error(`Unhandled POST url: ${url}`));
     });
@@ -885,8 +884,8 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
 
     // Verify it bound directly to the DRAFT canonical campaign
     expect(await screen.findByText('Outreach — Acme Corp')).toBeInTheDocument();
-    expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-draft-1/contacts', {
-      contactIds: ['cont-2'],
+    expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-draft-1/recipients', {
+      recipients: [{ personCompanyAssociationId: 'cont-2' }],
     });
     // Verify NO campaign was created via POST /campaigns
     expect(mockPost).not.toHaveBeenCalledWith('/campaigns', expect.anything());

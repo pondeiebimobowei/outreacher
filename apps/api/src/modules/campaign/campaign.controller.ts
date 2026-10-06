@@ -19,6 +19,7 @@ import { GetCampaignUseCase } from './application/get-campaign.use-case';
 import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-recipient.use-case';
+import { GetCampaignRecipientsUseCase } from './application/get-campaign-recipients.use-case';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { AddCampaignRecipientsDto } from './dto/add-campaign-recipients.dto';
@@ -34,6 +35,7 @@ export class CampaignController {
     private readonly listCampaignsUseCase: ListCampaignsUseCase,
     private readonly changeCampaignStatusUseCase: ChangeCampaignStatusUseCase,
     private readonly resumeCampaignRecipientUseCase: ResumeCampaignRecipientUseCase,
+    private readonly getCampaignRecipientsUseCase: GetCampaignRecipientsUseCase,
   ) {}
 
   @Post()
@@ -51,6 +53,14 @@ export class CampaignController {
     @Body() dto: UpdateCampaignDto,
   ) {
     return this.updateCampaignUseCase.execute(workspace.id, id, dto);
+  }
+
+  @Get(':id/recipients')
+  public async getRecipients(
+    @CurrentWorkspace() workspace: { id: string },
+    @Param('id') id: string,
+  ) {
+    return this.getCampaignRecipientsUseCase.execute(workspace.id, id);
   }
 
   @Post(':id/recipients')

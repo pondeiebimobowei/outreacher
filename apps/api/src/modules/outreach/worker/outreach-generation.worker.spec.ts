@@ -80,7 +80,9 @@ describe('OutreachGenerationWorker', () => {
     expect(success).toBe(true);
 
     expect(aiProvider.complete).toHaveBeenCalledWith(
-      expect.stringContaining('Focus on CFO value and 30-day ROI'),
+      expect.objectContaining({
+        userPrompt: expect.stringContaining('Focus on CFO value and 30-day ROI'),
+      }),
     );
     expect(prisma.outreach.update).toHaveBeenCalledWith({
       where: { id: 'out-1' },

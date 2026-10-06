@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppForbiddenException,
   AppNotFoundException,
@@ -17,7 +17,7 @@ export interface RenderedTemplateStepPreview {
 @Injectable()
 export class PreviewTemplateUseCase {
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
   ) {}
 

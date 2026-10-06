@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { type AIProvider } from '../domain/ai-provider.interface';
 
 export interface OutreachGenerationJobPayload {
@@ -12,7 +12,7 @@ export class OutreachGenerationWorker {
   private readonly logger = new Logger(OutreachGenerationWorker.name);
 
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     @Inject('AIProvider') private readonly aiProvider: AIProvider,
   ) {}
 
@@ -58,7 +58,10 @@ export class OutreachGenerationWorker {
         `Return JSON format: { "subject": "...", "body": "..." }`,
       ].filter(Boolean).join('\n');
 
-      const aiResponse = await this.aiProvider.complete(prompt);
+      const aiResponse = await this.aiProvider.complete({
+        systemPrompt: "",
+        userPrompt: prompt
+      });
       let subject = 'Connecting with you';
       let body = `Hello ${pca.person.firstName}, would love to connect with ${pca.company.name}.`;
 

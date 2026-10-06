@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailTemplateDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -12,7 +12,7 @@ import { SetTemplateStepsDto } from '../dto/set-template-steps.dto';
 @Injectable()
 export class SetTemplateStepsUseCase {
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
   ) {}
 

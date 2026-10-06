@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import {
   CampaignDto,
-  addContactsToCampaign,
+  addRecipientsToCampaign,
   createCampaign,
   fetchCampaigns,
   resolveCanonicalCompanyCampaign,
@@ -201,35 +201,31 @@ describe('Campaigns API Module - Packet 3 Dual Contract', () => {
 
   });
 
-  describe('addContactsToCampaign', () => {
-    it('calls POST /api/v1/campaigns/:id/contacts with contactIds', async () => {
-      const mockResponse = {
-        bound: [
-          {
-            id: 'cc-1',
-            workspaceId: 'ws-1',
-            campaignId: 'camp-1',
-            contactId: 'cont-1',
-            status: 'PENDING' as const,
-            targetRole: null,
-            outreachReason: null,
-            currentSubject: null,
-            currentBody: null,
-            selectedOpportunityId: null,
-            createdAt: '2026-09-18T00:00:00Z',
-            updatedAt: '2026-09-18T00:00:00Z',
-          },
-        ],
-        ignoredDuplicateCount: 0,
-      };
+  describe('addRecipientsToCampaign', () => {
+    it('calls POST /api/v1/campaigns/:id/recipients with recipients', async () => {
+      const mockResponse = [
+        {
+          id: 'cr-1',
+          workspaceId: 'ws-1',
+          campaignId: 'camp-1',
+          personCompanyAssociationId: 'pca-1',
+          status: 'PENDING' as const,
+          targetRole: null,
+          selectedOpportunityId: null,
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+        },
+      ];
 
       mockPost.mockResolvedValue(mockResponse);
 
-      const result = await addContactsToCampaign('camp-1', ['cont-1']);
+      const result = await addRecipientsToCampaign('camp-1', [
+        { personCompanyAssociationId: 'pca-1' },
+      ]);
 
       expect(result).toEqual(mockResponse);
-      expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-1/contacts', {
-        contactIds: ['cont-1'],
+      expect(mockPost).toHaveBeenCalledWith('/campaigns/camp-1/recipients', {
+        recipients: [{ personCompanyAssociationId: 'pca-1' }],
       });
     });
   });

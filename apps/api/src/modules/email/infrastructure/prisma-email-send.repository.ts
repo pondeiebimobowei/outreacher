@@ -24,7 +24,7 @@ export class PrismaEmailSendRepository implements IEmailSendRepository {
       data: {
         workspaceId: data.workspaceId,
         outreachId: data.outreachId,
-        senderAccountId: data.senderAccountId ?? null,
+        senderAccountId: data.senderAccountId as string,
         sequence: data.sequence ?? 0,
         type: data.type ?? EmailSendType.INITIAL,
         subject: data.subject,

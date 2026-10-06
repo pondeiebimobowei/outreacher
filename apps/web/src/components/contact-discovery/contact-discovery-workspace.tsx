@@ -1,8 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { addContactsToCampaign, resolveCanonicalCompanyCampaign } from '../../api/campaigns';
+import { addRecipientsToCampaign, resolveCanonicalCompanyCampaign } from '../../api/campaigns';
 import { EvaluatedPersonDto } from '../../api/contacts';
-import { CampaignContactSummaryDto, fetchCampaignContacts } from '../../api/outreach';
+import { CampaignRecipientSummaryDto, fetchCampaignRecipients } from '../../api/outreach';
 import { OutreachReviewDrawer } from '../outreach/outreach-review-drawer';
 
 import { AddContactModal } from './add-contact-modal';
@@ -36,7 +36,7 @@ export function ContactDiscoveryWorkspace({
     isError,
     rateLimitError,
     bindingError,
-    boundCampaignContact,
+    boundCampaignRecipient,
     activeCampaign,
     ariaAnnouncement,
     setAriaAnnouncement,
@@ -50,10 +50,10 @@ export function ContactDiscoveryWorkspace({
     isSelectPending,
   } = useContactDiscovery(companyId, companyName);
 
-  // Outreach Review Drawer State (Packet 4)
+  // Outreach Review Drawer State
   const [drawerContactId, setDrawerContactId] = useState<string | null>(null);
-  const [activeCampaignContactId, setActiveCampaignContactId] = useState<string | null>(null);
-  const [boundCampaignContacts, setBoundCampaignContacts] = useState<CampaignContactSummaryDto[]>([]);
+  const [activeOutreachId, setActiveOutreachId] = useState<string | null>(null);
+  const [boundRecipients, setBoundRecipients] = useState<CampaignRecipientSummaryDto[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isOpeningDrawer, setIsOpeningDrawer] = useState(false);
 
@@ -73,20 +73,20 @@ export function ContactDiscoveryWorkspace({
       }
 
       // 2. Ensure contact is added to campaign
-      const bindRes = await addContactsToCampaign(campaign.id, [contact.id]);
+      await addRecipientsToCampaign(campaign.id, [{ personCompanyAssociationId: contact.id }]);
 
-      // 3. Fetch all bound campaign contacts for cycling and summary
-      const allBound = await fetchCampaignContacts(campaign.id);
-      setBoundCampaignContacts(allBound);
+      // 3. Fetch all bound campaign recipients for cycling and summary
+      const allBound = await fetchCampaignRecipients(campaign.id);
+      setBoundRecipients(allBound);
 
-      // 4. Find the matching CampaignContact record
+      // 4. Find the matching recipient record
       const match = allBound.find(
-        (c) => c.personId === contact.id || c.person?.id === contact.id,
+        (c) => c.personCompanyAssociationId === contact.id || c.person?.id === contact.id,
       );
-      const targetId = match ? match.id : (bindRes.bound?.[0]?.id ?? null);
+      const targetId = match ? (match.outreachId ?? null) : null;
 
       if (targetId) {
-        setActiveCampaignContactId(targetId);
+        setActiveOutreachId(targetId);
         setIsDrawerOpen(true);
       }
     } catch (err: unknown) {
@@ -352,9 +352,9 @@ export function ContactDiscoveryWorkspace({
                     <span>
                       Campaign: <strong className="font-semibold">{activeCampaign.name}</strong>
                     </span>
-                    {boundCampaignContact && (
+                    {boundCampaignRecipient && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-none text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
-                        {boundCampaignContact.status}
+                        {boundCampaignRecipient.status}
                       </span>
                     )}
                   </p>
@@ -589,21 +589,21 @@ export function ContactDiscoveryWorkspace({
         isSelectPending={isSelectPending}
       />
 
-      {/* Outreach Review Drawer (Packet 4) */}
+      {/* Outreach Review Drawer */}
       <OutreachReviewDrawer
         isOpen={isDrawerOpen}
         onClose={() => {
           setIsDrawerOpen(false);
-          setActiveCampaignContactId(null);
+          setActiveOutreachId(null);
           setDrawerContactId(null);
         }}
-        campaignContactId={activeCampaignContactId}
-        boundContacts={boundCampaignContacts}
-        onSelectCampaignContact={(nextId) => {
-          setActiveCampaignContactId(nextId);
-          const nextBound = boundCampaignContacts.find((c) => c.id === nextId);
+        outreachId={activeOutreachId}
+        recipients={boundRecipients}
+        onSelectRecipient={(nextOutreachId) => {
+          setActiveOutreachId(nextOutreachId);
+          const nextBound = boundRecipients.find((c) => c.outreachId === nextOutreachId);
           if (nextBound) {
-            setDrawerContactId(nextBound.personId);
+            setDrawerContactId(nextBound.personCompanyAssociationId);
           }
         }}
         companyName={companyName}

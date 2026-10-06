@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { CampaignRecipientDto } from '@repo/shared';
 import {
   AppForbiddenException,
@@ -10,7 +10,7 @@ import { AddCampaignRecipientsDto } from '../dto/add-campaign-recipients.dto';
 
 @Injectable()
 export class AddCampaignRecipientsUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(
     workspaceId: string,

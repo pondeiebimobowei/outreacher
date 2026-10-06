@@ -8,7 +8,7 @@ describe('PrismaIdempotencyRepository', () => {
   beforeEach(() => {
     mockPrisma = {
       idempotencyRecord: {
-        findUnique: jest.fn(),
+        findFirst: jest.fn(),
         create: jest.fn(),
       },
     };
@@ -16,7 +16,7 @@ describe('PrismaIdempotencyRepository', () => {
   });
 
   describe('findByKey', () => {
-    it('queries using workspaceId_key unique constraint', async () => {
+    it('queries using workspaceId and key', async () => {
       const mockRecord = {
         id: 'rec-1',
         workspaceId: 'ws-1',
@@ -25,23 +25,21 @@ describe('PrismaIdempotencyRepository', () => {
         responseStatus: 202,
         responseBody: { jobId: 'job-1' },
       };
-      mockPrisma.idempotencyRecord.findUnique.mockResolvedValue(mockRecord);
+      mockPrisma.idempotencyRecord.findFirst.mockResolvedValue(mockRecord);
 
       const result = await repository.findByKey('ws-1', 'key-123');
 
       expect(result).toEqual(mockRecord);
-      expect(mockPrisma.idempotencyRecord.findUnique).toHaveBeenCalledWith({
+      expect(mockPrisma.idempotencyRecord.findFirst).toHaveBeenCalledWith({
         where: {
-          workspaceId_key: {
-            workspaceId: 'ws-1',
-            key: 'key-123',
-          },
+          workspaceId: 'ws-1',
+          key: 'key-123',
         },
       });
     });
 
     it('returns null if record not found', async () => {
-      mockPrisma.idempotencyRecord.findUnique.mockResolvedValue(null);
+      mockPrisma.idempotencyRecord.findFirst.mockResolvedValue(null);
 
       const result = await repository.findByKey('ws-1', 'missing-key');
 
@@ -74,7 +72,8 @@ describe('PrismaIdempotencyRepository', () => {
         data: {
           workspaceId: 'ws-1',
           key: 'key-123',
-          route: '/api/v1/outreaches/:id/send',
+          operation: '/api/v1/outreaches/:id/send',
+          requestHash: '',
           targetId: 'outreach-1',
           jobId: 'job-1',
           responseStatus: 202,

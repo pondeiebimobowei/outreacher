@@ -3,11 +3,10 @@ import { normalizeCampaignName } from '@repo/shared';
 import type {
   CampaignDto as SharedCampaignDto,
   CreateCampaignRequest,
-  AddCampaignContactsResponse,
   CampaignStatus,
-  CampaignContactStatus,
+  CampaignRecipientStatus,
   CampaignSenderSummary,
-  CampaignContactDto,
+  CampaignRecipientDto,
 } from '@repo/shared';
 
 export interface CampaignDto extends SharedCampaignDto {
@@ -18,11 +17,10 @@ export interface CampaignDto extends SharedCampaignDto {
 
 export type {
   CreateCampaignRequest,
-  AddCampaignContactsResponse,
   CampaignStatus,
-  CampaignContactStatus,
+  CampaignRecipientStatus,
   CampaignSenderSummary,
-  CampaignContactDto,
+  CampaignRecipientDto,
 };
 
 /**
@@ -50,15 +48,19 @@ export async function fetchCampaignById(id: string): Promise<CampaignDto> {
 }
 
 /**
- * Binds target contacts to a campaign.
- * Endpoint: POST /api/v1/campaigns/:id/contacts
+ * Enrolls recipients into a campaign.
+ * Endpoint: POST /api/v1/campaigns/:id/recipients
  */
-export async function addContactsToCampaign(
+export async function addRecipientsToCampaign(
   campaignId: string,
-  contactIds: string[],
-): Promise<AddCampaignContactsResponse> {
-  return apiClient.post<AddCampaignContactsResponse>(`/campaigns/${campaignId}/contacts`, {
-    contactIds,
+  recipients: {
+    personCompanyAssociationId: string;
+    targetRole?: string | null;
+    selectedOpportunityId?: string | null;
+  }[],
+): Promise<CampaignRecipientDto[]> {
+  return apiClient.post<CampaignRecipientDto[]>(`/campaigns/${campaignId}/recipients`, {
+    recipients,
   });
 }
 

@@ -133,6 +133,21 @@ export interface CampaignRecipientDto {
   updatedAt: string;
 }
 
+export interface OutreachPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  title: string | null;
+  email: string | null;
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
+  confidence: string | null;
+}
+
+export interface OutreachCompany {
+  id: string;
+  name: string;
+}
+
 export interface OutreachDto {
   id: string;
   workspaceId: string;
@@ -151,6 +166,8 @@ export interface OutreachDto {
   maxFollowUps: number;
   createdAt: string;
   updatedAt: string;
+  person?: OutreachPerson;
+  company?: OutreachCompany;
 }
 
 export interface CreateOutreachRequest {
@@ -192,39 +209,7 @@ export interface EmailSendDto {
   updatedAt: string;
 }
 
-// Legacy DTOs preserved during multi-task migration
-export const CAMPAIGN_CONTACT_STATUSES = [
-  'PENDING',
-  'READY',
-  'SCHEDULED',
-  'SENDING',
-  'SENT',
-  'FOLLOW_UP_DUE',
-  'REPLIED',
-  'COMPLETED',
-  'SUPPRESSED',
-  'FAILED',
-  'ARCHIVED',
-] as const;
-
-export type CampaignContactStatus = typeof CAMPAIGN_CONTACT_STATUSES[number];
-
-export interface CampaignContactDto {
-  id: string;
-  workspaceId: string;
-  campaignId: string;
-  personId: string;
-  status: CampaignContactStatus;
-  targetRole: string | null;
-  outreachReason: string | null;
-  currentSubject: string | null;
-  currentBody: string | null;
-  selectedOpportunityId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CampaignContactPerson {
+export interface CampaignRecipientPerson {
   id: string;
   firstName: string;
   lastName: string;
@@ -234,11 +219,14 @@ export interface CampaignContactPerson {
   confidence: string | null;
 }
 
-export interface CampaignContactSummaryDto extends CampaignContactDto {
-  person: CampaignContactPerson;
-}
-
-export interface AddCampaignContactsResponse {
-  bound: CampaignContactDto[];
-  ignoredDuplicateCount: number;
+export interface CampaignRecipientSummaryDto extends CampaignRecipientDto {
+  person: CampaignRecipientPerson;
+  outreachId?: string | null;
+  outreach?: {
+    id: string;
+    status: OutreachStatus;
+    subject: string;
+    message: string;
+    aiGenerationStatus: AiGenerationStatus | null;
+  } | null;
 }

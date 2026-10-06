@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { ContentSource, OutreachDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
   AppForbiddenException,
@@ -15,7 +15,7 @@ import { CreateOutreachDto } from '../dto/create-outreach.dto';
 @Injectable()
 export class CreateOutreachUseCase {
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
   ) {}
 

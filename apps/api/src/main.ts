@@ -15,8 +15,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  const allowedOrigins = Array.from(
+    new Set([
+      frontendUrl,
+      `${frontendUrl}/`,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3100',
+      'http://localhost:5173',
+    ]),
+  );
+
   app.enableCors({
-    origin: [frontendUrl, `${frontendUrl}/`],
+    origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     preflightContinue: false,

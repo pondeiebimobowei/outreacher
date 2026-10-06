@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { OutreachDto } from '@repo/shared';
 import {
   AppConflictException,
@@ -17,7 +17,7 @@ export interface UpdateDraftCommand {
 
 @Injectable()
 export class UpdateDraftUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   public async execute(command: UpdateDraftCommand): Promise<OutreachDto> {
     const { workspaceId, outreachId, subject, message, expectedUpdatedAt } = command;

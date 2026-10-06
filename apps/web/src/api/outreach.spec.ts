@@ -1,10 +1,12 @@
 import {
-  fetchCampaignContact,
-  fetchCampaignContacts,
-  triggerGenerateOutreach,
-  updateOutreachDraft,
-  approveOutreachDraft,
-  sendCampaignContact,
+  fetchOutreachById,
+  updateOutreach,
+  approveOutreach,
+  generateOutreach,
+  sendOutreach,
+  resumeOutreach,
+  fetchCampaignRecipients,
+  createOutreach,
 } from './outreach';
 import { apiClient } from './client';
 
@@ -16,80 +18,82 @@ jest.mock('./client', () => ({
   },
 }));
 
-describe('Outreach API Client', () => {
+describe('Outreach API Client - Canonical Modern Contracts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('fetchCampaignContact calls GET /api/v1/campaign-contacts/:id', async () => {
-    const mockData = { id: 'cc-1', status: 'PENDING' };
+  it('fetchOutreachById calls GET /api/v1/outreaches/:id', async () => {
+    const mockData = { id: 'out-1', status: 'DRAFT' };
     (apiClient.get as jest.Mock).mockResolvedValue(mockData);
 
-    const result = await fetchCampaignContact('cc-1');
-    expect(apiClient.get).toHaveBeenCalledWith('/campaign-contacts/cc-1');
+    const result = await fetchOutreachById('out-1');
+    expect(apiClient.get).toHaveBeenCalledWith('/outreaches/out-1');
     expect(result).toEqual(mockData);
   });
 
-  it('fetchCampaignContacts calls GET /api/v1/campaigns/:id/contacts', async () => {
-    const mockList = [{ id: 'cc-1' }, { id: 'cc-2' }];
-    (apiClient.get as jest.Mock).mockResolvedValue(mockList);
+  it('createOutreach calls POST /api/v1/outreaches with Idempotency-Key', async () => {
+    const mockData = { id: 'out-1', status: 'DRAFT' };
+    (apiClient.post as jest.Mock).mockResolvedValue(mockData);
 
-    const result = await fetchCampaignContacts('camp-1');
-    expect(apiClient.get).toHaveBeenCalledWith('/campaigns/camp-1/contacts');
-    expect(result).toEqual(mockList);
+    const payload = { personCompanyAssociationId: 'pca-1', subject: 'Sub', message: 'Body' };
+    const result = await createOutreach(payload, 'key-123');
+
+    expect(apiClient.post).toHaveBeenCalledWith('/outreaches', payload, {
+      headers: { 'Idempotency-Key': 'key-123' },
+    });
+    expect(result).toEqual(mockData);
   });
 
-  it('triggerGenerateOutreach calls POST /api/v1/campaign-contacts/:id/generate-outreach', async () => {
-    const mockRes = { jobId: 'job-1', status: 'QUEUED' };
-    (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
-
-    const result = await triggerGenerateOutreach('cc-1');
-    expect(apiClient.post).toHaveBeenCalledWith(
-      '/campaign-contacts/cc-1/generate-outreach',
-    );
-    expect(result).toEqual(mockRes);
-  });
-
-  it('updateOutreachDraft calls PATCH /api/v1/campaign-contacts/:id/draft with input and expectedUpdatedAt', async () => {
-    const mockRes = { id: 'cc-1', status: 'PENDING', currentSubject: 'Updated' };
+  it('updateOutreach calls PATCH /api/v1/outreaches/:id', async () => {
+    const mockRes = { id: 'out-1', status: 'DRAFT', subject: 'Updated' };
     (apiClient.patch as jest.Mock).mockResolvedValue(mockRes);
 
-    const result = await updateOutreachDraft('cc-1', {
+    const result = await updateOutreach('out-1', {
       subject: 'Updated',
-      bodyText: 'Updated body with enough chars',
+      message: 'Updated body text',
       expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
     });
 
-    expect(apiClient.patch).toHaveBeenCalledWith('/campaign-contacts/cc-1/draft', {
+    expect(apiClient.patch).toHaveBeenCalledWith('/outreaches/out-1', {
       subject: 'Updated',
-      bodyText: 'Updated body with enough chars',
+      message: 'Updated body text',
       expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
     });
     expect(result).toEqual(mockRes);
   });
 
-  it('approveOutreachDraft calls POST /api/v1/campaign-contacts/:id/approve with expectedUpdatedAt', async () => {
-    const mockRes = { id: 'cc-1', status: 'READY' };
+  it('approveOutreach calls POST /api/v1/outreaches/:id/approve', async () => {
+    const mockRes = { id: 'out-1', status: 'APPROVED' };
     (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
 
-    const result = await approveOutreachDraft('cc-1', {
+    const result = await approveOutreach('out-1', {
       expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
     });
 
-    expect(apiClient.post).toHaveBeenCalledWith('/campaign-contacts/cc-1/approve', {
+    expect(apiClient.post).toHaveBeenCalledWith('/outreaches/out-1/approve', {
       expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
     });
     expect(result).toEqual(mockRes);
   });
 
-  it('sendCampaignContact calls POST /api/v1/campaign-contacts/:id/send with Idempotency-Key header', async () => {
-    const mockRes = { jobId: 'job-send-1', message: 'Dispatch enqueued' };
+  it('generateOutreach calls POST /api/v1/outreaches/:id/generate', async () => {
+    const mockRes = { jobId: 'job-1', message: 'Accepted' };
     (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
 
-    const result = await sendCampaignContact('cc-1', 'test-uuid-key-1234');
+    const result = await generateOutreach('out-1');
+    expect(apiClient.post).toHaveBeenCalledWith('/outreaches/out-1/generate');
+    expect(result).toEqual(mockRes);
+  });
+
+  it('sendOutreach calls POST /api/v1/outreaches/:id/send with Idempotency-Key header', async () => {
+    const mockRes = { message: 'Dispatched' };
+    (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
+
+    const result = await sendOutreach('out-1', 'test-uuid-key-1234');
 
     expect(apiClient.post).toHaveBeenCalledWith(
-      '/campaign-contacts/cc-1/send',
+      '/outreaches/out-1/send',
       {},
       {
         headers: {
@@ -98,5 +102,23 @@ describe('Outreach API Client', () => {
       },
     );
     expect(result).toEqual(mockRes);
+  });
+
+  it('resumeOutreach calls POST /api/v1/outreaches/:id/resume', async () => {
+    const mockRes = { id: 'out-1', status: 'ACTIVE' };
+    (apiClient.post as jest.Mock).mockResolvedValue(mockRes);
+
+    const result = await resumeOutreach('out-1');
+    expect(apiClient.post).toHaveBeenCalledWith('/outreaches/out-1/resume');
+    expect(result).toEqual(mockRes);
+  });
+
+  it('fetchCampaignRecipients calls GET /api/v1/campaigns/:id/recipients', async () => {
+    const mockList = [{ id: 'cr-1' }, { id: 'cr-2' }];
+    (apiClient.get as jest.Mock).mockResolvedValue(mockList);
+
+    const result = await fetchCampaignRecipients('camp-1');
+    expect(apiClient.get).toHaveBeenCalledWith('/campaigns/camp-1/recipients');
+    expect(result).toEqual(mockList);
   });
 });

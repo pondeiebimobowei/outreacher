@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { OutreachDto } from '@repo/shared';
 import {
   AppConflictException,
   AppNotFoundException,
+  AppUnprocessableEntityException,
   AppValidationException,
 } from '../../../common/errors/application.exception';
 
@@ -15,7 +16,7 @@ export interface ApproveDraftCommand {
 
 @Injectable()
 export class ApproveDraftUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   public async execute(command: ApproveDraftCommand): Promise<OutreachDto> {
     const { workspaceId, outreachId, expectedUpdatedAt } = command;
@@ -91,6 +92,7 @@ export class ApproveDraftUseCase {
         contentSource: updated.contentSource,
         templateId: updated.templateId,
         aiPromptContext: updated.aiPromptContext,
+        aiGenerationStatus: updated.aiGenerationStatus,
         draftVersion: updated.draftVersion,
         subject: updated.subject,
         message: updated.message,

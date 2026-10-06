@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -7,7 +7,7 @@ import {
 
 @Injectable()
 export class DeleteTemplateUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(workspaceId: string, templateId: string): Promise<void> {
     const template = await this.prisma.emailTemplate.findFirst({

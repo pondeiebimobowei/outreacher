@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { CompanyDto } from '../../../api/companies';
 import { resolveCanonicalCompanyCampaign } from '../../../api/campaigns';
-import { fetchCampaignContacts, CampaignContactSummaryDto } from '../../../api/outreach';
+import { fetchCampaignRecipients, CampaignRecipientSummaryDto } from '../../../api/outreach';
 import { GateCard } from './GateCard';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { SendIcon, ChevronRightIcon, Search01Icon } from '@hugeicons/core-free-icons';;
+import { SendIcon, ChevronRightIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useNavigate } from '@tanstack/react-router';
 
 function statusBadge(status: string) {
   const cfg: Record<string, { bg: string; color: string; border: string; dot: string }> = {
-    SENT: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0', dot: '#10B981' },
+    ACTIVE: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0', dot: '#10B981' },
+    COMPLETED: { bg: '#ECFDF5', color: '#065F46', border: '#A7F3D0', dot: '#10B981' },
     READY: { bg: '#EEF2FF', color: '#3730A3', border: '#C7D2FE', dot: '#4F46E5' },
     DRAFT: { bg: '#F3F4F6', color: '#374151', border: '#D1D5DB', dot: '#6B7280' },
     PENDING: { bg: '#FFFBEB', color: '#78350F', border: '#FDE68A', dot: '#F59E0B' },
@@ -41,9 +42,9 @@ export function OutreachTab({
     enabled: researchComplete,
   });
 
-  const { data: campaignContacts, isLoading } = useQuery({
-    queryKey: ['campaign-contacts', campaign?.id],
-    queryFn: () => fetchCampaignContacts(campaign!.id),
+  const { data: campaignRecipients, isLoading } = useQuery({
+    queryKey: ['campaign-recipients', campaign?.id],
+    queryFn: () => fetchCampaignRecipients(campaign!.id),
     enabled: !!campaign?.id,
   });
 
@@ -57,7 +58,7 @@ export function OutreachTab({
     );
   }
 
-  if (isLoading || (campaign && campaignContacts === undefined)) {
+  if (isLoading || (campaign && campaignRecipients === undefined)) {
     return (
       <div className="bg-slate-50 rounded-none-none border border-slate-200 p-8 text-center">
         <div className="inline-flex items-center gap-2 text-[13.5px] text-slate-500">
@@ -70,9 +71,9 @@ export function OutreachTab({
     );
   }
 
-  const contacts: CampaignContactSummaryDto[] = campaignContacts ?? [];
+  const recipients: CampaignRecipientSummaryDto[] = campaignRecipients ?? [];
 
-  if (contacts.length === 0) {
+  if (recipients.length === 0) {
     return (
       <GateCard
         icon={SendIcon}
@@ -87,7 +88,7 @@ export function OutreachTab({
       {campaign && (
         <div className="px-1 pb-2 flex items-center justify-between">
           <p className="text-[13px] font-medium" style={{ color: 'var(--color-muted-fg)' }}>
-            {contacts.length} contact{contacts.length !== 1 ? 's' : ''} in this campaign
+            {recipients.length} recipient{recipients.length !== 1 ? 's' : ''} in this campaign
           </p>
           <button
             onClick={() =>
@@ -95,20 +96,20 @@ export function OutreachTab({
             }
             className="flex items-center gap-1 text-[13px] font-semibold "
             style={{ color: 'var(--color-accent)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#4338CA')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-accent)')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#4338CA')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
           >
             Open campaign review <HugeiconsIcon icon={ChevronRightIcon} size={14} />
           </button>
         </div>
       )}
 
-      {contacts.map((c: CampaignContactSummaryDto) => {
-        // c.person is embedded — use it directly for real identity
+      {recipients.map((c: CampaignRecipientSummaryDto) => {
         const personName = `${c.person.firstName} ${c.person.lastName}`;
         const personTitle = c.person.title ?? c.targetRole ?? null;
         const personEmail = c.person.email;
-        const hasSubject = !!c.currentSubject;
+        const subject = c.outreach?.subject || (c as any).currentSubject;
+        const hasSubject = Boolean(subject);
 
         return (
           <div
@@ -172,7 +173,7 @@ export function OutreachTab({
                   className="text-[13px] truncate"
                   style={{ color: 'var(--color-primary)', fontFamily: 'sans-serif' }}
                 >
-                  {c.currentSubject}
+                  {subject}
                 </p>
               </div>
             )}
@@ -192,8 +193,8 @@ export function OutreachTab({
                   }
                   className="flex items-center gap-1.5 text-[13px] font-semibold "
                   style={{ color: 'var(--color-primary)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-accent)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-primary)')}
                 >
                   Review outreach <HugeiconsIcon icon={ChevronRightIcon} size={14} />
                 </button>

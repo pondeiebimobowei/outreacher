@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -17,7 +17,7 @@ export interface SendOutreachCommand {
 @Injectable()
 export class SendOutreachUseCase {
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly eligibilityService: SendEligibilityService,
   ) {}
 

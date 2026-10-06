@@ -20,12 +20,10 @@ export class PrismaIdempotencyRepository implements IIdempotencyRepository {
     tx?: Prisma.TransactionClient,
   ): Promise<IdempotencyRecord | null> {
     const client = this.getClient(tx);
-    return client.idempotencyRecord.findUnique({
+    return client.idempotencyRecord.findFirst({
       where: {
-        workspaceId_key: {
-          workspaceId,
-          key,
-        },
+        workspaceId,
+        key,
       },
     });
   }
@@ -39,7 +37,8 @@ export class PrismaIdempotencyRepository implements IIdempotencyRepository {
       data: {
         workspaceId: data.workspaceId,
         key: data.key,
-        route: data.route,
+        operation: data.route ?? '',
+        requestHash: '',
         targetId: data.targetId,
         jobId: data.jobId ?? null,
         responseStatus: data.responseStatus ?? 202,

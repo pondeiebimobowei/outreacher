@@ -2,19 +2,19 @@ import { useState, useCallback } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeftIcon } from '@hugeicons/core-free-icons';;
+import { ArrowLeftIcon } from '@hugeicons/core-free-icons';
 import {
   fetchCampaignById,
   pauseCampaign,
   resumeCampaign,
 } from '../../api/campaigns';
 import { assignCampaignSenders } from '../../api/campaign-senders';
-import { fetchCampaignContacts } from '../../api/outreach';
+import { fetchCampaignRecipients } from '../../api/outreach';
 import { CampaignReviewHub, type ReviewFilter } from '../../components/campaign/campaign-review-hub';
 import { SenderAssignmentModal } from '../../components/campaign/sender-assignment-modal';
 import { OutreachReviewDrawer } from '../../components/outreach/outreach-review-drawer';
 import { LoadingState, ErrorState } from '../../components/states';
-import type { CampaignContactSummaryDto } from '../../api/outreach';
+import type { CampaignRecipientSummaryDto } from '../../api/outreach';
 
 export const Route = createFileRoute('/_authed/campaigns/$campaignId/review')({
   component: CampaignReviewHubRoute,
@@ -29,17 +29,17 @@ function CampaignReviewHubRoute() {
   const [activeFilter, setActiveFilter] = useState<ReviewFilter>('ALL');
 
   // ── Drawer state ─────────────────────────────────────────────────────────
-  // campaignContactId comes from the live query contact list — never a stale
-  // local object. The drawer's own hydration (GET /campaign-contacts/:id) is
-  // the authoritative source for current contact state when the drawer opens.
-  const [openContactId, setOpenContactId] = useState<string | null>(null);
+  // openOutreachId comes directly from the live recipient query list.
+  // The drawer hydrations (GET /outreaches/:id) is the authoritative source
+  // for current outreach draft state when the drawer opens.
+  const [openOutreachId, setOpenOutreachId] = useState<string | null>(null);
 
-  const handleOpenContact = useCallback((id: string) => {
-    setOpenContactId(id);
+  const handleOpenRecipient = useCallback((outreachId: string) => {
+    setOpenOutreachId(outreachId);
   }, []);
 
   const handleCloseDrawer = useCallback(() => {
-    setOpenContactId(null);
+    setOpenOutreachId(null);
   }, []);
 
   // ── Campaign data ────────────────────────────────────────────────────────
@@ -53,19 +53,19 @@ function CampaignReviewHubRoute() {
     queryFn: () => fetchCampaignById(campaignId),
   });
 
-  // ── Contact queue ─────────────────────────────────────────────────────────
-  // Poll every 3 seconds while any contact is SENDING; stop when none are.
+  // ── Recipient queue ───────────────────────────────────────────────────────
+  // Poll every 3 seconds while any recipient is ACTIVE or outreach is SENDING; stop when none are.
   const {
-    data: contacts = [],
-    isLoading: isContactsLoading,
-    isError: isContactsError,
-    error: contactsError,
+    data: recipients = [],
+    isLoading: isRecipientsLoading,
+    isError: isRecipientsError,
+    error: recipientsError,
   } = useQuery({
-    queryKey: ['campaign-contacts', campaignId],
-    queryFn: () => fetchCampaignContacts(campaignId),
+    queryKey: ['campaign-recipients', campaignId],
+    queryFn: () => fetchCampaignRecipients(campaignId),
     refetchInterval: (query) => {
-      const data = query.state.data as CampaignContactSummaryDto[] | undefined;
-      if (data?.some((c) => c.status === 'SENDING')) return 3000;
+      const data = query.state.data as CampaignRecipientSummaryDto[] | undefined;
+      if (data?.some((r) => r.outreach?.status === 'SENDING')) return 3000;
       return false;
     },
   });
@@ -75,7 +75,7 @@ function CampaignReviewHubRoute() {
     mutationFn: () => pauseCampaign(campaignId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
-      void queryClient.invalidateQueries({ queryKey: ['campaign-contacts', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-recipients', campaignId] });
     },
   });
 
@@ -83,12 +83,12 @@ function CampaignReviewHubRoute() {
     mutationFn: () => resumeCampaign(campaignId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] });
-      void queryClient.invalidateQueries({ queryKey: ['campaign-contacts', campaignId] });
+      void queryClient.invalidateQueries({ queryKey: ['campaign-recipients', campaignId] });
     },
   });
 
   const [isSenderModalOpen, setIsSenderModalOpen] = useState(false);
-  
+
   const assignSendersMutation = useMutation({
     mutationFn: (senderIds: string[]) => assignCampaignSenders(campaignId, senderIds),
     onSuccess: () => {
@@ -100,7 +100,7 @@ function CampaignReviewHubRoute() {
   const isPauseResumeLoading = pauseMutation.isPending || resumeMutation.isPending;
 
   // ── Loading / error states ────────────────────────────────────────────────
-  if (isCampaignLoading || isContactsLoading) {
+  if (isCampaignLoading || isRecipientsLoading) {
     return <LoadingState />;
   }
 
@@ -112,17 +112,15 @@ function CampaignReviewHubRoute() {
     return <ErrorState message={msg} />;
   }
 
-  if (isContactsError) {
+  if (isRecipientsError) {
     const msg =
-      contactsError instanceof Error
-        ? contactsError.message
-        : 'Failed to load campaign contacts.';
+      recipientsError instanceof Error
+        ? recipientsError.message
+        : 'Failed to load campaign recipients.';
     return <ErrorState message={msg} />;
   }
 
   // ── Resolve company name for the drawer from the campaign ─────────────────
-  // The campaign name follows the canonical "Outreach — {Company Name}" pattern.
-  // Extract the company name portion for the drawer header.
   const companyName = campaign.name.startsWith('Outreach — ')
     ? campaign.name.slice('Outreach — '.length)
     : campaign.name;
@@ -140,10 +138,10 @@ function CampaignReviewHubRoute() {
 
       <CampaignReviewHub
         campaign={campaign}
-        contacts={contacts}
+        recipients={recipients}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
-        onOpenContact={handleOpenContact}
+        onOpenRecipient={handleOpenRecipient}
         onPause={() => pauseMutation.mutate()}
         onResume={() => resumeMutation.mutate()}
         isPauseResumeLoading={isPauseResumeLoading}
@@ -164,18 +162,16 @@ function CampaignReviewHubRoute() {
       />
 
       {/*
-        Drawer receives the live contact list as boundContacts to enable
-        sequential cycling. The drawer's own GET /campaign-contacts/:id
-        hydration is the authoritative source for opened contact state.
-        campaignContactId comes directly from the query — never a stale
-        locally constructed object.
+        Drawer receives the live recipient list to enable sequential cycling.
+        The drawer's own GET /outreaches/:id hydration is the authoritative source
+        for opened draft state.
       */}
       <OutreachReviewDrawer
-        isOpen={openContactId !== null}
+        isOpen={openOutreachId !== null}
         onClose={handleCloseDrawer}
-        campaignContactId={openContactId}
-        boundContacts={contacts}
-        onSelectCampaignContact={handleOpenContact}
+        outreachId={openOutreachId}
+        recipients={recipients}
+        onSelectRecipient={handleOpenRecipient}
         companyName={companyName}
       />
     </div>

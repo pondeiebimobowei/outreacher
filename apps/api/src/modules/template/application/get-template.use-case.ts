@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { EmailTemplateDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { AppNotFoundException } from '../../../common/errors/application.exception';
 
 @Injectable()
 export class GetTemplateUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(workspaceId: string, templateId: string): Promise<EmailTemplateDto> {
     const template = await this.prisma.emailTemplate.findFirst({

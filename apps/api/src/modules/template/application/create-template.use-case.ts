@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailTemplateDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import { AppConflictException, AppValidationException } from '../../../common/errors/application.exception';
 import { TemplateEngineService } from '../domain/template-engine.service';
 import { CreateTemplateDto } from '../dto/create-template.dto';
@@ -8,7 +8,7 @@ import { CreateTemplateDto } from '../dto/create-template.dto';
 @Injectable()
 export class CreateTemplateUseCase {
   constructor(
-    private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
   ) {}
 

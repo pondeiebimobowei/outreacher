@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailTemplateDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -9,7 +9,7 @@ import { UpdateTemplateDto } from '../dto/update-template.dto';
 
 @Injectable()
 export class UpdateTemplateUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(
     workspaceId: string,

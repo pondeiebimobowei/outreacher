@@ -6,98 +6,94 @@ import { ApiError } from '../../api/client';
 
 jest.mock('../../api/outreach');
 
-const mockContactDetails: outreachApi.CampaignContactDetailsDto = {
-  id: 'cc-1',
+const mockOutreach: outreachApi.OutreachDto = {
+  id: 'outreach-1',
   workspaceId: 'ws-1',
-  campaignId: 'camp-1',
-  personId: 'con-1',
-  status: 'PENDING',
-  targetRole: 'VP of Engineering',
+  personCompanyAssociationId: 'pca-1',
+  campaignRecipientId: 'recip-1',
+  senderAccountId: 'acc-1',
+  contentSource: 'AI',
+  templateId: null,
+  aiPromptContext: 'Target engineering director with focus on latency improvements',
+  aiGenerationStatus: null,
+  draftVersion: 1,
+  subject: 'Acme distributed systems architecture',
+  message: 'Hi Sarah, I noticed Acme is hiring a Lead Distributed Systems Architect...',
   outreachReason: 'Leads the engineering team hiring for this role.',
-  currentSubject: 'Acme distributed systems architecture',
-  currentBody:
-    'Hi Sarah, I noticed Acme is hiring a Lead Distributed Systems Architect...',
-  selectedOpportunityId: 'opp-1',
+  status: 'DRAFT',
+  maxFollowUps: 2,
   createdAt: '2026-09-19T00:00:00.000Z',
   updatedAt: '2026-09-19T00:00:00.000Z',
   person: {
-    id: 'con-1',
-    firstName: "Sarah", lastName: "Connor",
+    id: 'per-1',
+    firstName: 'Sarah',
+    lastName: 'Connor',
     title: 'VP of Engineering',
     email: 'sarah@acme.com',
     personKind: 'PERSON',
     confidence: 'HIGH',
-    emailConfidence: 'AVAILABLE',
   },
-  campaign: {
-    id: 'camp-1',
-    name: 'Outreach — Acme',
-    status: 'DRAFT',
-    companyId: 'comp-1',
+  company: {
+    id: 'comp-1',
+    name: 'Acme Corp',
   },
-  selectedOpportunity: {
-    id: 'opp-1',
-    roleTitle: 'Lead Distributed Systems Architect',
-    opportunityType: 'CONFIRMED',
-  },
-  evidence: [
-    {
-      id: 'ev-1',
-      claim: 'Verified opening for Lead Architect',
-      classification: 'FACT',
-      sourceName: 'Careers Site',
-      sourceUrl: 'https://acme.com/careers/lead-architect',
-      sourceExcerpt: 'Opening posted 2 days ago',
-      confidence: 0.95,
-    },
-  ],
-  generationJob: null,
-  latestEmailSend: null,
 };
 
-const mockBoundContacts: outreachApi.CampaignContactSummaryDto[] = [
+const mockRecipients: outreachApi.CampaignRecipientSummaryDto[] = [
   {
-    id: 'cc-1',
+    id: 'recip-1',
     workspaceId: 'ws-1',
     campaignId: 'camp-1',
-    personId: 'con-1',
+    personCompanyAssociationId: 'pca-1',
     status: 'PENDING',
     targetRole: 'VP of Engineering',
-    outreachReason: null,
-    currentSubject: null,
-    currentBody: null,
     selectedOpportunityId: null,
     createdAt: '2026-09-19T00:00:00.000Z',
     updatedAt: '2026-09-19T00:00:00.000Z',
+    outreachId: 'outreach-1',
     person: {
-      id: 'con-1',
-      firstName: "Sarah", lastName: "Connor",
+      id: 'per-1',
+      firstName: 'Sarah',
+      lastName: 'Connor',
       title: 'VP of Engineering',
       email: 'sarah@acme.com',
       personKind: 'PERSON',
       confidence: 'HIGH',
     },
+    outreach: {
+      id: 'outreach-1',
+      status: 'DRAFT',
+      subject: 'Acme distributed systems architecture',
+      message: 'Hi Sarah...',
+      aiGenerationStatus: null,
+    },
   },
   {
-    id: 'cc-2',
+    id: 'recip-2',
     workspaceId: 'ws-1',
     campaignId: 'camp-1',
-    personId: 'con-2',
+    personCompanyAssociationId: 'pca-2',
     status: 'PENDING',
     targetRole: 'Engineering Manager',
-    outreachReason: null,
-    currentSubject: null,
-    currentBody: null,
     selectedOpportunityId: null,
     createdAt: '2026-09-19T00:00:00.000Z',
     updatedAt: '2026-09-19T00:00:00.000Z',
+    outreachId: 'outreach-2',
     person: {
-      id: 'con-2',
-      firstName: "John", lastName: "Doe",
+      id: 'per-2',
+      firstName: 'John',
+      lastName: 'Doe',
       title: 'Engineering Manager',
       email: 'john@acme.com',
       personKind: 'PERSON',
       confidence: 'MEDIUM',
+    },
+    outreach: {
+      id: 'outreach-2',
+      status: 'DRAFT',
+      subject: 'Acme EM opening',
+      message: 'Hi John...',
+      aiGenerationStatus: null,
     },
   },
 ];
@@ -106,31 +102,27 @@ describe('OutreachReviewDrawer', () => {
   beforeEach(() => {
     localStorage.clear();
     jest.clearAllMocks();
-    (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue(
-      mockContactDetails,
-    );
+    (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreach);
   });
 
-  it('renders drawer when open with contact and opportunity context', async () => {
+  it('renders drawer when open with contact and outreach context', async () => {
     render(
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
 
     expect(await screen.findByText('Sarah Connor')).toBeInTheDocument();
-    expect(screen.getByText('Needs Review')).toBeInTheDocument();
+    expect(screen.getByText('DRAFT')).toBeInTheDocument();
     expect(
-      screen.getByText('CONFIRMED: Lead Distributed Systems Architect'),
+      screen.getByText('"Leads the engineering team hiring for this role."'),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        '"Leads the engineering team hiring for this role."',
-      ),
+      screen.getByText('Target engineering director with focus on latency improvements'),
     ).toBeInTheDocument();
   });
 
@@ -139,8 +131,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -158,8 +150,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -185,11 +177,11 @@ describe('OutreachReviewDrawer', () => {
     ).toBeInTheDocument();
   });
 
-  it('performs autosave on blur with expectedUpdatedAt concurrency token and resets to PENDING', async () => {
-    (outreachApi.updateOutreachDraft as jest.Mock).mockResolvedValue({
-      ...mockContactDetails,
-      currentSubject: 'Updated Subject Title',
-      status: 'PENDING',
+  it('performs autosave on blur with expectedUpdatedAt concurrency token via updateOutreach', async () => {
+    (outreachApi.updateOutreach as jest.Mock).mockResolvedValue({
+      ...mockOutreach,
+      subject: 'Updated Subject Title',
+      status: 'DRAFT',
       updatedAt: '2026-09-19T01:00:00.000Z',
     });
 
@@ -197,8 +189,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -212,9 +204,9 @@ describe('OutreachReviewDrawer', () => {
     fireEvent.blur(subjectInput);
 
     await waitFor(() => {
-      expect(outreachApi.updateOutreachDraft).toHaveBeenCalledWith('cc-1', {
+      expect(outreachApi.updateOutreach).toHaveBeenCalledWith('outreach-1', {
         subject: 'Updated Subject Title',
-        bodyText: mockContactDetails.currentBody,
+        message: mockOutreach.message,
         expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
       });
     });
@@ -227,14 +219,14 @@ describe('OutreachReviewDrawer', () => {
     const savePromise = new Promise((resolve) => {
       resolveSave = resolve;
     });
-    (outreachApi.updateOutreachDraft as jest.Mock).mockReturnValue(savePromise);
+    (outreachApi.updateOutreach as jest.Mock).mockReturnValue(savePromise);
 
     render(
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -254,9 +246,9 @@ describe('OutreachReviewDrawer', () => {
 
     // Resolve save
     resolveSave!({
-      ...mockContactDetails,
-      currentSubject: 'Updated Subject Title',
-      status: 'PENDING',
+      ...mockOutreach,
+      subject: 'Updated Subject Title',
+      status: 'DRAFT',
       updatedAt: '2026-09-19T01:00:00.000Z',
     });
 
@@ -266,7 +258,7 @@ describe('OutreachReviewDrawer', () => {
   });
 
   it('preserves user edits and displays conflict alert when autosave encounters 409 conflict', async () => {
-    (outreachApi.updateOutreachDraft as jest.Mock).mockRejectedValue(
+    (outreachApi.updateOutreach as jest.Mock).mockRejectedValue(
       new ApiError(409, { message: 'Concurrent update' }),
     );
 
@@ -274,8 +266,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -293,70 +285,13 @@ describe('OutreachReviewDrawer', () => {
     expect(
       await screen.findByText(/A newer version of this draft was updated/i),
     ).toBeInTheDocument();
-    // User's unpersisted input is preserved in the input field
     expect(subjectInput.value).toBe('My Unsaved Local Subject');
   });
 
-  it('correlates generation polling to returned jobId and handles completion', async () => {
-    (outreachApi.triggerGenerateOutreach as jest.Mock).mockResolvedValue({
-      jobId: 'job-999',
-      status: 'QUEUED',
-    });
-
-    render(
-      <OutreachReviewDrawer
-        isOpen={true}
-        onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
-        companyName="Acme Corp"
-      />,
-    );
-
-    await screen.findByText('Sarah Connor');
-
-    const regenerateBtn = screen.getByRole('button', {
-      name: /Regenerate Draft/i,
-    });
-    fireEvent.click(regenerateBtn);
-
-    expect(outreachApi.triggerGenerateOutreach).toHaveBeenCalledWith('cc-1');
-    expect(
-      await screen.findByText(/Evaluating Evidence & Drafting Message.../i),
-    ).toBeInTheDocument();
-
-    // Mock completion returned on next poll
-    (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
-      ...mockContactDetails,
-      currentSubject: 'Freshly Generated Subject',
-      currentBody: 'Freshly generated message body with full details.',
-      updatedAt: '2026-09-19T02:00:00.000Z',
-      generationJob: {
-        id: 'job-999',
-        status: 'COMPLETED',
-        createdAt: '2026-09-19T01:59:00.000Z',
-      },
-    });
-
-    await waitFor(
-      () => {
-        expect(
-          screen.queryByText(/Evaluating Evidence & Drafting Message.../i),
-        ).not.toBeInTheDocument();
-      },
-      { timeout: 4000 },
-    );
-
-    const subjectInput = screen.getByLabelText(
-      /Subject \(3–150 chars\)/i,
-    ) as HTMLInputElement;
-    expect(subjectInput.value).toBe('Freshly Generated Subject');
-  });
-
-  it('explicitly approves draft and s to READY', async () => {
-    (outreachApi.approveOutreachDraft as jest.Mock).mockResolvedValue({
-      ...mockContactDetails,
-      status: 'READY',
+  it('explicitly approves draft and transitions to APPROVED', async () => {
+    (outreachApi.approveOutreach as jest.Mock).mockResolvedValue({
+      ...mockOutreach,
+      status: 'APPROVED',
       updatedAt: '2026-09-19T03:00:00.000Z',
     });
 
@@ -364,8 +299,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -378,7 +313,7 @@ describe('OutreachReviewDrawer', () => {
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
-      expect(outreachApi.approveOutreachDraft).toHaveBeenCalledWith('cc-1', {
+      expect(outreachApi.approveOutreach).toHaveBeenCalledWith('outreach-1', {
         expectedUpdatedAt: '2026-09-19T00:00:00.000Z',
       });
     });
@@ -387,11 +322,11 @@ describe('OutreachReviewDrawer', () => {
       await screen.findByText('Draft approved and staged for dispatch.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Send Now/i })).toBeInTheDocument();
-    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.getByText('APPROVED')).toBeInTheDocument();
   });
 
   it('displays suppression error when approval returns 409 suppression', async () => {
-    (outreachApi.approveOutreachDraft as jest.Mock).mockRejectedValue(
+    (outreachApi.approveOutreach as jest.Mock).mockRejectedValue(
       new ApiError(409, {
         message: 'Recipient email is suppressed',
         code: 'RECIPIENT_SUPPRESSED',
@@ -402,8 +337,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -418,29 +353,29 @@ describe('OutreachReviewDrawer', () => {
     ).toBeInTheDocument();
   });
 
-  it('supports sequential contact cycling via buttons and keyboard shortcuts [ and ]', async () => {
+  it('supports sequential recipient cycling via buttons and keyboard shortcuts [ and ]', async () => {
     const onSelectMock = jest.fn();
 
     render(
       <OutreachReviewDrawer
         isOpen={true}
         onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
-        onSelectCampaignContact={onSelectMock}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
+        onSelectRecipient={onSelectMock}
         companyName="Acme Corp"
       />,
     );
 
     await screen.findByText('Sarah Connor');
 
-    // Contact index: 1 of 2
+    // Index: 1 of 2
     expect(screen.getByText('1 of 2')).toBeInTheDocument();
 
     // Click Next >
-    const nextBtn = screen.getByTitle('Next Contact (])');
+    const nextBtn = screen.getByTitle('Next Recipient (])');
     fireEvent.click(nextBtn);
-    expect(onSelectMock).toHaveBeenCalledWith('cc-2');
+    expect(onSelectMock).toHaveBeenCalledWith('outreach-2');
 
     // Keyboard shortcut ]
     fireEvent.keyDown(window, { key: ']' });
@@ -454,8 +389,8 @@ describe('OutreachReviewDrawer', () => {
       <OutreachReviewDrawer
         isOpen={true}
         onClose={onCloseMock}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
+        outreachId="outreach-1"
+        recipients={mockRecipients}
         companyName="Acme Corp"
       />,
     );
@@ -466,77 +401,16 @@ describe('OutreachReviewDrawer', () => {
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 
-  it('handles 30s timeout gracefully and allows manual status check', async () => {
-    jest.useFakeTimers();
-    (outreachApi.triggerGenerateOutreach as jest.Mock).mockResolvedValue({
-      jobId: 'job-slow',
-      status: 'QUEUED',
-    });
-
-    render(
-      <OutreachReviewDrawer
-        isOpen={true}
-        onClose={jest.fn()}
-        campaignContactId="cc-1"
-        boundContacts={mockBoundContacts}
-        companyName="Acme Corp"
-      />,
-    );
-
-    await screen.findByText('Sarah Connor');
-
-    const regenerateBtn = screen.getByRole('button', {
-      name: /Regenerate Draft/i,
-    });
-    await act(async () => {
-      fireEvent.click(regenerateBtn);
-    });
-
-    expect(outreachApi.triggerGenerateOutreach).toHaveBeenCalledWith('cc-1');
-
-    // Advance timers by 32 seconds to trigger client timeout
-    act(() => {
-      jest.advanceTimersByTime(32000);
-    });
-
-    expect(
-      screen.getByText('Generation Still Processing in Background'),
-    ).toBeInTheDocument();
-    const checkStatusBtn = screen.getByRole('button', { name: /Check Status/i });
-    expect(checkStatusBtn).toBeInTheDocument();
-
-    (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
-      ...mockContactDetails,
-      currentSubject: 'Completed Subject',
-      currentBody: 'Completed Body text with enough characters.',
-      generationJob: {
-        id: 'job-slow',
-        status: 'COMPLETED',
-      },
-    });
-
-    await act(async () => {
-      fireEvent.click(checkStatusBtn);
-    });
-
-    expect(outreachApi.fetchCampaignContact).toHaveBeenCalledWith('cc-1');
-
-    jest.useRealTimers();
-  });
-
-  describe('Packet 5: Pre-Dispatch Hold, BL-014 Send Dispatch & Idempotent Delivery', () => {
-    const mockReadyDetails: outreachApi.CampaignContactDetailsDto = {
-      ...mockContactDetails,
-      status: 'READY',
-      currentSubject: 'Acme distributed systems architecture',
-      currentBody:
-        'Hi Sarah, I noticed Acme is hiring a Lead Distributed Systems Architect...',
+  describe('Pre-Dispatch Hold and SendOutreach', () => {
+    const mockApprovedOutreach: outreachApi.OutreachDto = {
+      ...mockOutreach,
+      status: 'APPROVED',
     };
 
     beforeEach(() => {
       localStorage.clear();
-      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue(
-        mockReadyDetails,
+      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(
+        mockApprovedOutreach,
       );
     });
 
@@ -545,8 +419,8 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
@@ -567,13 +441,13 @@ describe('OutreachReviewDrawer', () => {
       ).toBeInTheDocument();
     });
 
-    it('cancels confirmation modal without network calls and preserves READY state', async () => {
+    it('cancels confirmation modal without network calls and preserves APPROVED state', async () => {
       render(
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
@@ -587,7 +461,7 @@ describe('OutreachReviewDrawer', () => {
       expect(
         screen.queryByRole('dialog', { name: /Confirm Outreach Dispatch/i }),
       ).not.toBeInTheDocument();
-      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+      expect(outreachApi.sendOutreach).not.toHaveBeenCalled();
       expect(
         screen.getByRole('button', { name: /Send Now/i }),
       ).toBeInTheDocument();
@@ -600,15 +474,14 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
 
       await screen.findByText('Sarah Connor');
       fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
-
       fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
 
       // Pre-dispatch hold active
@@ -616,7 +489,7 @@ describe('OutreachReviewDrawer', () => {
       expect(
         screen.getByText(/Sending to Sarah Connor in 5s\.\.\./i),
       ).toBeInTheDocument();
-      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+      expect(outreachApi.sendOutreach).not.toHaveBeenCalled();
 
       // Click Cancel Send during hold
       const cancelSendBtn = screen.getByRole('button', { name: /Cancel Send/i });
@@ -629,7 +502,7 @@ describe('OutreachReviewDrawer', () => {
         jest.advanceTimersByTime(6000);
       });
 
-      expect(outreachApi.sendCampaignContact).not.toHaveBeenCalled();
+      expect(outreachApi.sendOutreach).not.toHaveBeenCalled();
       expect(
         screen.getByRole('button', { name: /Send Now/i }),
       ).toBeInTheDocument();
@@ -637,24 +510,18 @@ describe('OutreachReviewDrawer', () => {
       jest.useRealTimers();
     });
 
-    it('executes sendCampaignContact with RFC4122 v4 UUID Idempotency-Key upon hold expiry and removes undo/cancel', async () => {
+    it('executes sendOutreach with RFC4122 v4 UUID Idempotency-Key upon hold expiry and removes undo/cancel', async () => {
       jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
-        id: 'cc-1',
-        status: 'SENDING',
-        sendReservation: {
-          id: 'es-1',
-          status: 'PENDING',
-          idempotencyKey: 'test-uuid',
-        },
+      (outreachApi.sendOutreach as jest.Mock).mockResolvedValue({
+        message: 'QUEUED',
       });
 
       render(
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
@@ -670,22 +537,17 @@ describe('OutreachReviewDrawer', () => {
         jest.advanceTimersByTime(5000);
       });
 
-      expect(outreachApi.sendCampaignContact).toHaveBeenCalledTimes(1);
+      expect(outreachApi.sendOutreach).toHaveBeenCalledTimes(1);
       const [calledId, calledKey] = (
-        outreachApi.sendCampaignContact as jest.Mock
+        outreachApi.sendOutreach as jest.Mock
       ).mock.calls[0];
-      expect(calledId).toBe('cc-1');
-      // UUID v4 format verification
+      expect(calledId).toBe('outreach-1');
       expect(calledKey).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
       );
 
-      // Verify that Cancel / Undo are absent once dispatch has begun
       expect(
         screen.queryByRole('button', { name: /Cancel Send/i }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', { name: /Undo/i }),
       ).not.toBeInTheDocument();
 
       jest.useRealTimers();
@@ -693,17 +555,16 @@ describe('OutreachReviewDrawer', () => {
 
     it('persists scoped preference when "Don\'t ask again" is checked and skips confirmation on subsequent sends', async () => {
       jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
-        id: 'cc-1',
-        status: 'SENDING',
+      (outreachApi.sendOutreach as jest.Mock).mockResolvedValue({
+        message: 'QUEUED',
       });
 
       render(
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
           userId="user-123"
         />,
@@ -712,7 +573,6 @@ describe('OutreachReviewDrawer', () => {
       await screen.findByText('Sarah Connor');
       fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
 
-      // Modal open, check the checkbox
       const checkbox = screen.getByRole('checkbox', {
         name: /Don't ask again for single sends/i,
       });
@@ -721,7 +581,6 @@ describe('OutreachReviewDrawer', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
 
-      // Preference scoped to workspace ws-1 and user user-123
       expect(
         localStorage.getItem(
           'outreacher:skip_single_send_confirmation:ws-1:user-123',
@@ -741,125 +600,9 @@ describe('OutreachReviewDrawer', () => {
       jest.useRealTimers();
     });
 
-    it('polls every 2s until contact status becomes SENT, displays Sent banner with sentAt', async () => {
-      jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
-        id: 'cc-1',
-        status: 'SENDING',
-      });
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByText('Sarah Connor');
-      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
-      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
-
-      // Advance hold
-      await act(async () => {
-        jest.advanceTimersByTime(5000);
-      });
-
-      expect(outreachApi.sendCampaignContact).toHaveBeenCalledTimes(1);
-
-      // Now contact is in SENDING and polling starts
-      // Mock fetchCampaignContact returning SENT
-      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
-        ...mockReadyDetails,
-        status: 'SENT',
-        latestEmailSend: {
-          id: 'es-1',
-          status: 'SENT',
-          sentAt: '2026-09-19T01:00:00.000Z',
-        },
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(2000);
-      });
-
-      expect(outreachApi.fetchCampaignContact).toHaveBeenCalled();
-      expect(
-        screen.getByText('Outreach Email Sent'),
-      ).toBeInTheDocument();
-      expect(screen.getByText('Sent')).toBeInTheDocument();
-
-      // Advancing further should not trigger additional polling calls
-      const callCount = (outreachApi.fetchCampaignContact as jest.Mock).mock
-        .calls.length;
-      await act(async () => {
-        jest.advanceTimersByTime(4000);
-      });
-      expect(
-        (outreachApi.fetchCampaignContact as jest.Mock).mock.calls.length,
-      ).toBe(callCount);
-
-      jest.useRealTimers();
-    });
-
-    it('polls every 2s until contact status becomes FAILED, displays error message without retry button', async () => {
-      jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockResolvedValue({
-        id: 'cc-1',
-        status: 'SENDING',
-      });
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByText('Sarah Connor');
-      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
-      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
-
-      await act(async () => {
-        jest.advanceTimersByTime(5000);
-      });
-
-      (outreachApi.fetchCampaignContact as jest.Mock).mockResolvedValue({
-        ...mockReadyDetails,
-        status: 'FAILED',
-        latestEmailSend: {
-          id: 'es-1',
-          status: 'FAILED',
-          errorMessage: 'SMTP transport gateway timeout',
-        },
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(2000);
-      });
-
-      expect(
-        screen.getByText('Outreach Dispatch Failed'),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText('SMTP transport gateway timeout'),
-      ).toBeInTheDocument();
-      expect(screen.getAllByText('Send Failed').length).toBeGreaterThan(0);
-      expect(
-        screen.queryByRole('button', { name: /Retry/i }),
-      ).not.toBeInTheDocument();
-
-      jest.useRealTimers();
-    });
-
     it('handles 409 RECIPIENT_SUPPRESSED gracefully on send dispatch', async () => {
       jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockRejectedValue(
+      (outreachApi.sendOutreach as jest.Mock).mockRejectedValue(
         new ApiError(409, {
           code: 'RECIPIENT_SUPPRESSED',
           message: 'Recipient email is suppressed',
@@ -870,8 +613,8 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
@@ -893,7 +636,7 @@ describe('OutreachReviewDrawer', () => {
 
     it('handles 409 CAMPAIGN_STATE_CONFLICT with neutral copy', async () => {
       jest.useFakeTimers();
-      (outreachApi.sendCampaignContact as jest.Mock).mockRejectedValue(
+      (outreachApi.sendOutreach as jest.Mock).mockRejectedValue(
         new ApiError(409, {
           code: 'CAMPAIGN_STATE_CONFLICT',
           message: 'Campaign is not active',
@@ -904,8 +647,8 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
+          outreachId="outreach-1"
+          recipients={mockRecipients}
           companyName="Acme Corp"
         />,
       );
@@ -924,84 +667,12 @@ describe('OutreachReviewDrawer', () => {
 
       jest.useRealTimers();
     });
-
-    it('disables contact cycling during hold and sending', async () => {
-      jest.useFakeTimers();
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          campaignContactId="cc-1"
-          boundContacts={mockBoundContacts}
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByText('Sarah Connor');
-      fireEvent.click(screen.getByRole('button', { name: /Send Now/i }));
-      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/i }));
-
-      // In hold
-      const nextBtn = screen.getByRole('button', { name: /Next/i });
-      expect(nextBtn).toBeDisabled();
-
-      // Keyboard navigation ignored
-      fireEvent.keyDown(window, { key: ']' });
-      expect(outreachApi.fetchCampaignContact).toHaveBeenCalledTimes(1); // initial load only
-
-      jest.useRealTimers();
-    });
   });
 
-  describe('OutreachReviewDrawer - Modern Outreach Domain Contract', () => {
-    const mockOutreachAI: outreachApi.OutreachDto = {
-      id: 'out-1',
-      workspaceId: 'ws-1',
-      personCompanyAssociationId: 'pca-1',
-      campaignRecipientId: null,
-      senderAccountId: 'snd-1',
-      contentSource: 'AI',
-      templateId: null,
-      aiPromptContext: 'Target engineering director with focus on latency improvements',
-      aiGenerationStatus: 'SUCCEEDED',
-      draftVersion: 1,
-      subject: 'Regarding distributed cache performance',
-      message: 'Hi Alex, I saw your recent engineering post on cache coherency and wanted to connect...',
-      outreachReason: 'Engineering leadership for high throughput pipelines',
-      status: 'DRAFT',
-      maxFollowUps: 2,
-      createdAt: '2026-10-02T10:00:00Z',
-      updatedAt: '2026-10-02T10:00:00Z',
-    };
-
-    it('fetches OutreachDto from GET /outreaches/:id and displays contentSource and aiGenerationStatus badges', async () => {
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      await waitFor(() => {
-        expect(outreachApi.fetchOutreachById).toHaveBeenCalledWith('out-1');
-      });
-
-      expect(await screen.findByText('Regarding distributed cache performance')).toBeInTheDocument();
-      expect(screen.getByText('AI')).toBeInTheDocument();
-      expect(screen.getByText('SUCCEEDED')).toBeInTheDocument();
-      expect(
-        screen.getByText('Target engineering director with focus on latency improvements'),
-      ).toBeInTheDocument();
-    });
-
+  describe('Outreach domain features: Resume, AiGenerationStatus, and Editing Rules', () => {
     it('shows polling spinner and draft status when aiGenerationStatus is PENDING', async () => {
       const pendingOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         aiGenerationStatus: 'PENDING',
         subject: '',
         message: '',
@@ -1012,7 +683,7 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          outreachId="out-1"
+          outreachId="outreach-1"
           companyName="Acme Corp"
         />,
       );
@@ -1021,81 +692,9 @@ describe('OutreachReviewDrawer', () => {
       expect(screen.getByText(/AI generation in progress/i)).toBeInTheDocument();
     });
 
-    it('allows editing draft only when status is DRAFT and updates via updateOutreach', async () => {
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
-      (outreachApi.updateOutreach as jest.Mock).mockResolvedValue({
-        ...mockOutreachAI,
-        subject: 'Updated Distributed Cache Subject',
-      });
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByDisplayValue('Regarding distributed cache performance');
-
-      const subjectInput = screen.getByLabelText(/Subject/i);
-      fireEvent.change(subjectInput, {
-        target: { value: 'Updated Distributed Cache Subject' },
-      });
-      fireEvent.blur(subjectInput);
-
-      await waitFor(() => {
-        expect(outreachApi.updateOutreach).toHaveBeenCalledWith('out-1', {
-          subject: 'Updated Distributed Cache Subject',
-          message: mockOutreachAI.message,
-          expectedUpdatedAt: mockOutreachAI.updatedAt,
-        });
-      });
-    });
-
-    it('dispatches send via sendOutreach with Idempotency-Key header', async () => {
-      jest.useFakeTimers();
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(mockOutreachAI);
-      (outreachApi.sendOutreach as jest.Mock).mockResolvedValue({ message: 'Dispatched' });
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByDisplayValue('Regarding distributed cache performance');
-
-      const sendBtn = screen.getByRole('button', { name: /Send Now/i });
-      fireEvent.click(sendBtn);
-
-      // Confirm modal
-      const confirmBtn = screen.getByRole('button', { name: /Confirm & Send/i });
-      fireEvent.click(confirmBtn);
-
-      expect(screen.getByTestId('pre-dispatch-hold')).toBeInTheDocument();
-
-      await act(async () => {
-        jest.advanceTimersByTime(5000);
-      });
-
-      expect(outreachApi.sendOutreach).toHaveBeenCalledWith('out-1', expect.any(String));
-      const [calledId, calledKey] = (outreachApi.sendOutreach as jest.Mock).mock.calls[0];
-      expect(calledId).toBe('out-1');
-      expect(calledKey).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
-
-      jest.useRealTimers();
-    });
-
     it('displays Resume Outreach button when status is PAUSED and calls resumeOutreach', async () => {
       const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         status: 'PAUSED',
       };
       const resumedOutreach: outreachApi.OutreachDto = {
@@ -1109,7 +708,7 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          outreachId="out-1"
+          outreachId="outreach-1"
           companyName="Acme Corp"
         />,
       );
@@ -1118,7 +717,7 @@ describe('OutreachReviewDrawer', () => {
       fireEvent.click(screen.getByRole('button', { name: /Resume Outreach/i }));
 
       await waitFor(() => {
-        expect(outreachApi.resumeOutreach).toHaveBeenCalledWith('out-1');
+        expect(outreachApi.resumeOutreach).toHaveBeenCalledWith('outreach-1');
       });
 
       expect(await screen.findByText('ACTIVE')).toBeInTheDocument();
@@ -1126,7 +725,7 @@ describe('OutreachReviewDrawer', () => {
 
     it('surfaces backend 409 conflict when resumeOutreach fails', async () => {
       const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         status: 'PAUSED',
       };
       (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
@@ -1140,7 +739,7 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          outreachId="out-1"
+          outreachId="outreach-1"
           companyName="Acme Corp"
         />,
       );
@@ -1154,7 +753,7 @@ describe('OutreachReviewDrawer', () => {
 
     it('displays AI generation FAILED alert and SKIPPED note', async () => {
       const failedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         aiGenerationStatus: 'FAILED',
       };
       (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(failedOutreach);
@@ -1176,7 +775,7 @@ describe('OutreachReviewDrawer', () => {
       unmount();
 
       const skippedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         aiGenerationStatus: 'SKIPPED',
       };
       (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(skippedOutreach);
@@ -1198,7 +797,7 @@ describe('OutreachReviewDrawer', () => {
 
     it('disables subject and message inputs when status is not DRAFT', async () => {
       const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
+        ...mockOutreach,
         status: 'PAUSED',
       };
       (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
@@ -1207,12 +806,12 @@ describe('OutreachReviewDrawer', () => {
         <OutreachReviewDrawer
           isOpen={true}
           onClose={jest.fn()}
-          outreachId="out-1"
+          outreachId="outreach-1"
           companyName="Acme Corp"
         />,
       );
 
-      await screen.findByDisplayValue('Regarding distributed cache performance');
+      await screen.findByDisplayValue('Acme distributed systems architecture');
 
       const subjectInput = screen.getByLabelText(/Subject/i);
       const bodyInput = screen.getByLabelText(/Body Text/i);
@@ -1220,165 +819,5 @@ describe('OutreachReviewDrawer', () => {
       expect(subjectInput).toBeDisabled();
       expect(bodyInput).toBeDisabled();
     });
-
-    it('surfaces backend 409 when resume fails due to PCA in REPLIED state', async () => {
-      const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        status: 'PAUSED',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
-      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
-        new ApiError(409, {
-          message: 'PCA conversation state is REPLIED. Cannot resume outreach.',
-        }),
-      );
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
-      fireEvent.click(resumeBtn);
-
-      const alert = await screen.findByRole('alert');
-      expect(alert).toHaveTextContent(/PCA conversation state is REPLIED\. Cannot resume outreach\./i);
-    });
-
-    it('surfaces backend 409 when resume fails due to suppressed recipient email', async () => {
-      const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        status: 'PAUSED',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
-      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
-        new ApiError(409, {
-          message: 'Recipient email is suppressed. Cannot resume outreach.',
-        }),
-      );
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
-      fireEvent.click(resumeBtn);
-
-      const alert = await screen.findByRole('alert');
-      expect(alert).toHaveTextContent(/Recipient email is suppressed\. Cannot resume outreach\./i);
-    });
-
-    it('surfaces backend 409 when resume fails due to ineligible CampaignRecipient', async () => {
-      const pausedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        status: 'PAUSED',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(pausedOutreach);
-      (outreachApi.resumeOutreach as jest.Mock).mockRejectedValue(
-        new ApiError(409, {
-          message: 'Campaign recipient is no longer eligible for automation.',
-        }),
-      );
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-1"
-          companyName="Acme Corp"
-        />,
-      );
-
-      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
-      fireEvent.click(resumeBtn);
-
-      const alert = await screen.findByRole('alert');
-      expect(alert).toHaveTextContent(/Campaign recipient is no longer eligible for automation\./i);
-    });
-
-    it('successfully resumes a one-off Outreach (campaignRecipientId = null)', async () => {
-      const oneOffPaused: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        campaignRecipientId: null,
-        status: 'PAUSED',
-      };
-      const oneOffActive: outreachApi.OutreachDto = {
-        ...oneOffPaused,
-        status: 'ACTIVE',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(oneOffPaused);
-      (outreachApi.resumeOutreach as jest.Mock).mockResolvedValue(oneOffActive);
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-one-off"
-          companyName="Acme Corp"
-        />,
-      );
-
-      const resumeBtn = await screen.findByRole('button', { name: /Resume Outreach/i });
-      fireEvent.click(resumeBtn);
-
-      await waitFor(() => {
-        expect(outreachApi.resumeOutreach).toHaveBeenCalledWith('out-one-off');
-      });
-      expect(await screen.findByText('ACTIVE')).toBeInTheDocument();
-    });
-
-    it('disables subject and message inputs when status is terminal COMPLETED or FAILED even if aiGenerationStatus is SUCCEEDED', async () => {
-      const completedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        status: 'COMPLETED',
-        aiGenerationStatus: 'SUCCEEDED',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(completedOutreach);
-
-      const { unmount } = render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-completed"
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByDisplayValue('Regarding distributed cache performance');
-      expect(screen.getByLabelText(/Subject/i)).toBeDisabled();
-      expect(screen.getByLabelText(/Body Text/i)).toBeDisabled();
-
-      unmount();
-
-      const failedOutreach: outreachApi.OutreachDto = {
-        ...mockOutreachAI,
-        status: 'FAILED',
-        aiGenerationStatus: 'SUCCEEDED',
-      };
-      (outreachApi.fetchOutreachById as jest.Mock).mockResolvedValue(failedOutreach);
-
-      render(
-        <OutreachReviewDrawer
-          isOpen={true}
-          onClose={jest.fn()}
-          outreachId="out-failed-terminal"
-          companyName="Acme Corp"
-        />,
-      );
-
-      await screen.findByDisplayValue('Regarding distributed cache performance');
-      expect(screen.getByLabelText(/Subject/i)).toBeDisabled();
-      expect(screen.getByLabelText(/Body Text/i)).toBeDisabled();
-    });
   });
 });
-

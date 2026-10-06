@@ -14,6 +14,7 @@ import { GetCampaignUseCase } from './application/get-campaign.use-case';
 import { ListCampaignsUseCase } from './application/list-campaigns.use-case';
 import { ChangeCampaignStatusUseCase } from './application/change-campaign-status.use-case';
 import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-recipient.use-case';
+import { GetCampaignRecipientsUseCase } from './application/get-campaign-recipients.use-case';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-re
     ListCampaignsUseCase,
     ChangeCampaignStatusUseCase,
     ResumeCampaignRecipientUseCase,
+    GetCampaignRecipientsUseCase,
   ],
   exports: [
     CAMPAIGN_REPOSITORY_TOKEN,
@@ -46,6 +48,7 @@ import { ResumeCampaignRecipientUseCase } from './application/resume-campaign-re
     ListCampaignsUseCase,
     ChangeCampaignStatusUseCase,
     ResumeCampaignRecipientUseCase,
+    GetCampaignRecipientsUseCase,
   ],
 })
 export class CampaignModule {}

@@ -9,9 +9,8 @@ import {
 } from '../../api/contacts';
 
 import {
-  AddCampaignContactsResponse,
-  addContactsToCampaign,
-  CampaignContactDto,
+  addRecipientsToCampaign,
+  CampaignRecipientDto,
   CampaignDto,
   resolveCanonicalCompanyCampaign,
 } from '../../api/campaigns';
@@ -20,7 +19,7 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
   const queryClient = useQueryClient();
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const [bindingError, setBindingError] = useState<string | null>(null);
-  const [boundCampaignContact, setBoundCampaignContact] = useState<CampaignContactDto | null>(null);
+  const [boundCampaignRecipient, setBoundCampaignRecipient] = useState<CampaignRecipientDto | null>(null);
   const [activeCampaign, setActiveCampaign] = useState<CampaignDto | null>(null);
   const [ariaAnnouncement, setAriaAnnouncement] = useState<string>('');
   const [pollingDuration, setPollingDuration] = useState<number>(0);
@@ -69,54 +68,38 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
     };
   }, [isPollingActive]);
 
-  // Track discrete status s for accessibility announcements
+  // Handle terminal status transitions for ARIA announcements
   useEffect(() => {
-    if (!contactsData) return;
-    const currentStatus = contactsData.status;
-    const prevStatus = prevStatusRef.current;
-
-    if (prevStatus !== null && prevStatus !== currentStatus) {
-      if (currentStatus === 'QUEUED' || currentStatus === 'RUNNING') {
-        setAriaAnnouncement('Contact discovery started.');
-      } else if (currentStatus === 'COMPLETED') {
-        const count = contactsData.contacts.length;
-        setAriaAnnouncement(
-          count > 0
-            ? `Contact discovery completed. ${count} candidate contacts found.`
-            : 'Contact discovery completed. No suitable contacts identified.',
-        );
-      } else if (currentStatus === 'FAILED') {
+    if (prevStatusRef.current !== rawStatus) {
+      if (rawStatus === 'COMPLETED') {
+        const count = contactsData?.contacts?.length ?? 0;
+        setAriaAnnouncement(`Contact discovery complete. Found ${count} contacts.`);
+      } else if (rawStatus === 'FAILED') {
         setAriaAnnouncement('Contact discovery failed.');
       }
+      prevStatusRef.current = rawStatus;
     }
-
-    prevStatusRef.current = currentStatus;
-  }, [contactsData]);
+  }, [rawStatus, contactsData?.contacts?.length]);
 
   const discoverMutation = useMutation({
-    mutationFn: (options?: { forceRefresh?: boolean }) =>
-      discoverCompanyContacts(companyId, options),
-    onSuccess: (res) => {
+    onMutate: () => {
       setRateLimitError(null);
       setPollingDuration(0);
+    },
+    mutationFn: (options?: { forceRefresh?: boolean }) =>
+      discoverCompanyContacts(companyId, options),
+    onSuccess: () => {
+      setAriaAnnouncement('Contact discovery initiated.');
       queryClient.invalidateQueries({ queryKey: ['company-contacts', companyId] });
-      if (res.reused) {
-        setAriaAnnouncement('Contact discovery findings reused from 24 hour cache.');
-      } else {
-        setAriaAnnouncement('Contact discovery started.');
-      }
     },
     onError: (err: unknown) => {
       if (err instanceof ApiError && err.statusCode === 429) {
-        setRateLimitError(
-          'Maximum 3 forced contact discovery refreshes per company per 24 hours reached. Existing contacts remain visible.',
-        );
-        setAriaAnnouncement('Contact discovery rate limit reached.');
-      } else if (err instanceof ApiError) {
-        setRateLimitError(err.message);
-        setAriaAnnouncement(`Contact discovery failed: ${err.message}`);
+        const msg = 'Discovery limit reached. Please wait a few moments before trying again.';
+        setRateLimitError(msg);
+        setAriaAnnouncement(msg);
       } else {
-        setRateLimitError('Failed to execute contact discovery.');
+        const msg = err instanceof Error ? err.message : 'Failed to discover contacts.';
+        setRateLimitError(msg);
         setAriaAnnouncement('Contact discovery failed.');
       }
     },
@@ -136,23 +119,22 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
         throw new Error('No campaign found for this company. Please create a campaign first.');
       }
 
-      // 3. Bind contact to campaign via POST /api/v1/campaigns/:id/contacts
-      const bindRes: AddCampaignContactsResponse = await addContactsToCampaign(campaign.id, [
-        contactId,
+      // 3. Bind recipient to campaign via POST /api/v1/campaigns/:id/recipients
+      const boundRecipients = await addRecipientsToCampaign(campaign.id, [
+        { personCompanyAssociationId: contactId },
       ]);
 
-      const boundContact = bindRes.bound[0] ?? null;
+      const boundRecipient = boundRecipients[0] ?? null;
 
       return {
         selection: selectionRes,
         campaign,
-        boundContact,
-        ignoredDuplicateCount: bindRes.ignoredDuplicateCount,
+        boundRecipient,
       };
     },
     onSuccess: (result) => {
       setActiveCampaign(result.campaign);
-      setBoundCampaignContact(result.boundContact);
+      setBoundCampaignRecipient(result.boundRecipient);
       queryClient.invalidateQueries({ queryKey: ['company-contacts', companyId] });
       const campaignTitle = result.campaign.name;
       setAriaAnnouncement(`Target contact selected and bound to ${campaignTitle}.`);
@@ -171,7 +153,7 @@ export function useContactDiscovery(companyId: string, companyName?: string) {
     error,
     rateLimitError,
     bindingError,
-    boundCampaignContact,
+    boundCampaignRecipient,
     activeCampaign,
     ariaAnnouncement,
     setAriaAnnouncement,

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { EmailTemplateSummaryDto } from '@repo/shared';
-import { PrismaClient } from '@repo/db';
+import { PrismaService } from '../../../database/prisma.service';
 
 @Injectable()
 export class ListTemplatesUseCase {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async execute(
     workspaceId: string,

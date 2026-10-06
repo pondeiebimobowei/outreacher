@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { Job, JobStatus, Prisma } from '@repo/db';
+import { ConversationMessage, Job, JobStatus, Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import { SendEligibilityService } from '../domain/send-eligibility.service';
 import {
@@ -375,7 +375,7 @@ export class ScheduledFollowUpCheckWorker {
         outreach.aiPromptContext ? `Prompt Context: ${outreach.aiPromptContext}` : '',
         `Previous Thread:`,
         outreach.conversationMessages
-          .map((m) => `[${m.kind}] ${m.subject}: ${m.body}`)
+          .map((m: ConversationMessage ) => `[${m.kind}] ${m.subject}: ${m.body}`)
           .join('\n'),
         `Return JSON: { "subject": "...", "body": "..." }`,
       ].filter(Boolean).join('\n');
