@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -85,6 +86,53 @@ describe('SendOutreachUseCase', () => {
         payload: { different: true },
       }),
     ).rejects.toThrow(AppConflictException);
+  });
+
+  it('throws 409 Conflict if idempotency key reused for different target', async () => {
+    prisma.idempotencyRecord.findFirst.mockResolvedValue({
+      id: 'rec-1',
+      workspaceId: 'ws-1',
+      operation: 'POST:/outreaches/:id/send',
+      key: 'idem-1',
+      targetId: 'out-1',
+      requestHash: 'hash-1',
+      jobId: 'job-1',
+    });
+
+    await expect(
+      useCase.execute({
+        workspaceId: 'ws-1',
+        outreachId: 'different-outreach-id',
+        idempotencyKey: 'idem-1',
+      }),
+    ).rejects.toThrow(AppConflictException);
+  });
+
+  it('replays existing send without error when called with equivalent payload having different key order', async () => {
+    const sortedString = '{"a":1,"b":2,"outreachId":"out-1"}';
+    const expectedHash = crypto
+      .createHash('sha256')
+      .update(sortedString)
+      .digest('hex');
+
+    prisma.idempotencyRecord.findFirst.mockResolvedValue({
+      id: 'rec-1',
+      workspaceId: 'ws-1',
+      operation: 'POST:/outreaches/:id/send',
+      key: 'idem-1',
+      targetId: 'out-1',
+      requestHash: expectedHash,
+      jobId: 'job-existing',
+    });
+
+    const res = await useCase.execute({
+      workspaceId: 'ws-1',
+      outreachId: 'out-1',
+      idempotencyKey: 'idem-1',
+      payload: { b: 2, a: 1 },
+    });
+
+    expect(res).toEqual({ jobId: 'job-existing', status: 'QUEUED' });
   });
 
   it('throws 409 Conflict if Outreach is not in APPROVED status', async () => {

@@ -16,6 +16,24 @@ export interface SendOutreachCommand {
   payload?: Record<string, unknown> | null;
 }
 
+function canonicalizeJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return '[' + value.map(canonicalizeJson).join(',') + ']';
+  }
+  const obj = value as Record<string, unknown>;
+  const sortedKeys = Object.keys(obj).sort();
+  return (
+    '{' +
+    sortedKeys
+      .map((k) => `${JSON.stringify(k)}:${canonicalizeJson(obj[k])}`)
+      .join(',') +
+    '}'
+  );
+}
+
 @Injectable()
 export class SendOutreachUseCase {
   constructor(
@@ -30,9 +48,15 @@ export class SendOutreachUseCase {
       throw new AppValidationException('idempotency-key header is required');
     }
 
+    const normalizedPayload =
+      payload && typeof payload === 'object' ? payload : {};
+    const requestIdentity = {
+      outreachId,
+      ...normalizedPayload,
+    };
     const requestHash = crypto
       .createHash('sha256')
-      .update(JSON.stringify(payload ?? {}))
+      .update(canonicalizeJson(requestIdentity))
       .digest('hex');
 
     return this.prisma.$transaction(async (tx: any) => {

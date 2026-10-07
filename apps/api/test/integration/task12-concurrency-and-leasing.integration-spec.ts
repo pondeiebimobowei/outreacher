@@ -349,6 +349,73 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
     expect(replayResult.jobId).toBe(firstResult.jobId);
     expect(replayResult.status).toBe('QUEUED');
 
+    // Equivalent payload with DIFFERENT property insertion order does NOT false-conflict
+    const payloadAInverted = { clientVariant: 'A', channel: 'EMAIL' };
+    const replayInverted = await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+      idempotencyKey: canonicalKey,
+      payload: payloadAInverted,
+    });
+    expect(replayInverted.jobId).toBe(firstResult.jobId);
+    expect(replayInverted.status).toBe('QUEUED');
+
+    // Same key K + same payload + DIFFERENT outreach target -> throws 409 target conflict
+    const { pca: pca2 } = await seedContact(
+      currentWorkspaceId,
+      'target2@example.com',
+      'Target 2 Co',
+      'Target',
+      'Two',
+    );
+    const outreach2 = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pca2.id,
+        contentSource: 'MANUAL',
+        subject: 'Second Target Test',
+        message: 'Second Target Message',
+        senderAccountId: sender.id,
+        maxFollowUps: 0,
+      },
+      randomUUID(),
+    );
+    await approveDraftUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreach2.id,
+    });
+
+    const crossTargetPromise = sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreach2.id,
+      idempotencyKey: canonicalKey,
+      payload: payloadA,
+    });
+    await expect(crossTargetPromise).rejects.toThrow(AppConflictException);
+    await expect(crossTargetPromise).rejects.toThrow(
+      'Idempotency key reused for different target',
+    );
+
+    // Same key K on DIFFERENT operation (POST:/outreaches) is isolated by operation scope
+    const createWithSameKey = await createOutreachUseCase.execute(
+      currentWorkspaceId,
+      {
+        personCompanyAssociationId: pca2.id,
+        contentSource: 'MANUAL',
+        subject: 'Different Operation Test',
+        message: 'Different Operation Message',
+        senderAccountId: sender.id,
+        maxFollowUps: 0,
+      },
+      canonicalKey,
+    );
+    expect(createWithSameKey.id).toBeDefined();
+
+    const opRecords = await prisma.idempotencyRecord.findMany({
+      where: { workspaceId: currentWorkspaceId, key: canonicalKey },
+    });
+    expect(opRecords).toHaveLength(2); // One for POST:/outreaches/:id/send and one for POST:/outreaches
+
     // Distinct idempotency key against already SENDING outreach also conflicts
     await expect(
       sendOutreachUseCase.execute({
