@@ -100,7 +100,7 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       },
     });
 
-    // Evidence for PCA A
+    // Evidence for PCA A linked directly to oppA
     await prisma.evidence.create({
       data: {
         workspaceId: wsA.id,
@@ -183,7 +183,8 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       data: {
         workspaceId: wsA.id,
         type: 'OUTREACH_GENERATION',
-        status: JobStatus.RUNNING, idempotencyKey: randomUUID(),
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
         payload: {
           outreachId: outreachA.id,
           expectedDraftVersion: 0,
@@ -260,7 +261,8 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       data: {
         workspaceId: ws.id,
         type: 'OUTREACH_GENERATION',
-        status: JobStatus.RUNNING, idempotencyKey: randomUUID(),
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
         payload: {
           outreachId: outreach.id,
           expectedDraftVersion: 0,
@@ -292,7 +294,100 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
     expect(updatedOutreach.status).toBe(OutreachStatus.DRAFT);
   });
 
-  it('3. Concurrency Lease Fencing: Stale worker loses lease to newer worker and commits ZERO side-effects', async () => {
+  it('3. Semantic Opening Evidence: CONFIRMED opportunity with UNRELATED company evidence does NOT claim verified opening evidence', async () => {
+    const ws = await prisma.workspace.create({ data: { name: 'Unrelated Evidence WS' } });
+    const company = await prisma.company.create({
+      data: {
+        workspaceId: ws.id,
+        name: 'Sigma Logistics',
+        normalizedName: 'sigma logistics',
+      },
+    });
+    const person = await prisma.person.create({
+      data: { workspaceId: ws.id, firstName: 'Liam', lastName: 'Neeson', personKind: PersonKind.PERSON },
+    });
+    const pca = await prisma.personCompanyAssociation.create({
+      data: { workspaceId: ws.id, personId: person.id, companyId: company.id, role: 'VP Operations' },
+    });
+
+    const opp = await prisma.opportunity.create({
+      data: {
+        workspaceId: ws.id,
+        companyId: company.id,
+        opportunityType: OpportunityType.CONFIRMED,
+        roleTitle: 'Principal Platform Architect',
+        status: OpportunityStatus.ACTIVE,
+      },
+    });
+
+    // Evidence for PCA is attached, but opportunityId is NULL (general company fact, not role/opening evidence!)
+    await prisma.evidence.create({
+      data: {
+        workspaceId: ws.id,
+        companyId: company.id,
+        companyAssociationId: pca.id,
+        opportunityId: null, // NOT linked to opp.id
+        claim: 'Sigma Logistics raised Series B funding',
+        classification: EvidenceClassification.FACT,
+        sourceName: 'Press Release',
+      },
+    });
+
+    const campaign = await prisma.campaign.create({
+      data: { workspaceId: ws.id, name: 'Campaign Unrelated' },
+    });
+    const recipient = await prisma.campaignRecipient.create({
+      data: {
+        workspaceId: ws.id,
+        campaignId: campaign.id,
+        personCompanyAssociationId: pca.id,
+        selectedOpportunityId: opp.id,
+      },
+    });
+
+    const outreach = await prisma.outreach.create({
+      data: {
+        workspaceId: ws.id,
+        personCompanyAssociationId: pca.id,
+        campaignRecipientId: recipient.id,
+        status: OutreachStatus.DRAFT,
+        draftVersion: 0,
+      },
+    });
+
+    const job = await prisma.job.create({
+      data: {
+        workspaceId: ws.id,
+        type: 'OUTREACH_GENERATION',
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
+        payload: {
+          outreachId: outreach.id,
+          expectedDraftVersion: 0,
+        },
+      },
+    });
+
+    mockAiProvider.complete.mockResolvedValueOnce({
+      rawText: JSON.stringify({
+        subject: 'Principal Platform Architect role at Sigma Logistics',
+        body: 'Hi Liam, reaching out regarding the Principal Platform Architect position.',
+      }),
+    });
+
+    const processed = await worker.processJob(job.id);
+    expect(processed).toBe(true);
+
+    const updatedOutreach = await prisma.outreach.findUniqueOrThrow({
+      where: { id: outreach.id },
+    });
+    expect(updatedOutreach.aiGenerationStatus).toBe(AiGenerationStatus.SUCCEEDED);
+    expect(updatedOutreach.outreachReason).toContain('confirmed open role Principal Platform Architect');
+    // Critical semantic invariant: MUST NOT claim verified opening evidence because evidence has no opportunity link!
+    expect(updatedOutreach.outreachReason).not.toContain('verified opening evidence');
+  });
+
+  it('4. Concurrency Lease Fencing: Stale worker loses lease at commit boundary and commits ZERO side-effects', async () => {
     const ws = await prisma.workspace.create({ data: { name: 'Lease Fencing WS' } });
     const company = await prisma.company.create({
       data: {
@@ -323,7 +418,8 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       data: {
         workspaceId: ws.id,
         type: 'OUTREACH_GENERATION',
-        status: JobStatus.RUNNING, idempotencyKey: randomUUID(),
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
         leaseVersion: 1,
         payload: {
           outreachId: outreach.id,
@@ -351,22 +447,94 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
     const processed = await worker.processJob(job.id);
     expect(processed).toBe(false);
 
-    // Assert that Stale Worker wrote NO changes to Outreach
+    // Assert that Stale Worker wrote ZERO changes to Outreach
     const preservedOutreach = await prisma.outreach.findUniqueOrThrow({
       where: { id: outreach.id },
     });
     expect(preservedOutreach.subject).toBe('Initial Unmodified Subject');
     expect(preservedOutreach.message).toBe('Initial Unmodified Message');
     expect(preservedOutreach.aiGenerationStatus).toBeNull();
+    expect(preservedOutreach.draftVersion).toBe(0);
+    expect(preservedOutreach.status).toBe(OutreachStatus.DRAFT);
 
-    // Assert Job remained with newer leaseVersion (leaseVersion 2 not corrupted)
+    // Assert Job remained with newer leaseVersion (leaseVersion 2 not overwritten)
     const preservedJob = await prisma.job.findUniqueOrThrow({
       where: { id: job.id },
     });
     expect(preservedJob.leaseVersion).toBe(2);
+    expect(preservedJob.status).toBe(JobStatus.RUNNING);
+    expect(preservedJob.completedAt).toBeNull();
   });
 
-  it('4. Concurrent Manual Edit: User edits draft before AI completes; preserves user edits and sets SKIPPED', async () => {
+  it('5. Dead-Letter Fencing: Stale worker reaching max attempts cannot set Outreach to FAILED when lease is lost', async () => {
+    const ws = await prisma.workspace.create({ data: { name: 'Dead Letter Lease WS' } });
+    const company = await prisma.company.create({
+      data: {
+        workspaceId: ws.id,
+        name: 'Theta Corp',
+        normalizedName: 'theta corp',
+      },
+    });
+    const person = await prisma.person.create({
+      data: { workspaceId: ws.id, firstName: 'Tina', lastName: 'Fey', personKind: PersonKind.PERSON },
+    });
+    const pca = await prisma.personCompanyAssociation.create({
+      data: { workspaceId: ws.id, personId: person.id, companyId: company.id },
+    });
+
+    const outreach = await prisma.outreach.create({
+      data: {
+        workspaceId: ws.id,
+        personCompanyAssociationId: pca.id,
+        status: OutreachStatus.DRAFT,
+        draftVersion: 0,
+      },
+    });
+
+    const job = await prisma.job.create({
+      data: {
+        workspaceId: ws.id,
+        type: 'OUTREACH_GENERATION',
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
+        attemptCount: 3,
+        maxAttempts: 3,
+        leaseVersion: 1,
+        payload: {
+          outreachId: outreach.id,
+          expectedDraftVersion: 0,
+        },
+      },
+    });
+
+    // Simulate AI failing permanently AFTER lease is stolen
+    mockAiProvider.complete.mockImplementation(async () => {
+      // Lease stolen
+      await prisma.job.update({
+        where: { id: job.id },
+        data: { leaseVersion: 2 },
+      });
+      throw new Error('Fatal AI connection error');
+    });
+
+    const processed = await worker.processJob(job.id);
+    expect(processed).toBe(false);
+
+    // Assert Outreach.aiGenerationStatus is NOT mutated to FAILED by stale dead-letter worker
+    const preservedOutreach = await prisma.outreach.findUniqueOrThrow({
+      where: { id: outreach.id },
+    });
+    expect(preservedOutreach.aiGenerationStatus).toBeNull();
+
+    // Assert Job remains at leaseVersion 2 and was not transitioned to FAILED by stale worker
+    const preservedJob = await prisma.job.findUniqueOrThrow({
+      where: { id: job.id },
+    });
+    expect(preservedJob.leaseVersion).toBe(2);
+    expect(preservedJob.status).toBe(JobStatus.RUNNING);
+  });
+
+  it('6. Concurrent Manual Edit: User edits draft before AI completes; preserves user edits and sets SKIPPED', async () => {
     const ws = await prisma.workspace.create({ data: { name: 'Draft Race WS' } });
     const company = await prisma.company.create({
       data: {
@@ -395,7 +563,8 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       data: {
         workspaceId: ws.id,
         type: 'OUTREACH_GENERATION',
-        status: JobStatus.RUNNING, idempotencyKey: randomUUID(),
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
         payload: {
           outreachId: outreach.id,
           expectedDraftVersion: 0,
@@ -431,7 +600,7 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
     expect(finalOutreach.status).toBe(OutreachStatus.DRAFT);
   });
 
-  it('5. Strict Domain Validation: Invalid/Unbacked AI output fails without fallback and leaves draft unpolluted', async () => {
+  it('7. Strict Domain Validation: Invalid/Unbacked AI output fails without fallback and leaves draft unpolluted', async () => {
     const ws = await prisma.workspace.create({ data: { name: 'Validation Fail WS' } });
     const company = await prisma.company.create({
       data: {
@@ -462,7 +631,8 @@ describe('Grounded Outreach Generation & Human Review Integration (PostgreSQL)',
       data: {
         workspaceId: ws.id,
         type: 'OUTREACH_GENERATION',
-        status: JobStatus.RUNNING, idempotencyKey: randomUUID(),
+        status: JobStatus.RUNNING,
+        idempotencyKey: randomUUID(),
         attemptCount: 1,
         maxAttempts: 3,
         payload: {

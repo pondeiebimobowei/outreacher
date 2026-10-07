@@ -16,6 +16,11 @@ export class OutreachReasonEvaluator {
     const factEvidence = evidence.filter((e) => e.classification === 'FACT');
     factEvidence.forEach((e) => supportingEvidenceIds.push(e.id));
 
+    // Specifically identify evidence linked to this opportunity
+    const opportunityEvidence = opportunity.id
+      ? evidence.filter((e) => e.opportunityId === opportunity.id)
+      : [];
+
     let reasonText = '';
 
     const targetRole =
@@ -27,7 +32,7 @@ export class OutreachReasonEvaluator {
         ? ` (${opportunity.roleDescription.slice(0, 100)})`
         : '';
       const groundedClause =
-        supportingEvidenceIds.length > 0
+        opportunityEvidence.length > 0
           ? ' Outreach is grounded in verified opening evidence.'
           : '';
       reasonText = `Contacting ${person.firstName} ${person.lastName} (${contactTitle}) regarding confirmed open role ${targetRole} at ${company.name}${openingDesc}.${groundedClause}`;

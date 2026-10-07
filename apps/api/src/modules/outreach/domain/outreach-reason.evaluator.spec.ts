@@ -43,14 +43,23 @@ describe('OutreachReasonEvaluator', () => {
     ],
   };
 
-  it('evaluates CONFIRMED opportunity state with supporting evidence correctly', () => {
+  it('evaluates CONFIRMED opportunity state with opportunity-specific supporting evidence correctly', () => {
     const context: OutreachContext = {
       ...baseContext,
       opportunity: {
+        id: 'opp-1',
         type: 'CONFIRMED',
         roleTitle: 'Senior Staff Engineer',
         roleDescription: 'Leading core API architecture',
       },
+      evidence: [
+        {
+          id: 'ev-1',
+          opportunityId: 'opp-1',
+          claim: 'Acme listed Senior Staff Engineer on careers portal',
+          classification: 'FACT',
+        },
+      ],
     };
 
     const result = evaluator.evaluate(context);
@@ -67,6 +76,7 @@ describe('OutreachReasonEvaluator', () => {
       ...baseContext,
       evidence: [],
       opportunity: {
+        id: 'opp-1',
         type: 'CONFIRMED',
         roleTitle: 'Senior Staff Engineer',
       },
@@ -79,6 +89,34 @@ describe('OutreachReasonEvaluator', () => {
     );
     expect(result.reasonText).not.toContain('verified opening evidence');
     expect(result.supportingEvidenceIds).toEqual([]);
+  });
+
+  it('evaluates CONFIRMED opportunity with unrelated evidence WITHOUT claiming verified opening evidence', () => {
+    const context: OutreachContext = {
+      ...baseContext,
+      opportunity: {
+        id: 'opp-1',
+        type: 'CONFIRMED',
+        roleTitle: 'Senior Staff Engineer',
+      },
+      evidence: [
+        {
+          id: 'ev-unrelated',
+          opportunityId: 'opp-unrelated', // Unrelated opportunity / general company fact
+          claim: 'Acme expanded cloud footprint by 20%',
+          classification: 'FACT',
+        },
+      ],
+    };
+
+    const result = evaluator.evaluate(context);
+    expect(result.opportunityType).toBe('CONFIRMED');
+    expect(result.reasonText).toContain(
+      'confirmed open role Senior Staff Engineer at Acme Corp',
+    );
+    // Unrelated evidence MUST NOT cause "verified opening evidence" claim
+    expect(result.reasonText).not.toContain('verified opening evidence');
+    expect(result.supportingEvidenceIds).toEqual(['ev-unrelated']);
   });
 
   it('evaluates PROACTIVE opportunity state without claiming open position', () => {

@@ -194,23 +194,13 @@ describe('OutreachGenerationWorker', () => {
         body: 'A valid email body with sufficient characters to pass validation.',
       }),
     });
-    // In transaction, lease check inside tx returns an updated job with incremented lease
-    prisma.$transaction.mockImplementation(async (cb: any) => {
-      const txMock = {
-        ...prisma,
-        job: {
-          ...prisma.job,
-          findUnique: jest.fn().mockResolvedValue({
-            ...mockJob,
-            leaseVersion: 2, // incremented by someone else!
-          }),
-        },
-      };
-      return cb(txMock);
-    });
+    // Atomic updateMany inside transaction returns count 0 because leaseVersion changed from 1 to 2
+    prisma.job.updateMany.mockResolvedValue({ count: 0 });
 
     const success = await worker.processJob('job-1');
     expect(success).toBe(false);
+    // Outreach must NOT have been updated with success or skipped
+    expect(prisma.outreach.update).not.toHaveBeenCalled();
   });
 
   it('does NOT mark Outreach aiGenerationStatus = FAILED if dead-letter occurs under stale lease', async () => {

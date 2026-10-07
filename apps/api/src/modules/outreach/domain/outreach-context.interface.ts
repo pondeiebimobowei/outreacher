@@ -33,6 +33,7 @@ export interface OutreachContext {
   };
   evidence: Array<{
     id: string;
+    opportunityId?: string | null;
     claim: string;
     classification: EvidenceClassification; // FACT | INFERENCE | UNKNOWN
     sourceName?: string | null;

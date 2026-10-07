@@ -120,6 +120,7 @@ export class OutreachGenerationWorker {
 
       const evidence = evidenceRecords.map((e: any) => ({
         id: e.id,
+        opportunityId: e.opportunityId,
         claim: e.claim,
         classification: e.classification,
         sourceName: e.sourceName,
@@ -173,19 +174,8 @@ export class OutreachGenerationWorker {
 
       // 8. Atomic transaction guarded by job.leaseVersion & outreach.draftVersion
       await this.prisma.$transaction(async (tx: any) => {
-        // First check job lease inside transaction
-        const currentJob = await tx.job.findUnique({
-          where: { id: jobId },
-        });
-
-        if (
-          !currentJob ||
-          currentJob.leaseVersion !== job.leaseVersion ||
-          currentJob.status !== 'RUNNING'
-        ) {
-          throw new Error('Concurrent lease conflict: Job leaseVersion was incremented');
-        }
-
+        // Fencing step: First atomically advance job lease from leaseVersion to leaseVersion + 1.
+        // If another worker or recovery advanced leaseVersion, count will be 0 and no Outreach side effects occur.
         const currentOutreach = await tx.outreach.findUnique({
           where: { id: outreachId },
         });
@@ -196,30 +186,7 @@ export class OutreachGenerationWorker {
           );
         }
 
-        let skippedDueToEdit = false;
-        if (currentOutreach.draftVersion !== expectedDraftVersion) {
-          this.logger.warn(
-            `Draft modified concurrently for outreach ${outreachId} (expected: ${expectedDraftVersion}, current: ${currentOutreach.draftVersion}); preserving manual edits.`,
-          );
-          skippedDueToEdit = true;
-          await tx.outreach.update({
-            where: { id: outreachId },
-            data: {
-              aiGenerationStatus: 'SKIPPED',
-              outreachReason: reasonResult.reasonText,
-            },
-          });
-        } else {
-          await tx.outreach.update({
-            where: { id: outreachId },
-            data: {
-              subject: validatedDraft.subject,
-              message: validatedDraft.body,
-              outreachReason: reasonResult.reasonText,
-              aiGenerationStatus: 'SUCCEEDED',
-            },
-          });
-        }
+        const skippedDueToEdit = currentOutreach.draftVersion !== expectedDraftVersion;
 
         const updateResult = await tx.job.updateMany({
           where: {
@@ -240,6 +207,30 @@ export class OutreachGenerationWorker {
             'Concurrent lease conflict: Job leaseVersion was incremented',
           );
         }
+
+        // Only executed if this worker holds and advances the lease:
+        if (skippedDueToEdit) {
+          this.logger.warn(
+            `Draft modified concurrently for outreach ${outreachId} (expected: ${expectedDraftVersion}, current: ${currentOutreach.draftVersion}); preserving manual edits.`,
+          );
+          await tx.outreach.update({
+            where: { id: outreachId },
+            data: {
+              aiGenerationStatus: 'SKIPPED',
+              outreachReason: reasonResult.reasonText,
+            },
+          });
+        } else {
+          await tx.outreach.update({
+            where: { id: outreachId },
+            data: {
+              subject: validatedDraft.subject,
+              message: validatedDraft.body,
+              outreachReason: reasonResult.reasonText,
+              aiGenerationStatus: 'SUCCEEDED',
+            },
+          });
+        }
       });
 
       this.logger.log(`Completed outreach generation for job ${jobId}`);
@@ -256,7 +247,7 @@ export class OutreachGenerationWorker {
       const backoffMs = Math.pow(2, nextAttempt) * 1000;
 
       // Ensure that we only update job status if the lease is still valid.
-      // If dead-letter, we only update outreach status if the lease check passes atomically!
+      // If dead-letter, we only update outreach status if the job lease advance succeeded atomically!
       await this.prisma.$transaction(async (tx: any) => {
         const jobUpdateResult = await tx.job.updateMany({
           where: { id: jobId, leaseVersion: job.leaseVersion, status: 'RUNNING' },
@@ -269,7 +260,7 @@ export class OutreachGenerationWorker {
           },
         });
 
-        // Only if this worker still owned the job may it mark outreach as FAILED
+        // Only if this worker still owned and advanced the job lease may it mark outreach as FAILED
         if (jobUpdateResult.count > 0 && isDeadLetter) {
           await tx.outreach.updateMany({
             where: { id: outreachId },
