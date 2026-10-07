@@ -24,6 +24,8 @@ export interface EvaluatedPersonDto {
   updatedAt: string;
   relevance: ContactRelevance;
   recommendationRationale: string;
+  whyRecommended?: string;
+  evidenceIds?: string[];
   isSelected: boolean;
 }
 
@@ -32,6 +34,9 @@ export interface CompanyContactsResponse {
   status: 'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
   selectedContactId: string | null;
   contacts: EvaluatedPersonDto[];
+  recommended?: EvaluatedPersonDto[];
+  other?: EvaluatedPersonDto[];
+  unavailable?: EvaluatedPersonDto[];
   discoveryJob: {
     id: string;
     status: string;
@@ -40,6 +45,7 @@ export interface CompanyContactsResponse {
   } | null;
   mock?: boolean;
 }
+
 
 
 export interface DiscoverContactsResponse {
