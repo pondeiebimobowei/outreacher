@@ -1,0 +1,12 @@
+{
+  "contract_version": "1.0",
+  "discovery_run_id": "550e8400-e29b-11d4-a716-446655440000",
+  "status": "COMPLETED",
+  "identity": {
+    "verified_domain": "example.com",
+    "primary_relationship": "PRIMARY",
+    "confidence": "CONFIDENT"
+  },
+  "contacts": [],
+  "unknowns": []
+}

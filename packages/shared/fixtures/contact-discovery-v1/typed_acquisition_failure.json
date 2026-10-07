@@ -1,0 +1,22 @@
+{
+  "contract_version": "1.0",
+  "discovery_run_id": "550e8400-e29b-41d4-a716-446655440002",
+  "status": "FAILED",
+  "identity": {
+    "verified_domain": "example.com",
+    "primary_relationship": "PRIMARY",
+    "confidence": "CONFIDENT"
+  },
+  "contacts": [],
+  "failure": {
+    "code": "DISCOVERY_TIMEOUT",
+    "retryable": true,
+    "message": "Upstream crawl timed out after 30 seconds"
+  },
+  "unknowns": [
+    "crawl_timeout"
+  ],
+  "metadata": {
+    "timeout_ms": 30000
+  }
+}

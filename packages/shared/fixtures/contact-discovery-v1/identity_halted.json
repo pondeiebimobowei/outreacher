@@ -1,0 +1,18 @@
+{
+  "contract_version": "1.0",
+  "discovery_run_id": "550e8400-e29b-41d4-a716-446655440001",
+  "status": "IDENTITY_HALTED",
+  "identity": {
+    "verified_domain": "crown.com",
+    "primary_relationship": "RELATED",
+    "confidence": "AMBIGUOUS"
+  },
+  "contacts": [],
+  "unknowns": [
+    "identity_related_ambiguous"
+  ],
+  "metadata": {
+    "reasoning": "Identity ambiguous for bare name entity Crown across public registry.",
+    "identity_verification_calls": 1
+  }
+}

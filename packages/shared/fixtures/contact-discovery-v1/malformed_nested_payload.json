@@ -1,0 +1,34 @@
+{
+  "contract_version": "1.0",
+  "discovery_run_id": "550e8400-e29b-41d4-a716-446655440006",
+  "status": "COMPLETED",
+  "identity": {
+    "verified_domain": "example.com",
+    "primary_relationship": "PRIMARY",
+    "confidence": "CONFIDENT"
+  },
+  "contacts": [
+    {
+      "person_kind": "PERSON",
+      "first_name": "Jane",
+      "last_name": "Doe",
+      "title": "Engineer",
+      "email": "jane@example.com",
+      "confidence": "HIGH",
+      "role_family": "ENGINEERING",
+      "source": "ABOUT_PAGE",
+      "source_url": "javascript:alert(1)",
+      "evidence": [
+        {
+          "claim": "Jane Doe is Engineer",
+          "source_name": "Page",
+          "source_url": "javascript:alert(1)",
+          "source_excerpt": "Jane Doe is Engineer",
+          "classification": "FACT",
+          "confidence": "HIGH"
+        }
+      ]
+    }
+  ],
+  "unknowns": []
+}
