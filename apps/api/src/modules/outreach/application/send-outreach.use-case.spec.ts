@@ -109,7 +109,7 @@ describe('SendOutreachUseCase', () => {
   });
 
   it('replays existing send without error when called with equivalent payload having different key order', async () => {
-    const sortedString = '{"a":1,"b":2,"outreachId":"out-1"}';
+    const sortedString = '{"outreachId":"out-1","payload":{"a":1,"b":2}}';
     const expectedHash = crypto
       .createHash('sha256')
       .update(sortedString)

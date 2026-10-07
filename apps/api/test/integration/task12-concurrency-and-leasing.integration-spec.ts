@@ -424,6 +424,39 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
         idempotencyKey: 'different-idem-key-67890',
       }),
     ).rejects.toThrow(AppConflictException);
+
+    // Payload with reserved property "outreachId" does NOT overwrite target identity in request fingerprint
+    // nor collide with empty payload: Request A with {} vs Request B with { outreachId: 'other-id' } -> 409 conflict
+    const reservedKey = 'idem-reserved-field-key';
+    const firstReservedSend = await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreach2.id,
+      idempotencyKey: reservedKey,
+      payload: {},
+    });
+    expect(firstReservedSend.status).toBe('QUEUED');
+
+    // Replay with exact same empty payload succeeds
+    const replayEmpty = await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreach2.id,
+      idempotencyKey: reservedKey,
+      payload: {},
+    });
+    expect(replayEmpty.jobId).toBe(firstReservedSend.jobId);
+
+    // Request with payload containing { outreachId: 'some-other-id' } MUST throw 409 conflict
+    // proving { outreachId: B } cannot corrupt target identity or collide with {}
+    const reservedConflictPromise = sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreach2.id,
+      idempotencyKey: reservedKey,
+      payload: { outreachId: 'some-other-id' },
+    });
+    await expect(reservedConflictPromise).rejects.toThrow(AppConflictException);
+    await expect(reservedConflictPromise).rejects.toThrow(
+      'Idempotency key reused with different request payload',
+    );
   });
 
   // ─────────────────────────────────────────────────────────────────────────────

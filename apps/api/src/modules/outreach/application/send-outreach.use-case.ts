@@ -17,6 +17,9 @@ export interface SendOutreachCommand {
 }
 
 function canonicalizeJson(value: unknown): string {
+  if (value === undefined) {
+    return 'null';
+  }
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
   }
@@ -52,7 +55,7 @@ export class SendOutreachUseCase {
       payload && typeof payload === 'object' ? payload : {};
     const requestIdentity = {
       outreachId,
-      ...normalizedPayload,
+      payload: normalizedPayload,
     };
     const requestHash = crypto
       .createHash('sha256')
