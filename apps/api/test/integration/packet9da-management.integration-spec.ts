@@ -50,11 +50,7 @@ async function seed(prisma: PrismaClient) {
   const campaign = await prisma.campaign.create({
     data: {
       workspaceId: ws.id,
-      companyId: company.id,
       name: 'Camp A',
-      normalizedName: 'camp a',
-      senderAccountId: 'snd-1',
-      templateId: 'tpl-1',
     },
   });
   return { ws, ws2, company, campaign };
@@ -575,11 +571,7 @@ describe('Packet 9D-A: Integration & Sender Management (DB Integration)', () => 
       const campaign2 = await prisma.campaign.create({
         data: {
           workspaceId: ws2.id,
-          companyId: company2.id,
           name: 'Camp B',
-          normalizedName: 'camp b',
-          senderAccountId: 'snd-1',
-          templateId: 'tpl-1',
         },
       });
       const integ = await createIntegration(prisma, ws.id);

@@ -50,8 +50,6 @@ describe('ContactDiscoveryWorker', () => {
       findContactById: jest.fn(),
       upsertCompanyContacts: jest.fn(),
       persistDiscoveredContacts: jest.fn(),
-      getCompanyContactSelection: jest.fn(),
-      setCompanyContactSelection: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
