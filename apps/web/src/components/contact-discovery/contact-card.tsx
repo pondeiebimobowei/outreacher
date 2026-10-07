@@ -210,6 +210,18 @@ export function ContactCard({
         >
           Email: {contact.emailConfidence}
         </span>
+
+        {/* Evidence Count Indicator */}
+        {contact.evidenceIds && contact.evidenceIds.length > 0 && (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-none-full text-[11px] font-semibold ${isSelected
+              ? 'bg-indigo-950 text-indigo-200 border border-indigo-800'
+              : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+              }`}
+          >
+            Evidence: {contact.evidenceIds.length} {contact.evidenceIds.length === 1 ? 'item' : 'items'}
+          </span>
+        )}
       </div>
 
       {/* 3. Why This Contact - Explainable Rationale */}

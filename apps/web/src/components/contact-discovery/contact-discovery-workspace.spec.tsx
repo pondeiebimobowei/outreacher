@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { apiClient } from '../../api/client';
-import { CompanyContactsResponse } from '../../api/contacts';
+import { CompanyContactsResponse, EvaluatedPersonDto } from '../../api/contacts';
 import { ContactDiscoveryWorkspace } from './contact-discovery-workspace';
 
 jest.mock('../../api/client', () => ({
@@ -119,6 +119,48 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Jane', lastName: 'Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          source: 'COMPANY_WEBSITE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale:
+            "Role 'VP of Engineering' directly matches target role 'Engineering Lead'.",
+          isSelected: true,
+        },
+      ],
+      other: [],
+      unavailable: [
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera',
+          email: null,
+          title: 'Head of Engineering',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/about',
+          confidence: 'MEDIUM',
+          emailConfidence: 'UNAVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'MEDIUM',
+          recommendationRationale: 'Functional decision-maker role for proactive outreach.',
+          isSelected: false,
+        },
+      ],
       discoveryJob: {
         id: 'job-100',
         status: 'COMPLETED',
@@ -211,9 +253,9 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     expect(await screen.findAllByText('Jane Doe')).not.toHaveLength(0);
     expect(screen.getByText('Alex Rivera')).toBeInTheDocument();
 
-    // Verify Top Recommendations vs Additional Candidates sectioning
-    expect(screen.getByText(/Top Recommendations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Additional Candidates/i)).toBeInTheDocument();
+    // Verify Recommended vs Unavailable sectioning
+    expect(screen.getByRole('heading', { name: /^Recommended\b/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Unavailable\b/i })).toBeInTheDocument();
 
     // Verify  banner when contact is selected
     expect(screen.getByText(/Target Contact Selected/i)).toBeInTheDocument();
@@ -256,6 +298,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: true,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Jane', lastName: 'Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          source: 'COMPANY_WEBSITE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Target decision maker.',
+          isSelected: true,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -361,6 +425,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: true,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Jane', lastName: 'Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          source: 'COMPANY_WEBSITE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Target decision maker.',
+          isSelected: true,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -410,6 +496,35 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           emailConfidence: 'AVAILABLE',
           isSelected: false,
         },
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          companyId: 'comp-200',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera', name: 'Alex Rivera',
+          email: null,
+          title: 'Recruiting Manager',
+          relevance: 'MEDIUM',
+          emailConfidence: 'UNAVAILABLE',
+          isSelected: false,
+        },
+      ],
+      recommended: [
+        {
+          id: 'cont-1',
+          workspaceId: 'ws-1',
+          companyId: 'comp-200',
+          personKind: 'PERSON',
+          firstName: 'Jane', lastName: 'Doe', name: 'Jane Doe',
+          email: 'jane.doe@acme.com',
+          title: 'VP of Engineering',
+          relevance: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [
         {
           id: 'cont-2',
           workspaceId: 'ws-1',
@@ -474,6 +589,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera',
+          email: 'alex@acme.com',
+          title: 'Head of Engineering',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/about',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Engineering leadership decision maker.',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -501,6 +638,9 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     mockPost.mockImplementation((url: string) => {
       if (url === '/companies/comp-200/contacts/cont-2/select') {
         mockResponse.contacts[0].isSelected = true;
+        if (mockResponse.recommended && mockResponse.recommended[0]) {
+          mockResponse.recommended[0].isSelected = true;
+        }
         mockResponse.selectedContactId = 'cont-2';
         return Promise.resolve({
           id: 'sel-1',
@@ -581,6 +721,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-3',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Sarah', lastName: 'Connor',
+          email: 'sarah@acme.com',
+          title: 'CTO',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/team',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Key technical decision maker.',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -676,6 +838,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera',
+          email: 'alex@acme.com',
+          title: 'Head of Engineering',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/about',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Engineering leadership decision maker.',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -735,6 +919,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera',
+          email: 'alex@acme.com',
+          title: 'Head of Engineering',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/about',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Engineering leadership decision maker.',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -819,6 +1025,28 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
           isSelected: false,
         },
       ],
+      recommended: [
+        {
+          id: 'cont-2',
+          workspaceId: 'ws-1',
+          personKind: 'PERSON',
+          firstName: 'Alex', lastName: 'Rivera',
+          email: 'alex@acme.com',
+          title: 'Head of Engineering',
+          source: 'TEAM_PAGE',
+          sourceUrl: 'https://acme.com/about',
+          confidence: 'HIGH',
+          emailConfidence: 'AVAILABLE',
+          discoveredAt: '2026-09-18T00:00:00Z',
+          createdAt: '2026-09-18T00:00:00Z',
+          updatedAt: '2026-09-18T00:00:00Z',
+          relevance: 'HIGH',
+          recommendationRationale: 'Engineering leadership decision maker.',
+          isSelected: false,
+        },
+      ],
+      other: [],
+      unavailable: [],
       discoveryJob: null,
     };
 
@@ -889,5 +1117,190 @@ describe('ContactDiscoveryWorkspace Component - UX-004 Contact Discovery & Selec
     });
     // Verify NO campaign was created via POST /campaigns
     expect(mockPost).not.toHaveBeenCalledWith('/campaigns', expect.anything());
+  });
+
+  describe('BL-011 Server Bucket Rendering & Provenance Invariants', () => {
+    const candidateRecommended: EvaluatedPersonDto = {
+      id: 'rec-1',
+      workspaceId: 'ws-1',
+      personKind: 'PERSON',
+      firstName: 'Alice',
+      lastName: 'Wong',
+      email: 'alice@acme.com',
+      title: 'VP of Engineering',
+      source: 'COMPANY_WEBSITE',
+      sourceUrl: 'https://acme.com/team',
+      confidence: 'HIGH',
+      emailConfidence: 'AVAILABLE',
+      discoveredAt: '2026-09-18T00:00:00Z',
+      createdAt: '2026-09-18T00:00:00Z',
+      updatedAt: '2026-09-18T00:00:00Z',
+      relevance: 'HIGH',
+      recommendationRationale: 'Direct leadership match for technical outreach.',
+      evidenceIds: ['ev-1', 'ev-2'],
+      isSelected: false,
+    };
+
+    const candidateOther: EvaluatedPersonDto = {
+      id: 'oth-1',
+      workspaceId: 'ws-1',
+      personKind: 'PERSON',
+      firstName: 'Bob',
+      lastName: 'Smith',
+      email: 'bob@acme.com',
+      title: 'Senior Recruiter',
+      source: 'COMPANY_WEBSITE',
+      sourceUrl: 'https://acme.com/team',
+      confidence: 'HIGH',
+      emailConfidence: 'AVAILABLE',
+      discoveredAt: '2026-09-18T00:00:00Z',
+      createdAt: '2026-09-18T00:00:00Z',
+      updatedAt: '2026-09-18T00:00:00Z',
+      relevance: 'LOW',
+      recommendationRationale: 'General recruiting staff without engineering scope.',
+      evidenceIds: [],
+      isSelected: false,
+    };
+
+    const candidateUnavailableHigh: EvaluatedPersonDto = {
+      id: 'unav-1',
+      workspaceId: 'ws-1',
+      personKind: 'PERSON',
+      firstName: 'Charlie',
+      lastName: 'Brown',
+      email: null,
+      title: 'CTO & Co-Founder',
+      source: 'COMPANY_WEBSITE',
+      sourceUrl: 'https://acme.com/team',
+      confidence: 'HIGH',
+      emailConfidence: 'UNAVAILABLE',
+      discoveredAt: '2026-09-18T00:00:00Z',
+      createdAt: '2026-09-18T00:00:00Z',
+      updatedAt: '2026-09-18T00:00:00Z',
+      relevance: 'HIGH',
+      recommendationRationale: 'Top executive leadership but email is unavailable.',
+      evidenceIds: ['ev-3'],
+      isSelected: false,
+    };
+
+    it('renders recommended[], other[], and unavailable[] strictly in their respective sections', async () => {
+      const mockResponse: CompanyContactsResponse = {
+        companyId: 'comp-200',
+        status: 'COMPLETED',
+        selectedContactId: null,
+        contacts: [candidateRecommended, candidateOther, candidateUnavailableHigh],
+        recommended: [candidateRecommended],
+        other: [candidateOther],
+        unavailable: [candidateUnavailableHigh],
+        discoveryJob: null,
+      };
+
+      mockGet.mockResolvedValue(mockResponse as unknown as CompanyContactsResponse);
+
+      renderComponent();
+
+      // Verify sections are present with expected headings
+      expect(await screen.findByRole('heading', { name: /^Recommended\b/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Other Contacts\b/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Unavailable\b/i })).toBeInTheDocument();
+
+      // Alice Wong is in Recommended
+      expect(screen.getByText('Alice Wong')).toBeInTheDocument();
+      // Bob Smith is in Other Contacts
+      expect(screen.getByText('Bob Smith')).toBeInTheDocument();
+      // Charlie Brown is in Unavailable
+      expect(screen.getByText('Charlie Brown')).toBeInTheDocument();
+    });
+
+    it('proves a HIGH relevance + UNAVAILABLE candidate is NOT rendered in Recommended, but in Unavailable', async () => {
+      const mockResponse: CompanyContactsResponse = {
+        companyId: 'comp-200',
+        status: 'COMPLETED',
+        selectedContactId: null,
+        contacts: [candidateUnavailableHigh],
+        recommended: [],
+        other: [],
+        unavailable: [candidateUnavailableHigh],
+        discoveryJob: null,
+      };
+
+      mockGet.mockResolvedValue(mockResponse as unknown as CompanyContactsResponse);
+
+      renderComponent();
+
+      // Recommended section should NOT be rendered when empty
+      await screen.findByText('Charlie Brown');
+      expect(screen.queryByRole('heading', { name: /^Recommended\b/i })).not.toBeInTheDocument();
+
+      // Unavailable section must be rendered
+      expect(screen.getByRole('heading', { name: /^Unavailable\b/i })).toBeInTheDocument();
+      // Candidate retains HIGH relevance badge visually
+      expect(screen.getByText('Relevance: HIGH')).toBeInTheDocument();
+      expect(screen.getByText('Email Unavailable')).toBeInTheDocument();
+    });
+
+    it('preserves bucket identity when filtering by search input', async () => {
+      const mockResponse: CompanyContactsResponse = {
+        companyId: 'comp-200',
+        status: 'COMPLETED',
+        selectedContactId: null,
+        contacts: [candidateRecommended, candidateOther, candidateUnavailableHigh],
+        recommended: [candidateRecommended],
+        other: [candidateOther],
+        unavailable: [candidateUnavailableHigh],
+        discoveryJob: null,
+      };
+
+      mockGet.mockResolvedValue(mockResponse as unknown as CompanyContactsResponse);
+
+      renderComponent();
+
+      expect(await screen.findByText('Alice Wong')).toBeInTheDocument();
+
+      // Search for "Alice"
+      const searchInput = screen.getByPlaceholderText(/Search by name, title, or email/i);
+      fireEvent.change(searchInput, { target: { value: 'Alice' } });
+
+      // Alice Wong remains in Recommended
+      expect(screen.getByRole('heading', { name: /^Recommended\b/i })).toBeInTheDocument();
+      expect(screen.getByText('Alice Wong')).toBeInTheDocument();
+
+      // Other and Unavailable headings are not rendered because their filtered lists are empty
+      expect(screen.queryByRole('heading', { name: /^Other Contacts\b/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /^Unavailable\b/i })).not.toBeInTheDocument();
+    });
+
+    it('preserves bucket order provided by server', async () => {
+      const candidateRec2: EvaluatedPersonDto = {
+        ...candidateRecommended,
+        id: 'rec-2',
+        firstName: 'Zoe',
+        lastName: 'Zimmerman',
+      };
+
+      const mockResponse: CompanyContactsResponse = {
+        companyId: 'comp-200',
+        status: 'COMPLETED',
+        selectedContactId: null,
+        contacts: [candidateRecommended, candidateRec2],
+        recommended: [candidateRecommended, candidateRec2],
+        other: [],
+        unavailable: [],
+        discoveryJob: null,
+      };
+
+      mockGet.mockResolvedValue(mockResponse as unknown as CompanyContactsResponse);
+
+      renderComponent();
+
+      await screen.findByText('Alice Wong');
+      const names = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent?.trim());
+      const aliceIdx = names.indexOf('Alice Wong');
+      const zoeIdx = names.indexOf('Zoe Zimmerman');
+
+      expect(aliceIdx).toBeGreaterThanOrEqual(0);
+      expect(zoeIdx).toBeGreaterThanOrEqual(0);
+      expect(aliceIdx).toBeLessThan(zoeIdx);
+    });
   });
 });

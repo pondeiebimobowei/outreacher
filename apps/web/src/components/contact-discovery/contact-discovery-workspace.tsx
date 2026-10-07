@@ -102,8 +102,8 @@ export function ContactDiscoveryWorkspace({
   const selectedContact = contacts.find((c: EvaluatedPersonDto) => c.isSelected);
   const hasCandidates = contacts.length > 0;
 
-  // Search & Cumulative Filter Pipeline
-  const filteredContacts = contacts.filter((candidate: EvaluatedPersonDto) => {
+  // Filter predicate applied independently per server bucket to preserve bucket identity
+  const matchesFilters = (candidate: EvaluatedPersonDto) => {
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       const matchName = (candidate.firstName || '').toLowerCase().includes(q);
@@ -121,11 +121,19 @@ export function ContactDiscoveryWorkspace({
       return false;
     }
     return true;
-  });
+  };
 
-  // Sectioning: Top Recommendations (HIGH relevance) vs Additional Candidates
-  const topRecommendations = filteredContacts.filter((c: EvaluatedPersonDto) => c.relevance === 'HIGH');
-  const additionalCandidates = filteredContacts.filter((c: EvaluatedPersonDto) => c.relevance !== 'HIGH');
+  // Consume server buckets directly without client-side re-partitioning
+  const serverRecommended = contactsData?.recommended ?? [];
+  const serverOther = contactsData?.other ?? [];
+  const serverUnavailable = contactsData?.unavailable ?? [];
+
+  const filteredRecommended = serverRecommended.filter(matchesFilters);
+  const filteredOther = serverOther.filter(matchesFilters);
+  const filteredUnavailable = serverUnavailable.filter(matchesFilters);
+
+  const totalFilteredCount =
+    filteredRecommended.length + filteredOther.length + filteredUnavailable.length;
 
   const isFilterActive =
     Boolean(searchTerm.trim()) ||
@@ -447,7 +455,7 @@ export function ContactDiscoveryWorkspace({
           </div>
 
           {/* Filter Zero-Match State */}
-          {filteredContacts.length === 0 && isFilterActive && (
+          {totalFilteredCount === 0 && isFilterActive && (
             <div className="p-8 bg-slate-50 border border-slate-200 rounded-none-none text-center space-y-3">
               <h3 className="text-sm font-bold text-slate-900">
                 {searchTerm.trim()
@@ -467,25 +475,25 @@ export function ContactDiscoveryWorkspace({
             </div>
           )}
 
-          {/* Top Recommendations Section (relevance === 'HIGH') */}
-          {topRecommendations.length > 0 && (
+          {/* 1. Recommended Section */}
+          {filteredRecommended.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                 <div className="flex items-center space-x-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                    Top Recommendations
+                    Recommended
                   </h3>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    High Relevance ({topRecommendations.length})
+                    {filteredRecommended.length}
                   </span>
                 </div>
                 <span className="text-[11px] text-slate-500">
-                  Domain-evaluated high relevance contacts
+                  Contactable candidates evaluated as high or medium relevance
                 </span>
               </div>
 
               <div className="space-y-4">
-                {topRecommendations.map((candidate: EvaluatedPersonDto) => (
+                {filteredRecommended.map((candidate: EvaluatedPersonDto) => (
                   <ContactCard
                     key={candidate.id}
                     contact={candidate}
@@ -500,21 +508,58 @@ export function ContactDiscoveryWorkspace({
             </div>
           )}
 
-          {/* Additional Candidates Section */}
-          {additionalCandidates.length > 0 && (
+          {/* 2. Other Contacts Section */}
+          {filteredOther.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  {topRecommendations.length > 0 ? 'Additional Candidates' : 'Evaluated Candidates'}{' '}
-                  ({additionalCandidates.length})
-                </h3>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Other Contacts
+                  </h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                    {filteredOther.length}
+                  </span>
+                </div>
                 <span className="text-[11px] text-slate-500">
-                  Medium & Low relevance candidates
+                  Lower relevance contactable candidates
                 </span>
               </div>
 
               <div className="space-y-4">
-                {additionalCandidates.map((candidate: EvaluatedPersonDto) => (
+                {filteredOther.map((candidate: EvaluatedPersonDto) => (
+                  <ContactCard
+                    key={candidate.id}
+                    contact={candidate}
+                    onSelect={selectContact}
+                    isSelectPending={isSelectPending}
+                    onReview={(c) => setReviewContact(c)}
+                    onReviewOutreach={(c) => void handleOpenOutreachReview(c)}
+                    isDrawerActive={drawerContactId === candidate.id && isDrawerOpen}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. Unavailable Section */}
+          {filteredUnavailable.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Unavailable
+                  </h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-none text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    {filteredUnavailable.length}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  Not currently contactable because email is unavailable or suppressed
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {filteredUnavailable.map((candidate: EvaluatedPersonDto) => (
                   <ContactCard
                     key={candidate.id}
                     contact={candidate}
