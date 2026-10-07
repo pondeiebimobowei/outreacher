@@ -25,15 +25,20 @@ export interface EvaluatedPersonDto {
   updatedAt: Date;
   relevance: 'HIGH' | 'MEDIUM' | 'LOW';
   recommendationRationale: string;
+  whyRecommended?: string;
+  evidenceIds: string[];
   isSelected: boolean;
 }
 
 export interface CompanyContactsResponse {
   companyId: string;
   status:
-    'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
+    | 'NOT_STARTED' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'PARTIAL' | 'FAILED';
   selectedContactId: string | null;
   contacts: EvaluatedPersonDto[];
+  recommended: EvaluatedPersonDto[];
+  other: EvaluatedPersonDto[];
+  unavailable: EvaluatedPersonDto[];
   discoveryJob: {
     id: string;
     status: string;
@@ -92,7 +97,65 @@ export class GetCompanyContactsUseCase {
     );
     const selectedContactId: string | null = null;
 
-    // 5. Fetch Latest Discovery Job Status
+    // 5. Correlate PersonCompanyAssociations and Evidence strictly to (workspaceId, companyId, personId, association.id)
+    const personIds = rawContacts.map((c) => c.id);
+    const associations =
+      personIds.length > 0
+        ? await this.prisma.personCompanyAssociation.findMany({
+            where: {
+              workspaceId,
+              companyId,
+              personId: { in: personIds },
+            },
+          })
+        : [];
+
+    const assocMap = new Map<string, string>();
+    for (const a of associations) {
+      assocMap.set(a.personId, a.id);
+    }
+    const assocIds = associations.map((a) => a.id);
+
+    const evidenceRecords =
+      assocIds.length > 0
+        ? await this.prisma.evidence.findMany({
+            where: {
+              workspaceId,
+              companyId,
+              companyAssociationId: { in: assocIds },
+              personId: { in: personIds },
+            },
+            select: {
+              id: true,
+              personId: true,
+              companyAssociationId: true,
+            },
+            orderBy: {
+              id: 'asc',
+            },
+          })
+        : [];
+
+    // 6. Fetch Active Workspace Suppressions for contactability evaluation
+    const nonNullEmails = rawContacts
+      .map((c) => c.email?.trim().toLowerCase())
+      .filter((e): e is string => Boolean(e));
+
+    const activeSuppressions =
+      nonNullEmails.length > 0
+        ? await this.prisma.suppression.findMany({
+            where: {
+              workspaceId,
+              email: { in: nonNullEmails },
+            },
+            select: { email: true },
+          })
+        : [];
+    const suppressedEmails = new Set(
+      activeSuppressions.map((s) => s.email.toLowerCase()),
+    );
+
+    // 7. Fetch Latest Discovery Job Status
     const latestJob = await this.prisma.job.findFirst({
       where: {
         workspaceId,
@@ -139,7 +202,7 @@ export class GetCompanyContactsUseCase {
       isMockRun = true;
     }
 
-    // 6. Evaluate Relevance & Rationale for Each Candidate
+    // 8. Evaluate Relevance & Rationale for Each Candidate
     const evaluatedContacts: EvaluatedPersonDto[] = rawContacts.map((c) => {
       const evalResult = ContactRelevanceEvaluator.evaluate({
         title: c.title,
@@ -148,6 +211,20 @@ export class GetCompanyContactsUseCase {
         targetRoles,
         confirmedOpportunityTitles,
       });
+
+      const assocId = assocMap.get(c.id);
+      const candidateEvidenceIds = assocId
+        ? evidenceRecords
+            .filter(
+              (e) =>
+                e.personId === c.id && e.companyAssociationId === assocId,
+            )
+            .map((e) => e.id)
+        : [];
+
+      const isContactable = Boolean(
+        c.email && !suppressedEmails.has(c.email.trim().toLowerCase()),
+      );
 
       return {
         id: c.id,
@@ -160,20 +237,23 @@ export class GetCompanyContactsUseCase {
         source: c.source,
         sourceUrl: c.sourceUrl,
         confidence: c.confidence || 'MEDIUM',
-        emailConfidence: c.email ? 'AVAILABLE' : 'UNAVAILABLE',
+        emailConfidence: isContactable ? 'AVAILABLE' : 'UNAVAILABLE',
         discoveredAt: c.discoveredAt,
         createdAt: c.createdAt,
         updatedAt: c.updatedAt,
         relevance: evalResult.relevance,
         recommendationRationale: evalResult.recommendationRationale,
+        whyRecommended: evalResult.recommendationRationale,
+        evidenceIds: candidateEvidenceIds,
         isSelected: c.id === selectedContactId,
       };
     });
 
-    // Sort evaluated contacts:
-    // 1. Relevance: HIGH -> MEDIUM -> LOW
-    // 2. Email availability: AVAILABLE -> UNAVAILABLE
-    // 3. Selection status: Selected first
+    // 9. Stable Sort:
+    // 1. Selection status: Selected first
+    // 2. Relevance: HIGH (3) -> MEDIUM (2) -> LOW (1)
+    // 3. Contactability: AVAILABLE -> UNAVAILABLE
+    // 4. Deterministic Tie-Breaker: person.id ASC
     const relevanceRank: Record<string, number> = {
       HIGH: 3,
       MEDIUM: 2,
@@ -189,14 +269,38 @@ export class GetCompanyContactsUseCase {
       if (a.emailConfidence !== b.emailConfidence) {
         return a.emailConfidence === 'AVAILABLE' ? -1 : 1;
       }
-      return b.createdAt.getTime() - a.createdAt.getTime();
+      return a.id.localeCompare(b.id);
     });
+
+    // 10. Disjoint Partitioning into Action Buckets:
+    // - unavailable: NOT contactable (emailConfidence === 'UNAVAILABLE')
+    // - recommended: contactable AND (HIGH or MEDIUM relevance)
+    // - other: contactable AND LOW relevance
+    const recommended: EvaluatedPersonDto[] = [];
+    const other: EvaluatedPersonDto[] = [];
+    const unavailable: EvaluatedPersonDto[] = [];
+
+    for (const contact of evaluatedContacts) {
+      if (contact.emailConfidence === 'UNAVAILABLE') {
+        unavailable.push(contact);
+      } else if (
+        contact.relevance === 'HIGH' ||
+        contact.relevance === 'MEDIUM'
+      ) {
+        recommended.push(contact);
+      } else {
+        other.push(contact);
+      }
+    }
 
     return {
       companyId,
       status,
       selectedContactId,
       contacts: evaluatedContacts,
+      recommended,
+      other,
+      unavailable,
       discoveryJob: latestJob
         ? {
             id: latestJob.id,
@@ -209,3 +313,4 @@ export class GetCompanyContactsUseCase {
     };
   }
 }
+
