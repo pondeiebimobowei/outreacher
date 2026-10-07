@@ -40,9 +40,11 @@ export class GenerateDirectOutreachUseCase {
       async (tx: Prisma.TransactionClient) => {
         const existingJob = await tx.job.findUnique({
           where: {
-
-            workspaceId_type_idempotencyKey: { workspaceId, type: "COMPANY_RESEARCH", idempotencyKey },
-
+            workspaceId_type_idempotencyKey: {
+              workspaceId,
+              type: 'OUTREACH_GENERATION',
+              idempotencyKey,
+            },
           },
         });
 
