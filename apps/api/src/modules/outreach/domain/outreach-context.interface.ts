@@ -37,5 +37,6 @@ export interface OutreachContext {
     classification: EvidenceClassification; // FACT | INFERENCE | UNKNOWN
     sourceName?: string | null;
     sourceUrl?: string | null;
+    sourceExcerpt?: string | null;
   }>;
 }

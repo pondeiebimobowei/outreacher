@@ -26,7 +26,11 @@ export class OutreachReasonEvaluator {
       const openingDesc = opportunity.roleDescription
         ? ` (${opportunity.roleDescription.slice(0, 100)})`
         : '';
-      reasonText = `Contacting ${person.firstName} ${person.lastName} (${contactTitle}) regarding confirmed open role ${targetRole} at ${company.name}${openingDesc}. Outreach is grounded in verified opening evidence.`;
+      const groundedClause =
+        supportingEvidenceIds.length > 0
+          ? ' Outreach is grounded in verified opening evidence.'
+          : '';
+      reasonText = `Contacting ${person.firstName} ${person.lastName} (${contactTitle}) regarding confirmed open role ${targetRole} at ${company.name}${openingDesc}.${groundedClause}`;
     } else if (opportunity.type === 'PROACTIVE') {
       const industryText = company.industry ? ` in ${company.industry}` : '';
       reasonText = `Proactive outreach to ${person.firstName} ${person.lastName} (${contactTitle}) at ${company.name}${industryText} based on strategic technical alignment with candidate background in ${targetRole}. No open job posting is claimed.`;

@@ -13,7 +13,7 @@ export type GeneratedOutreachDraft = z.infer<
 
 export class OutreachValidator {
   private static readonly ILLEGAL_OPENING_CLAIMS =
-    /\b(saw your (job|opening|listing|posting)|applying (for|to) the|open position|open role|hiring for)\b/i;
+    /\b(saw your (job|opening|listing|posting|role)|noticed your (job|opening|listing|posting|role|open role)|applying (for|to) the|open position|open role|hiring for|your open|team is hiring|recently posted a role)\b/i;
 
   public validate(
     rawText: string,

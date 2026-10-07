@@ -43,7 +43,7 @@ describe('OutreachReasonEvaluator', () => {
     ],
   };
 
-  it('evaluates CONFIRMED opportunity state correctly', () => {
+  it('evaluates CONFIRMED opportunity state with supporting evidence correctly', () => {
     const context: OutreachContext = {
       ...baseContext,
       opportunity: {
@@ -60,6 +60,25 @@ describe('OutreachReasonEvaluator', () => {
     );
     expect(result.reasonText).toContain('verified opening evidence');
     expect(result.supportingEvidenceIds).toEqual(['ev-1']);
+  });
+
+  it('evaluates CONFIRMED opportunity state without supporting evidence without claiming verified opening evidence', () => {
+    const context: OutreachContext = {
+      ...baseContext,
+      evidence: [],
+      opportunity: {
+        type: 'CONFIRMED',
+        roleTitle: 'Senior Staff Engineer',
+      },
+    };
+
+    const result = evaluator.evaluate(context);
+    expect(result.opportunityType).toBe('CONFIRMED');
+    expect(result.reasonText).toContain(
+      'confirmed open role Senior Staff Engineer at Acme Corp',
+    );
+    expect(result.reasonText).not.toContain('verified opening evidence');
+    expect(result.supportingEvidenceIds).toEqual([]);
   });
 
   it('evaluates PROACTIVE opportunity state without claiming open position', () => {

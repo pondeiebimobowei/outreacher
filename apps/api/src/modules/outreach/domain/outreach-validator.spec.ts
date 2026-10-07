@@ -80,6 +80,24 @@ describe('OutreachValidator', () => {
     );
   });
 
+  it('rejects unbacked role assertions like noticed your open role or team is hiring', () => {
+    const illegalClaim1 = JSON.stringify({
+      subject: 'Connecting regarding engineering',
+      body: 'Hi John, I noticed your open role in backend engineering and wanted to reach out.',
+    });
+    expect(() => validator.validate(illegalClaim1, baseContext)).toThrow(
+      AIInvalidOutputException,
+    );
+
+    const illegalClaim2 = JSON.stringify({
+      subject: 'Connecting regarding engineering',
+      body: 'Hi John, I heard your team is hiring engineers and would love to chat.',
+    });
+    expect(() => validator.validate(illegalClaim2, baseContext)).toThrow(
+      AIInvalidOutputException,
+    );
+  });
+
   it('allows opening claims when opportunity is CONFIRMED', () => {
     const confirmedContext: OutreachContext = {
       ...baseContext,

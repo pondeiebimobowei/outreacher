@@ -19,8 +19,8 @@ STRICT INVARIANTS:
   "subject": "Email subject line (3-150 characters)",
   "body": "Email body text (20-4000 characters)"
 }
-2. Zero Fabrication Policy: Do NOT invent company facts, achievements, job openings, or metrics that are not supported by the provided context.
-3. If the opportunity type is PROACTIVE or UNCLASSIFIED, you MUST NOT claim or imply that an open job posting exists (do NOT say "saw your job posting", "applying for the role", etc.).
+2. Zero Fabrication Policy: Do NOT invent company facts, achievements, job openings, team growth, funding, or metrics that are not explicitly supported by the provided context and evidence.
+3. If the opportunity type is PROACTIVE or UNCLASSIFIED, you MUST NOT claim or imply that an open job posting exists (do NOT say "saw your job posting", "applying for the role", "noticed your open role", "hiring for", etc.).
 4. Focus on professional alignment, relevant technical skills, and grounded evidence.
 5. Do NOT include markdown formatting outside the JSON code block.`;
 
@@ -50,10 +50,13 @@ ${reasonResult.reasonText}
 ${
   context.evidence.length > 0
     ? context.evidence
-        .map(
-          (e) =>
-            `- [${e.classification}] ${e.claim} (Source: ${e.sourceName || 'Unknown'})`,
-        )
+        .map((e) => {
+          const parts = [`- [${e.classification}] ${e.claim}`];
+          if (e.sourceName) parts.push(`Source: ${e.sourceName}`);
+          if (e.sourceUrl) parts.push(`URL: ${e.sourceUrl}`);
+          if (e.sourceExcerpt) parts.push(`Excerpt: "${e.sourceExcerpt}"`);
+          return parts.join(' | ');
+        })
         .join('\n')
     : 'No explicit evidence items attached.'
 }
