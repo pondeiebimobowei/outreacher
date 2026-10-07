@@ -106,11 +106,13 @@ export class OutreachesController {
     @CurrentWorkspace() workspace: { id: string },
     @Param('id') outreachId: string,
     @Headers('idempotency-key') idempotencyKey: string,
+    @Body() body?: Record<string, unknown>,
   ) {
     return this.sendOutreachUseCase.execute({
       workspaceId: workspace.id,
       outreachId,
       idempotencyKey,
+      payload: body,
     });
   }
 

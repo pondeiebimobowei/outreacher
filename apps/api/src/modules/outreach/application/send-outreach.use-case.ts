@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   AppConflictException,
@@ -12,6 +13,7 @@ export interface SendOutreachCommand {
   workspaceId: string;
   outreachId: string;
   idempotencyKey?: string;
+  payload?: Record<string, unknown> | null;
 }
 
 @Injectable()
@@ -22,11 +24,16 @@ export class SendOutreachUseCase {
   ) {}
 
   async execute(command: SendOutreachCommand): Promise<{ jobId: string; status: string }> {
-    const { workspaceId, outreachId, idempotencyKey } = command;
+    const { workspaceId, outreachId, idempotencyKey, payload } = command;
 
     if (!idempotencyKey || idempotencyKey.trim() === '') {
       throw new AppValidationException('idempotency-key header is required');
     }
+
+    const requestHash = crypto
+      .createHash('sha256')
+      .update(JSON.stringify(payload ?? {}))
+      .digest('hex');
 
     return this.prisma.$transaction(async (tx: any) => {
       // 0. Check Idempotency Record
@@ -42,6 +49,11 @@ export class SendOutreachUseCase {
         if (existingRecord.targetId !== outreachId) {
           throw new AppConflictException(
             'Idempotency key reused for different target',
+          );
+        }
+        if (existingRecord.requestHash && existingRecord.requestHash !== requestHash) {
+          throw new AppConflictException(
+            'Idempotency key reused with different request payload',
           );
         }
         return { jobId: existingRecord.jobId, status: 'QUEUED' };
@@ -216,7 +228,7 @@ export class SendOutreachUseCase {
           operation: 'POST:/outreaches/:id/send',
           key: idempotencyKey,
           targetId: outreachId,
-          requestHash: '',
+          requestHash,
           jobId: job.id,
         },
       });

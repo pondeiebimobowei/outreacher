@@ -260,7 +260,7 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
   // ─────────────────────────────────────────────────────────────────────────────
   // 2. Section 12: Idempotent Replay Semantics
   // ─────────────────────────────────────────────────────────────────────────────
-  it('2. Enforces idempotency semantics: replay with identical key returns existing send; distinct key conflicts', async () => {
+  it('2. Enforces idempotency semantics: replay with identical key and payload returns existing send; same key with different payload throws 409 conflict', async () => {
     const sender = await seedSenderAccount(currentWorkspaceId);
     const { pca } = await seedContact(
       currentWorkspaceId,
@@ -289,25 +289,67 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
     });
 
     const canonicalKey = 'idem-unique-key-12345';
+    const payloadA = { channel: 'EMAIL', clientVariant: 'A' };
+    const payloadB = { channel: 'EMAIL', clientVariant: 'B' };
 
-    // First call
+    // Request A: Idempotency-Key = K, same valid outreach, first request -> succeeds
     const firstResult = await sendOutreachUseCase.execute({
       workspaceId: currentWorkspaceId,
       outreachId: outreachDto.id,
       idempotencyKey: canonicalKey,
+      payload: payloadA,
     });
+    expect(firstResult.status).toBe('QUEUED');
+    expect(firstResult.jobId).toBeDefined();
 
-    // Second call with EXACT SAME idempotency key (must return existing send without error)
-    const secondResult = await sendOutreachUseCase.execute({
+    // Request B: SAME Idempotency-Key = K, DIFFERENT request payload -> 409 conflict
+    const conflictPromise = sendOutreachUseCase.execute({
       workspaceId: currentWorkspaceId,
       outreachId: outreachDto.id,
       idempotencyKey: canonicalKey,
+      payload: payloadB,
     });
+    await expect(conflictPromise).rejects.toThrow(AppConflictException);
+    await expect(conflictPromise).rejects.toThrow(
+      'Idempotency key reused with different request payload',
+    );
 
-    expect(secondResult.jobId).toBe(firstResult.jobId);
-    expect(secondResult.status).toBe('QUEUED');
+    // Assert: exactly one idempotency record for K
+    const idempRecords = await prisma.idempotencyRecord.findMany({
+      where: {
+        workspaceId: currentWorkspaceId,
+        key: canonicalKey,
+      },
+    });
+    expect(idempRecords).toHaveLength(1);
+    expect(idempRecords[0].jobId).toBe(firstResult.jobId);
 
-    // Third call with DIFFERENT idempotency key -> MUST throw 409 AppConflictException
+    // Assert: exactly one logical EmailSend
+    const totalSends = await prisma.emailSend.count({
+      where: { outreachId: outreachDto.id },
+    });
+    expect(totalSends).toBe(1);
+
+    // Assert: exactly one logical send job
+    const totalJobs = await prisma.job.count({
+      where: {
+        workspaceId: currentWorkspaceId,
+        type: 'EMAIL_DISPATCH',
+      },
+    });
+    expect(totalJobs).toBe(1);
+
+    // Assert: original request/result remains intact (replay with same key and payload succeeds)
+    const replayResult = await sendOutreachUseCase.execute({
+      workspaceId: currentWorkspaceId,
+      outreachId: outreachDto.id,
+      idempotencyKey: canonicalKey,
+      payload: payloadA,
+    });
+    expect(replayResult.jobId).toBe(firstResult.jobId);
+    expect(replayResult.status).toBe('QUEUED');
+
+    // Distinct idempotency key against already SENDING outreach also conflicts
     await expect(
       sendOutreachUseCase.execute({
         workspaceId: currentWorkspaceId,
@@ -315,12 +357,6 @@ describe('Task 12: Concurrency, Worker Leasing & Reply Interactions (PostgreSQL 
         idempotencyKey: 'different-idem-key-67890',
       }),
     ).rejects.toThrow(AppConflictException);
-
-    // Exactly 1 EmailSend record in PostgreSQL
-    const totalSends = await prisma.emailSend.count({
-      where: { outreachId: outreachDto.id },
-    });
-    expect(totalSends).toBe(1);
   });
 
   // ─────────────────────────────────────────────────────────────────────────────

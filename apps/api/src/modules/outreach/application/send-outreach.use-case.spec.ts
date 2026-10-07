@@ -66,6 +66,27 @@ describe('SendOutreachUseCase', () => {
     ).rejects.toThrow(AppValidationException);
   });
 
+  it('throws 409 Conflict if idempotency key reused with different payload', async () => {
+    prisma.idempotencyRecord.findFirst.mockResolvedValue({
+      id: 'rec-1',
+      workspaceId: 'ws-1',
+      operation: 'POST:/outreaches/:id/send',
+      key: 'idem-1',
+      targetId: 'out-1',
+      requestHash: 'hash-of-payload-a',
+      jobId: 'job-1',
+    });
+
+    await expect(
+      useCase.execute({
+        workspaceId: 'ws-1',
+        outreachId: 'out-1',
+        idempotencyKey: 'idem-1',
+        payload: { different: true },
+      }),
+    ).rejects.toThrow(AppConflictException);
+  });
+
   it('throws 409 Conflict if Outreach is not in APPROVED status', async () => {
     prisma.outreach.findFirst.mockResolvedValue({
       id: 'out-1',
