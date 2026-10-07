@@ -14,6 +14,7 @@ import {
 } from '../domain/contact.constants';
 import { normalizeCompanyDomain } from '../../company/domain/company.domain';
 import { ContactDiscoveryResponseSchema } from './transport-envelope.schema';
+import { isSafePublicDestination } from './network-safety';
 
 @Injectable()
 export class HttpContactDiscoveryAdapter implements ContactDiscoveryProvider {
@@ -34,7 +35,7 @@ export class HttpContactDiscoveryAdapter implements ContactDiscoveryProvider {
   async discoverContacts(
     input: ContactDiscoveryInput,
   ): Promise<ContactDiscoveryResult> {
-    // 1. Pre-network input conflict resolution
+    // 1. Pre-network input conflict resolution and SSRF safety check
     const canonicalUrlDomain = normalizeCompanyDomain(input.websiteUrl);
     const canonicalDomain = normalizeCompanyDomain(input.domain);
     let expectedCanonicalDomain: string;
@@ -55,7 +56,46 @@ export class HttpContactDiscoveryAdapter implements ContactDiscoveryProvider {
           reasoning: 'Neither website URL nor domain provided for company.',
         },
       };
-    } else if (canonicalUrlDomain && !canonicalDomain) {
+    }
+
+    // SSRF / Network safety checks prior to any network dispatch
+    if (input.websiteUrl && !isSafePublicDestination(input.websiteUrl)) {
+      this.logger.warn(
+        `Company "${input.companyName}" (${input.companyId}) websiteUrl violates SSRF policy: ${input.websiteUrl}`,
+      );
+      return {
+        companyId: input.companyId,
+        workspaceId: input.workspaceId,
+        discoveredAt: new Date(),
+        candidates: [],
+        status: 'PARTIAL',
+        unknowns: ['company_website_url', 'company_domain'],
+        errorCode: 'IDENTITY_UNRESOLVED',
+        metadata: {
+          reasoning: 'Input websiteUrl violates network safety / SSRF policy.',
+        },
+      };
+    }
+
+    if (input.domain && !isSafePublicDestination(input.domain)) {
+      this.logger.warn(
+        `Company "${input.companyName}" (${input.companyId}) domain violates SSRF policy: ${input.domain}`,
+      );
+      return {
+        companyId: input.companyId,
+        workspaceId: input.workspaceId,
+        discoveredAt: new Date(),
+        candidates: [],
+        status: 'PARTIAL',
+        unknowns: ['company_website_url', 'company_domain'],
+        errorCode: 'IDENTITY_UNRESOLVED',
+        metadata: {
+          reasoning: 'Input domain violates network safety / SSRF policy.',
+        },
+      };
+    }
+
+    if (canonicalUrlDomain && !canonicalDomain) {
       expectedCanonicalDomain = canonicalUrlDomain;
     } else if (!canonicalUrlDomain && canonicalDomain) {
       expectedCanonicalDomain = canonicalDomain;
@@ -135,17 +175,44 @@ export class HttpContactDiscoveryAdapter implements ContactDiscoveryProvider {
       clearTimeout(timeoutHandle);
     }
 
+    // Handle HTTP status codes before or during JSON parse
+    if (response.status === 409) {
+      let conflictMsg = 'Idempotency conflict on provider';
+      try {
+        const conflictJson: any = await response.json();
+        if (conflictJson?.failure?.message) {
+          conflictMsg = conflictJson.failure.message;
+        }
+      } catch {
+        // Fall back to default message
+      }
+      throw new ContactDiscoveryProviderException(
+        conflictMsg,
+        'DISCOVERY_OPERATIONAL_FAILURE',
+        false,
+      );
+    }
+
+    if (response.status === 429) {
+      throw new ContactDiscoveryProviderException(
+        'Contact discovery provider rate limited (429)',
+        'ACQUISITION_RATE_LIMITED',
+        true,
+      );
+    }
+
+    if (response.status >= 500) {
+      throw new ContactDiscoveryProviderException(
+        `Contact discovery provider returned 5xx (${response.status})`,
+        'DISCOVERY_OPERATIONAL_FAILURE',
+        true,
+      );
+    }
+
     let rawJson: unknown;
     try {
       rawJson = await response.json();
     } catch (parseErr: any) {
-      if (response.status >= 500) {
-        throw new ContactDiscoveryProviderException(
-          `Contact discovery provider returned non-JSON 5xx (${response.status})`,
-          'DISCOVERY_OPERATIONAL_FAILURE',
-          true,
-        );
-      }
       throw new ContactDiscoveryProviderException(
         `Failed to parse response JSON from contact discovery provider: ${parseErr.message}`,
         'CONTRACT_SCHEMA_INVALID',
