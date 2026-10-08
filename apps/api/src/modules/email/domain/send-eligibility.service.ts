@@ -102,7 +102,7 @@ export class SendEligibilityService {
           AND sa.workspace_id = ${workspaceId}
           AND sa.status = 'ACTIVE'
           AND i.status = 'ACTIVE'
-        FOR UPDATE OF sa
+        FOR UPDATE OF sa, i
       `;
     } else if (campaignId) {
       candidates = await tx.$queryRaw<
@@ -118,7 +118,7 @@ export class SendEligibilityService {
           AND sa.status = 'ACTIVE'
           AND i.status = 'ACTIVE'
         ORDER BY sa.id ASC
-        FOR UPDATE OF sa
+        FOR UPDATE OF sa, i
       `;
     } else {
       candidates = await tx.$queryRaw<
@@ -131,7 +131,7 @@ export class SendEligibilityService {
           AND sa.status = 'ACTIVE'
           AND i.status = 'ACTIVE'
         ORDER BY sa.id ASC
-        FOR UPDATE OF sa
+        FOR UPDATE OF sa, i
       `;
     }
 
@@ -188,7 +188,7 @@ export class SendEligibilityService {
         AND sa.workspace_id = ${workspaceId}
         AND sa.status = 'ACTIVE'
         AND i.status = 'ACTIVE'
-      FOR UPDATE OF sa
+      FOR UPDATE OF sa, i
     `;
 
     if (!candidates || candidates.length === 0) {
@@ -203,6 +203,8 @@ export class SendEligibilityService {
         status: EmailSendStatus.RESERVED,
         reservedAt: new Date(),
         expectedStateVersion: currentStateVersion,
+        errorMessage: null,
+        errorCode: null,
       },
     });
   }
@@ -228,6 +230,13 @@ export class SendEligibilityService {
         nowUtc.getUTCDate(),
       ),
     );
+    const startOfNextDayUtc = new Date(
+      Date.UTC(
+        nowUtc.getUTCFullYear(),
+        nowUtc.getUTCMonth(),
+        nowUtc.getUTCDate() + 1,
+      ),
+    );
 
     const candidateScores = [];
 
@@ -237,7 +246,8 @@ export class SendEligibilityService {
         WHERE workspace_id = ${workspaceId}
           AND sender_account_id = ${candidate.id}
           AND status IN ('RESERVED', 'SENDING', 'SENT')
-          AND created_at >= ${startOfDayUtc}
+          AND COALESCE(reserved_at, created_at) >= ${startOfDayUtc}
+          AND COALESCE(reserved_at, created_at) < ${startOfNextDayUtc}
       `;
 
       const consumedCount = Number(consumedCountResult[0]?.count || 0);

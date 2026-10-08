@@ -3,7 +3,7 @@ import {
   AppConflictException,
   AppNotFoundException,
 } from '../../../common/errors/application.exception';
-import { ICampaignRepository } from '../domain/campaign.repository.interface';
+import { ICampaignRepository, CampaignWithSenders } from '../domain/campaign.repository.interface';
 import { ChangeCampaignStatusUseCase } from './change-campaign-status.use-case';
 import { Campaign, CampaignStatus } from '@repo/db';
 
@@ -12,7 +12,18 @@ const otherWorkspaceId = 'ws-other';
 const companyId = 'co-001';
 const campaignId = 'camp-001';
 
-const mockCampaign = (status: CampaignStatus): Campaign => ({
+const mockCampaign = (
+  status: CampaignStatus,
+  senders: any[] = [
+    {
+      assignmentStatus: 'ACTIVE',
+      senderStatus: 'ACTIVE',
+      integrationStatus: 'ACTIVE',
+      provider: 'RESEND',
+      senderAccountId: 'sender-account-id',
+    },
+  ],
+): CampaignWithSenders => ({
   id: campaignId,
   workspaceId,
   companyId,
@@ -24,11 +35,13 @@ const mockCampaign = (status: CampaignStatus): Campaign => ({
   createdAt: new Date(),
   updatedAt: new Date(),
   normalizedName: 'test-camp',
+  senders,
 });
 
 describe('ChangeCampaignStatusUseCase', () => {
   let useCase: ChangeCampaignStatusUseCase;
   let campaignRepo: jest.Mocked<ICampaignRepository>;
+  let providerRegistry: any;
 
   beforeEach(() => {
     campaignRepo = {
@@ -40,7 +53,11 @@ describe('ChangeCampaignStatusUseCase', () => {
       findExistingContactBindings: jest.fn(),
       createContactBindings: jest.fn(),
     };
-    useCase = new ChangeCampaignStatusUseCase(campaignRepo);
+    providerRegistry = {
+      hasAdapter: jest.fn().mockReturnValue(true),
+      getAdapter: jest.fn(),
+    };
+    useCase = new ChangeCampaignStatusUseCase(campaignRepo, providerRegistry);
   });
 
   describe('pause (ACTIVE -> PAUSED)', () => {

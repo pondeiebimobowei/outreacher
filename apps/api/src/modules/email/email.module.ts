@@ -84,6 +84,7 @@ import { ScheduledFollowUpCheckWorker } from './application/scheduled-follow-up-
     EMAIL_SEND_REPOSITORY_TOKEN,
     IDEMPOTENCY_REPOSITORY_TOKEN,
     SECRET_RESOLVER_TOKEN,
+    EmailProviderRegistry,
   ],
 })
 export class EmailModule {}

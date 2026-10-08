@@ -4,6 +4,7 @@ import { CompanyModule } from '../company/company.module';
 import { ContactModule } from '../contact/contact.module';
 import { WorkspaceModule } from '../workspaces/workspace.module';
 import { TemplateModule } from '../template/template.module';
+import { EmailModule } from '../email/email.module';
 import { CampaignController } from './campaign.controller';
 import { CAMPAIGN_REPOSITORY_TOKEN } from './domain/campaign.repository.interface';
 import { PrismaCampaignRepository } from './infrastructure/prisma-campaign.repository';
@@ -23,6 +24,7 @@ import { GetCampaignRecipientsUseCase } from './application/get-campaign-recipie
     ContactModule,
     WorkspaceModule,
     TemplateModule,
+    EmailModule,
   ],
   controllers: [CampaignController],
   providers: [

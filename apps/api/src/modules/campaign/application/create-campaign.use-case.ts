@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CampaignDto } from '@repo/shared';
 import {
+  AppConflictException,
   AppForbiddenException,
   AppNotFoundException,
   AppValidationException,
 } from '../../../common/errors/application.exception';
 import { TemplateEngineService } from '../../template/domain/template-engine.service';
+import { EmailProviderRegistry } from '../../email/infrastructure/email-provider.registry';
 import { CreateCampaignDto } from '../dto/create-campaign.dto';
 
 @Injectable()
@@ -14,6 +16,7 @@ export class CreateCampaignUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
+    private readonly providerRegistry: EmailProviderRegistry,
   ) {}
 
   async execute(
@@ -78,8 +81,37 @@ export class CreateCampaignUseCase {
     }
 
     // If initial status is ACTIVE, execute Activation Gate
-    if (status === 'ACTIVE' && dto.contentSource === 'TEMPLATE') {
-      this.templateEngine.validateTemplateForCampaign(template, maxFollowUps);
+    if (status === 'ACTIVE') {
+      if (dto.contentSource === 'TEMPLATE') {
+        this.templateEngine.validateTemplateForCampaign(template, maxFollowUps);
+      }
+
+      if (senderAccountIds.length === 0) {
+        throw new AppConflictException('CAMPAIGN_NO_ELIGIBLE_SENDERS');
+      }
+
+      const activeSenders = await this.prisma.senderAccount.findMany({
+        where: {
+          id: { in: senderAccountIds },
+          workspaceId,
+          status: 'ACTIVE',
+          integration: {
+            status: 'ACTIVE',
+            workspaceId,
+          },
+        },
+        include: {
+          integration: true,
+        },
+      });
+
+      const operationallyEligible = activeSenders.filter((sa) =>
+        this.providerRegistry.hasAdapter(sa.integration.provider),
+      );
+
+      if (operationallyEligible.length === 0) {
+        throw new AppConflictException('CAMPAIGN_NO_ELIGIBLE_SENDERS');
+      }
     }
 
     return this.prisma.$transaction(async (tx: any) => {

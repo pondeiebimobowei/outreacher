@@ -252,7 +252,10 @@ describe('SendOutreachUseCase', () => {
     expect(res.status).toBe('QUEUED');
     expect(prisma.outreach.update).toHaveBeenCalledWith({
       where: { id: 'out-1' },
-      data: { status: 'SENDING' },
+      data: {
+        status: 'SENDING',
+        senderAccountId: 'sa-1',
+      },
     });
     expect(eligibilityService.reserveSenderCapacityAndCreateEmailSend).toHaveBeenCalledWith(
       expect.anything(),

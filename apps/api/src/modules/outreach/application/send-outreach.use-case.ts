@@ -206,6 +206,12 @@ export class SendOutreachUseCase {
 
       const expectedStateVersion = pca.stateVersion;
 
+      const isCampaignLinked = outreach.campaignRecipientId != null;
+      const preferredSenderAccountId = isCampaignLinked
+        ? null
+        : (outreach.senderAccountId ?? null);
+      const targetCampaignId = isCampaignLinked ? (campaign?.id ?? null) : null;
+
       // 6. Reserve sender capacity and create EmailSend
       const emailSend =
         await this.eligibilityService.reserveSenderCapacityAndCreateEmailSend(tx, {
@@ -216,14 +222,17 @@ export class SendOutreachUseCase {
           expectedStateVersion,
           subject: outreach.subject,
           body: outreach.message,
-          preferredSenderAccountId: outreach.senderAccountId,
-          campaignId: campaign?.id ?? null,
+          preferredSenderAccountId,
+          campaignId: targetCampaignId,
         });
 
-      // 7. Transition Outreach: APPROVED -> SENDING
+      // 7. Transition Outreach: APPROVED -> SENDING (recording actual sender assigned)
       await tx.outreach.update({
         where: { id: outreachId },
-        data: { status: 'SENDING' },
+        data: {
+          status: 'SENDING',
+          senderAccountId: emailSend.senderAccountId,
+        },
       });
 
       // If campaign-linked, transition recipient: PENDING -> ACTIVE

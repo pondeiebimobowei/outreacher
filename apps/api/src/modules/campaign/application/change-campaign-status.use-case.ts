@@ -9,6 +9,7 @@ import {
   CAMPAIGN_REPOSITORY_TOKEN,
   type ICampaignRepository,
 } from '../domain/campaign.repository.interface';
+import { EmailProviderRegistry } from '../../email/infrastructure/email-provider.registry';
 
 export type CampaignLifecycleAction = 'PAUSE' | 'RESUME' | 'ARCHIVE';
 
@@ -17,6 +18,7 @@ export class ChangeCampaignStatusUseCase {
   constructor(
     @Inject(CAMPAIGN_REPOSITORY_TOKEN)
     private readonly campaignRepository: ICampaignRepository,
+    private readonly providerRegistry: EmailProviderRegistry,
   ) {}
 
   async pause(
@@ -54,6 +56,19 @@ export class ChangeCampaignStatusUseCase {
       throw new AppConflictException(
         `Cannot resume campaign with status "${campaign.status}". Only PAUSED campaigns can be resumed.`,
       );
+    }
+
+    const eligibleSenders = (campaign.senders ?? []).filter(
+      (s) =>
+        s.assignmentStatus === 'ACTIVE' &&
+        s.senderStatus === 'ACTIVE' &&
+        s.integrationStatus === 'ACTIVE' &&
+        s.provider &&
+        this.providerRegistry.hasAdapter(s.provider),
+    );
+
+    if (eligibleSenders.length === 0) {
+      throw new AppConflictException('CAMPAIGN_NO_ELIGIBLE_SENDERS');
     }
 
     const updated = await this.campaignRepository.updateStatus(

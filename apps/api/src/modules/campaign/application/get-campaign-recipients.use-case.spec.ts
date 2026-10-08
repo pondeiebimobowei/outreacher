@@ -92,6 +92,13 @@ describe('GetCampaignRecipientsUseCase', () => {
     expect(result[0].id).toBe('recip-1');
     expect(result[0].person.firstName).toBe('Alice');
     expect(result[0].outreachId).toBe('out-new-1');
-    expect(prisma.outreach.create).toHaveBeenCalled();
+    expect(prisma.outreach.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          senderAccountId: null,
+          campaignRecipientId: 'recip-1',
+        }),
+      }),
+    );
   });
 });

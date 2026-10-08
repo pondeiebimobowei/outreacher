@@ -36,6 +36,7 @@ function mapCampaign(
       fromEmail: csa.senderAccount.fromEmail,
       senderStatus: csa.senderAccount.status,
       integrationStatus: csa.senderAccount.integration.status,
+      provider: csa.senderAccount.integration.provider,
     })),
   };
 }

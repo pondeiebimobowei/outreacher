@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { CampaignDto } from '@repo/shared';
 import {
+  AppConflictException,
   AppForbiddenException,
   AppNotFoundException,
   AppValidationException,
 } from '../../../common/errors/application.exception';
 import { TemplateEngineService } from '../../template/domain/template-engine.service';
+import { EmailProviderRegistry } from '../../email/infrastructure/email-provider.registry';
 import { UpdateCampaignDto } from '../dto/update-campaign.dto';
 
 @Injectable()
@@ -14,6 +16,7 @@ export class UpdateCampaignUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngineService,
+    private readonly providerRegistry: EmailProviderRegistry,
   ) {}
 
   async execute(
@@ -88,6 +91,55 @@ export class UpdateCampaignUseCase {
             'One or more sender accounts do not exist or belong to another workspace',
           );
         }
+      }
+    }
+
+    // If campaign will be ACTIVE (either newly transitioning to ACTIVE or remaining ACTIVE while updating senders)
+    if (effectiveStatus === 'ACTIVE') {
+      let candidateSenderIds: string[] = [];
+      if (dto.senderAccountIds !== undefined) {
+        candidateSenderIds = dto.senderAccountIds;
+      } else {
+        const currentCampaignSenders = await this.prisma.campaignSenderAccount.findMany({
+          where: { campaignId, workspaceId, status: 'ACTIVE' },
+          select: { senderAccountId: true },
+        });
+        candidateSenderIds = currentCampaignSenders.map((s) => s.senderAccountId);
+      }
+
+      const isTransitionToActive = campaign.status !== 'ACTIVE' && effectiveStatus === 'ACTIVE';
+
+      if (candidateSenderIds.length === 0) {
+        const errorCode = isTransitionToActive
+          ? 'CAMPAIGN_NO_ELIGIBLE_SENDERS'
+          : 'ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER';
+        throw new AppConflictException(errorCode);
+      }
+
+      const activeSenders = await this.prisma.senderAccount.findMany({
+        where: {
+          id: { in: candidateSenderIds },
+          workspaceId,
+          status: 'ACTIVE',
+          integration: {
+            status: 'ACTIVE',
+            workspaceId,
+          },
+        },
+        include: {
+          integration: true,
+        },
+      });
+
+      const operationallyEligible = activeSenders.filter((sa) =>
+        this.providerRegistry.hasAdapter(sa.integration.provider),
+      );
+
+      if (operationallyEligible.length === 0) {
+        const errorCode = isTransitionToActive
+          ? 'CAMPAIGN_NO_ELIGIBLE_SENDERS'
+          : 'ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER';
+        throw new AppConflictException(errorCode);
       }
     }
 

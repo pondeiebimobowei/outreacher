@@ -243,6 +243,8 @@ describe('SendEligibilityService', () => {
           status: EmailSendStatus.RESERVED,
           reservedAt: expect.any(Date),
           expectedStateVersion: 3,
+          errorMessage: null,
+          errorCode: null,
         },
       });
     });

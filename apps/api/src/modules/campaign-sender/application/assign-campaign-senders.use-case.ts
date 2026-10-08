@@ -3,14 +3,19 @@ import { Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import { AssignSendersDto } from '../dto/assign-senders.dto';
 import {
+  AppConflictException,
   AppValidationException,
   AppNotFoundException,
 } from '../../../common/errors/application.exception';
 import { AssignmentStatus } from '@repo/db';
+import { EmailProviderRegistry } from '../../email/infrastructure/email-provider.registry';
 
 @Injectable()
 export class AssignCampaignSendersUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly providerRegistry: EmailProviderRegistry,
+  ) {}
 
   public async execute(
     workspaceId: string,
@@ -45,6 +50,39 @@ export class AssignCampaignSendersUseCase {
       if (senders.length !== uniqueSenderIds.length) {
         throw new AppValidationException(
           'One or more sender accounts do not exist in this workspace',
+        );
+      }
+    }
+
+    if (campaign.status === 'ACTIVE') {
+      if (uniqueSenderIds.length === 0) {
+        throw new AppConflictException(
+          'ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER',
+        );
+      }
+
+      const activeSenders = await this.prisma.senderAccount.findMany({
+        where: {
+          id: { in: uniqueSenderIds },
+          workspaceId,
+          status: 'ACTIVE',
+          integration: {
+            status: 'ACTIVE',
+            workspaceId,
+          },
+        },
+        include: {
+          integration: true,
+        },
+      });
+
+      const operationallyEligible = activeSenders.filter((sa) =>
+        this.providerRegistry.hasAdapter(sa.integration.provider),
+      );
+
+      if (operationallyEligible.length === 0) {
+        throw new AppConflictException(
+          'ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER',
         );
       }
     }

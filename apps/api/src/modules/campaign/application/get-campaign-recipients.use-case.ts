@@ -13,12 +13,6 @@ export class GetCampaignRecipientsUseCase {
   ): Promise<CampaignRecipientSummaryDto[]> {
     const campaign = await this.prisma.campaign.findFirst({
       where: { id: campaignId, workspaceId },
-      include: {
-        campaignSenderAccounts: {
-          where: { status: 'ACTIVE' },
-          take: 1,
-        },
-      },
     });
 
     if (!campaign) {
@@ -38,9 +32,6 @@ export class GetCampaignRecipientsUseCase {
       },
       orderBy: { createdAt: 'asc' },
     });
-
-    const defaultSenderAccountId =
-      campaign.campaignSenderAccounts[0]?.senderAccountId ?? null;
 
     // Ensure every enrolled recipient has a 1:1 Outreach record initialized
     for (const recipient of recipients) {
@@ -87,7 +78,7 @@ export class GetCampaignRecipientsUseCase {
             workspaceId,
             personCompanyAssociationId: recipient.personCompanyAssociationId,
             campaignRecipientId: recipient.id,
-            senderAccountId: defaultSenderAccountId,
+            senderAccountId: null,
             contentSource: campaign.contentSource,
             templateId: campaign.templateId,
             aiPromptContext: campaign.aiPromptContext,

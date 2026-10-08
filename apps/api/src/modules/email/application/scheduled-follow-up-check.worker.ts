@@ -256,6 +256,12 @@ export class ScheduledFollowUpCheckWorker {
         context,
       );
 
+      const isCampaignLinked = outreach.campaignRecipientId != null;
+      const preferredSenderAccountId = isCampaignLinked
+        ? null
+        : (outreach.senderAccountId ?? null);
+      const targetCampaignId = isCampaignLinked ? (campaign?.id ?? null) : null;
+
       // Reserve capacity and create EmailSend
       const emailSend =
         await this.eligibilityService.reserveSenderCapacityAndCreateEmailSend(
@@ -268,15 +274,18 @@ export class ScheduledFollowUpCheckWorker {
             expectedStateVersion: pca.stateVersion,
             subject: resolvedSubject,
             body: resolvedBody,
-            preferredSenderAccountId: outreach.senderAccountId,
-            campaignId: campaign?.id ?? null,
+            preferredSenderAccountId,
+            campaignId: targetCampaignId,
           },
         );
 
-      // Transition Outreach.status: ACTIVE -> SENDING
+      // Transition Outreach.status: ACTIVE -> SENDING (recording current sender)
       await tx.outreach.update({
         where: { id: outreachId },
-        data: { status: 'SENDING' },
+        data: {
+          status: 'SENDING',
+          senderAccountId: emailSend.senderAccountId,
+        },
       });
 
       // Enqueue EMAIL_DISPATCH job
@@ -474,6 +483,12 @@ export class ScheduledFollowUpCheckWorker {
         return true;
       }
 
+      const isCampaignLinked = outreach.campaignRecipientId != null;
+      const preferredSenderAccountId = isCampaignLinked
+        ? null
+        : (outreach.senderAccountId ?? null);
+      const targetCampaignId = isCampaignLinked ? (campaign?.id ?? null) : null;
+
       // Reserve capacity and create EmailSend
       const emailSend =
         await this.eligibilityService.reserveSenderCapacityAndCreateEmailSend(
@@ -486,15 +501,18 @@ export class ScheduledFollowUpCheckWorker {
             expectedStateVersion: lockedPca.stateVersion,
             subject: aiSubject,
             body: aiBody,
-            preferredSenderAccountId: outreach.senderAccountId,
-            campaignId: campaign?.id ?? null,
+            preferredSenderAccountId,
+            campaignId: targetCampaignId,
           },
         );
 
-      // Transition Outreach.status: ACTIVE -> SENDING
+      // Transition Outreach.status: ACTIVE -> SENDING (recording current sender)
       await tx.outreach.update({
         where: { id: outreachId },
-        data: { status: 'SENDING' },
+        data: {
+          status: 'SENDING',
+          senderAccountId: emailSend.senderAccountId,
+        },
       });
 
       // Enqueue EMAIL_DISPATCH job

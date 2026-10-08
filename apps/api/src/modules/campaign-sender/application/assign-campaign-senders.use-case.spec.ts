@@ -8,14 +8,26 @@ import {
 import { AssignmentStatus, CampaignStatus } from '@repo/db';
 import { Prisma } from '@repo/db';
 
+import { EmailProviderRegistry } from '../../email/infrastructure/email-provider.registry';
+
 describe('AssignCampaignSendersUseCase', () => {
   let useCase: AssignCampaignSendersUseCase;
   let prisma: PrismaService;
+  let providerRegistry: EmailProviderRegistry;
 
   beforeEach(async () => {
+    const mockProviderRegistry = {
+      hasAdapter: jest.fn().mockReturnValue(true),
+      getAdapter: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AssignCampaignSendersUseCase,
+        {
+          provide: EmailProviderRegistry,
+          useValue: mockProviderRegistry,
+        },
         {
           provide: PrismaService,
           useValue: {
@@ -37,6 +49,7 @@ describe('AssignCampaignSendersUseCase', () => {
       AssignCampaignSendersUseCase,
     );
     prisma = module.get<PrismaService>(PrismaService);
+    providerRegistry = module.get<EmailProviderRegistry>(EmailProviderRegistry);
   });
 
   const workspaceId = 'ws-1';
@@ -89,9 +102,10 @@ describe('AssignCampaignSendersUseCase', () => {
     jest
       .spyOn(prisma.campaign, 'findUnique')
       .mockResolvedValue({ status: 'ACTIVE' } as any);
-    jest
-      .spyOn(prisma.senderAccount, 'findMany')
-      .mockResolvedValue([{ id: 'sender-1' }, { id: 'sender-2' }] as any);
+    jest.spyOn(prisma.senderAccount, 'findMany').mockResolvedValue([
+      { id: 'sender-1', status: 'ACTIVE', integration: { status: 'ACTIVE', provider: 'RESEND' } },
+      { id: 'sender-2', status: 'ACTIVE', integration: { status: 'ACTIVE', provider: 'RESEND' } },
+    ] as any);
 
     const updateManySpy = jest
       .spyOn(prisma.campaignSenderAccount, 'updateMany')
@@ -142,7 +156,17 @@ describe('AssignCampaignSendersUseCase', () => {
     });
   });
 
-  it('should remove all assignments if empty array is passed', async () => {
+  it('should throw ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER if active campaign is assigned 0 senders', async () => {
+    jest
+      .spyOn(prisma.campaign, 'findUnique')
+      .mockResolvedValue({ status: 'ACTIVE' } as any);
+
+    await expect(
+      useCase.execute(workspaceId, campaignId, { senderAccountIds: [] }),
+    ).rejects.toThrow('ACTIVE_CAMPAIGN_REQUIRES_ELIGIBLE_SENDER');
+  });
+
+  it('should remove all assignments if empty array is passed on DRAFT campaign', async () => {
     jest
       .spyOn(prisma.campaign, 'findUnique')
       .mockResolvedValue({ status: 'DRAFT' } as any);

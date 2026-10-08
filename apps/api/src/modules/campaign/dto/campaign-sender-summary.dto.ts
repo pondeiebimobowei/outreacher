@@ -5,4 +5,5 @@ export interface CampaignSenderSummary {
   fromEmail: string;
   senderStatus: 'ACTIVE' | 'PAUSED' | 'DISABLED';
   integrationStatus: 'ACTIVE' | 'INVALID_CREDENTIALS' | 'DISABLED';
+  provider?: string;
 }
