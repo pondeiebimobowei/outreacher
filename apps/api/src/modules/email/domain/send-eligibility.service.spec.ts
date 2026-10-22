@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { CampaignStatus, CampaignContactStatus } from '@repo/db';
+import { CampaignStatus, CampaignMemberStatus } from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -26,14 +26,14 @@ describe('SendEligibilityService', () => {
       workspaceId: validWorkspaceId,
       status: CampaignStatus.DRAFT,
     },
-    campaignContact: {
+    campaignMember: {
       id: validContactId,
       workspaceId: validWorkspaceId,
-      status: CampaignContactStatus.READY,
+      status: CampaignMemberStatus.READY,
       currentSubject: 'Valid Outreach Subject',
       currentBody:
         'Hello! This is a valid outreach body message that is long enough.',
-      contact: {
+      person: {
         id: 'contact-uuid-1',
         email: '  Recipient@Domain.COM  ',
       },
@@ -123,9 +123,9 @@ describe('SendEligibilityService', () => {
       );
     });
 
-    it('rejects when campaignContact workspaceId does not match authenticated workspace', async () => {
+    it('rejects when campaignMember workspaceId does not match authenticated workspace', async () => {
       const input = createValidInput();
-      input.campaignContact.workspaceId = 'different-workspace-uuid';
+      input.campaignMember.workspaceId = 'different-workspace-uuid';
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         AppNotFoundException,
@@ -133,25 +133,25 @@ describe('SendEligibilityService', () => {
     });
   });
 
-  describe('CampaignContact Status Guards', () => {
+  describe('CampaignMember Status Guards', () => {
     const nonReadyStatuses = [
-      CampaignContactStatus.PENDING,
-      CampaignContactStatus.SCHEDULED,
-      CampaignContactStatus.SENDING,
-      CampaignContactStatus.SENT,
-      CampaignContactStatus.FOLLOW_UP_DUE,
-      CampaignContactStatus.REPLIED,
-      CampaignContactStatus.COMPLETED,
-      CampaignContactStatus.SUPPRESSED,
-      CampaignContactStatus.FAILED,
-      CampaignContactStatus.ARCHIVED,
+      CampaignMemberStatus.PENDING,
+      CampaignMemberStatus.SCHEDULED,
+      CampaignMemberStatus.SENDING,
+      CampaignMemberStatus.SENT,
+      CampaignMemberStatus.FOLLOW_UP_DUE,
+      CampaignMemberStatus.REPLIED,
+      CampaignMemberStatus.COMPLETED,
+      CampaignMemberStatus.SUPPRESSED,
+      CampaignMemberStatus.FAILED,
+      CampaignMemberStatus.ARCHIVED,
     ];
 
     it.each(nonReadyStatuses)(
-      'rejects when campaignContact status is %s',
+      'rejects when campaignMember status is %s',
       async (status) => {
         const input = createValidInput();
-        input.campaignContact.status = status;
+        input.campaignMember.status = status;
 
         await expect(service.checkEligibility(input)).rejects.toThrow(
           new AppConflictException(
@@ -165,7 +165,7 @@ describe('SendEligibilityService', () => {
   describe('Recipient Email and Canonical Normalization', () => {
     it('rejects when contact has no email', async () => {
       const input = createValidInput();
-      input.campaignContact.contact = { id: 'contact-uuid', email: null };
+      input.campaignMember.person = { id: 'contact-uuid', email: null };
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(
@@ -176,7 +176,7 @@ describe('SendEligibilityService', () => {
 
     it('rejects when contact email is empty or whitespace', async () => {
       const input = createValidInput();
-      input.campaignContact.contact = { id: 'contact-uuid', email: '   ' };
+      input.campaignMember.person = { id: 'contact-uuid', email: '   ' };
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(
@@ -187,7 +187,7 @@ describe('SendEligibilityService', () => {
 
     it('canonicalizes email with trim().toLowerCase()', async () => {
       const input = createValidInput();
-      input.campaignContact.contact = {
+      input.campaignMember.person = {
         id: 'contact-uuid',
         email: '  John.Doe@AcmeCorp.COM \t',
       };
@@ -218,7 +218,7 @@ describe('SendEligibilityService', () => {
   describe('Draft Content Validation', () => {
     it('rejects when subject is missing or less than 3 chars', async () => {
       const input = createValidInput();
-      input.campaignContact.currentSubject = 'Hi';
+      input.campaignMember.currentSubject = 'Hi';
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(
@@ -229,7 +229,7 @@ describe('SendEligibilityService', () => {
 
     it('rejects when subject exceeds 150 chars', async () => {
       const input = createValidInput();
-      input.campaignContact.currentSubject = 'A'.repeat(151);
+      input.campaignMember.currentSubject = 'A'.repeat(151);
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(
@@ -240,7 +240,7 @@ describe('SendEligibilityService', () => {
 
     it('rejects when body is missing or less than 20 chars', async () => {
       const input = createValidInput();
-      input.campaignContact.currentBody = 'Short body';
+      input.campaignMember.currentBody = 'Short body';
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(
@@ -251,7 +251,7 @@ describe('SendEligibilityService', () => {
 
     it('rejects when body exceeds 4000 chars', async () => {
       const input = createValidInput();
-      input.campaignContact.currentBody = 'B'.repeat(4001);
+      input.campaignMember.currentBody = 'B'.repeat(4001);
 
       await expect(service.checkEligibility(input)).rejects.toThrow(
         new AppValidationException(

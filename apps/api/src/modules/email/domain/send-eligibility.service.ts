@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { CampaignStatus, CampaignContactStatus, Prisma, EmailSendStatus } from '@repo/db';
+import { CampaignStatus, CampaignMemberStatus, Prisma, EmailSendStatus } from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -19,13 +19,13 @@ export interface SendEligibilityCheckInput {
     workspaceId: string;
     status: CampaignStatus;
   };
-  campaignContact: {
+  campaignMember: {
     id: string;
     workspaceId: string;
-    status: CampaignContactStatus;
+    status: CampaignMemberStatus;
     currentSubject: string | null;
     currentBody: string | null;
-    contact: {
+    person: {
       id: string;
       email: string | null;
     } | null;
@@ -49,9 +49,9 @@ export class SendEligibilityService {
   public async checkEligibility(
     input: SendEligibilityCheckInput,
   ): Promise<SendEligibilityResult> {
-    const { workspaceId, campaign, campaignContact } = input;
+    const { workspaceId, campaign, campaignMember } = input;
 
-    if (campaign.workspaceId !== workspaceId || campaignContact.workspaceId !== workspaceId) {
+    if (campaign.workspaceId !== workspaceId || campaignMember.workspaceId !== workspaceId) {
       throw new AppNotFoundException('Campaign or campaign contact not found');
     }
 
@@ -75,11 +75,11 @@ export class SendEligibilityService {
       throw new AppConflictException(`Cannot dispatch send for campaign in ${String(campaign.status)} status`);
     }
 
-    if (campaignContact.status !== CampaignContactStatus.READY) {
-      throw new AppConflictException(`Cannot dispatch send for contact in ${campaignContact.status} status`);
+    if (campaignMember.status !== CampaignMemberStatus.READY) {
+      throw new AppConflictException(`Cannot dispatch send for contact in ${campaignMember.status} status`);
     }
 
-    const rawEmail = campaignContact.contact?.email;
+    const rawEmail = campaignMember.person?.email;
     if (!rawEmail || !rawEmail.trim()) {
       throw new AppValidationException('Cannot dispatch send: contact has no recipient email');
     }
@@ -90,12 +90,12 @@ export class SendEligibilityService {
       throw new AppConflictException('Recipient email is suppressed');
     }
 
-    const subject = campaignContact.currentSubject;
+    const subject = campaignMember.currentSubject;
     if (!subject || subject.length < 3 || subject.length > 150) {
       throw new AppValidationException('Cannot dispatch send: subject must be between 3 and 150 characters');
     }
 
-    const body = campaignContact.currentBody;
+    const body = campaignMember.currentBody;
     if (!body || body.length < 20 || body.length > 4000) {
       throw new AppValidationException('Cannot dispatch send: body must be between 20 and 4000 characters');
     }
@@ -109,7 +109,7 @@ export class SendEligibilityService {
     workspaceId: string,
     campaignId: string,
     emailSendData: {
-      campaignContactId: string;
+      campaignMemberId: string;
       type: import('@repo/db').EmailSendType;
       subject: string;
       body: string;
@@ -124,7 +124,7 @@ export class SendEligibilityService {
       data: {
         workspaceId,
         campaignId,
-        campaignContactId: emailSendData.campaignContactId,
+        campaignMemberId: emailSendData.campaignMemberId,
         type: emailSendData.type,
         subject: emailSendData.subject,
         body: emailSendData.body,

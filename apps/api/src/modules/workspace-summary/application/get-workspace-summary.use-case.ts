@@ -35,8 +35,8 @@ export class GetWorkspaceSummaryUseCase {
           id: `review_${item.id}`,
           kind: 'OUTREACH_REVIEW' as const,
           company: {
-            id: item.contact.company.id,
-            name: item.contact.company.name,
+            id: item.person.personCompanyAssociations?.[0]?.company.id,
+            name: item.person.personCompanyAssociations?.[0]?.company.name,
           },
           campaign: item.campaign
             ? {
@@ -45,7 +45,7 @@ export class GetWorkspaceSummaryUseCase {
                 status: item.campaign.status,
               }
             : undefined,
-          campaignContact: { id: item.id, status: item.status },
+          campaignMember: { id: item.id, status: item.status },
           updatedAt: item.updatedAt.toISOString(),
           source: { domain: 'OUTREACH' as const, state: item.status },
           destination: { type: 'CONTACT_REVIEW' as const },
@@ -65,8 +65,8 @@ export class GetWorkspaceSummaryUseCase {
           id: `failure_${item.id}`,
           kind: 'SEND_FAILURE' as const,
           company: {
-            id: item.contact.company.id,
-            name: item.contact.company.name,
+            id: item.person.personCompanyAssociations?.[0]?.company.id,
+            name: item.person.personCompanyAssociations?.[0]?.company.name,
           },
           campaign: item.campaign
             ? {
@@ -75,7 +75,7 @@ export class GetWorkspaceSummaryUseCase {
                 status: item.campaign.status,
               }
             : undefined,
-          campaignContact: { id: item.id, status: item.status },
+          campaignMember: { id: item.id, status: item.status },
           updatedAt: item.updatedAt.toISOString(),
           source: { domain: 'OUTREACH' as const, state: item.status },
           destination: { type: 'CAMPAIGN' as const },
@@ -183,13 +183,13 @@ export class GetWorkspaceSummaryUseCase {
           sourceId: item.id,
           type: 'EMAIL_SENT' as const,
           company: {
-            id: item.campaignContact.contact.company.id,
-            name: item.campaignContact.contact.company.name,
+            id: item.campaignMember.person.personCompanyAssociations?.[0]?.company.id,
+            name: item.campaignMember.person.personCompanyAssociations?.[0]?.company.name,
           },
-          campaign: item.campaignContact.campaign
+          campaign: item.campaignMember.campaign
             ? {
-                id: item.campaignContact.campaign.id,
-                name: item.campaignContact.campaign.name,
+                id: item.campaignMember.campaign.id,
+                name: item.campaignMember.campaign.name,
               }
             : undefined,
           occurredAt: item.sentAt!.toISOString(),
@@ -211,13 +211,13 @@ export class GetWorkspaceSummaryUseCase {
           sourceId: item.id,
           type: 'OUTCOME_RECORDED' as const,
           company: {
-            id: item.campaignContact.contact.company.id,
-            name: item.campaignContact.contact.company.name,
+            id: item.campaignMember.person.personCompanyAssociations?.[0]?.company.id,
+            name: item.campaignMember.person.personCompanyAssociations?.[0]?.company.name,
           },
-          campaign: item.campaignContact.campaign
+          campaign: item.campaignMember.campaign
             ? {
-                id: item.campaignContact.campaign.id,
-                name: item.campaignContact.campaign.name,
+                id: item.campaignMember.campaign.id,
+                name: item.campaignMember.campaign.name,
               }
             : undefined,
           occurredAt: item.recordedAt.toISOString(),

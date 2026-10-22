@@ -47,31 +47,31 @@ describe('ContactValidator', () => {
           name: 'Jane Doe',
           title: 'VP Engineering',
           email: 'Jane@Acme.com',
-          contactKind: 'PERSON' as const,
+          personKind: 'PERSON' as const,
         },
         {
           name: 'Jane Doe Duplicate',
           title: 'VP Engineering',
           email: 'jane@acme.com', // duplicate email
-          contactKind: 'PERSON' as const,
+          personKind: 'PERSON' as const,
         },
         {
           name: 'John Smith',
           title: 'Recruiter',
           email: null,
-          contactKind: 'PERSON' as const,
+          personKind: 'PERSON' as const,
         },
         {
           name: 'John Smith',
           title: 'Recruiter',
           email: null, // duplicate name+title without email
-          contactKind: 'PERSON' as const,
+          personKind: 'PERSON' as const,
         },
         {
           name: 'Engineering Team',
           title: 'Support',
           email: 'careers@acme.com',
-          contactKind: 'ROLE_ADDRESS' as const,
+          personKind: 'ROLE_ADDRESS' as const,
         },
       ];
 
@@ -79,7 +79,7 @@ describe('ContactValidator', () => {
       expect(result).toHaveLength(3);
       expect(result[0].email).toBe('jane@acme.com');
       expect(result[1].email).toBeNull();
-      expect(result[2].contactKind).toBe('ROLE_ADDRESS');
+      expect(result[2].personKind).toBe('ROLE_ADDRESS');
     });
   });
 });

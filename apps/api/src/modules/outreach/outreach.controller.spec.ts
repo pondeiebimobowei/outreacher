@@ -51,7 +51,7 @@ describe('OutreachController', () => {
     expect(useCase.execute).toHaveBeenCalledWith({
       userId: 'usr-123',
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-456',
+      campaignMemberId: 'cc-456',
     });
   });
 
@@ -66,7 +66,7 @@ describe('OutreachController', () => {
     expect(response).toEqual({ status: 'PENDING' });
     expect(updateUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-456',
+      campaignMemberId: 'cc-456',
       subject: 'New Subject',
       bodyText: 'New Body',
     });
@@ -83,7 +83,7 @@ describe('OutreachController', () => {
     expect(response).toEqual({ id: 'cc-456', status: 'PENDING' });
     expect(getUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-456',
+      campaignMemberId: 'cc-456',
     });
   });
 
@@ -95,7 +95,7 @@ describe('OutreachController', () => {
     expect(response).toEqual({ status: 'READY' });
     expect(approveUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-456',
+      campaignMemberId: 'cc-456',
       expectedUpdatedAt: undefined,
     });
   });

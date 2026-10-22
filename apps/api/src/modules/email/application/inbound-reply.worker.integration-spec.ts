@@ -34,8 +34,8 @@ describe('InboundReplyWorker Database Integration', () => {
 
   beforeEach(async () => {
     await prisma.job.deleteMany();
-    await prisma.campaignContact.deleteMany();
-    await prisma.contact.deleteMany();
+    await prisma.campaignMember.deleteMany();
+    await prisma.person.deleteMany();
     await prisma.campaign.deleteMany();
     await prisma.company.deleteMany();
     await prisma.inboundReply.deleteMany();
@@ -60,9 +60,9 @@ describe('InboundReplyWorker Database Integration', () => {
       inboundReply: prisma.inboundReply,
       integration: prisma.integration,
       workspace: prisma.workspace,
-      campaignContact: prisma.campaignContact,
+      campaignMember: prisma.campaignMember,
       campaign: prisma.campaign,
-      contact: prisma.contact
+      person: prisma.person
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -170,9 +170,9 @@ describe('InboundReplyWorker Database Integration', () => {
     const integrationId = randomUUID();
     const inboundReplyId = randomUUID();
     const jobId = randomUUID();
-    const campaignContactId = randomUUID();
+    const campaignMemberId = randomUUID();
     const campaignId = randomUUID();
-    const contactId = randomUUID();
+    const personId = randomUUID();
     const companyId = randomUUID();
 
     await prisma.workspace.create({
@@ -191,11 +191,11 @@ describe('InboundReplyWorker Database Integration', () => {
 
       data: { id: campaignId, workspaceId, companyId, name: 'Camp', normalizedName: 'camp', status: 'DRAFT', sendingIdentity: 'ME' }
     });
-    await prisma.contact.create({
-      data: { id: contactId, workspaceId, companyId, contactKind: 'PERSON', name: 'John Doe' }
+    await prisma.person.create({
+      data: { id: personId, workspaceId, companyId, personKind: 'PERSON', name: 'John Doe' }
     });
-    await prisma.campaignContact.create({
-      data: { id: campaignContactId, workspaceId, campaignId, contactId, targetRole: 'test', status: 'SENT' }
+    await prisma.campaignMember.create({
+      data: { id: campaignMemberId, workspaceId, campaignId, personId, targetRole: 'test', status: 'SENT' }
     });
 
     await prisma.inboundReply.create({
@@ -219,7 +219,7 @@ describe('InboundReplyWorker Database Integration', () => {
         workspaceId,
         type: 'SCHEDULED_FOLLOW_UP_CHECK',
         status: 'PENDING',
-        payload: { campaignContactId }
+        payload: { campaignMemberId }
       }
     });
     
@@ -231,7 +231,7 @@ describe('InboundReplyWorker Database Integration', () => {
         workspaceId,
         type: 'EMAIL_DISPATCH',
         status: 'PENDING',
-        payload: { campaignContactId }
+        payload: { campaignMemberId }
       }
     });
 
@@ -256,7 +256,7 @@ await prisma.job.create({
 
     correlationServiceMock.correlate.mockResolvedValueOnce({
       status: 'CORRELATED',
-      campaignContactId
+      campaignMemberId
     });
 
     const processed = await (worker as any).claimAndProcessJobs();
@@ -268,9 +268,9 @@ await prisma.job.create({
     const updatedReply = await prisma.inboundReply.findUniqueOrThrow({ where: { id: inboundReplyId } });
     expect(updatedReply.status).toBe('CORRELATED');
 
-    const contactAfter = await prisma.campaignContact.findUniqueOrThrow({ where: { id: campaignContactId } });
+    const contactAfter = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
     expect(contactAfter.status).toBe('REPLIED');
-    expect(updatedReply.campaignContactId).toBe(campaignContactId);
+    expect(updatedReply.campaignMemberId).toBe(campaignMemberId);
     expect(updatedReply.bodyText).toBe('hello');
     expect(updatedReply.messageId).toBe('<retrieved-msg-id>');
 
@@ -414,11 +414,11 @@ await prisma.job.create({
     
     await prisma.workspace.create({ data: { id: workspaceIdRace, name: 'Test WS' } });
     
-    // 1. Setup Company, Campaign, Contact
+    // 1. Setup Company, Campaign, Person
 
     const companyId = randomUUID();
     const campaignId = randomUUID();
-    const contactId = randomUUID();
+    const personId = randomUUID();
 
     await prisma.company.create({
       data: { id: companyId, workspaceId: workspaceIdRace, name: 'Acme', normalizedName: 'acme' }
@@ -426,15 +426,15 @@ await prisma.job.create({
     await prisma.campaign.create({
       data: { id: campaignId, workspaceId: workspaceIdRace, companyId, name: 'Camp', normalizedName: 'camp', status: 'DRAFT', sendingIdentity: 'ME' }
     });
-    await prisma.contact.create({
-      data: { id: contactId, workspaceId: workspaceIdRace, companyId, contactKind: 'PERSON', name: 'John Doe', email: 'user@example.com' }
+    await prisma.person.create({
+      data: { id: personId, workspaceId: workspaceIdRace, companyId, personKind: 'PERSON', name: 'John Doe', email: 'user@example.com' }
     });
-    const campaignContact = await prisma.campaignContact.create({
+    const campaignMember = await prisma.campaignMember.create({
       data: {
         id: campaignContactIdRace,
         workspaceId: workspaceIdRace,
         campaignId,
-        contactId,
+        personId,
         status: 'SENDING', // Simulate the SENDING race state
         targetRole: 'test'
       }
@@ -478,7 +478,7 @@ await prisma.job.create({
 
     correlationServiceMock.correlate.mockResolvedValue({
       status: 'CORRELATED',
-      campaignContactId: campaignContactIdRace
+      campaignMemberId: campaignContactIdRace
     });
 
     // 2. Worker executes once
@@ -491,14 +491,14 @@ await prisma.job.create({
     expect(jobAfterFirst?.status).toBe('PENDING'); // Retryable!
     expect(jobAfterFirst?.attemptCount).toBe(1);
 
-    const contactAfterFirst = await prisma.campaignContact.findUnique({ where: { id: campaignContactIdRace } });
+    const contactAfterFirst = await prisma.campaignMember.findUnique({ where: { id: campaignContactIdRace } });
     expect(contactAfterFirst?.status).toBe('SENDING');
 
     const replyAfterFirst = await prisma.inboundReply.findUnique({ where: { id: replyIdRace } });
     expect(replyAfterFirst?.status).toBe('CORRELATED');
 
     // 3. Simulate outbound dispatch finishing by changing contact status to SENT
-    await prisma.campaignContact.update({
+    await prisma.campaignMember.update({
       where: { id: campaignContactIdRace },
       data: { status: 'SENT' }
     });
@@ -517,7 +517,7 @@ await prisma.job.create({
     expect(jobAfterSecond?.status).toBe('COMPLETED'); // Success!
     
     // 6. Verify 10D transition occurred
-    const contactAfterSecond = await prisma.campaignContact.findUnique({ where: { id: campaignContactIdRace } });
+    const contactAfterSecond = await prisma.campaignMember.findUnique({ where: { id: campaignContactIdRace } });
     expect(contactAfterSecond?.status).toBe('REPLIED');
   });
 

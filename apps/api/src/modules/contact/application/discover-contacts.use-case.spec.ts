@@ -21,7 +21,7 @@ describe('DiscoverContactsUseCase', () => {
         count: jest.fn(),
         create: jest.fn(),
       },
-      contact: {
+      person: {
         count: jest.fn(),
       },
       $transaction: jest.fn((cb) => cb(prisma)),
@@ -57,7 +57,7 @@ describe('DiscoverContactsUseCase', () => {
       status: JobStatus.COMPLETED,
       completedAt: new Date(),
     });
-    prisma.contact.count.mockResolvedValue(4);
+    prisma.person.count.mockResolvedValue(4);
 
     const result = await useCase.execute('ws-1', 'comp-1', {
       forceRefresh: false,

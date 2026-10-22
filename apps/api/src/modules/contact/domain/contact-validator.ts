@@ -43,19 +43,20 @@ export class ContactValidator {
   static sanitizeCandidate(
     candidate: DiscoveredContactCandidate,
   ): DiscoveredContactCandidate | null {
-    const name = candidate.name?.trim();
-    if (!name) return null;
+    const firstName = candidate.firstName;
+    const lastName = candidate.lastName;
 
     const email = this.normalizeEmail(candidate.email);
     const sourceUrl = this.validateSourceUrl(candidate.sourceUrl);
     const title = candidate.title?.trim() || undefined;
 
     return {
-      name,
+      firstName,
+      lastName,
       title,
       email,
-      contactKind:
-        candidate.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON',
+      personKind:
+        candidate.personKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON',
       source: candidate.source?.trim() || undefined,
       sourceUrl: sourceUrl || undefined,
       confidence: candidate.confidence || 'MEDIUM',
@@ -82,7 +83,7 @@ export class ContactValidator {
         seenEmails.add(sanitized.email);
         deduplicated.push(sanitized);
       } else {
-        const key = `${sanitized.name.toLowerCase()}:${(sanitized.title || '').toLowerCase()}`;
+        const key = `${sanitized.firstName.toLowerCase()}:${sanitized.lastName.toLowerCase()}:${(sanitized.title || '').toLowerCase()}`;
         if (seenNameTitles.has(key)) continue;
         seenNameTitles.add(key);
         deduplicated.push(sanitized);

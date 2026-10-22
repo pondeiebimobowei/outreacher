@@ -15,7 +15,7 @@ describe('SelectContactUseCase', () => {
   beforeEach(async () => {
     prisma = {
       company: { findFirst: jest.fn() },
-      contact: { findFirst: jest.fn() },
+      person: { findFirst: jest.fn() },
     };
     repository = {
       setCompanyContactSelection: jest.fn(),
@@ -45,7 +45,7 @@ describe('SelectContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prisma.contact.findFirst.mockResolvedValue(null);
+    prisma.person.findFirst.mockResolvedValue(null);
 
     await expect(useCase.execute('ws-1', 'comp-1', 'cont-99')).rejects.toThrow(
       AppNotFoundException,
@@ -57,7 +57,7 @@ describe('SelectContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prisma.contact.findFirst.mockResolvedValue({
+    prisma.person.findFirst.mockResolvedValue({
       id: 'cont-1',
       workspaceId: 'ws-1',
       companyId: 'comp-OTHER', // Different company!
@@ -73,7 +73,7 @@ describe('SelectContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prisma.contact.findFirst.mockResolvedValue({
+    prisma.person.findFirst.mockResolvedValue({
       id: 'cont-1',
       workspaceId: 'ws-1',
       companyId: 'comp-1',
@@ -82,11 +82,12 @@ describe('SelectContactUseCase', () => {
       id: 'sel-1',
       workspaceId: 'ws-1',
       companyId: 'comp-1',
-      contactId: 'cont-1',
+            personId: 'cont-1',
+            companyAssociationId: 'temp',
     });
 
     const result = await useCase.execute('ws-1', 'comp-1', 'cont-1');
-    expect(result.contactId).toBe('cont-1');
+    expect(result.personId).toBe('cont-1');
     expect(repository.setCompanyContactSelection).toHaveBeenCalledWith(
       'ws-1',
       'comp-1',

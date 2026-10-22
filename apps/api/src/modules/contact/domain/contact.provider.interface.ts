@@ -12,10 +12,11 @@ export interface ContactDiscoveryInput {
 }
 
 export interface DiscoveredContactCandidate {
-  name: string;
+  firstName: string;
+  lastName: string;
   title?: string;
   email?: string | null;
-  contactKind: 'PERSON' | 'ROLE_ADDRESS';
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
   source?: string;
   sourceUrl?: string;
   confidence?: 'HIGH' | 'MEDIUM' | 'LOW';

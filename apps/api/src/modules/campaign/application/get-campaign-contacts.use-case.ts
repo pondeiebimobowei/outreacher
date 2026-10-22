@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CampaignContactStatus } from '@repo/db';
+import { CampaignMemberStatus } from '@repo/db';
 import { AppNotFoundException } from '../../../common/errors/application.exception';
 import { PrismaService } from '../../../database/prisma.service';
 
@@ -7,8 +7,8 @@ export interface CampaignContactSummaryDto {
   id: string;
   workspaceId: string;
   campaignId: string;
-  contactId: string;
-  status: CampaignContactStatus;
+  personId: string;
+  status: CampaignMemberStatus;
   targetRole: string | null;
   outreachReason: string | null;
   currentSubject: string | null;
@@ -16,12 +16,12 @@ export interface CampaignContactSummaryDto {
   selectedOpportunityId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  contact: {
+  person: {
     id: string;
     name: string;
     title: string | null;
     email: string | null;
-    contactKind: 'PERSON' | 'ROLE_ADDRESS';
+    personKind: 'PERSON' | 'ROLE_ADDRESS';
     confidence: string | null;
   };
 }
@@ -44,19 +44,19 @@ export class GetCampaignContactsUseCase {
     }
 
     // 2. Fetch all campaign contacts bound to this campaign
-    const campaignContacts = await this.prisma.campaignContact.findMany({
+    const campaignMembers = await this.prisma.campaignMember.findMany({
       where: { workspaceId, campaignId },
       include: {
-        contact: true,
+        person: true,
       },
       orderBy: { createdAt: 'asc' },
     });
 
-    return campaignContacts.map((cc) => ({
+    return campaignMembers.map((cc) => ({
       id: cc.id,
       workspaceId: cc.workspaceId,
       campaignId: cc.campaignId,
-      contactId: cc.contactId,
+      personId: cc.personId,
       status: cc.status,
       targetRole: cc.targetRole,
       outreachReason: cc.outreachReason,
@@ -65,13 +65,13 @@ export class GetCampaignContactsUseCase {
       selectedOpportunityId: cc.selectedOpportunityId,
       createdAt: cc.createdAt,
       updatedAt: cc.updatedAt,
-      contact: {
-        id: cc.contact.id,
-        name: cc.contact.name,
-        title: cc.contact.title,
-        email: cc.contact.email,
-        contactKind: cc.contact.contactKind,
-        confidence: cc.contact.confidence,
+      person: {
+        id: cc.person.id,
+        name: `${cc.person.firstName} ${cc.person.lastName}`,
+        title: cc.person.title,
+        email: cc.person.email,
+        personKind: cc.person.personKind,
+        confidence: cc.person.confidence,
       },
     }));
   }

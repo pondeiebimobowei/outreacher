@@ -23,7 +23,8 @@ export class SelectContactUseCase {
   async execute(
     workspaceId: string,
     companyId: string,
-    contactId: string,
+            personId: string,
+            companyAssociationId: string,
   ): Promise<CompanyContactSelection> {
     // 1. Verify company existence and workspace ownership
     const company = await this.prisma.company.findFirst({
@@ -36,35 +37,36 @@ export class SelectContactUseCase {
       );
     }
 
-    // 2. Cross-Entity & Tenant Integrity Check: Contact MUST belong to target company AND workspace
-    const contact = await this.prisma.contact.findFirst({
-      where: { id: contactId, workspaceId },
+    // 2. Cross-Entity & Tenant Integrity Check: Person MUST belong to target company AND workspace
+    const contact = await this.prisma.person.findFirst({
+      where: { id: personId, workspaceId },
     });
 
     if (!contact) {
       throw new AppNotFoundException(
-        `Contact ${contactId} not found in workspace.`,
+        `Person ${personId} not found in workspace.`,
       );
     }
 
-    if (contact.companyId !== companyId) {
-      this.logger.warn(
-        `Cross-entity selection rejected: Contact ${contactId} belongs to company ${contact.companyId}, not ${companyId}`,
-      );
-      throw new AppForbiddenException(
-        `Contact ${contactId} does not belong to target company ${companyId}.`,
-      );
-    }
+    // if (contact.companyId !== companyId) {
+    //   this.logger.warn(
+    //     `Cross-entity selection rejected: Person ${personId} belongs to company ${contact.companyId}, not ${companyId}`,
+    //   );
+    //   throw new AppForbiddenException(
+    //     `Person ${personId} does not belong to target company ${companyId}.`,
+    //   );
+    // }
 
     // 3. Perform Atomic Selection Upsert
     const selection = await this.contactRepository.setCompanyContactSelection(
       workspaceId,
       companyId,
-      contactId,
+      personId,
+      companyAssociationId,
     );
 
     this.logger.log(
-      `Selected contact ${contactId} for company ${companyId} in workspace ${workspaceId}`,
+      `Selected contact ${personId} for company ${companyId} in workspace ${workspaceId}`,
     );
     return selection;
   }

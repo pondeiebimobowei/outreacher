@@ -66,35 +66,35 @@ describe('OutcomeController (e2e)', () => {
     const userId = randomUUID();
     const companyId = randomUUID();
     const campaignId = randomUUID();
-    const contactId = randomUUID();
-    const campaignContactId = randomUUID();
+    const personId = randomUUID();
+    const campaignMemberId = randomUUID();
 
     await prisma.workspace.create({ data: { id: workspaceId, name: 'E2E WS' } });
     await prisma.user.create({ data: { id: userId, email: `test-${userId}@e2e.com`, name: 'User' } });
     await prisma.workspaceMember.create({ data: { workspaceId, userId, role: 'OWNER' } });
     await prisma.company.create({ data: { id: companyId, workspaceId, name: 'E2E Co', normalizedName: 'e2ec' } });
     await prisma.campaign.create({ data: { id: campaignId, workspaceId, companyId, name: 'E2E Camp', normalizedName: 'e2ecamp', status: 'DRAFT', sendingIdentity: 'ME' } });
-    await prisma.contact.create({ data: { id: contactId, workspaceId, companyId, contactKind: 'PERSON', name: 'John', email: `${contactId}@e2e.com` } });
+    await prisma.person.create({ data: { id: personId, workspaceId, companyId, personKind: 'PERSON', name: 'John', email: `${personId}@e2e.com` } });
     
-    await prisma.campaignContact.create({
+    await prisma.campaignMember.create({
       data: {
-        id: campaignContactId,
+        id: campaignMemberId,
         workspaceId,
         campaignId,
-        contactId,
+        personId,
         status: status as any,
         targetRole: 'test',
       },
     });
 
-    return { workspaceId, userId, campaignContactId };
+    return { workspaceId, userId, campaignMemberId };
   }
 
   it('/api/v1/campaign-contacts/:id/outcome (POST) - Success', async () => {
-    const { workspaceId, userId, campaignContactId } = await seedContact('REPLIED');
+    const { workspaceId, userId, campaignMemberId } = await seedContact('REPLIED');
 
     const response = await request(app.getHttpServer())
-      .post(`/api/v1/campaign-contacts/${campaignContactId}/outcome`)
+      .post(`/api/v1/campaign-contacts/${campaignMemberId}/outcome`)
       .set('x-test-user-id', userId)
       .set('x-test-workspace-id', workspaceId)
       .send({
@@ -107,7 +107,7 @@ describe('OutcomeController (e2e)', () => {
     const outcomeId = response.body.id;
 
     // Verify DB state
-    const contact = await prisma.campaignContact.findUniqueOrThrow({ where: { id: campaignContactId } });
+    const contact = await prisma.campaignMember.findUniqueOrThrow({ where: { id: campaignMemberId } });
     expect(contact.status).toBe('COMPLETED');
 
     const outcome = await prisma.outcome.findUniqueOrThrow({ where: { id: outcomeId } });
@@ -117,10 +117,10 @@ describe('OutcomeController (e2e)', () => {
   });
 
   it('/api/v1/campaign-contacts/:id/outcome (POST) - 409 Conflict if not REPLIED', async () => {
-    const { workspaceId, userId, campaignContactId } = await seedContact('COMPLETED');
+    const { workspaceId, userId, campaignMemberId } = await seedContact('COMPLETED');
 
     await request(app.getHttpServer())
-      .post(`/api/v1/campaign-contacts/${campaignContactId}/outcome`)
+      .post(`/api/v1/campaign-contacts/${campaignMemberId}/outcome`)
       .set('x-test-user-id', userId)
       .set('x-test-workspace-id', workspaceId)
       .send({
@@ -130,11 +130,11 @@ describe('OutcomeController (e2e)', () => {
   });
 
   it('/api/v1/campaign-contacts/:id/outcome (POST) - 404 Not Found if cross-workspace', async () => {
-    const { userId, campaignContactId } = await seedContact('REPLIED');
+    const { userId, campaignMemberId } = await seedContact('REPLIED');
     const wrongWorkspaceId = randomUUID();
 
     await request(app.getHttpServer())
-      .post(`/api/v1/campaign-contacts/${campaignContactId}/outcome`)
+      .post(`/api/v1/campaign-contacts/${campaignMemberId}/outcome`)
       .set('x-test-user-id', userId)
       .set('x-test-workspace-id', wrongWorkspaceId)
       .send({

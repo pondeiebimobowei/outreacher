@@ -14,7 +14,7 @@ describe('ResendEmailProviderAdapter Classification', () => {
   const baseInput = {
     workspaceId: 'ws-1',
     senderAccountId: 'sa-1',
-    campaignContactId: 'cc-1',
+    campaignMemberId: 'cc-1',
     emailSendId: 'es-1',
     toEmail: 'test@target.com',
     fromName: 'Sender',

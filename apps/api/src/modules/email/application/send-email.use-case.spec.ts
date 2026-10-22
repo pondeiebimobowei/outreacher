@@ -1,5 +1,5 @@
 import {
-  CampaignContactStatus,
+  CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
   JobStatus,
@@ -21,15 +21,15 @@ describe('SendEmailUseCase', () => {
 
   const workspaceId = 'ws-1111-1111-1111';
   const campaignId = 'camp-2222-2222-2222';
-  const campaignContactId = 'cc-3333-3333-3333';
+  const campaignMemberId = 'cc-3333-3333-3333';
   const otherContactId = 'cc-9999-9999-9999';
   const clientKey = 'idempotency-token-xyz';
 
   const mockCampaignContact = {
-    id: campaignContactId,
+    id: campaignMemberId,
     workspaceId,
     campaignId,
-    status: CampaignContactStatus.READY,
+    status: CampaignMemberStatus.READY,
     currentSubject: 'Outreach Subject',
     currentBody: 'Outreach message body that is long enough.',
     campaign: {
@@ -38,7 +38,7 @@ describe('SendEmailUseCase', () => {
       status: CampaignStatus.DRAFT,
       sendingIdentity: 'founder@startup.com',
     },
-    contact: {
+    person: {
       id: 'contact-1',
       email: 'lead@target.com',
     },
@@ -50,11 +50,11 @@ describe('SendEmailUseCase', () => {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
       },
-      campaignContact: {
+      campaignMember: {
         findUnique: jest.fn().mockResolvedValue(mockCampaignContact),
         update: jest.fn().mockResolvedValue({
           ...mockCampaignContact,
-          status: CampaignContactStatus.SENDING,
+          status: CampaignMemberStatus.SENDING,
         }),
       },
       campaign: {
@@ -65,7 +65,7 @@ describe('SendEmailUseCase', () => {
           id: 'send-1',
           workspaceId,
           campaignId,
-          campaignContactId,
+          campaignMemberId,
           status: EmailSendStatus.RESERVED,
         }),
       },
@@ -94,7 +94,7 @@ describe('SendEmailUseCase', () => {
         id: 'send-1',
         workspaceId,
         campaignId,
-        campaignContactId,
+        campaignMemberId,
         status: EmailSendStatus.RESERVED,
         senderAccountId: 'sender-123',
         provider: 'RESEND',
@@ -112,7 +112,7 @@ describe('SendEmailUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId,
-          campaignContactId,
+          campaignMemberId,
           clientKey: '   ',
         }),
       ).rejects.toThrow(
@@ -125,14 +125,14 @@ describe('SendEmailUseCase', () => {
         id: 'rec-1',
         workspaceId,
         key: clientKey,
-        targetId: campaignContactId,
+        targetId: campaignMemberId,
         responseStatus: 202,
         responseBody: { jobId: 'existing-job-1', message: 'Dispatch enqueued' },
       });
 
       const result = await useCase.execute({
         workspaceId,
-        campaignContactId,
+        campaignMemberId,
         clientKey,
       });
 
@@ -156,7 +156,7 @@ describe('SendEmailUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId,
-          campaignContactId,
+          campaignMemberId,
           clientKey,
         }),
       ).rejects.toThrow(
@@ -171,7 +171,7 @@ describe('SendEmailUseCase', () => {
     it('successfully reserves send, activates DRAFT campaign, updates contact to SENDING, and enqueues job', async () => {
       const result = await useCase.execute({
         workspaceId,
-        campaignContactId,
+        campaignMemberId,
         clientKey,
       });
 
@@ -191,9 +191,9 @@ describe('SendEmailUseCase', () => {
       });
 
       // Verifies READY -> SENDING atomic transition
-      expect(mockPrisma.campaignContact.update).toHaveBeenCalledWith({
-        where: { id: campaignContactId },
-        data: { status: CampaignContactStatus.SENDING },
+      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
+        where: { id: campaignMemberId },
+        data: { status: CampaignMemberStatus.SENDING },
       });
 
       // Verifies EmailSend created as RESERVED
@@ -202,7 +202,7 @@ describe('SendEmailUseCase', () => {
         workspaceId,
         campaignId,
         {
-          campaignContactId,
+          campaignMemberId,
           type: 'INITIAL',
           subject: 'Outreach Subject',
           body: 'Outreach message body that is long enough.',
@@ -224,20 +224,20 @@ describe('SendEmailUseCase', () => {
         data: expect.objectContaining({
           workspaceId,
           key: clientKey,
-          targetId: campaignContactId,
+          targetId: campaignMemberId,
           jobId: 'job-1',
           responseStatus: 202,
         }),
       });
     });
 
-    it('throws AppNotFoundException if campaignContact does not exist or workspace mismatch', async () => {
-      mockPrisma.campaignContact.findUnique.mockResolvedValue(null);
+    it('throws AppNotFoundException if campaignMember does not exist or workspace mismatch', async () => {
+      mockPrisma.campaignMember.findUnique.mockResolvedValue(null);
 
       await expect(
         useCase.execute({
           workspaceId,
-          campaignContactId,
+          campaignMemberId,
           clientKey,
         }),
       ).rejects.toThrow(AppNotFoundException);
@@ -245,9 +245,9 @@ describe('SendEmailUseCase', () => {
 
     it('resolves to idempotent replay when contact is in SENDING and committed key matches same contact', async () => {
       // Simulate contact already transitioned to SENDING by concurrent request
-      mockPrisma.campaignContact.findUnique.mockResolvedValue({
+      mockPrisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
-        status: CampaignContactStatus.SENDING,
+        status: CampaignMemberStatus.SENDING,
       });
 
       // Inside transaction, idempotency record is now committed
@@ -257,7 +257,7 @@ describe('SendEmailUseCase', () => {
           id: 'rec-1',
           workspaceId,
           key: clientKey,
-          targetId: campaignContactId,
+          targetId: campaignMemberId,
           responseStatus: 202,
           responseBody: {
             jobId: 'concurrent-job-1',
@@ -267,7 +267,7 @@ describe('SendEmailUseCase', () => {
 
       const result = await useCase.execute({
         workspaceId,
-        campaignContactId,
+        campaignMemberId,
         clientKey,
       });
 
@@ -295,14 +295,14 @@ describe('SendEmailUseCase', () => {
           id: 'rec-race-1',
           workspaceId,
           key: clientKey,
-          targetId: campaignContactId,
+          targetId: campaignMemberId,
           responseStatus: 202,
           responseBody: { jobId: 'race-job-1', message: 'Dispatch enqueued' },
         });
 
       const result = await useCase.execute({
         workspaceId,
-        campaignContactId,
+        campaignMemberId,
         clientKey,
       });
 
@@ -335,7 +335,7 @@ describe('SendEmailUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId,
-          campaignContactId,
+          campaignMemberId,
           clientKey,
         }),
       ).rejects.toThrow(

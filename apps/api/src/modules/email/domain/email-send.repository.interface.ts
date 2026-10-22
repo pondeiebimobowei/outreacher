@@ -5,7 +5,7 @@ export const EMAIL_SEND_REPOSITORY_TOKEN = 'IEmailSendRepository';
 export interface CreateReservedEmailSendData {
   workspaceId: string;
   campaignId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   type?: EmailSendType;
   subject: string;
   body: string;
@@ -45,7 +45,7 @@ export interface IEmailSendRepository {
 
   findByCampaignContactId(
     workspaceId: string,
-    campaignContactId: string,
+    campaignMemberId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<EmailSend[]>;
 }

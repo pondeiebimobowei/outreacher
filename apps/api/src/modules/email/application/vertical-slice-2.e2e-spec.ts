@@ -6,7 +6,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../../../app.module';
 import { randomUUID } from 'crypto';
 import { Webhook } from 'svix';
-import { PrismaClient, CampaignContactStatus } from '@repo/db';
+import { PrismaClient, CampaignMemberStatus } from '@repo/db';
 import {
   cleanTestDatabase,
   getTestPrismaClient,
@@ -159,7 +159,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       }
     });
 
-    // 3. Campaign & Contact Setup
+    // 3. Campaign & Person Setup
     const companyA = await prisma.company.create({ data: { workspaceId: workspaceAId, name: 'Test Company', normalizedName: 'test-company', domain: 'test.com' } });
     const companyAId = companyA.id;
     const campaignA = await prisma.campaign.create({
@@ -181,7 +181,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       }
     });
 
-    const contactA = await prisma.contact.create({
+    const contactA = await prisma.person.create({
       data: {
         workspaceId: workspaceAId,
         companyId: companyAId,
@@ -191,11 +191,11 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     });
     contactAId = contactA.id;
 
-    const campaignContactA = await prisma.campaignContact.create({
+    const campaignContactA = await prisma.campaignMember.create({
       data: {
         workspaceId: workspaceAId,
         campaignId: campaignAId,
-        contactId: contactAId,
+        personId: contactAId,
         status: 'READY',
         currentSubject: 'Hello',
         currentBody: '<p>Hello {{firstName}}</p>',
@@ -208,7 +208,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       data: {
         workspaceId: workspaceAId,
         campaignId: campaignAId,
-        campaignContactId: campaignContactAId,
+        campaignMemberId: campaignContactAId,
         type: 'INITIAL',
         subject: 'Hello',
         body: '<p>Hello {{firstName}}</p>',
@@ -222,7 +222,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       data: {
         workspaceId: workspaceAId,
         type: 'EMAIL_DISPATCH',
-        payload: { emailSendId: createdEmailSend.id, campaignContactId: campaignContactAId },
+        payload: { emailSendId: createdEmailSend.id, campaignMemberId: campaignContactAId },
         status: 'PENDING'
       }
     });
@@ -237,23 +237,23 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
 
     // 5 & 6. Verify EmailSend Persistence with ProviderMessageId
     const emailSend = await prisma.emailSend.findFirst({
-      where: { campaignContactId: campaignContactAId }
+      where: { campaignMemberId: campaignContactAId }
     });
     expect(emailSend).toBeDefined();
     expect(emailSend!.providerMessageId).toBe(mockProviderMessageId);
     expect(emailSend!.messageId).toBe(mockRfcMessageId);
 
-    const ccAfterDispatch = await prisma.campaignContact.findUnique({
+    const ccAfterDispatch = await prisma.campaignMember.findUnique({
       where: { id: campaignContactAId }
     });
-    expect(ccAfterDispatch!.status).toBe(CampaignContactStatus.SENT);
+    expect(ccAfterDispatch!.status).toBe(CampaignMemberStatus.SENT);
 
     // Enqueue a pending follow-up job to be cancelled
     const followupJob = await prisma.job.create({
       data: {
         workspaceId: workspaceAId,
         type: 'SCHEDULED_FOLLOW_UP_CHECK',
-        payload: { campaignContactId: campaignContactAId },
+        payload: { campaignMemberId: campaignContactAId },
         status: 'PENDING'
       }
     });
@@ -262,7 +262,7 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
       data: {
         workspaceId: workspaceAId,
         type: 'SCHEDULED_FOLLOW_UP_CHECK',
-        payload: { campaignContactId: 'other-cc-id' },
+        payload: { campaignMemberId: 'other-cc-id' },
         status: 'PENDING'
       }
     });
@@ -312,10 +312,10 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     expect(inboundRepliesB).toHaveLength(1);
     expect(inboundRepliesB[0].status).toBe('UNCORRELATED');
 
-    const ccUnchanged = await prisma.campaignContact.findUnique({
+    const ccUnchanged = await prisma.campaignMember.findUnique({
       where: { id: campaignContactAId }
     });
-    expect(ccUnchanged!.status).toBe(CampaignContactStatus.SENT); // Still SENT
+    expect(ccUnchanged!.status).toBe(CampaignMemberStatus.SENT); // Still SENT
 
     // 9 & 10. Correlation & Persistence (Now send to Integration A)
     const whA = new Webhook('whsec_testsecretaaaaaaaaaaaaaaaa');
@@ -344,10 +344,10 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     expect(inboundReplies[0].status).toBe('CORRELATED');
 
     // 11. State Machine (Reply)
-    const ccAfterReply = await prisma.campaignContact.findUnique({
+    const ccAfterReply = await prisma.campaignMember.findUnique({
       where: { id: campaignContactAId }
     });
-    expect(ccAfterReply!.status).toBe(CampaignContactStatus.REPLIED);
+    expect(ccAfterReply!.status).toBe(CampaignMemberStatus.REPLIED);
 
     // 12. Matching Follow-up Cancellation
     const cancelledJob = await prisma.job.findUnique({ where: { id: followupJob.id }});
@@ -378,9 +378,9 @@ describe('10H (BL-022): End-to-End Vertical Slice 2 (e2e)', () => {
     expect(outcome!.type).toBe('QUALIFIED_CONVERSATION');
 
     // 17. State Machine (Complete)
-    const ccAfterOutcome = await prisma.campaignContact.findUnique({
+    const ccAfterOutcome = await prisma.campaignMember.findUnique({
       where: { id: campaignContactAId }
     });
-    expect(ccAfterOutcome!.status).toBe(CampaignContactStatus.COMPLETED);
+    expect(ccAfterOutcome!.status).toBe(CampaignMemberStatus.COMPLETED);
   });
 });

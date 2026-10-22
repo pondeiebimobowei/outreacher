@@ -303,6 +303,7 @@ export class PrismaResearchRepository implements IResearchRepository {
             workspaceId,
             companyId: run.companyId,
             researchRunId: run.id,
+            companyAssociationId: 'temp',
             claim: evCreate.claim,
             classification: evCreate.classification,
             sourceName: evCreate.sourceName ?? null,

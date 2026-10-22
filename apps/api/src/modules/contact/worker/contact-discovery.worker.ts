@@ -108,7 +108,7 @@ export class ContactDiscoveryWorker {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Contact discovery provider failed for job ${job.id}: ${msg}`,
+        `Person discovery provider failed for job ${job.id}: ${msg}`,
       );
       safeErrorCode = msg.includes('timeout')
         ? 'PROVIDER_TIMEOUT'
@@ -136,7 +136,9 @@ export class ContactDiscoveryWorker {
         // Sanitize strings & validate/deduplicate candidate records
         const sanitizedCandidates = providerResult.candidates.map((c) => ({
           ...c,
-          name: ContentSanitizer.sanitize(c.name),
+
+          firstName: ContentSanitizer.sanitize(c.firstName),
+          lastName: ContentSanitizer.sanitize(c.lastName),
           title: c.title ? ContentSanitizer.sanitize(c.title) : undefined,
         }));
 
@@ -150,8 +152,9 @@ export class ContactDiscoveryWorker {
           validCandidates.map((c) => ({
             workspaceId,
             companyId,
-            contactKind: c.contactKind,
-            name: c.name,
+            personKind: c.personKind,
+            firstName: c.firstName,
+            lastName: c.lastName,
             email: c.email,
             title: c.title,
             source: c.source,
@@ -263,7 +266,7 @@ export class ContactDiscoveryWorker {
       timeoutHandle = setTimeout(() => {
         reject(
           new Error(
-            'Contact discovery provider execution timeout (30s exceeded)',
+            'Person discovery provider execution timeout (30s exceeded)',
           ),
         );
       }, this.PROVIDER_TIMEOUT_MS);

@@ -22,7 +22,7 @@ export class EmailController {
   @HttpCode(HttpStatus.ACCEPTED)
   public async sendEmail(
     @CurrentWorkspace() workspace: { id: string },
-    @Param('id') campaignContactId: string,
+    @Param('id') campaignMemberId: string,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     if (!idempotencyKey || !idempotencyKey.trim()) {
@@ -33,7 +33,7 @@ export class EmailController {
 
     return this.sendEmailUseCase.execute({
       workspaceId: workspace.id,
-      campaignContactId,
+      campaignMemberId,
       clientKey: idempotencyKey.trim(),
     });
   }

@@ -5,18 +5,18 @@ import { GetCampaignContactUseCase } from './get-campaign-contact.use-case';
 describe('GetCampaignContactUseCase', () => {
   let useCase: GetCampaignContactUseCase;
   let prisma: {
-    campaignContact: { findUnique: jest.Mock };
+    campaignMember: { findUnique: jest.Mock };
     evidence: { findMany: jest.Mock };
     job: { findFirst: jest.Mock };
     emailSend: { findFirst: jest.Mock };
   };
 
   const workspaceId = 'ws-123';
-  const campaignContactId = 'cc-456';
+  const campaignMemberId = 'cc-456';
 
   beforeEach(() => {
     prisma = {
-      campaignContact: { findUnique: jest.fn() },
+      campaignMember: { findUnique: jest.fn() },
       evidence: { findMany: jest.fn() },
       job: { findFirst: jest.fn() },
       emailSend: { findFirst: jest.fn() },
@@ -25,31 +25,31 @@ describe('GetCampaignContactUseCase', () => {
   });
 
   it('throws AppNotFoundException when campaign contact does not exist', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue(null);
+    prisma.campaignMember.findUnique.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({ workspaceId, campaignContactId }),
+      useCase.execute({ workspaceId, campaignMemberId }),
     ).rejects.toThrow(AppNotFoundException);
   });
 
   it('throws AppNotFoundException when campaign contact belongs to another workspace', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue({
-      id: campaignContactId,
+    prisma.campaignMember.findUnique.mockResolvedValue({
+      id: campaignMemberId,
       workspaceId: 'other-ws',
     });
 
     await expect(
-      useCase.execute({ workspaceId, campaignContactId }),
+      useCase.execute({ workspaceId, campaignMemberId }),
     ).rejects.toThrow(AppNotFoundException);
   });
 
   it('returns full campaign contact details including contact, campaign, evidence, and generation job', async () => {
     const updatedAt = new Date();
-    prisma.campaignContact.findUnique.mockResolvedValue({
-      id: campaignContactId,
+    prisma.campaignMember.findUnique.mockResolvedValue({
+      id: campaignMemberId,
       workspaceId,
       campaignId: 'camp-1',
-      contactId: 'con-1',
+      personId: 'con-1',
       status: 'PENDING',
       targetRole: 'Staff Engineer',
       outreachReason: 'Leading platform engineering hire',
@@ -59,12 +59,12 @@ describe('GetCampaignContactUseCase', () => {
       selectedOpportunityId: 'opp-1',
       createdAt: new Date(),
       updatedAt,
-      contact: {
+      person: {
         id: 'con-1',
         name: 'Sarah Connor',
         title: 'VP of Engineering',
         email: 'sarah@acme.com',
-        contactKind: 'PERSON',
+        personKind: 'PERSON',
         confidence: 'HIGH',
       },
       campaign: {
@@ -110,12 +110,12 @@ describe('GetCampaignContactUseCase', () => {
       errorMessage: null,
     });
 
-    const result = await useCase.execute({ workspaceId, campaignContactId });
+    const result = await useCase.execute({ workspaceId, campaignMemberId });
 
-    expect(result.id).toBe(campaignContactId);
+    expect(result.id).toBe(campaignMemberId);
     expect(result.status).toBe('PENDING');
-    expect(result.contact.name).toBe('Sarah Connor');
-    expect(result.contact.emailConfidence).toBe('AVAILABLE');
+    expect(result.name).toBe('Sarah Connor');
+    expect(result.person.emailConfidence).toBe('AVAILABLE');
     expect(result.campaign.name).toBe('Outreach — Acme');
     expect(result.evidence).toHaveLength(1);
     expect(result.evidence[0].classification).toBe('FACT');

@@ -62,8 +62,8 @@ export class DiscoverContactsUseCase {
       });
 
       if (recentCompletedJob) {
-        const contactsCount = await this.prisma.contact.count({
-          where: { workspaceId, companyId },
+        const contactsCount = await this.prisma.person.count({
+          where: { workspaceId },
         });
 
         this.logger.log(

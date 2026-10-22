@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  CampaignContactStatus,
+  CampaignMemberStatus,
   EmailSendStatus,
   Job,
   JobStatus,
@@ -107,7 +107,7 @@ export class EmailDispatchWorker {
     const { job, claimedAttempt } = claimed;
     const payload = job.payload as Record<string, unknown> | null;
     const emailSendId = payload?.emailSendId as string;
-    const campaignContactId = payload?.campaignContactId as string;
+    const campaignMemberId = payload?.campaignMemberId as string;
     const workspaceId = job.workspaceId;
 
     let sendResult: SendEmailResult | null = null;
@@ -122,8 +122,8 @@ export class EmailDispatchWorker {
           senderAccount: {
             include: { integration: true }
           },
-          campaignContact: {
-            include: { contact: true, campaign: true },
+          campaignMember: {
+            include: { person: true, campaign: true },
           },
         },
       });
@@ -149,8 +149,8 @@ export class EmailDispatchWorker {
 
       const credentials = await this.secretResolver.resolve(workspaceId, senderAccount.integration.secretReference, providerStr);
 
-      const recipientEmail = emailSend.campaignContact?.contact?.email;
-      if (!recipientEmail) throw new Error('Contact recipient email is missing');
+      const recipientEmail = emailSend.campaignMember?.person?.email;
+      if (!recipientEmail) throw new Error('Person recipient email is missing');
       if (!emailSend.replyToToken) throw new Error('Opaque replyToToken is missing for EmailSend');
 
       const canonicalIdempotencyKey = `send:${emailSendId}`;
@@ -158,7 +158,7 @@ export class EmailDispatchWorker {
       sendResult = await adapter.sendEmail({
         workspaceId,
         senderAccountId: senderAccount.id,
-        campaignContactId,
+        campaignMemberId,
         emailSendId,
         toEmail: recipientEmail,
         fromName: senderAccount.fromName,
@@ -231,8 +231,8 @@ export class EmailDispatchWorker {
           },
         });
 
-        await tx.campaignContact.update({
-          where: { id: campaignContactId },
+        await tx.campaignMember.update({
+          where: { id: campaignMemberId },
           data: { status: 'SENT' },
         });
         
@@ -250,8 +250,8 @@ export class EmailDispatchWorker {
             retryable: false,
           },
         });
-        await tx.campaignContact.update({
-          where: { id: campaignContactId },
+        await tx.campaignMember.update({
+          where: { id: campaignMemberId },
           data: { status: 'FAILED' },
         });
         return false;
@@ -279,8 +279,8 @@ export class EmailDispatchWorker {
         },
       });
 
-      await tx.campaignContact.update({
-        where: { id: campaignContactId },
+      await tx.campaignMember.update({
+        where: { id: campaignMemberId },
         data: { status: 'FAILED' },
       });
 

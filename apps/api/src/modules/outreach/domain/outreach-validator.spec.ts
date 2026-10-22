@@ -11,8 +11,8 @@ describe('OutreachValidator', () => {
 
   const baseContext: OutreachContext = {
     workspaceId: 'ws-123',
-    campaignContactId: 'cc-123',
-    contact: { id: 'cnt-1', name: 'John Smith', kind: 'PERSON' },
+    campaignMemberId: 'cc-123',
+    person: { id: 'cnt-1', name: 'John Smith', kind: 'PERSON' },
     company: { id: 'cmp-1', name: 'Tech Inc' },
     opportunity: { type: 'PROACTIVE' },
     careerProfile: { targetRoles: ['Backend Engineer'], skills: ['Go'] },

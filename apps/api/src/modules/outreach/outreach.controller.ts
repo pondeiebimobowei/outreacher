@@ -34,11 +34,11 @@ export class OutreachController {
   @HttpCode(HttpStatus.OK)
   public async getCampaignContact(
     @CurrentWorkspace() workspace: { id: string },
-    @Param('id') campaignContactId: string,
+    @Param('id') campaignMemberId: string,
   ) {
     return this.getCampaignContactUseCase.execute({
       workspaceId: workspace.id,
-      campaignContactId,
+      campaignMemberId,
     });
   }
 
@@ -47,12 +47,12 @@ export class OutreachController {
   public async generateOutreach(
     @CurrentUser() user: { id: string },
     @CurrentWorkspace() workspace: { id: string },
-    @Param('id') campaignContactId: string,
+    @Param('id') campaignMemberId: string,
   ) {
     return this.generateOutreachUseCase.execute({
       userId: user.id,
       workspaceId: workspace.id,
-      campaignContactId,
+      campaignMemberId,
     });
   }
 
@@ -60,12 +60,12 @@ export class OutreachController {
   @HttpCode(HttpStatus.OK)
   public async updateDraft(
     @CurrentWorkspace() workspace: { id: string },
-    @Param('id') campaignContactId: string,
+    @Param('id') campaignMemberId: string,
     @Body() body: UpdateDraftRequestDto,
   ) {
     return this.updateDraftUseCase.execute({
       workspaceId: workspace.id,
-      campaignContactId,
+      campaignMemberId,
       subject: body.subject,
       bodyText: body.bodyText,
       expectedUpdatedAt: body.expectedUpdatedAt,
@@ -76,12 +76,12 @@ export class OutreachController {
   @HttpCode(HttpStatus.OK)
   public async approveDraft(
     @CurrentWorkspace() workspace: { id: string },
-    @Param('id') campaignContactId: string,
+    @Param('id') campaignMemberId: string,
     @Body() body?: ApproveDraftRequestDto,
   ) {
     return this.approveDraftUseCase.execute({
       workspaceId: workspace.id,
-      campaignContactId,
+      campaignMemberId,
       expectedUpdatedAt: body?.expectedUpdatedAt,
     });
   }

@@ -6,7 +6,7 @@ describe('GetCampaignContactsUseCase', () => {
   let useCase: GetCampaignContactsUseCase;
   let prisma: {
     campaign: { findFirst: jest.Mock };
-    campaignContact: { findMany: jest.Mock };
+    campaignMember: { findMany: jest.Mock };
   };
 
   const workspaceId = 'ws-123';
@@ -15,7 +15,7 @@ describe('GetCampaignContactsUseCase', () => {
   beforeEach(() => {
     prisma = {
       campaign: { findFirst: (jest.Mock<any> = jest.fn()) },
-      campaignContact: { findMany: (jest.Mock<any> = jest.fn()) },
+      campaignMember: { findMany: (jest.Mock<any> = jest.fn()) },
     };
     useCase = new GetCampaignContactsUseCase(
       prisma as unknown as PrismaService,
@@ -38,12 +38,12 @@ describe('GetCampaignContactsUseCase', () => {
     });
 
     const now = new Date();
-    prisma.campaignContact.findMany.mockResolvedValue([
+    prisma.campaignMember.findMany.mockResolvedValue([
       {
         id: 'cc-1',
         workspaceId,
         campaignId,
-        contactId: 'con-1',
+        personId: 'con-1',
         status: 'PENDING',
         targetRole: 'VP Engineering',
         outreachReason: 'Leads tech team',
@@ -52,12 +52,12 @@ describe('GetCampaignContactsUseCase', () => {
         selectedOpportunityId: 'opp-1',
         createdAt: now,
         updatedAt: now,
-        contact: {
+        person: {
           id: 'con-1',
           name: 'Sarah Connor',
           title: 'VP of Engineering',
           email: 'sarah@acme.com',
-          contactKind: 'PERSON',
+          personKind: 'PERSON',
           confidence: 'HIGH',
         },
       },
@@ -67,7 +67,7 @@ describe('GetCampaignContactsUseCase', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('cc-1');
-    expect(result[0].contact.name).toBe('Sarah Connor');
+    expect(result[0].name).toBe('Sarah Connor');
     expect(result[0].status).toBe('PENDING');
   });
 });

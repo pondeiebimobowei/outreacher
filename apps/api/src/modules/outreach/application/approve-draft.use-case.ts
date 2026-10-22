@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CampaignContact, Prisma } from '@repo/db';
+import { CampaignMember, Prisma } from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -9,7 +9,7 @@ import { PrismaService } from '../../../database/prisma.service';
 
 export interface ApproveDraftCommand {
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   expectedUpdatedAt?: string | Date;
 }
 
@@ -17,27 +17,27 @@ export interface ApproveDraftCommand {
 export class ApproveDraftUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async execute(command: ApproveDraftCommand): Promise<CampaignContact> {
-    const { workspaceId, campaignContactId, expectedUpdatedAt } = command;
+  public async execute(command: ApproveDraftCommand): Promise<CampaignMember> {
+    const { workspaceId, campaignMemberId, expectedUpdatedAt } = command;
 
     return await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         // 1. Fetch current contact with its relation to the actual contact (for email)
-        const campaignContact = await tx.campaignContact.findUnique({
-          where: { id: campaignContactId },
-          include: { contact: true },
+        const campaignMember = await tx.campaignMember.findUnique({
+          where: { id: campaignMemberId },
+          include: { person: true },
         });
 
-        if (!campaignContact || campaignContact.workspaceId !== workspaceId) {
+        if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
           throw new AppNotFoundException(
-            `CampaignContact ${campaignContactId} not found`,
+            `CampaignMember ${campaignMemberId} not found`,
           );
         }
 
         // Optimistic concurrency verification if token provided
         if (expectedUpdatedAt) {
           const expectedIso = new Date(expectedUpdatedAt).toISOString();
-          const currentIso = campaignContact.updatedAt.toISOString();
+          const currentIso = campaignMember.updatedAt.toISOString();
           if (expectedIso !== currentIso) {
             throw new AppConflictException(
               'Concurrent update detected; approval aborted.',
@@ -46,16 +46,16 @@ export class ApproveDraftUseCase {
         }
 
         if (
-          campaignContact.status !== 'PENDING' &&
-          campaignContact.status !== 'READY'
+          campaignMember.status !== 'PENDING' &&
+          campaignMember.status !== 'READY'
         ) {
           throw new AppConflictException(
-            `Cannot approve draft for contact in ${campaignContact.status} status`,
+            `Cannot approve draft for contact in ${campaignMember.status} status`,
           );
         }
 
         // 2. Extract and normalize email
-        const rawEmail = campaignContact.contact?.email;
+        const rawEmail = campaignMember.person?.email;
         if (!rawEmail) {
           throw new AppValidationException(
             'Cannot approve contact without a recipient email',
@@ -78,14 +78,14 @@ export class ApproveDraftUseCase {
         }
 
         // 4. Handle READY -> READY (Idempotent Path)
-        if (campaignContact.status === 'READY') {
+        if (campaignMember.status === 'READY') {
           // Remove the included contact relation to match standard return type
-          const { contact: _contact, ...contactData } = campaignContact;
+          const { person: _contact, ...contactData } = campaignMember;
           return contactData;
         }
 
         // 5. Handle PENDING -> READY (Validation & Optimistic Concurrency)
-        const { currentSubject, currentBody } = campaignContact;
+        const { currentSubject, currentBody } = campaignMember;
 
         if (
           !currentSubject ||
@@ -93,7 +93,7 @@ export class ApproveDraftUseCase {
           currentSubject.length > 150
         ) {
           throw new AppValidationException(
-            'Cannot approve contact: subject must be between 3 and 150 characters',
+            'Cannot approve person: subject must be between 3 and 150 characters',
           );
         }
 
@@ -103,15 +103,15 @@ export class ApproveDraftUseCase {
           currentBody.length > 4000
         ) {
           throw new AppValidationException(
-            'Cannot approve contact: body must be between 20 and 4000 characters',
+            'Cannot approve person: body must be between 20 and 4000 characters',
           );
         }
 
         // Optimistic Concurrency Update
-        const updateResult = await tx.campaignContact.updateMany({
+        const updateResult = await tx.campaignMember.updateMany({
           where: {
-            id: campaignContactId,
-            updatedAt: campaignContact.updatedAt,
+            id: campaignMemberId,
+            updatedAt: campaignMember.updatedAt,
             status: 'PENDING',
           },
           data: {
@@ -126,8 +126,8 @@ export class ApproveDraftUseCase {
         }
 
         // Fetch the updated record to get the exact DB timestamp and return standard model
-        const updatedContact = await tx.campaignContact.findUnique({
-          where: { id: campaignContactId },
+        const updatedContact = await tx.campaignMember.findUnique({
+          where: { id: campaignMemberId },
         });
 
         return updatedContact!;

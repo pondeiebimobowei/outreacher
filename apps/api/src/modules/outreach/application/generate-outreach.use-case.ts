@@ -10,7 +10,7 @@ import { Prisma } from '@repo/db';
 export interface GenerateOutreachCommand {
   userId: string;
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
 }
 
 export interface GenerateOutreachResult {
@@ -21,8 +21,8 @@ export interface GenerateOutreachResult {
 export interface OutreachGenerationJobPayload {
   userId: string;
   workspaceId: string;
-  campaignContactId: string;
-  contactId: string;
+  campaignMemberId: string;
+  personId: string;
   companyId: string;
   draftVersion: number;
 }
@@ -34,28 +34,28 @@ export class GenerateOutreachUseCase {
   public async execute(
     command: GenerateOutreachCommand,
   ): Promise<GenerateOutreachResult> {
-    const { userId, workspaceId, campaignContactId } = command;
+    const { userId, workspaceId, campaignMemberId } = command;
 
-    // 1. Verify CampaignContact exists and enforce tenant isolation
-    const campaignContact = await this.prisma.campaignContact.findUnique({
-      where: { id: campaignContactId },
+    // 1. Verify CampaignMember exists and enforce tenant isolation
+    const campaignMember = await this.prisma.campaignMember.findUnique({
+      where: { id: campaignMemberId },
       include: { campaign: true },
     });
 
-    if (!campaignContact) {
+    if (!campaignMember) {
       throw new NotFoundException(
-        `CampaignContact ${campaignContactId} not found`,
+        `CampaignMember ${campaignMemberId} not found`,
       );
     }
 
-    if (campaignContact.workspaceId !== workspaceId) {
+    if (campaignMember.workspaceId !== workspaceId) {
       throw new ForbiddenException('Cross-tenant access prohibited');
     }
 
     // Determine draft version (1 if initial, or incremented if regeneration requested)
     const draftVersion =
-      campaignContact.currentSubject || campaignContact.currentBody ? 2 : 1;
-    const idempotencyKey = `outreach:${campaignContactId}:${draftVersion}`;
+      campaignMember.currentSubject || campaignMember.currentBody ? 2 : 1;
+    const idempotencyKey = `outreach:${campaignMemberId}:${draftVersion}`;
 
     // 2. Concurrency-safe atomic rate-limit check per (user + workspace) and job reservation/enqueueing inside DB transaction
     const result = await this.prisma.$transaction(
@@ -107,9 +107,9 @@ export class GenerateOutreachUseCase {
             payload: {
               userId,
               workspaceId,
-              campaignContactId,
-              contactId: campaignContact.contactId,
-              companyId: campaignContact.campaign.companyId,
+              campaignMemberId,
+              personId: campaignMember.personId,
+              companyId: campaignMember.campaign.companyId,
               draftVersion,
             },
           },

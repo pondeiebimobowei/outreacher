@@ -1,4 +1,4 @@
-import { Campaign, CampaignContact, CampaignStatus } from '@repo/db';
+import { Campaign, CampaignMember, CampaignStatus } from '@repo/db';
 import { CampaignSenderSummary } from '../dto/campaign-sender-summary.dto';
 
 export type CampaignWithSenders = Campaign & {
@@ -21,9 +21,11 @@ export class CampaignDuplicateNameError extends Error {
 export interface CreateCampaignData {
   workspaceId: string;
   companyId: string;
+  senderAccountId: string;
+  templateId: string,
   name: string;
   normalizedName: string;
-  sendingIdentity?: string | null;
+  status: CampaignStatus,
   followUpDelayBusinessDays?: number;
 }
 
@@ -50,7 +52,7 @@ export interface ICampaignRepository {
     workspaceId: string,
     campaignId: string,
     contactIds: string[],
-  ): Promise<CampaignContact[]>;
+  ): Promise<CampaignMember[]>;
 }
 
 export const CAMPAIGN_REPOSITORY_TOKEN = 'ICampaignRepository';

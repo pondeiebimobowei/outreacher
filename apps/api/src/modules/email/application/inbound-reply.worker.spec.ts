@@ -21,7 +21,7 @@ describe('InboundReplyWorker', () => {
       $transaction: jest.fn((cb) => cb(prismaMock)),
       inboundReply: { findUnique: jest.fn(), update: jest.fn() },
       integration: { findUnique: jest.fn() },
-      campaignContact: { findUnique: jest.fn() },
+      campaignMember: { findUnique: jest.fn() },
       job: { 
         update: jest.fn().mockImplementation((args) => {
           if (args.data.status === 'RUNNING') {
@@ -105,8 +105,8 @@ describe('InboundReplyWorker', () => {
       html: 'html'
     });
 
-    correlationServiceMock.correlate.mockResolvedValue({ status: 'CORRELATED', campaignContactId: 'contact-1' });
-    prismaMock.campaignContact.findUnique.mockResolvedValue({ workspaceId: 'ws-1' });
+    correlationServiceMock.correlate.mockResolvedValue({ status: 'CORRELATED', campaignMemberId: 'contact-1' });
+    prismaMock.campaignMember.findUnique.mockResolvedValue({ workspaceId: 'ws-1' });
 
     await (worker as any).claimAndProcessJobs();
 
@@ -118,7 +118,7 @@ describe('InboundReplyWorker', () => {
       where: { id: 'reply-1' },
       data: expect.objectContaining({
         status: 'CORRELATED',
-        campaignContactId: 'contact-1',
+        campaignMemberId: 'contact-1',
         bodyText: 'text'
       })
     });
@@ -204,10 +204,10 @@ describe('InboundReplyWorker', () => {
       messageId: 'msg-1',
     });
 
-    correlationServiceMock.correlate.mockResolvedValue({ status: 'CORRELATED', campaignContactId: 'contact-1' });
+    correlationServiceMock.correlate.mockResolvedValue({ status: 'CORRELATED', campaignMemberId: 'contact-1' });
     
     // Mismatch!
-    prismaMock.campaignContact.findUnique.mockResolvedValue({ workspaceId: 'ws-DIFFERENT' });
+    prismaMock.campaignMember.findUnique.mockResolvedValue({ workspaceId: 'ws-DIFFERENT' });
 
     await (worker as any).claimAndProcessJobs();
 

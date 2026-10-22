@@ -9,7 +9,7 @@ export interface OutreachReasonResult {
 
 export class OutreachReasonEvaluator {
   public evaluate(context: OutreachContext): OutreachReasonResult {
-    const { contact, company, opportunity, careerProfile, evidence } = context;
+    const { person, company, opportunity, careerProfile, evidence } = context;
     const supportingEvidenceIds: string[] = [];
 
     // Collect relevant evidence items
@@ -20,19 +20,19 @@ export class OutreachReasonEvaluator {
 
     const targetRole =
       opportunity.roleTitle || careerProfile.targetRoles[0] || 'Target Role';
-    const contactTitle = contact.title || 'team member';
+    const contactTitle = person.title || 'team member';
 
     if (opportunity.type === 'CONFIRMED') {
       const openingDesc = opportunity.roleDescription
         ? ` (${opportunity.roleDescription.slice(0, 100)})`
         : '';
-      reasonText = `Contacting ${contact.name} (${contactTitle}) regarding confirmed open role ${targetRole} at ${company.name}${openingDesc}. Outreach is grounded in verified opening evidence.`;
+      reasonText = `Contacting ${person.firstName} ${person.lastName} (${contactTitle}) regarding confirmed open role ${targetRole} at ${company.name}${openingDesc}. Outreach is grounded in verified opening evidence.`;
     } else if (opportunity.type === 'PROACTIVE') {
       const industryText = company.industry ? ` in ${company.industry}` : '';
-      reasonText = `Proactive outreach to ${contact.name} (${contactTitle}) at ${company.name}${industryText} based on strategic technical alignment with candidate background in ${targetRole}. No open job posting is claimed.`;
+      reasonText = `Proactive outreach to ${person.firstName} ${person.lastName} (${contactTitle}) at ${company.name}${industryText} based on strategic technical alignment with candidate background in ${targetRole}. No open job posting is claimed.`;
     } else {
       // UNCLASSIFIED
-      reasonText = `Exploring general engineering fit with ${contact.name} (${contactTitle}) at ${company.name}. Outreach is grounded strictly in company profile and candidate background in ${targetRole} without hiring assertions.`;
+      reasonText = `Exploring general engineering fit with ${person.firstName} ${person.lastName} (${contactTitle}) at ${company.name}. Outreach is grounded strictly in company profile and candidate background in ${targetRole} without hiring assertions.`;
     }
 
     return {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
-  CampaignContactStatus,
+  CampaignMemberStatus,
   CampaignStatus,
   EmailSendStatus,
   EmailSendType,
@@ -17,7 +17,7 @@ import { SendEligibilityService } from '../domain/send-eligibility.service';
 
 export interface SendEmailCommand {
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   clientKey: string;
 }
 
@@ -34,7 +34,7 @@ export class SendEmailUseCase {
   ) {}
 
   public async execute(command: SendEmailCommand): Promise<SendEmailResponse> {
-    const { workspaceId, campaignContactId } = command;
+    const { workspaceId, campaignMemberId } = command;
 
     if (!command.clientKey || !command.clientKey.trim()) {
       throw new AppValidationException('Missing required Idempotency-Key header');
@@ -46,7 +46,7 @@ export class SendEmailUseCase {
     });
 
     if (existingRecord) {
-      if (existingRecord.targetId === campaignContactId) {
+      if (existingRecord.targetId === campaignMemberId) {
         return existingRecord.responseBody as unknown as SendEmailResponse;
       }
       throw new AppConflictException(`Idempotency-Key '${normalizedKey}' was already used for a different campaign contact`);
@@ -54,48 +54,48 @@ export class SendEmailUseCase {
 
     try {
       return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const campaignContact = await tx.campaignContact.findUnique({
-          where: { id: campaignContactId },
-          include: { campaign: true, contact: true },
+        const campaignMember = await tx.campaignMember.findUnique({
+          where: { id: campaignMemberId },
+          include: { campaign: true, person: true },
         });
 
-        if (!campaignContact || campaignContact.workspaceId !== workspaceId) {
+        if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
           throw new AppNotFoundException('Campaign contact not found');
         }
 
-        if (campaignContact.status !== CampaignContactStatus.READY) {
+        if (campaignMember.status !== CampaignMemberStatus.READY) {
           const committedRecord = await tx.idempotencyRecord.findUnique({
             where: { workspaceId_key: { workspaceId, key: normalizedKey } },
           });
-          if (committedRecord && committedRecord.targetId === campaignContactId) {
+          if (committedRecord && committedRecord.targetId === campaignMemberId) {
             return committedRecord.responseBody as unknown as SendEmailResponse;
           }
         }
 
         const eligibilityResult = await this.sendEligibilityService.checkEligibility({
           workspaceId,
-          campaign: campaignContact.campaign,
-          campaignContact,
+          campaign: campaignMember.campaign,
+          campaignMember,
         });
 
-        if (campaignContact.campaign.status === CampaignStatus.DRAFT) {
+        if (campaignMember.campaign.status === CampaignStatus.DRAFT) {
           await tx.campaign.updateMany({
-            where: { id: campaignContact.campaign.id, workspaceId, status: CampaignStatus.DRAFT },
+            where: { id: campaignMember.campaign.id, workspaceId, status: CampaignStatus.DRAFT },
             data: { status: CampaignStatus.ACTIVE },
           });
         }
 
-        await tx.campaignContact.update({
-          where: { id: campaignContact.id },
-          data: { status: CampaignContactStatus.SENDING },
+        await tx.campaignMember.update({
+          where: { id: campaignMember.id },
+          data: { status: CampaignMemberStatus.SENDING },
         });
 
         const emailSend = await this.sendEligibilityService.reserveSenderCapacityAndCreateEmailSend(
           tx,
           workspaceId,
-          campaignContact.campaignId,
+          campaignMember.campaignId,
           {
-            campaignContactId: campaignContact.id,
+            campaignMemberId: campaignMember.id,
             type: EmailSendType.INITIAL,
             subject: eligibilityResult.subject,
             body: eligibilityResult.body,
@@ -111,7 +111,7 @@ export class SendEmailUseCase {
             idempotencyKey: canonicalJobKey,
             payload: {
               emailSendId: emailSend.id,
-              campaignContactId: campaignContact.id,
+              campaignMemberId: campaignMember.id,
               workspaceId,
             },
           },
@@ -124,7 +124,7 @@ export class SendEmailUseCase {
             workspaceId,
             key: normalizedKey,
             route: '/api/v1/campaign-contacts/:id/send',
-            targetId: campaignContact.id,
+            targetId: campaignMember.id,
             jobId: job.id,
             responseStatus: 202,
             responseBody: responsePayload as unknown as Prisma.InputJsonValue,
@@ -139,7 +139,7 @@ export class SendEmailUseCase {
           where: { workspaceId_key: { workspaceId, key: normalizedKey } },
         });
         if (committedRecord) {
-          if (committedRecord.targetId === campaignContactId) {
+          if (committedRecord.targetId === campaignMemberId) {
             return committedRecord.responseBody as unknown as SendEmailResponse;
           }
           throw new AppConflictException(`Idempotency-Key '${normalizedKey}' was already used for a different campaign contact`);

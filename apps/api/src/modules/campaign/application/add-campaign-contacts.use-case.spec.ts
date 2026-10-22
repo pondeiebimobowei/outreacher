@@ -3,7 +3,7 @@ import { AppNotFoundException } from '../../../common/errors/application.excepti
 import { ICampaignRepository } from '../domain/campaign.repository.interface';
 import { IContactRepository } from '../../contact/domain/contact.repository.interface';
 import { AddCampaignContactsUseCase } from './add-campaign-contacts.use-case';
-import { Campaign, CampaignContact, Contact } from '@repo/db';
+import { Campaign, CampaignMember, Person } from '@repo/db';
 
 const workspaceId = 'ws-001';
 const otherWorkspaceId = 'ws-other';
@@ -27,13 +27,13 @@ const mockCampaign = (overrides: Partial<Campaign> = {}): Campaign => ({
 
 const mockContact = (
   id: string,
-  overrides: Partial<Contact> = {},
-): Contact => ({
+  overrides: Partial<Person> = {},
+): Person => ({
   id,
   workspaceId,
   companyId,
-  contactKind: 'PERSON' as const,
-  name: `Contact ${id}`,
+  personKind: 'PERSON' as const,
+  name: `Person ${id}`,
   email: `${id}@example.com`,
   title: null,
   source: null,
@@ -46,11 +46,11 @@ const mockContact = (
   ...overrides,
 });
 
-const mockBinding = (contactId: string): CampaignContact => ({
-  id: `cc-${contactId}`,
+const mockBinding = (personId: string): CampaignMember => ({
+  id: `cc-${personId}`,
   workspaceId,
   campaignId,
-  contactId,
+  personId,
   status: 'PENDING' as const,
   targetRole: null,
   outreachReason: null,
@@ -222,7 +222,7 @@ describe('AddCampaignContactsUseCase', () => {
     });
 
     expect(result.bound[0].status).toBe('PENDING');
-    expect(result.bound[0].contactId).toBe('c-1');
+    expect(result.bound[0].personId).toBe('c-1');
     expect(result.ignoredDuplicateCount).toBe(0);
   });
 

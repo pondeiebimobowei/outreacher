@@ -182,11 +182,11 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       await this.prisma.$transaction(async (tx: any) => {
         // Tenant safety check - although correlation already scopes by workspaceId, we double check
         if (correlation.status === 'CORRELATED') {
-           const contact = await tx.campaignContact.findUnique({
-             where: { id: correlation.campaignContactId }
+           const contact = await tx.campaignMember.findUnique({
+             where: { id: correlation.campaignMemberId }
            });
            if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
-             throw new Error('Tenant safety violation: Correlated CampaignContact belongs to different workspace');
+             throw new Error('Tenant safety violation: Correlated CampaignMember belongs to different workspace');
            }
         }
 
@@ -200,14 +200,14 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
             inReplyTo: retrieved.inReplyTo,
             references: retrieved.references,
             status: correlation.status,
-            campaignContactId: correlation.status === 'CORRELATED' ? correlation.campaignContactId : null,
+            campaignMemberId: correlation.status === 'CORRELATED' ? correlation.campaignMemberId : null,
           }
         });
       });
 
       // 10D Transaction
-      if (correlation.status === 'CORRELATED' && correlation.campaignContactId) {
-        await this.markContactRepliedUseCase.execute(correlation.campaignContactId, inboundReply.workspaceId);
+      if (correlation.status === 'CORRELATED' && correlation.campaignMemberId) {
+        await this.markContactRepliedUseCase.execute(correlation.campaignMemberId, inboundReply.workspaceId);
       }
 
       // Completion Transaction

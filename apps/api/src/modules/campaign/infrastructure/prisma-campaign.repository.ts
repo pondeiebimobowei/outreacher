@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Campaign, CampaignContact, CampaignStatus, Prisma } from '@repo/db';
+import { Campaign, CampaignMember, CampaignStatus, Prisma } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   CampaignDuplicateNameError,
@@ -47,10 +47,13 @@ export class PrismaCampaignRepository implements ICampaignRepository {
         data: {
           workspaceId: data.workspaceId,
           companyId: data.companyId,
+          senderAccountId: data.senderAccountId,
+          templateId: data.templateId,
           name: data.name,
           normalizedName: data.normalizedName,
-          sendingIdentity: data.sendingIdentity ?? null,
+          status: data.status,
           followUpDelayBusinessDays: data.followUpDelayBusinessDays ?? 4,
+          
         },
         include: campaignInclude,
       });
@@ -122,31 +125,31 @@ export class PrismaCampaignRepository implements ICampaignRepository {
     campaignId: string,
     contactIds: string[],
   ): Promise<Set<string>> {
-    const existing = await this.prisma.campaignContact.findMany({
+    const existing = await this.prisma.campaignMember.findMany({
       where: {
         workspaceId,
         campaignId,
-        contactId: { in: contactIds },
+        personId: { in: contactIds },
       },
-      select: { contactId: true },
+      select: { personId: true },
     });
-    return new Set(existing.map((r) => r.contactId));
+    return new Set(existing.map((r) => r.personId));
   }
 
   async createContactBindings(
     workspaceId: string,
     campaignId: string,
     contactIds: string[],
-  ): Promise<CampaignContact[]> {
-    await this.prisma.campaignContact.createMany({
-      data: contactIds.map((contactId) => ({
+  ): Promise<CampaignMember[]> {
+    await this.prisma.campaignMember.createMany({
+      data: contactIds.map((personId) => ({
         workspaceId,
         campaignId,
-        contactId,
+        personId,
       })),
     });
-    return this.prisma.campaignContact.findMany({
-      where: { workspaceId, campaignId, contactId: { in: contactIds } },
+    return this.prisma.campaignMember.findMany({
+      where: { workspaceId, campaignId, personId: { in: contactIds } },
     });
   }
 

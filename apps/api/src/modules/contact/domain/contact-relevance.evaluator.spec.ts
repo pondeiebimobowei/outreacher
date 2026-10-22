@@ -3,7 +3,7 @@ import { ContactRelevanceEvaluator } from './contact-relevance.evaluator';
 describe('ContactRelevanceEvaluator', () => {
   it('evaluates ROLE_ADDRESS as LOW relevance', () => {
     const res = ContactRelevanceEvaluator.evaluate({
-      contactKind: 'ROLE_ADDRESS',
+      personKind: 'ROLE_ADDRESS',
       email: 'careers@acme.com',
     });
     expect(res.relevance).toBe('LOW');
@@ -12,7 +12,7 @@ describe('ContactRelevanceEvaluator', () => {
 
   it('evaluates target role match as HIGH relevance', () => {
     const res = ContactRelevanceEvaluator.evaluate({
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
       title: 'Senior Backend Engineer',
       targetRoles: ['Backend Engineer'],
     });
@@ -24,7 +24,7 @@ describe('ContactRelevanceEvaluator', () => {
 
   it('boosts relevance to HIGH for confirmed opportunity alignment', () => {
     const res = ContactRelevanceEvaluator.evaluate({
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
       title: 'Engineering Manager',
       confirmedOpportunityTitles: ['Engineering Lead'],
     });
@@ -36,7 +36,7 @@ describe('ContactRelevanceEvaluator', () => {
 
   it('evaluates general department match as MEDIUM relevance', () => {
     const res = ContactRelevanceEvaluator.evaluate({
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
       title: 'Software Developer',
       targetRoles: ['DevOps Manager'],
     });

@@ -11,7 +11,7 @@ describe('ResendEmailSender', () => {
 
   const validEmailInput = {
     workspaceId: 'ws-1',
-    campaignContactId: 'cc-1',
+    campaignMemberId: 'cc-1',
     toEmail: 'target@enterprise.com',
     fromEmail: 'sales@proactive.com',
     subject: 'Strategic outreach',

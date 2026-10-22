@@ -17,7 +17,7 @@ describe('CreateContactUseCase', () => {
       company: {
         findFirst: jest.fn(),
       },
-      contact: {
+      person: {
         findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
@@ -42,8 +42,8 @@ describe('CreateContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prismaMock.contact.findFirst.mockResolvedValue(null);
-    prismaMock.contact.create.mockImplementation(({ data }: any) =>
+    prismaMock.person.findFirst.mockResolvedValue(null);
+    prismaMock.person.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-1', ...data }),
     );
 
@@ -51,18 +51,18 @@ describe('CreateContactUseCase', () => {
       name: 'Jane Doe',
       email: 'JANE.DOE@ACME.COM',
       title: 'Head of Engineering',
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
       sourceUrl: 'https://acme.com/team',
     });
 
     expect(prismaMock.company.findFirst).toHaveBeenCalledWith({
       where: { id: 'comp-1', workspaceId: 'ws-1' },
     });
-    expect(prismaMock.contact.create).toHaveBeenCalledWith({
+    expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
         companyId: 'comp-1',
-        contactKind: 'PERSON',
+        personKind: 'PERSON',
         name: 'Jane Doe',
         email: 'jane.doe@acme.com',
         title: 'Head of Engineering',
@@ -81,7 +81,7 @@ describe('CreateContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prismaMock.contact.create.mockImplementation(({ data }: any) =>
+    prismaMock.person.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-2', ...data }),
     );
 
@@ -90,11 +90,11 @@ describe('CreateContactUseCase', () => {
       title: 'VP Engineering',
     });
 
-    expect(prismaMock.contact.create).toHaveBeenCalledWith({
+    expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
         companyId: 'comp-1',
-        contactKind: 'PERSON',
+        personKind: 'PERSON',
         name: 'Alex Rivera',
         email: null,
         title: 'VP Engineering',
@@ -111,13 +111,13 @@ describe('CreateContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prismaMock.contact.findFirst.mockResolvedValue({
+    prismaMock.person.findFirst.mockResolvedValue({
       id: 'cont-existing',
       workspaceId: 'ws-1',
       companyId: 'comp-1',
       email: 'jane@acme.com',
     });
-    prismaMock.contact.update.mockImplementation(({ data }: any) =>
+    prismaMock.person.update.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-existing', email: 'jane@acme.com', ...data }),
     );
 
@@ -127,12 +127,12 @@ describe('CreateContactUseCase', () => {
       title: 'CTO',
     });
 
-    expect(prismaMock.contact.update).toHaveBeenCalledWith({
+    expect(prismaMock.person.update).toHaveBeenCalledWith({
       where: { id: 'cont-existing' },
       data: {
         name: 'Jane Doe Updated',
         title: 'CTO',
-        contactKind: 'PERSON',
+        personKind: 'PERSON',
         source: 'USER_PROVIDED',
         sourceUrl: null,
       },
@@ -145,7 +145,7 @@ describe('CreateContactUseCase', () => {
       id: 'comp-1',
       workspaceId: 'ws-1',
     });
-    prismaMock.contact.create.mockImplementation(({ data }: any) =>
+    prismaMock.person.create.mockImplementation(({ data }: any) =>
       Promise.resolve({ id: 'cont-new', ...data }),
     );
 
@@ -155,8 +155,8 @@ describe('CreateContactUseCase', () => {
     });
 
     // Verify contact.findFirst was NOT called when email is missing
-    expect(prismaMock.contact.findFirst).not.toHaveBeenCalled();
-    expect(prismaMock.contact.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.person.findFirst).not.toHaveBeenCalled();
+    expect(prismaMock.person.create).toHaveBeenCalledTimes(1);
   });
 
   it('throws AppNotFoundException if company is not in workspace', async () => {

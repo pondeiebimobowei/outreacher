@@ -29,7 +29,7 @@ export interface WorkspaceWorkItemDto {
     name: string;
     status: string;
   };
-  campaignContact?: {
+  campaignMember?: {
     id: string;
     status: string;
   };

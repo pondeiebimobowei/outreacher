@@ -63,7 +63,9 @@ export class CreateCampaignUseCase {
         companyId: dto.companyId,
         name: dto.name.trim(),
         normalizedName,
-        sendingIdentity: dto.sendingIdentity?.trim() ?? null,
+        senderAccountId: dto.senderAccountId,
+        templateId: dto.templateId,
+        status: dto.status,
         followUpDelayBusinessDays: dto.followUpDelayBusinessDays,
       });
     } catch (error: any) {

@@ -29,7 +29,7 @@ describe('GetWorkspaceSummaryUseCase', () => {
       {
         id: 'contact-1',
         status: 'PENDING',
-        contact: { company: { id: 'comp-1', name: 'Company 1' } },
+        person: { company: { id: 'comp-1', name: 'Company 1' } },
         updatedAt: baseDate,
       } as any,
     ]);
@@ -37,7 +37,7 @@ describe('GetWorkspaceSummaryUseCase', () => {
       {
         id: 'contact-2',
         status: 'FAILED',
-        contact: { company: { id: 'comp-2', name: 'Company 2' } },
+        person: { company: { id: 'comp-2', name: 'Company 2' } },
         updatedAt: baseDate,
       } as any,
     ]);

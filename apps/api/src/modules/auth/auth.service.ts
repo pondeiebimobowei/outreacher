@@ -124,7 +124,7 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
         },
         workspace: {
           id: workspace.id,
@@ -192,7 +192,7 @@ export class AuthService {
       user: {
         id: identity.user.id,
         email: identity.user.email,
-        name: identity.user.name,
+        name: `${identity.user.firstName} ${identity.user.lastName}`,
       },
       workspace: {
         id: member.workspace.id,
@@ -245,7 +245,7 @@ export class AuthService {
         user: {
           id: existingIdentity.user.id,
           email: existingIdentity.user.email,
-          name: existingIdentity.user.name,
+          name: `${existingIdentity.user.firstName} ${existingIdentity.user.lastName}`,
         },
         workspace: {
           id: member.workspace.id,
@@ -315,7 +315,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: `${user.firstName} ${user.lastName}`,
       },
       workspace: {
         id: workspace.id,
@@ -369,7 +369,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: `${user.firstName} ${user.lastName}`,
       },
       workspace: {
         id: member.workspace.id,

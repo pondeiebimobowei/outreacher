@@ -11,9 +11,9 @@ import {
 export interface EvaluatedContactDto {
   id: string;
   workspaceId: string;
-  companyId: string;
-  contactKind: 'PERSON' | 'ROLE_ADDRESS';
-  name: string;
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
+  firstName: string;
+  lastName: string;
   email: string | null;
   title: string | null;
   source: string | null;
@@ -95,7 +95,7 @@ export class GetCompanyContactsUseCase {
         workspaceId,
         companyId,
       );
-    const selectedContactId = activeSelection?.contactId ?? null;
+    const selectedContactId = activeSelection?.personId ?? null;
 
     // 5. Fetch Latest Discovery Job Status
     const latestJob = await this.prisma.job.findFirst({
@@ -148,7 +148,7 @@ export class GetCompanyContactsUseCase {
     const evaluatedContacts: EvaluatedContactDto[] = rawContacts.map((c) => {
       const evalResult = ContactRelevanceEvaluator.evaluate({
         title: c.title,
-        contactKind: c.contactKind,
+        personKind: c.personKind,
         email: c.email,
         targetRoles,
         confirmedOpportunityTitles,
@@ -157,9 +157,9 @@ export class GetCompanyContactsUseCase {
       return {
         id: c.id,
         workspaceId: c.workspaceId,
-        companyId: c.companyId,
-        contactKind: c.contactKind,
-        name: c.name,
+        personKind: c.personKind,
+        firstName: c.firstName,
+        lastName: c.lastName,
         email: c.email,
         title: c.title,
         source: c.source,

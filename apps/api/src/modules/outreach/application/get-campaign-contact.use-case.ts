@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { CampaignContactStatus } from '@repo/db';
+import { CampaignMemberStatus } from '@repo/db';
 import { AppNotFoundException } from '../../../common/errors/application.exception';
 import { PrismaService } from '../../../database/prisma.service';
 
 export interface GetCampaignContactCommand {
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
 }
 
 export interface CampaignContactEvidenceDto {
@@ -31,8 +31,8 @@ export interface CampaignContactDetailsResult {
   id: string;
   workspaceId: string;
   campaignId: string;
-  contactId: string;
-  status: CampaignContactStatus;
+  personId: string;
+  status: CampaignMemberStatus;
   targetRole: string | null;
   outreachReason: string | null;
   currentSubject: string | null;
@@ -40,12 +40,13 @@ export interface CampaignContactDetailsResult {
   selectedOpportunityId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  contact: {
+  person: {
     id: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     title: string | null;
     email: string | null;
-    contactKind: 'PERSON' | 'ROLE_ADDRESS';
+    personKind: 'PERSON' | 'ROLE_ADDRESS';
     confidence: string | null;
     emailConfidence: 'AVAILABLE' | 'UNAVAILABLE';
   };
@@ -78,12 +79,12 @@ export class GetCampaignContactUseCase {
   public async execute(
     command: GetCampaignContactCommand,
   ): Promise<CampaignContactDetailsResult> {
-    const { workspaceId, campaignContactId } = command;
+    const { workspaceId, campaignMemberId } = command;
 
-    const campaignContact = await this.prisma.campaignContact.findUnique({
-      where: { id: campaignContactId },
+    const campaignMember = await this.prisma.campaignMember.findUnique({
+      where: { id: campaignMemberId },
       include: {
-        contact: true,
+        person: true,
         campaign: {
           include: {
             company: true,
@@ -93,11 +94,11 @@ export class GetCampaignContactUseCase {
       },
     });
 
-    if (!campaignContact || campaignContact.workspaceId !== workspaceId) {
-      throw new AppNotFoundException('CampaignContact');
+    if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
+      throw new AppNotFoundException('CampaignMember');
     }
 
-    const companyId = campaignContact.campaign.companyId;
+    const companyId = campaignMember.campaign.companyId;
 
     // Fetch evidence items associated with this company
     const evidenceList = await this.prisma.evidence.findMany({
@@ -108,64 +109,65 @@ export class GetCampaignContactUseCase {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Query latest OUTREACH_GENERATION job for this campaignContactId
+    // Query latest OUTREACH_GENERATION job for this campaignMemberId
     const latestJob = await this.prisma.job.findFirst({
       where: {
         workspaceId,
         type: 'OUTREACH_GENERATION',
         payload: {
-          path: ['campaignContactId'],
-          equals: campaignContactId,
+          path: ['campaignMemberId'],
+          equals: campaignMemberId,
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Query latest EmailSend for this campaignContactId
+    // Query latest EmailSend for this campaignMemberId
     const latestEmailSend = await this.prisma.emailSend.findFirst({
       where: {
         workspaceId,
-        campaignContactId,
+        campaignMemberId,
       },
       orderBy: { createdAt: 'desc' },
     });
 
     return {
-      id: campaignContact.id,
-      workspaceId: campaignContact.workspaceId,
-      campaignId: campaignContact.campaignId,
-      contactId: campaignContact.contactId,
-      status: campaignContact.status,
-      targetRole: campaignContact.targetRole,
-      outreachReason: campaignContact.outreachReason,
-      currentSubject: campaignContact.currentSubject,
-      currentBody: campaignContact.currentBody,
-      selectedOpportunityId: campaignContact.selectedOpportunityId,
-      createdAt: campaignContact.createdAt,
-      updatedAt: campaignContact.updatedAt,
-      contact: {
-        id: campaignContact.contact.id,
-        name: campaignContact.contact.name,
-        title: campaignContact.contact.title,
-        email: campaignContact.contact.email,
-        contactKind: campaignContact.contact.contactKind,
-        confidence: campaignContact.contact.confidence,
-        emailConfidence: campaignContact.contact.email
+      id: campaignMember.id,
+      workspaceId: campaignMember.workspaceId,
+      campaignId: campaignMember.campaignId,
+      personId: campaignMember.personId,
+      status: campaignMember.status,
+      targetRole: campaignMember.targetRole,
+      outreachReason: campaignMember.outreachReason,
+      currentSubject: campaignMember.currentSubject,
+      currentBody: campaignMember.currentBody,
+      selectedOpportunityId: campaignMember.selectedOpportunityId,
+      createdAt: campaignMember.createdAt,
+      updatedAt: campaignMember.updatedAt,
+      person: {
+        id: campaignMember.person.id,
+        firstName: campaignMember.person.firstName,
+        lastName: campaignMember.person.lastName,
+        title: campaignMember.person.title,
+        email: campaignMember.person.email,
+        personKind: campaignMember.person.personKind,
+        confidence: campaignMember.person.confidence,
+        emailConfidence: campaignMember.person.email
           ? 'AVAILABLE'
           : 'UNAVAILABLE',
       },
       campaign: {
-        id: campaignContact.campaign.id,
-        name: campaignContact.campaign.name,
-        status: campaignContact.campaign.status,
-        companyId: campaignContact.campaign.companyId,
+        id: campaignMember.campaign.id,
+        name: campaignMember.campaign.name,
+        status: campaignMember.campaign.status,
+        companyId: campaignMember.campaign.companyId,
       },
-      selectedOpportunity: campaignContact.selectedOpportunity
+      selectedOpportunity: campaignMember.selectedOpportunity
         ? {
-            id: campaignContact.selectedOpportunity.id,
-            roleTitle: campaignContact.selectedOpportunity.roleTitle,
+            id: campaignMember.selectedOpportunity.id,
+            roleTitle: campaignMember.selectedOpportunity.roleTitle,
             opportunityType:
-              campaignContact.selectedOpportunity.opportunityType,
+              campaignMember.selectedOpportunity.opportunityType,
           }
         : null,
       evidence: evidenceList.map((e) => ({

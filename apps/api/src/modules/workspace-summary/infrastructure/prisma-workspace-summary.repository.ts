@@ -6,10 +6,10 @@ export class PrismaWorkspaceSummaryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOutreachReviews(workspaceId: string, limit: number) {
-    return this.prisma.campaignContact.findMany({
+    return this.prisma.campaignMember.findMany({
       where: { workspaceId, status: 'PENDING' },
       include: {
-        contact: { include: { company: true } },
+        person: { include: { personCompanyAssociations: { include: { company: true } } } },
         campaign: true,
       },
       orderBy: { updatedAt: 'desc' },
@@ -18,10 +18,10 @@ export class PrismaWorkspaceSummaryRepository {
   }
 
   async getSendFailures(workspaceId: string, limit: number) {
-    return this.prisma.campaignContact.findMany({
+    return this.prisma.campaignMember.findMany({
       where: { workspaceId, status: 'FAILED' },
       include: {
-        contact: { include: { company: true } },
+        person: { include: { personCompanyAssociations: { include: { company: true } } } },
         campaign: true,
       },
       orderBy: { updatedAt: 'desc' },
@@ -82,9 +82,9 @@ export class PrismaWorkspaceSummaryRepository {
     return this.prisma.emailSend.findMany({
       where: { workspaceId, status: 'SENT' },
       include: {
-        campaignContact: {
+        campaignMember: {
           include: {
-            contact: { include: { company: true } },
+            person: { include: { personCompanyAssociations: { include: { company: true } } } },
             campaign: true,
           },
         },
@@ -98,9 +98,9 @@ export class PrismaWorkspaceSummaryRepository {
     return this.prisma.outcome.findMany({
       where: { workspaceId },
       include: {
-        campaignContact: {
+        campaignMember: {
           include: {
-            contact: { include: { company: true } },
+            person: { include: { personCompanyAssociations: { include: { company: true } } } },
             campaign: true,
           },
         },

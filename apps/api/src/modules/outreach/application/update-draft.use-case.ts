@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CampaignContact, CampaignContactStatus, Prisma } from '@repo/db';
+import { CampaignMember, CampaignMemberStatus, Prisma } from '@repo/db';
 import {
   AppConflictException,
   AppNotFoundException,
@@ -9,7 +9,7 @@ import { PrismaService } from '../../../database/prisma.service';
 
 export interface UpdateDraftCommand {
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   subject?: string;
   bodyText?: string;
   expectedUpdatedAt?: string | Date;
@@ -19,10 +19,10 @@ export interface UpdateDraftCommand {
 export class UpdateDraftUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  public async execute(command: UpdateDraftCommand): Promise<CampaignContact> {
+  public async execute(command: UpdateDraftCommand): Promise<CampaignMember> {
     const {
       workspaceId,
-      campaignContactId,
+      campaignMemberId,
       subject,
       bodyText,
       expectedUpdatedAt,
@@ -59,20 +59,20 @@ export class UpdateDraftUseCase {
     // 2. Transactional Execution & State Machine Enforcement (Model B: READY -> edit -> PENDING)
     return await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const campaignContact = await tx.campaignContact.findUnique({
-          where: { id: campaignContactId },
+        const campaignMember = await tx.campaignMember.findUnique({
+          where: { id: campaignMemberId },
         });
 
-        if (!campaignContact || campaignContact.workspaceId !== workspaceId) {
+        if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
           throw new AppNotFoundException(
-            `CampaignContact ${campaignContactId} not found`,
+            `CampaignMember ${campaignMemberId} not found`,
           );
         }
 
         // Optimistic concurrency verification
         if (expectedUpdatedAt) {
           const expectedIso = new Date(expectedUpdatedAt).toISOString();
-          const currentIso = campaignContact.updatedAt.toISOString();
+          const currentIso = campaignMember.updatedAt.toISOString();
           if (expectedIso !== currentIso) {
             throw new AppConflictException(
               'Concurrent update detected; draft was modified by another session.',
@@ -80,10 +80,10 @@ export class UpdateDraftUseCase {
           }
         }
 
-        const allowedStatuses: CampaignContactStatus[] = ['PENDING', 'READY'];
-        if (!allowedStatuses.includes(campaignContact.status)) {
+        const allowedStatuses: CampaignMemberStatus[] = ['PENDING', 'READY'];
+        if (!allowedStatuses.includes(campaignMember.status)) {
           throw new AppConflictException(
-            `Cannot edit draft for contact in ${campaignContact.status} status`,
+            `Cannot edit draft for contact in ${campaignMember.status} status`,
           );
         }
 
@@ -91,14 +91,14 @@ export class UpdateDraftUseCase {
         const updatedSubject =
           trimmedSubject !== undefined
             ? trimmedSubject
-            : campaignContact.currentSubject;
+            : campaignMember.currentSubject;
         const updatedBody =
           trimmedBodyText !== undefined
             ? trimmedBodyText
-            : campaignContact.currentBody;
+            : campaignMember.currentBody;
 
-        const updatedContact = await tx.campaignContact.update({
-          where: { id: campaignContactId },
+        const updatedContact = await tx.campaignMember.update({
+          where: { id: campaignMemberId },
           data: {
             currentSubject: updatedSubject,
             currentBody: updatedBody,

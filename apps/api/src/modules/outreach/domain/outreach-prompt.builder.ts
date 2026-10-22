@@ -36,8 +36,8 @@ Industry: ${context.company.industry || 'N/A'}
 Description: ${context.company.description || 'N/A'}
 
 ### TARGET CONTACT
-Name: ${context.contact.name}
-Title: ${context.contact.title || 'N/A'}
+Name: ${context.person.firstName} ${context.person.lastName}
+Title: ${context.person.title || 'N/A'}
 
 ### OPPORTUNITY CLASSIFICATION
 Opportunity Type: ${context.opportunity.type}

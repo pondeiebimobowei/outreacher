@@ -25,7 +25,7 @@ describe('PrismaEmailSendRepository', () => {
         id: 'send-1',
         workspaceId: 'ws-1',
         campaignId: 'camp-1',
-        campaignContactId: 'cc-1',
+        campaignMemberId: 'cc-1',
         type: EmailSendType.INITIAL,
         subject: 'Hello',
         body: 'World',
@@ -37,7 +37,7 @@ describe('PrismaEmailSendRepository', () => {
       const result = await repository.createReserved({
         workspaceId: 'ws-1',
         campaignId: 'camp-1',
-        campaignContactId: 'cc-1',
+        campaignMemberId: 'cc-1',
         subject: 'Hello',
         body: 'World',
         reservedAt: now,
@@ -48,7 +48,7 @@ describe('PrismaEmailSendRepository', () => {
         data: expect.objectContaining({
           workspaceId: 'ws-1',
           campaignId: 'camp-1',
-          campaignContactId: 'cc-1',
+          campaignMemberId: 'cc-1',
           type: EmailSendType.INITIAL,
           subject: 'Hello',
           body: 'World',
@@ -69,7 +69,7 @@ describe('PrismaEmailSendRepository', () => {
         {
           workspaceId: 'ws-1',
           campaignId: 'camp-1',
-          campaignContactId: 'cc-1',
+          campaignMemberId: 'cc-1',
           subject: 'Hello',
           body: 'World',
         },
@@ -145,14 +145,14 @@ describe('PrismaEmailSendRepository', () => {
   });
 
   describe('findByCampaignContactId', () => {
-    it('queries by campaignContactId and workspaceId ordered by createdAt desc', async () => {
+    it('queries by campaignMemberId and workspaceId ordered by createdAt desc', async () => {
       mockPrisma.emailSend.findMany.mockResolvedValue([{ id: 'send-1' }]);
 
       const result = await repository.findByCampaignContactId('ws-1', 'cc-1');
 
       expect(result).toHaveLength(1);
       expect(mockPrisma.emailSend.findMany).toHaveBeenCalledWith({
-        where: { workspaceId: 'ws-1', campaignContactId: 'cc-1' },
+        where: { workspaceId: 'ws-1', campaignMemberId: 'cc-1' },
         orderBy: { createdAt: 'desc' },
       });
     });

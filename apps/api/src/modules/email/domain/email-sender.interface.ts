@@ -6,7 +6,7 @@ export const EMAIL_SENDER_TOKEN = 'IEmailSender';
 
 export interface SendEmailInput {
   workspaceId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   toEmail: string;
   fromEmail: string;
   subject: string;

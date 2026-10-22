@@ -3,7 +3,7 @@ import type { ProviderCredentials } from './provider-credentials';
 export interface SendEmailInput<T extends ProviderCredentials = ProviderCredentials> {
   workspaceId: string;
   senderAccountId: string;
-  campaignContactId: string;
+  campaignMemberId: string;
   emailSendId: string;
   toEmail: string;
   fromName: string;

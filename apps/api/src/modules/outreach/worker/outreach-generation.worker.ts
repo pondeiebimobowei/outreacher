@@ -33,14 +33,14 @@ export class OutreachGenerationWorker {
     }
 
     const payload = job.payload as unknown as OutreachGenerationJobPayload;
-    const { workspaceId, campaignContactId, companyId } = payload;
+    const { workspaceId, campaignMemberId: campaignMemberId, companyId } = payload;
 
     try {
       // 1. Tenant-Isolated Data Fetching & Context Assembly
-      const campaignContact = await this.prisma.campaignContact.findUnique({
-        where: { id: campaignContactId },
+      const campaignMember = await this.prisma.campaignMember.findUnique({
+        where: { id: campaignMemberId },
         include: {
-          contact: true,
+          person: true,
           campaign: {
             include: {
               company: true,
@@ -50,16 +50,16 @@ export class OutreachGenerationWorker {
         },
       });
 
-      if (!campaignContact || campaignContact.workspaceId !== workspaceId) {
+      if (!campaignMember || campaignMember.workspaceId !== workspaceId) {
         throw new Error(
-          `Tenant mismatch or CampaignContact ${campaignContactId} not found`,
+          `Tenant mismatch or CampaignMember ${campaignMemberId} not found`,
         );
       }
 
       // Check worker stale attempt protection: abort if updated after job creation
-      if (campaignContact.updatedAt > job.createdAt) {
+      if (campaignMember.updatedAt > job.createdAt) {
         this.logger.warn(
-          `Stale attempt detected for job ${jobId}; CampaignContact updated after job creation. Aborting execution.`,
+          `Stale attempt detected for job ${jobId}; CampaignMember updated after job creation. Aborting execution.`,
         );
         await this.prisma.job.update({
           where: { id: jobId },
@@ -72,9 +72,9 @@ export class OutreachGenerationWorker {
         where: { workspaceId },
       });
 
-      const company = campaignContact.campaign.company;
-      const contact = campaignContact.contact;
-      const opportunity = campaignContact.selectedOpportunity;
+      const company = campaignMember.campaign.company;
+      const contact = campaignMember.person;
+      const opportunity = campaignMember.selectedOpportunity;
 
       const evidenceList = await this.prisma.evidence.findMany({
         where: {
@@ -85,12 +85,12 @@ export class OutreachGenerationWorker {
 
       const context: OutreachContext = {
         workspaceId,
-        campaignContactId,
-        contact: {
+        campaignMemberId: campaignMemberId,
+        person: {
           id: contact.id,
-          name: contact.name,
+          firstName: contact.firstName, lastName: contact.lastName,
           title: contact.title,
-          kind: contact.contactKind,
+          kind: contact.personKind,
         },
         company: {
           id: company.id,
@@ -139,8 +139,8 @@ export class OutreachGenerationWorker {
       // 6. Final Transactional Persistence & Atomic Job Completion
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Re-verify stale attempt within transaction
-        const currentCC = await tx.campaignContact.findUnique({
-          where: { id: campaignContactId },
+        const currentCC = await tx.campaignMember.findUnique({
+          where: { id: campaignMemberId },
         });
 
         if (!currentCC || currentCC.updatedAt > job.createdAt) {
@@ -149,8 +149,8 @@ export class OutreachGenerationWorker {
           );
         }
 
-        await tx.campaignContact.update({
-          where: { id: campaignContactId },
+        await tx.campaignMember.update({
+          where: { id: campaignMemberId },
           data: {
             outreachReason: reasonResult.reasonText,
             currentSubject: validatedDraft.subject,
@@ -169,7 +169,7 @@ export class OutreachGenerationWorker {
       });
 
       this.logger.log(
-        `Successfully completed outreach generation for CampaignContact ${campaignContactId}`,
+        `Successfully completed outreach generation for CampaignMember ${campaignMemberId}`,
       );
       return true;
     } catch (error) {

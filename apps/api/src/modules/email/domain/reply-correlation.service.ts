@@ -3,7 +3,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { InboundReply } from '@repo/db';
 
 export type CorrelationResult = 
-  | { status: 'CORRELATED'; campaignContactId: string }
+  | { status: 'CORRELATED'; campaignMemberId: string }
   | { status: 'UNCORRELATED' }
   | { status: 'AMBIGUOUS' };
 
@@ -30,13 +30,13 @@ export class ReplyCorrelationService {
           replyToToken: token
         },
         select: {
-          campaignContactId: true,
+          campaignMemberId: true,
           workspaceId: true
         }
       });
 
       if (send && send.workspaceId === workspaceId) {
-        return { status: 'CORRELATED', campaignContactId: send.campaignContactId };
+        return { status: 'CORRELATED', campaignMemberId: send.campaignMemberId };
       }
     }
 
@@ -48,12 +48,12 @@ export class ReplyCorrelationService {
           workspaceId: workspaceId,
           messageId: formattedInReplyTo
         },
-        select: { campaignContactId: true },
-        distinct: ['campaignContactId']
+        select: { campaignMemberId: true },
+        distinct: ['campaignMemberId']
       });
 
       if (sends.length === 1) {
-        return { status: 'CORRELATED', campaignContactId: sends[0].campaignContactId };
+        return { status: 'CORRELATED', campaignMemberId: sends[0].campaignMemberId };
       }
       
       if (sends.length > 1) {
@@ -69,12 +69,12 @@ export class ReplyCorrelationService {
           workspaceId: workspaceId,
           messageId: { in: formattedReferences }
         },
-        select: { campaignContactId: true },
-        distinct: ['campaignContactId']
+        select: { campaignMemberId: true },
+        distinct: ['campaignMemberId']
       });
 
       if (sends.length === 1) {
-        return { status: 'CORRELATED', campaignContactId: sends[0].campaignContactId };
+        return { status: 'CORRELATED', campaignMemberId: sends[0].campaignMemberId };
       }
       
       if (sends.length > 1) {

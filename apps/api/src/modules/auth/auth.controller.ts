@@ -96,7 +96,7 @@ export class AuthController {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name ?? null,
+        name: `${user.firstName} ${user.lastName}`,
       },
       workspace: {
         id: workspace.id,

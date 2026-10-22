@@ -80,20 +80,21 @@ export class ContactController {
   @Get('contacts/:id')
   async getContactById(
     @Req() req: express.Request,
-    @Param('id') contactId: string,
+    @Param('id') personId: string,
   ) {
     const workspace = req.workspace as RequestWorkspace;
     if (!workspace?.id) {
       throw new AppUnauthorizedException('Workspace context is missing.');
     }
-    return this.getContactByIdUseCase.execute(workspace.id, contactId);
+    return this.getContactByIdUseCase.execute(workspace.id, personId);
   }
 
-  @Post('companies/:companyId/contacts/:contactId/select')
+  @Post('companies/:companyId/contacts/:personId/select')
   async selectContact(
     @Req() req: express.Request,
     @Param('companyId') companyId: string,
-    @Param('contactId') contactId: string,
+    @Param('personId') personId: string,
+    @Param('companyAssociationId') companyAssociationId: string,
   ) {
     const workspace = req.workspace as RequestWorkspace;
     if (!workspace?.id) {
@@ -102,7 +103,8 @@ export class ContactController {
     return this.selectContactUseCase.execute(
       workspace.id,
       companyId,
-      contactId,
+      personId,
+      companyAssociationId
     );
   }
 }

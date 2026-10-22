@@ -18,8 +18,8 @@ describe('OutreachGenerationWorker', () => {
     payload: {
       userId: 'usr-123',
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-123',
-      contactId: 'cnt-1',
+      campaignMemberId: 'cc-123',
+      personId: 'cnt-1',
       companyId: 'cmp-1',
       draftVersion: 1,
     },
@@ -28,13 +28,13 @@ describe('OutreachGenerationWorker', () => {
   const mockCampaignContact = {
     id: 'cc-123',
     workspaceId: 'ws-123',
-    contactId: 'cnt-1',
+    personId: 'cnt-1',
     updatedAt: new Date('2026-09-18T09:00:00Z'),
-    contact: {
+    person: {
       id: 'cnt-1',
       name: 'Alice Smith',
       title: 'VP Eng',
-      contactKind: 'PERSON',
+      personKind: 'PERSON',
     },
     campaign: {
       company: {
@@ -58,7 +58,7 @@ describe('OutreachGenerationWorker', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      campaignContact: {
+      campaignMember: {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
@@ -86,9 +86,9 @@ describe('OutreachGenerationWorker', () => {
     worker = module.get<OutreachGenerationWorker>(OutreachGenerationWorker);
   });
 
-  it('processes valid job and updates CampaignContact atomically', async () => {
+  it('processes valid job and updates CampaignMember atomically', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.careerProfile.findUnique.mockResolvedValue({
       headline: 'Senior Engineer',
       targetRoles: ['Lead Engineer'],
@@ -105,7 +105,7 @@ describe('OutreachGenerationWorker', () => {
     const success = await worker.processJob('job-1');
     expect(success).toBe(true);
 
-    expect(prisma.campaignContact.update).toHaveBeenCalledWith({
+    expect(prisma.campaignMember.update).toHaveBeenCalledWith({
       where: { id: 'cc-123' },
       data: expect.objectContaining({
         currentSubject: 'Engineering alignment with Alpha Corp',
@@ -122,9 +122,9 @@ describe('OutreachGenerationWorker', () => {
     });
   });
 
-  it('leaves CampaignContact completely untouched on AI validation failure', async () => {
+  it('leaves CampaignMember completely untouched on AI validation failure', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.careerProfile.findUnique.mockResolvedValue(null);
     prisma.evidence.findMany.mockResolvedValue([]);
     // AI output contains illegal opening claim for PROACTIVE opportunity
@@ -138,8 +138,8 @@ describe('OutreachGenerationWorker', () => {
     const success = await worker.processJob('job-1');
     expect(success).toBe(false);
 
-    // Verify CampaignContact was NEVER updated
-    expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+    // Verify CampaignMember was NEVER updated
+    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
 
     // Verify Job was marked PENDING for retry with error log
     expect(prisma.job.update).toHaveBeenCalledWith({
@@ -151,25 +151,25 @@ describe('OutreachGenerationWorker', () => {
     });
   });
 
-  it('detects worker stale attempt before execution and aborts without modifying CampaignContact', async () => {
+  it('detects worker stale attempt before execution and aborts without modifying CampaignMember', async () => {
     const staleCampaignContact = {
       ...mockCampaignContact,
       updatedAt: new Date('2026-09-18T11:00:00Z'), // Modified AFTER job creation at 10:00:00Z
     };
 
     prisma.job.findUnique.mockResolvedValue(mockJob);
-    prisma.campaignContact.findUnique.mockResolvedValue(staleCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(staleCampaignContact);
 
     const success = await worker.processJob('job-1');
     expect(success).toBe(true);
     expect(aiProvider.complete).not.toHaveBeenCalled();
-    expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
   });
 
-  it('aborts persistence inside transaction when CampaignContact is updated concurrently during AI execution', async () => {
+  it('aborts persistence inside transaction when CampaignMember is updated concurrently during AI execution', async () => {
     prisma.job.findUnique.mockResolvedValue(mockJob);
     // Initial fetch returns non-stale contact
-    prisma.campaignContact.findUnique.mockResolvedValueOnce(
+    prisma.campaignMember.findUnique.mockResolvedValueOnce(
       mockCampaignContact,
     );
     // Concurrent update occurs during AI execution -> transaction fetch returns stale contact
@@ -177,7 +177,7 @@ describe('OutreachGenerationWorker', () => {
       ...mockCampaignContact,
       updatedAt: new Date('2026-09-18T12:00:00Z'),
     };
-    prisma.campaignContact.findUnique.mockResolvedValueOnce(
+    prisma.campaignMember.findUnique.mockResolvedValueOnce(
       concurrentlyUpdatedContact,
     );
 
@@ -192,6 +192,6 @@ describe('OutreachGenerationWorker', () => {
 
     const success = await worker.processJob('job-1');
     expect(success).toBe(false);
-    expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+    expect(prisma.campaignMember.update).not.toHaveBeenCalled();
   });
 });

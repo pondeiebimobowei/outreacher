@@ -18,7 +18,7 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
     id: 'cc-123',
     workspaceId: 'ws-123',
     campaignId: 'cmp-123',
-    contactId: 'cnt-123',
+    personId: 'cnt-123',
     status: 'PENDING',
     currentSubject: 'Original Subject Line',
     currentBody:
@@ -29,7 +29,7 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
 
   beforeEach(async () => {
     prisma = {
-      campaignContact: {
+      campaignMember: {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
@@ -105,18 +105,18 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
 
   describe('Use Case Logic (UpdateDraftUseCase)', () => {
     it('updates subject while retaining existing bodyText (partial update)', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
-      prisma.campaignContact.update.mockImplementation(({ data }: any) =>
+      prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
+      prisma.campaignMember.update.mockImplementation(({ data }: any) =>
         Promise.resolve({ ...mockCampaignContact, ...data }),
       );
 
       const result = await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
         subject: ' Updated Subject ',
       });
 
-      expect(prisma.campaignContact.update).toHaveBeenCalledWith({
+      expect(prisma.campaignMember.update).toHaveBeenCalledWith({
         where: { id: 'cc-123' },
         data: {
           currentSubject: 'Updated Subject',
@@ -130,8 +130,8 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
     });
 
     it('updates bodyText while retaining existing subject (partial update)', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
-      prisma.campaignContact.update.mockImplementation(({ data }: any) =>
+      prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
+      prisma.campaignMember.update.mockImplementation(({ data }: any) =>
         Promise.resolve({ ...mockCampaignContact, ...data }),
       );
 
@@ -139,11 +139,11 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
         'This is a newly updated body text that exceeds twenty characters easily.';
       const result = await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
         bodyText: newBody,
       });
 
-      expect(prisma.campaignContact.update).toHaveBeenCalledWith({
+      expect(prisma.campaignMember.update).toHaveBeenCalledWith({
         where: { id: 'cc-123' },
         data: {
           currentSubject: mockCampaignContact.currentSubject,
@@ -160,19 +160,19 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
         ...mockCampaignContact,
         status: 'READY',
       };
-      prisma.campaignContact.findUnique.mockResolvedValue(readyContact);
-      prisma.campaignContact.update.mockImplementation(({ data }: any) =>
+      prisma.campaignMember.findUnique.mockResolvedValue(readyContact);
+      prisma.campaignMember.update.mockImplementation(({ data }: any) =>
         Promise.resolve({ ...readyContact, ...data }),
       );
 
       const result = await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
         subject: 'New Subject for Approved Draft',
       });
 
       expect(result.status).toBe('PENDING');
-      expect(prisma.campaignContact.update).toHaveBeenCalledWith({
+      expect(prisma.campaignMember.update).toHaveBeenCalledWith({
         where: { id: 'cc-123' },
         data: {
           currentSubject: 'New Subject for Approved Draft',
@@ -187,21 +187,21 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
         ...mockCampaignContact,
         status: 'SCHEDULED',
       };
-      prisma.campaignContact.findUnique.mockResolvedValue(scheduledContact);
+      prisma.campaignMember.findUnique.mockResolvedValue(scheduledContact);
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
           subject: 'New Subject',
         }),
       ).rejects.toThrow(AppConflictException);
 
-      expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+      expect(prisma.campaignMember.update).not.toHaveBeenCalled();
     });
 
     it('rejects edit on cross-tenant access attempt', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         workspaceId: 'ws-OTHER',
       });
@@ -209,21 +209,21 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
           subject: 'New Subject',
         }),
       ).rejects.toThrow(AppNotFoundException);
 
-      expect(prisma.campaignContact.update).not.toHaveBeenCalled();
+      expect(prisma.campaignMember.update).not.toHaveBeenCalled();
     });
 
-    it('throws AppNotFoundException if CampaignContact does not exist', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(null);
+    it('throws AppNotFoundException if CampaignMember does not exist', async () => {
+      prisma.campaignMember.findUnique.mockResolvedValue(null);
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-nonexistent',
+          campaignMemberId: 'cc-nonexistent',
           subject: 'New Subject',
         }),
       ).rejects.toThrow(AppNotFoundException);
@@ -233,7 +233,7 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppValidationException);
     });
@@ -242,7 +242,7 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
           subject: '   ',
         }),
       ).rejects.toThrow(AppValidationException);
@@ -252,7 +252,7 @@ describe('UpdateDraftUseCase & UpdateDraftRequestDto', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
           bodyText: 'Short body',
         }),
       ).rejects.toThrow(AppValidationException);

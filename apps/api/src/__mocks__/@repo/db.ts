@@ -38,7 +38,7 @@ export enum EvidenceClassification {
   UNKNOWN = 'UNKNOWN',
 }
 
-export enum ContactKind {
+export enum PersonKind {
   PERSON = 'PERSON',
   ROLE_ADDRESS = 'ROLE_ADDRESS',
 }
@@ -60,7 +60,7 @@ export enum CampaignStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
-export enum CampaignContactStatus {
+export enum CampaignMemberStatus {
   PENDING = 'PENDING',
   READY = 'READY',
   SCHEDULED = 'SCHEDULED',
@@ -250,7 +250,7 @@ export class PrismaClient {
     delete: jest.fn(),
   };
 
-  campaignContact = {
+  campaignMember = {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     findMany: jest.fn(),

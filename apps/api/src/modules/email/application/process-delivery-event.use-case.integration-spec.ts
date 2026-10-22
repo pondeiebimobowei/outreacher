@@ -17,8 +17,8 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
   let workspaceId: string;
   let companyId: string;
   let campaignId: string;
-  let contactId: string;
-  let campaignContactId: string;
+  let personId: string;
+  let campaignMemberId: string;
   let emailSendId: string;
 
   beforeAll(async () => {
@@ -36,16 +36,16 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
     workspaceId = randomUUID();
     companyId = randomUUID();
     campaignId = randomUUID();
-    contactId = randomUUID();
-    campaignContactId = randomUUID();
+    personId = randomUUID();
+    campaignMemberId = randomUUID();
     emailSendId = randomUUID();
 
     await prisma.$executeRaw`INSERT INTO workspaces (id, name, updated_at) VALUES (${workspaceId}, 'Test Workspace', NOW())`;
     await prisma.$executeRaw`INSERT INTO companies (id, workspace_id, name, normalized_name, domain, updated_at) VALUES (${companyId}, ${workspaceId}, 'Test Company', 'test-company', 'test.com', NOW())`;
     await prisma.$executeRaw`INSERT INTO campaigns (id, workspace_id, company_id, name, normalized_name, status, updated_at) VALUES (${campaignId}, ${workspaceId}, ${companyId}, 'Test', 'test', 'DRAFT', NOW())`;
-    await prisma.$executeRaw`INSERT INTO contacts (id, workspace_id, company_id, email, name, updated_at) VALUES (${contactId}, ${workspaceId}, ${companyId}, 'test@example.com', 'Test', NOW())`;
-    await prisma.$executeRaw`INSERT INTO campaign_contacts (id, workspace_id, campaign_id, contact_id, status, updated_at) VALUES (${campaignContactId}, ${workspaceId}, ${campaignId}, ${contactId}, 'SENDING', NOW())`;
-    await prisma.$executeRaw`INSERT INTO email_sends (id, workspace_id, campaign_id, campaign_contact_id, provider, provider_message_id, status, subject, body, updated_at) VALUES (${emailSendId}, ${workspaceId}, ${campaignId}, ${campaignContactId}, 'RESEND', 'msg-123', 'SENT', 'Test', 'Test', NOW())`;
+    await prisma.$executeRaw`INSERT INTO contacts (id, workspace_id, company_id, email, name, updated_at) VALUES (${personId}, ${workspaceId}, ${companyId}, 'test@example.com', 'Test', NOW())`;
+    await prisma.$executeRaw`INSERT INTO campaign_contacts (id, workspace_id, campaign_id, contact_id, status, updated_at) VALUES (${campaignMemberId}, ${workspaceId}, ${campaignId}, ${personId}, 'SENDING', NOW())`;
+    await prisma.$executeRaw`INSERT INTO email_sends (id, workspace_id, campaign_id, campaign_contact_id, provider, provider_message_id, status, subject, body, updated_at) VALUES (${emailSendId}, ${workspaceId}, ${campaignId}, ${campaignMemberId}, 'RESEND', 'msg-123', 'SENT', 'Test', 'Test', NOW())`;
   });
 
   afterAll(async () => {
@@ -198,7 +198,7 @@ describe('ProcessDeliveryEventUseCase (Integration)', () => {
 
   it('CONCURRENCY TEST 2: Adversarial Conflict (same providerEventId + DIFFERENT providerMessageId)', async () => {
     const emailSendId2 = randomUUID();
-    await prisma.$executeRaw`INSERT INTO email_sends (id, workspace_id, campaign_id, campaign_contact_id, provider, provider_message_id, status, subject, body, updated_at) VALUES (${emailSendId2}, ${workspaceId}, ${campaignId}, ${campaignContactId}, 'RESEND', 'msg-456', 'SENT', 'Test2', 'Test2', NOW())`;
+    await prisma.$executeRaw`INSERT INTO email_sends (id, workspace_id, campaign_id, campaign_contact_id, provider, provider_message_id, status, subject, body, updated_at) VALUES (${emailSendId2}, ${workspaceId}, ${campaignId}, ${campaignMemberId}, 'RESEND', 'msg-456', 'SENT', 'Test2', 'Test2', NOW())`;
 
     const evtId = randomUUID();
     const idempotencyKey = `webhook:delivery:RESEND:${evtId}`;

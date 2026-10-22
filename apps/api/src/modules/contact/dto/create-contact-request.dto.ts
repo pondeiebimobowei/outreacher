@@ -12,7 +12,12 @@ export class CreateContactRequestDto {
   @IsString()
   @IsNotEmpty()
   @Length(1, 255)
-  name!: string;
+  firstName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Length(1, 255)
+  lastName!: string;
 
   @IsOptional()
   @IsEmail()
@@ -24,7 +29,7 @@ export class CreateContactRequestDto {
 
   @IsOptional()
   @IsEnum(['PERSON', 'ROLE_ADDRESS'])
-  contactKind?: 'PERSON' | 'ROLE_ADDRESS';
+  personKind?: 'PERSON' | 'ROLE_ADDRESS';
 
   @IsOptional()
   @IsUrl({ protocols: ['http', 'https'], require_protocol: true })

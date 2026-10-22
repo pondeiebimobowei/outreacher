@@ -1,3 +1,4 @@
+import { CampaignStatus } from '@repo/db';
 import {
   IsInt,
   IsNotEmpty,
@@ -21,6 +22,18 @@ export class CreateCampaignDto {
   companyId!: string;
 
   @IsString()
+  @IsNotEmpty()
+  senderAccountId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  templateId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  status!: CampaignStatus;
+
+  @IsString()
   @IsOptional()
   sendingIdentity?: string;
 
@@ -29,4 +42,5 @@ export class CreateCampaignDto {
   @Min(1)
   @Max(30)
   followUpDelayBusinessDays?: number;
+
 }

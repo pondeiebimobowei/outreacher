@@ -53,7 +53,7 @@ describe('EmailController', () => {
     });
     expect(mockSendEmailUseCase.execute).toHaveBeenCalledWith({
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-456',
+      campaignMemberId: 'cc-456',
       clientKey: 'key-abc-123',
     });
   });
@@ -80,7 +80,7 @@ describe('EmailController', () => {
 
   it('propagates domain/conflict exceptions thrown by SendEmailUseCase', async () => {
     mockSendEmailUseCase.execute.mockRejectedValue(
-      new AppConflictException('Contact already sending'),
+      new AppConflictException('Person already sending'),
     );
 
     await expect(

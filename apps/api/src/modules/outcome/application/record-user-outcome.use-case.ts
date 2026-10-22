@@ -7,18 +7,18 @@ export class RecordUserOutcomeUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(
-    campaignContactId: string,
+    campaignMemberId: string,
     workspaceId: string,
     userId: string,
     outcomeType: OutcomeType,
     notes?: string,
   ): Promise<string> {
     return this.prisma.$transaction(async (tx : Prisma.TransactionClient) => {
-      // 1. Lock CampaignContact FOR UPDATE
+      // 1. Lock CampaignMember FOR UPDATE
       const contacts = await tx.$queryRaw<any[]>`
         SELECT id, workspace_id, status 
         FROM campaign_contacts 
-        WHERE id = ${campaignContactId} 
+        WHERE id = ${campaignMemberId} 
           AND workspace_id = ${workspaceId} 
         FOR UPDATE
       `;
@@ -40,16 +40,16 @@ export class RecordUserOutcomeUseCase {
       const outcome = await tx.outcome.create({
         data: {
           workspaceId,
-          campaignContactId,
+          campaignMemberId,
           recordedByUserId: userId,
           type: outcomeType,
           notes: notes || null,
         },
       });
 
-      // 4. UPDATE CampaignContact -> COMPLETED
-      await tx.campaignContact.update({
-        where: { id: campaignContactId },
+      // 4. UPDATE CampaignMember -> COMPLETED
+      await tx.campaignMember.update({
+        where: { id: campaignMemberId },
         data: { status: 'COMPLETED' },
       });
 

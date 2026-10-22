@@ -6,7 +6,7 @@ describe('MockEmailSender', () => {
 
   const validEmailInput = {
     workspaceId: 'ws-1',
-    campaignContactId: 'cc-1',
+    campaignMemberId: 'cc-1',
     toEmail: 'lead@company.com',
     fromEmail: 'founder@startup.com',
     subject: 'Introductory chat',

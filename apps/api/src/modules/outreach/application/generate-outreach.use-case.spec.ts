@@ -11,7 +11,7 @@ describe('GenerateOutreachUseCase', () => {
   const mockCampaignContact = {
     id: 'cc-123',
     workspaceId: 'ws-123',
-    contactId: 'cnt-123',
+    personId: 'cnt-123',
     campaignId: 'cmp-123',
     currentSubject: null,
     currentBody: null,
@@ -22,7 +22,7 @@ describe('GenerateOutreachUseCase', () => {
 
   beforeEach(async () => {
     prisma = {
-      campaignContact: {
+      campaignMember: {
         findUnique: jest.fn(),
       },
       $transaction: jest.fn((cb) => cb(prisma)),
@@ -44,7 +44,7 @@ describe('GenerateOutreachUseCase', () => {
   });
 
   it('enqueues OUTREACH_GENERATION job with userId in payload and returns jobId', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.job.findUnique.mockResolvedValue(null);
     prisma.job.count.mockResolvedValue(5);
     prisma.job.create.mockResolvedValue({ id: 'job-999', status: 'PENDING' });
@@ -52,7 +52,7 @@ describe('GenerateOutreachUseCase', () => {
     const result = await useCase.execute({
       userId: 'usr-123',
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-123',
+      campaignMemberId: 'cc-123',
     });
 
     expect(result).toEqual({ jobId: 'job-999', status: 'QUEUED' });
@@ -65,8 +65,8 @@ describe('GenerateOutreachUseCase', () => {
         payload: {
           userId: 'usr-123',
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
-          contactId: 'cnt-123',
+          campaignMemberId: 'cc-123',
+          personId: 'cnt-123',
           companyId: 'company-123',
           draftVersion: 1,
         },
@@ -74,20 +74,20 @@ describe('GenerateOutreachUseCase', () => {
     });
   });
 
-  it('throws NotFoundException if CampaignContact does not exist', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue(null);
+  it('throws NotFoundException if CampaignMember does not exist', async () => {
+    prisma.campaignMember.findUnique.mockResolvedValue(null);
 
     await expect(
       useCase.execute({
         userId: 'usr-123',
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-nonexistent',
+        campaignMemberId: 'cc-nonexistent',
       }),
     ).rejects.toThrow(NotFoundException);
   });
 
   it('throws ForbiddenException on cross-tenant access', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue({
+    prisma.campaignMember.findUnique.mockResolvedValue({
       ...mockCampaignContact,
       workspaceId: 'ws-OTHER',
     });
@@ -96,13 +96,13 @@ describe('GenerateOutreachUseCase', () => {
       useCase.execute({
         userId: 'usr-123',
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
       }),
     ).rejects.toThrow(ForbiddenException);
   });
 
   it('returns existing jobId without enqueuing duplicate for active idempotent job', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.job.findUnique.mockResolvedValue({
       id: 'job-existing',
       status: 'RUNNING',
@@ -111,7 +111,7 @@ describe('GenerateOutreachUseCase', () => {
     const result = await useCase.execute({
       userId: 'usr-123',
       workspaceId: 'ws-123',
-      campaignContactId: 'cc-123',
+      campaignMemberId: 'cc-123',
     });
 
     expect(result).toEqual({ jobId: 'job-existing', status: 'QUEUED' });
@@ -119,7 +119,7 @@ describe('GenerateOutreachUseCase', () => {
   });
 
   it('throws AIRateLimitException when 20 calls/hr quota is exceeded for specific user', async () => {
-    prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+    prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
     prisma.job.findUnique.mockResolvedValue(null);
     prisma.job.count.mockResolvedValue(20);
 
@@ -127,7 +127,7 @@ describe('GenerateOutreachUseCase', () => {
       useCase.execute({
         userId: 'usr-123',
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
       }),
     ).rejects.toThrow(AIRateLimitException);
 

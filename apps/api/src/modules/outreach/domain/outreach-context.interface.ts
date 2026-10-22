@@ -1,13 +1,13 @@
-import { ContactKind, OpportunityType, EvidenceClassification } from '@repo/db';
+import { PersonKind, OpportunityType, EvidenceClassification } from '@repo/db';
 
 export interface OutreachContext {
   workspaceId: string;
-  campaignContactId: string;
-  contact: {
+  campaignMemberId: string;
+  person: {
     id: string;
-    name: string;
+    firstName: string; lastName: string;
     title?: string | null;
-    kind: ContactKind;
+    kind: PersonKind;
   };
   company: {
     id: string;

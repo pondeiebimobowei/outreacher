@@ -23,19 +23,19 @@ describe('ApproveDraftUseCase', () => {
     id: 'cc-123',
     workspaceId: 'ws-123',
     campaignId: 'cmp-123',
-    contactId: 'cnt-123',
+    personId: 'cnt-123',
     status: 'PENDING',
     currentSubject: 'Valid Subject Line',
     currentBody: 'This is a valid body that exceeds 20 characters easily.',
     createdAt: mockDate,
     updatedAt: mockDate,
-    contact: mockContact,
+    person: mockContact,
   };
 
   beforeEach(async () => {
     prisma = {
       $transaction: jest.fn((callback) => callback(prisma)),
-      campaignContact: {
+      campaignMember: {
         findUnique: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -59,18 +59,18 @@ describe('ApproveDraftUseCase', () => {
 
   describe('execute', () => {
     it('should successfully approve a PENDING draft', async () => {
-      prisma.campaignContact.findUnique
+      prisma.campaignMember.findUnique
         .mockResolvedValueOnce(mockCampaignContact) // initial fetch
         .mockResolvedValueOnce({ ...mockCampaignContact, status: 'READY' }); // final fetch after update
       prisma.suppression.findUnique.mockResolvedValue(null);
-      prisma.campaignContact.updateMany.mockResolvedValue({ count: 1 });
+      prisma.campaignMember.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
       });
 
-      expect(prisma.campaignContact.updateMany).toHaveBeenCalledWith({
+      expect(prisma.campaignMember.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'cc-123',
           updatedAt: mockDate,
@@ -84,7 +84,7 @@ describe('ApproveDraftUseCase', () => {
     });
 
     it('should handle READY -> READY idempotently without mutation', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         status: 'READY',
       });
@@ -92,19 +92,19 @@ describe('ApproveDraftUseCase', () => {
 
       const result = await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
       });
 
       // updateMany should not be called
-      expect(prisma.campaignContact.updateMany).not.toHaveBeenCalled();
+      expect(prisma.campaignMember.updateMany).not.toHaveBeenCalled();
 
       // The contact relation should be stripped in the returned result
-      expect((result as any).contact).toBeUndefined();
+      expect((result as any).person).toBeUndefined();
       expect(result.status).toBe('READY');
     });
 
     it('should reject READY -> READY if recipient is suppressed', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         status: 'READY',
       });
@@ -114,54 +114,54 @@ describe('ApproveDraftUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppConflictException);
-      expect(prisma.campaignContact.updateMany).not.toHaveBeenCalled();
+      expect(prisma.campaignMember.updateMany).not.toHaveBeenCalled();
     });
 
     it('should reject PENDING -> READY if recipient is suppressed', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+      prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
       // Mock suppression to return a record
       prisma.suppression.findUnique.mockResolvedValue({ id: 'sup-123' });
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppConflictException);
     });
 
     it('should reject if contact has no email', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
-        contact: { ...mockContact, email: null },
+        person: { ...mockContact, email: null },
       });
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppValidationException);
     });
 
     it('should normalize email before checking suppression', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
-        contact: { ...mockContact, email: '   TeSt@ExAmple.com  ' },
+        person: { ...mockContact, email: '   TeSt@ExAmple.com  ' },
       });
       prisma.suppression.findUnique.mockResolvedValue(null);
-      prisma.campaignContact.updateMany.mockResolvedValue({ count: 1 });
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.updateMany.mockResolvedValue({ count: 1 });
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         status: 'READY',
       }); // final fetch
 
       await useCase.execute({
         workspaceId: 'ws-123',
-        campaignContactId: 'cc-123',
+        campaignMemberId: 'cc-123',
       });
 
       expect(prisma.suppression.findUnique).toHaveBeenCalledWith({
@@ -175,7 +175,7 @@ describe('ApproveDraftUseCase', () => {
     });
 
     it('should throw AppValidationException if subject is too short', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         currentSubject: 'Hi', // < 3 chars
       });
@@ -184,13 +184,13 @@ describe('ApproveDraftUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppValidationException);
     });
 
     it('should throw AppValidationException if body is too short', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         currentBody: 'Too short', // < 20 chars
       });
@@ -199,49 +199,49 @@ describe('ApproveDraftUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppValidationException);
     });
 
     it('should throw AppConflictException on concurrent update', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+      prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
       prisma.suppression.findUnique.mockResolvedValue(null);
       // simulate race condition where 0 rows are updated
-      prisma.campaignContact.updateMany.mockResolvedValue({ count: 0 });
+      prisma.campaignMember.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppConflictException);
     });
 
-    it('should throw AppNotFoundException if campaignContact is not found', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(null);
+    it('should throw AppNotFoundException if campaignMember is not found', async () => {
+      prisma.campaignMember.findUnique.mockResolvedValue(null);
 
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'non-existent',
+          campaignMemberId: 'non-existent',
         }),
       ).rejects.toThrow(AppNotFoundException);
     });
 
     it('should throw AppNotFoundException if cross-tenant access is attempted', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue(mockCampaignContact);
+      prisma.campaignMember.findUnique.mockResolvedValue(mockCampaignContact);
 
       await expect(
         useCase.execute({
           workspaceId: 'different-ws',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppNotFoundException);
     });
 
     it('should throw AppConflictException if status is not PENDING or READY', async () => {
-      prisma.campaignContact.findUnique.mockResolvedValue({
+      prisma.campaignMember.findUnique.mockResolvedValue({
         ...mockCampaignContact,
         status: 'GENERATING',
       });
@@ -249,7 +249,7 @@ describe('ApproveDraftUseCase', () => {
       await expect(
         useCase.execute({
           workspaceId: 'ws-123',
-          campaignContactId: 'cc-123',
+          campaignMemberId: 'cc-123',
         }),
       ).rejects.toThrow(AppConflictException);
     });

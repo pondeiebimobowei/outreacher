@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Contact } from '@repo/db';
+import { Person } from '@repo/db';
 import {
   AppNotFoundException,
   AppValidationException,
@@ -26,7 +26,7 @@ export class CreateContactUseCase {
     workspaceId: string,
     companyId: string,
     dto: CreateContactRequestDto,
-  ): Promise<Contact> {
+  ): Promise<Person> {
     // 1. Verify Company Ownership in Workspace
     const company = await this.prisma.company.findFirst({
       where: {
@@ -42,9 +42,10 @@ export class CreateContactUseCase {
     }
 
     // 2. Validate & Normalize Inputs
-    const trimmedName = dto.name?.trim();
-    if (!trimmedName) {
-      throw new AppValidationException('Contact name is required.');
+    const firstName = dto.firstName?.trim();
+    const lastName = dto.lastName?.trim();
+    if (!firstName || !lastName) {
+      throw new AppValidationException('Person name is required.');
     }
 
     let normalizedEmail: string | null = null;
@@ -73,28 +74,28 @@ export class CreateContactUseCase {
       }
     }
 
-    const contactKind =
-      dto.contactKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON';
+    const personKind =
+      dto.personKind === 'ROLE_ADDRESS' ? 'ROLE_ADDRESS' : 'PERSON';
     const trimmedTitle = dto.title?.trim() || null;
 
-    // 3. Persist Contact (Upsert on Email, Always Create on No-Email)
-    let contact: Contact;
+    // 3. Persist Person (Upsert on Email, Always Create on No-Email)
+    let contact: Person;
     if (normalizedEmail) {
-      const existing = await this.prisma.contact.findFirst({
+      const existing = await this.prisma.person.findFirst({
         where: {
           workspaceId,
-          companyId,
           email: normalizedEmail,
         },
       });
 
       if (existing) {
-        contact = await this.prisma.contact.update({
+        contact = await this.prisma.person.update({
           where: { id: existing.id },
           data: {
-            name: trimmedName,
+            firstName,
+            lastName,
             title: trimmedTitle,
-            contactKind,
+            personKind,
             source: 'USER_PROVIDED',
             sourceUrl: validatedSourceUrl,
           },
@@ -103,12 +104,12 @@ export class CreateContactUseCase {
           `Updated existing contact ${contact.id} by email ${normalizedEmail}`,
         );
       } else {
-        contact = await this.prisma.contact.create({
+        contact = await this.prisma.person.create({
           data: {
             workspaceId,
-            companyId,
-            contactKind,
-            name: trimmedName,
+            personKind,
+            firstName,
+            lastName,
             email: normalizedEmail,
             title: trimmedTitle,
             source: 'USER_PROVIDED',
@@ -122,12 +123,12 @@ export class CreateContactUseCase {
       }
     } else {
       // No email: ALWAYS create new contact record without deduplication on name+title
-      contact = await this.prisma.contact.create({
+      contact = await this.prisma.person.create({
         data: {
           workspaceId,
-          companyId,
-          contactKind,
-          name: trimmedName,
+          personKind,
+          firstName,
+          lastName,
           email: null,
           title: trimmedTitle,
           source: 'USER_PROVIDED',

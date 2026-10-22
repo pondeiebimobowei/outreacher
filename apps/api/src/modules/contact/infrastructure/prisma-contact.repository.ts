@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CompanyContactSelection, Contact } from '@repo/db';
+import { CompanyContactSelection, Person } from '@repo/db';
 import { PrismaService } from '../../../database/prisma.service';
 import {
   IContactRepository,
@@ -13,11 +13,10 @@ export class PrismaContactRepository implements IContactRepository {
   async findCompanyContacts(
     workspaceId: string,
     companyId: string,
-  ): Promise<Contact[]> {
-    return this.prisma.contact.findMany({
+  ): Promise<Person[]> {
+    return this.prisma.person.findMany({
       where: {
         workspaceId,
-        companyId,
       },
       orderBy: {
         createdAt: 'desc',
@@ -27,11 +26,11 @@ export class PrismaContactRepository implements IContactRepository {
 
   async findContactById(
     workspaceId: string,
-    contactId: string,
-  ): Promise<Contact | null> {
-    return this.prisma.contact.findFirst({
+    personId: string,
+  ): Promise<Person | null> {
+    return this.prisma.person.findFirst({
       where: {
-        id: contactId,
+        id: personId,
         workspaceId,
       },
     });
@@ -41,25 +40,24 @@ export class PrismaContactRepository implements IContactRepository {
     workspaceId: string,
     companyId: string,
     contacts: UpsertContactInput[],
-  ): Promise<Contact[]> {
-    const results: Contact[] = [];
+  ): Promise<Person[]> {
+    const results: Person[] = [];
 
     for (const c of contacts) {
       if (c.email) {
         // Upsert by [workspaceId, companyId, email]
-        const upserted = await this.prisma.contact.upsert({
+        const upserted = await this.prisma.person.upsert({
           where: {
-            workspaceId_companyId_email: {
+            workspaceId_email: {
               workspaceId,
-              companyId,
               email: c.email,
             },
           },
           create: {
             workspaceId,
-            companyId,
-            contactKind: c.contactKind,
-            name: c.name,
+            personKind: c.personKind,
+            firstName: c.firstName,
+            lastName: c.lastName,
             email: c.email,
             title: c.title ?? null,
             source: c.source ?? null,
@@ -68,8 +66,9 @@ export class PrismaContactRepository implements IContactRepository {
             discoveredAt: c.discoveredAt ?? new Date(),
           },
           update: {
-            contactKind: c.contactKind,
-            name: c.name,
+            personKind: c.personKind,
+            firstName: c.firstName,
+            lastName: c.lastName,
             title: c.title ?? undefined,
             source: c.source ?? undefined,
             sourceUrl: c.sourceUrl ?? undefined,
@@ -84,8 +83,9 @@ export class PrismaContactRepository implements IContactRepository {
             data: {
               workspaceId,
               companyId,
-              contactId: upserted.id,
-              claim: `Identified contact ${upserted.name} (${upserted.title || 'No Title'})`,
+              companyAssociationId: c.companyId,
+              personId: upserted.id,
+              claim: `Identified contact ${upserted.firstName} ${upserted.lastName} (${upserted.title || 'No Title'})`,
               classification: 'FACT',
               sourceName: c.source || 'Company Source',
               sourceUrl: c.sourceUrl || null,
@@ -98,18 +98,18 @@ export class PrismaContactRepository implements IContactRepository {
         results.push(upserted);
       } else {
         // Missing email -> Find existing by workspaceId + companyId + name + title or create
-        const existing = await this.prisma.contact.findFirst({
+        const existing = await this.prisma.person.findFirst({
           where: {
             workspaceId,
-            companyId,
-            name: c.name,
+            firstName: c.firstName,
+            lastName: c.lastName,
             title: c.title ?? null,
             email: null,
           },
         });
 
         if (existing) {
-          const updated = await this.prisma.contact.update({
+          const updated = await this.prisma.person.update({
             where: { id: existing.id },
             data: {
               source: c.source ?? undefined,
@@ -120,12 +120,12 @@ export class PrismaContactRepository implements IContactRepository {
           });
           results.push(updated);
         } else {
-          const created = await this.prisma.contact.create({
+          const created = await this.prisma.person.create({
             data: {
               workspaceId,
-              companyId,
-              contactKind: c.contactKind,
-              name: c.name,
+              personKind: c.personKind,
+              firstName: c.firstName,
+              lastName: c.lastName,
               email: null,
               title: c.title ?? null,
               source: c.source ?? null,
@@ -140,9 +140,10 @@ export class PrismaContactRepository implements IContactRepository {
               data: {
                 workspaceId,
                 companyId,
-                contactId: created.id,
-                claim: `Identified contact ${created.name} (${created.title || 'No Title'})`,
+                personId: created.id,
+                claim: `Identified contact ${created.firstName} ${created.lastName} (${created.title || 'No Title'})`,
                 classification: 'FACT',
+                companyAssociationId: c.companyId,
                 sourceName: c.source || 'Company Source',
                 sourceUrl: c.sourceUrl || null,
                 confidence: c.confidence || 'MEDIUM',
@@ -176,7 +177,7 @@ export class PrismaContactRepository implements IContactRepository {
   async setCompanyContactSelection(
     workspaceId: string,
     companyId: string,
-    contactId: string,
+    personId: string,
   ): Promise<CompanyContactSelection> {
     return this.prisma.companyContactSelection.upsert({
       where: {
@@ -188,11 +189,11 @@ export class PrismaContactRepository implements IContactRepository {
       create: {
         workspaceId,
         companyId,
-        contactId,
+        personId: personId,
         selectedAt: new Date(),
       },
       update: {
-        contactId,
+        personId: personId,
         selectedAt: new Date(),
       },
     });

@@ -1,6 +1,6 @@
 export interface ContactEvaluationInput {
   title?: string | null;
-  contactKind: 'PERSON' | 'ROLE_ADDRESS';
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
   email?: string | null;
   targetRoles?: string[];
   confirmedOpportunityTitles?: string[];
@@ -15,7 +15,7 @@ export class ContactRelevanceEvaluator {
   static evaluate(input: ContactEvaluationInput): ContactEvaluationResult {
     const {
       title,
-      contactKind,
+      personKind,
       email,
       targetRoles = [],
       confirmedOpportunityTitles = [],
@@ -24,7 +24,7 @@ export class ContactRelevanceEvaluator {
     const normalizedTitle = cleanTitle.toLowerCase();
 
     // 1. Role Address Handling
-    if (contactKind === 'ROLE_ADDRESS') {
+    if (personKind === 'ROLE_ADDRESS') {
       return {
         relevance: 'LOW',
         recommendationRationale: `Role address '${email || 'general'}' for general department inquiries.`,
@@ -35,7 +35,7 @@ export class ContactRelevanceEvaluator {
       return {
         relevance: 'LOW',
         recommendationRationale:
-          'Contact has no specified job title for relevance evaluation.',
+          'Person has no specified job title for relevance evaluation.',
       };
     }
 

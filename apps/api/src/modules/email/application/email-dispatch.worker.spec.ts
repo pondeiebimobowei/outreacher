@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
-  CampaignContactStatus,
+  CampaignMemberStatus,
   EmailSendStatus,
   JobStatus,
   Prisma,
@@ -18,7 +18,7 @@ describe('EmailDispatchWorker', () => {
   let mockSecretResolver: any;
 
   const workspaceId = 'ws-1111-1111-1111';
-  const campaignContactId = 'cc-2222-2222-2222';
+  const campaignMemberId = 'cc-2222-2222-2222';
   const emailSendId = 'send-3333-3333-3333';
   const jobId = 'job-4444-4444-4444';
 
@@ -40,11 +40,11 @@ describe('EmailDispatchWorker', () => {
         secretReference: 'env://RESEND_KEY',
       },
     },
-    campaignContact: {
-      id: campaignContactId,
+    campaignMember: {
+      id: campaignMemberId,
       workspaceId,
-      status: CampaignContactStatus.SENDING,
-      contact: {
+      status: CampaignMemberStatus.SENDING,
+      person: {
         id: 'contact-5555',
         email: 'founder@example.com',
       },
@@ -73,7 +73,7 @@ describe('EmailDispatchWorker', () => {
         update: jest.fn(),
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      campaignContact: {
+      campaignMember: {
         update: jest.fn(),
           updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
@@ -109,7 +109,7 @@ describe('EmailDispatchWorker', () => {
         type: 'EMAIL_DISPATCH',
         status: JobStatus.RUNNING,
         attemptCount: 1,
-        payload: { emailSendId, campaignContactId },
+        payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
       };
 
@@ -155,7 +155,7 @@ describe('EmailDispatchWorker', () => {
         type: 'EMAIL_DISPATCH',
         status: JobStatus.RUNNING,
         attemptCount: 2,
-        payload: { emailSendId, campaignContactId },
+        payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
       };
 
@@ -184,13 +184,13 @@ describe('EmailDispatchWorker', () => {
         type: 'EMAIL_DISPATCH',
         status: JobStatus.RUNNING,
         attemptCount: 1,
-        payload: { emailSendId, campaignContactId },
+        payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
       } as any,
       claimedAttempt: 1,
     };
 
-    it('invokes provider, updates EmailSend to SENT with provider IDs, updates CampaignContact to SENT, and completes Job', async () => {
+    it('invokes provider, updates EmailSend to SENT with provider IDs, updates CampaignMember to SENT, and completes Job', async () => {
       mockPrisma.emailSend.findUnique.mockResolvedValue(mockEmailSendRecord);
 
       const sendResult: SendEmailResult = {
@@ -213,7 +213,7 @@ describe('EmailDispatchWorker', () => {
       expect(mockAdapter.sendEmail).toHaveBeenCalledWith({
         workspaceId,
         senderAccountId: 'sa-1',
-        campaignContactId,
+        campaignMemberId,
         emailSendId,
         toEmail: 'founder@example.com',
         fromName: 'Sales Team',
@@ -236,9 +236,9 @@ describe('EmailDispatchWorker', () => {
         },
       });
 
-      expect(mockPrisma.campaignContact.update).toHaveBeenCalledWith({
-        where: { id: campaignContactId },
-        data: { status: CampaignContactStatus.SENT },
+      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
+        where: { id: campaignMemberId },
+        data: { status: CampaignMemberStatus.SENT },
       });
 
       expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
@@ -259,7 +259,7 @@ describe('EmailDispatchWorker', () => {
         type: 'EMAIL_DISPATCH',
         status: JobStatus.RUNNING,
         attemptCount: 1,
-        payload: { emailSendId, campaignContactId },
+        payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
       } as any,
       claimedAttempt: 1,
@@ -318,7 +318,7 @@ describe('EmailDispatchWorker', () => {
 
       expect(outcome).toBe(false);
       expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
-      expect(mockPrisma.campaignContact.update).not.toHaveBeenCalled();
+      expect(mockPrisma.campaignMember.update).not.toHaveBeenCalled();
       expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
         where: { id: jobId, leaseVersion: 0, status: 'RUNNING' },
         data: {
@@ -331,7 +331,7 @@ describe('EmailDispatchWorker', () => {
   });
 
   describe('processJob - Terminal Failure Path', () => {
-    it('on non-retryable provider error, updates EmailSend to FAILED, CampaignContact to FAILED, and Job to DEAD_LETTER', async () => {
+    it('on non-retryable provider error, updates EmailSend to FAILED, CampaignMember to FAILED, and Job to DEAD_LETTER', async () => {
       const claimed: ClaimedEmailJob = {
         job: {
           id: jobId,
@@ -339,7 +339,7 @@ describe('EmailDispatchWorker', () => {
           type: 'EMAIL_DISPATCH',
           status: JobStatus.RUNNING,
           attemptCount: 1,
-          payload: { emailSendId, campaignContactId },
+          payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
@@ -371,9 +371,9 @@ describe('EmailDispatchWorker', () => {
         },
       });
 
-      expect(mockPrisma.campaignContact.update).toHaveBeenCalledWith({
-        where: { id: campaignContactId },
-        data: { status: CampaignContactStatus.FAILED },
+      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
+        where: { id: campaignMemberId },
+        data: { status: CampaignMemberStatus.FAILED },
       });
 
       expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
@@ -394,7 +394,7 @@ describe('EmailDispatchWorker', () => {
           type: 'EMAIL_DISPATCH',
           status: JobStatus.RUNNING,
           attemptCount: 3,
-          payload: { emailSendId, campaignContactId },
+          payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
         } as any,
         claimedAttempt: 3,
@@ -426,9 +426,9 @@ describe('EmailDispatchWorker', () => {
         },
       });
 
-      expect(mockPrisma.campaignContact.update).toHaveBeenCalledWith({
-        where: { id: campaignContactId },
-        data: { status: CampaignContactStatus.FAILED },
+      expect(mockPrisma.campaignMember.update).toHaveBeenCalledWith({
+        where: { id: campaignMemberId },
+        data: { status: CampaignMemberStatus.FAILED },
       });
 
       expect(mockPrisma.job.updateMany).toHaveBeenCalledWith({
@@ -443,7 +443,7 @@ describe('EmailDispatchWorker', () => {
   });
 
   describe('processJob - Lease Loss Guard', () => {
-    it('aborts finalization and does not update EmailSend or Contact if job lease is lost or reclaimed', async () => {
+    it('aborts finalization and does not update EmailSend or Person if job lease is lost or reclaimed', async () => {
       const claimed: ClaimedEmailJob = {
         job: {
           id: jobId,
@@ -451,7 +451,7 @@ describe('EmailDispatchWorker', () => {
           type: 'EMAIL_DISPATCH',
           status: JobStatus.RUNNING,
           attemptCount: 1,
-          payload: { emailSendId, campaignContactId },
+          payload: { emailSendId, campaignMemberId },
           leaseVersion: 0,
         } as any,
         claimedAttempt: 1,
@@ -471,7 +471,7 @@ describe('EmailDispatchWorker', () => {
 
       expect(outcome).toBe(false);
       expect(mockPrisma.emailSend.update).not.toHaveBeenCalled();
-      expect(mockPrisma.campaignContact.update).not.toHaveBeenCalled();
+      expect(mockPrisma.campaignMember.update).not.toHaveBeenCalled();
       expect(mockPrisma.job.update).not.toHaveBeenCalled();
     });
   });

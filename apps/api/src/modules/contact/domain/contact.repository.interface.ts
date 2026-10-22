@@ -1,12 +1,13 @@
-import { Contact, CompanyContactSelection } from '@repo/db';
+import { Person, CompanyContactSelection } from '@repo/db';
 
 export const CONTACT_REPOSITORY_TOKEN = 'CONTACT_REPOSITORY_TOKEN';
 
 export interface UpsertContactInput {
   workspaceId: string;
   companyId: string;
-  contactKind: 'PERSON' | 'ROLE_ADDRESS';
-  name: string;
+  personKind: 'PERSON' | 'ROLE_ADDRESS';
+  firstName: string;
+  lastName: string;
   email?: string | null;
   title?: string | null;
   source?: string | null;
@@ -19,16 +20,16 @@ export interface IContactRepository {
   findCompanyContacts(
     workspaceId: string,
     companyId: string,
-  ): Promise<Contact[]>;
+  ): Promise<Person[]>;
   findContactById(
     workspaceId: string,
-    contactId: string,
-  ): Promise<Contact | null>;
+    personId: string,
+  ): Promise<Person | null>;
   upsertCompanyContacts(
     workspaceId: string,
     companyId: string,
     contacts: UpsertContactInput[],
-  ): Promise<Contact[]>;
+  ): Promise<Person[]>;
   getCompanyContactSelection(
     workspaceId: string,
     companyId: string,
@@ -36,6 +37,7 @@ export interface IContactRepository {
   setCompanyContactSelection(
     workspaceId: string,
     companyId: string,
-    contactId: string,
+            personId: string,
+            companyAssociationId: string,
   ): Promise<CompanyContactSelection>;
 }
