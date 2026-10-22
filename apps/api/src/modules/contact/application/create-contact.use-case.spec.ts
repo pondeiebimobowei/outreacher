@@ -48,7 +48,7 @@ describe('CreateContactUseCase', () => {
     );
 
     const result = await useCase.execute('ws-1', 'comp-1', {
-      name: 'Jane Doe',
+      firstName: 'Jane', lastName: 'Doe',
       email: 'JANE.DOE@ACME.COM',
       title: 'Head of Engineering',
       personKind: 'PERSON',
@@ -61,9 +61,9 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        companyId: 'comp-1',
+        personCompanyAssociations: { create: { companyId: 'comp-1' } },
         personKind: 'PERSON',
-        name: 'Jane Doe',
+        firstName: 'Jane', lastName: 'Doe',
         email: 'jane.doe@acme.com',
         title: 'Head of Engineering',
         source: 'USER_PROVIDED',
@@ -93,7 +93,7 @@ describe('CreateContactUseCase', () => {
     expect(prismaMock.person.create).toHaveBeenCalledWith({
       data: {
         workspaceId: 'ws-1',
-        companyId: 'comp-1',
+        personCompanyAssociations: { create: { companyId: 'comp-1' } },
         personKind: 'PERSON',
         name: 'Alex Rivera',
         email: null,
@@ -114,7 +114,7 @@ describe('CreateContactUseCase', () => {
     prismaMock.person.findFirst.mockResolvedValue({
       id: 'cont-existing',
       workspaceId: 'ws-1',
-      companyId: 'comp-1',
+      personCompanyAssociations: { create: { companyId: 'comp-1' } },
       email: 'jane@acme.com',
     });
     prismaMock.person.update.mockImplementation(({ data }: any) =>
@@ -163,7 +163,7 @@ describe('CreateContactUseCase', () => {
     prismaMock.company.findFirst.mockResolvedValue(null);
 
     await expect(
-      useCase.execute('ws-1', 'comp-999', { name: 'John Doe' }),
+      useCase.execute('ws-1', 'comp-999', { firstName: 'John', lastName: 'Doe' }),
     ).rejects.toThrow(AppNotFoundException);
   });
 

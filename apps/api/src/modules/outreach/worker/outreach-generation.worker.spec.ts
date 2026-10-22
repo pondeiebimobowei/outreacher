@@ -32,7 +32,7 @@ describe('OutreachGenerationWorker', () => {
     updatedAt: new Date('2026-09-18T09:00:00Z'),
     person: {
       id: 'cnt-1',
-      name: 'Alice Smith',
+      firstName: 'Alice', lastName: 'Smith',
       title: 'VP Eng',
       personKind: 'PERSON',
     },

@@ -46,7 +46,7 @@ export class SendEligibilityService {
     private readonly providerRegistry: EmailProviderRegistry,
   ) {}
 
-  public async checkEligibility(
+  public async checkCampaignMemberEligibility(
     input: SendEligibilityCheckInput,
   ): Promise<SendEligibilityResult> {
     const { workspaceId, campaign, campaignMember } = input;
@@ -79,7 +79,27 @@ export class SendEligibilityService {
       throw new AppConflictException(`Cannot dispatch send for contact in ${campaignMember.status} status`);
     }
 
-    const rawEmail = campaignMember.person?.email;
+    return this.validateEmailContentAndSuppression(workspaceId, campaignMember.person?.email, campaignMember.currentSubject, campaignMember.currentBody);
+  }
+
+  public async checkOutreachEligibility(
+    workspaceId: string,
+    outreach: { status: import('@repo/db').OutreachStatus; subject: string; message: string },
+    personEmail: string | null | undefined
+  ): Promise<SendEligibilityResult> {
+    if (outreach.status !== 'DRAFT') {
+      throw new AppConflictException(`Cannot dispatch send for outreach in ${outreach.status} status`);
+    }
+
+    return this.validateEmailContentAndSuppression(workspaceId, personEmail, outreach.subject, outreach.message);
+  }
+
+  private async validateEmailContentAndSuppression(
+    workspaceId: string,
+    rawEmail: string | null | undefined,
+    subject: string | null | undefined,
+    body: string | null | undefined,
+  ): Promise<SendEligibilityResult> {
     if (!rawEmail || !rawEmail.trim()) {
       throw new AppValidationException('Cannot dispatch send: contact has no recipient email');
     }
@@ -90,19 +110,16 @@ export class SendEligibilityService {
       throw new AppConflictException('Recipient email is suppressed');
     }
 
-    const subject = campaignMember.currentSubject;
     if (!subject || subject.length < 3 || subject.length > 150) {
       throw new AppValidationException('Cannot dispatch send: subject must be between 3 and 150 characters');
     }
 
-    const body = campaignMember.currentBody;
     if (!body || body.length < 20 || body.length > 4000) {
       throw new AppValidationException('Cannot dispatch send: body must be between 20 and 4000 characters');
     }
 
     return { canonicalEmail, subject, body };
   }
-
   
   public async reserveSenderCapacityAndCreateEmailSend(
     tx: Prisma.TransactionClient,
@@ -118,7 +135,7 @@ export class SendEligibilityService {
     if ('$connect' in tx) {
       throw new Error('Capacity invariant violation: reserveSenderCapacityAndCreateEmailSend must be called within an active transaction');
     }
-    const selectedSender = await this.selectEligibleSenderAccount(tx, workspaceId, campaignId);
+    const selectedSender = await this.selectEligibleSenderAccountForCampaign(tx, workspaceId, campaignId);
     
     return tx.emailSend.create({
       data: {
@@ -137,7 +154,55 @@ export class SendEligibilityService {
     });
   }
 
-  private async selectEligibleSenderAccount(
+  public async reserveSenderCapacityAndCreateEmailSendForOutreach(
+    tx: Prisma.TransactionClient,
+    workspaceId: string,
+    outreachId: string,
+    senderAccountId: string,
+    emailSendData: {
+      subject: string;
+      body: string;
+    }
+  ) {
+    if ('$connect' in tx) {
+      throw new Error('Capacity invariant violation: reserveSenderCapacityAndCreateEmailSendForOutreach must be called within an active transaction');
+    }
+    
+    // Validate the specific sender account
+    const candidates = await tx.$queryRaw<Array<{ id: string, daily_limit: number, provider: string }>>`
+      SELECT sa.id, sa.daily_limit, i.provider
+      FROM sender_accounts sa
+      JOIN integrations i ON sa.integration_id = i.id
+      WHERE sa.id = ${senderAccountId}
+        AND sa.workspace_id = ${workspaceId}
+        AND sa.status = 'ACTIVE'
+        AND i.status = 'ACTIVE'
+      FOR UPDATE OF sa
+    `;
+    
+    if (!candidates || candidates.length === 0) {
+      throw new AppConflictException('NEEDS_SENDER');
+    }
+    
+    const selectedSender = await this.checkSenderCapacity(tx, workspaceId, candidates);
+    
+    return tx.emailSend.create({
+      data: {
+        workspaceId,
+        outreachId,
+        type: 'INITIAL',
+        subject: emailSendData.subject,
+        body: emailSendData.body,
+        status: EmailSendStatus.RESERVED,
+        reservedAt: new Date(),
+        senderAccountId: selectedSender.id,
+        provider: selectedSender.provider,
+        replyToToken: crypto.randomBytes(20).toString("hex"),
+      },
+    });
+  }
+
+  private async selectEligibleSenderAccountForCampaign(
     tx: Prisma.TransactionClient,
     workspaceId: string,
     campaignId: string
@@ -160,6 +225,14 @@ export class SendEligibilityService {
       throw new AppConflictException('NEEDS_SENDER');
     }
 
+    return this.checkSenderCapacity(tx, workspaceId, candidates);
+  }
+
+  private async checkSenderCapacity(
+    tx: Prisma.TransactionClient,
+    workspaceId: string,
+    candidates: Array<{ id: string, daily_limit: number, provider: string }>
+  ): Promise<{ id: string; provider: string }> {
     const validCandidates = candidates.filter(c => this.providerRegistry.hasAdapter(c.provider));
     
     if (validCandidates.length === 0) {

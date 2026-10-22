@@ -41,7 +41,6 @@ describe('EmailDispatchWorker', () => {
       },
     },
     campaignMember: {
-      id: campaignMemberId,
       workspaceId,
       status: CampaignMemberStatus.SENDING,
       person: {
@@ -213,7 +212,6 @@ describe('EmailDispatchWorker', () => {
       expect(mockAdapter.sendEmail).toHaveBeenCalledWith({
         workspaceId,
         senderAccountId: 'sa-1',
-        campaignMemberId,
         emailSendId,
         toEmail: 'founder@example.com',
         fromName: 'Sales Team',

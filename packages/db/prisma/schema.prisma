@@ -214,6 +214,8 @@ model Outreach {
   template                 EmailTemplate?           @relation(fields: [templateId], references: [id], onDelete: Cascade)
   senderAccount            SenderAccount            @relation(fields: [senderAccountId], references: [id], onDelete: Cascade)
   conversationMessages     ConversationMessage[]
+  emailSends               EmailSend[]
+  inboundReplies           InboundReply[]
 
   @@index([workspaceId])
   @@index([personCompanyAssociationId])
@@ -552,8 +554,9 @@ model CampaignMember {
 model EmailSend {
   id                String          @id @default(uuid())
   workspaceId       String          @map("workspace_id")
-  campaignId        String          @map("campaign_id")
-  campaignMemberId  String          @map("campaign_member_id")
+  campaignId        String?         @map("campaign_id")
+  campaignMemberId  String?         @map("campaign_member_id")
+  outreachId        String?         @map("outreach_id")
   type              EmailSendType   @default(INITIAL)
   subject           String
   body              String
@@ -573,13 +576,15 @@ model EmailSend {
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
-  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  campaign       Campaign       @relation(fields: [workspaceId, campaignId], references: [workspaceId, id], onDelete: Cascade)
-  campaignMember CampaignMember @relation(fields: [campaignMemberId], references: [id], onDelete: Cascade)
-  senderAccount  SenderAccount? @relation(fields: [workspaceId, senderAccountId], references: [workspaceId, id], onDelete: Restrict)
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign       Campaign?       @relation(fields: [workspaceId, campaignId], references: [workspaceId, id], onDelete: Cascade)
+  campaignMember CampaignMember? @relation(fields: [campaignMemberId], references: [id], onDelete: Cascade)
+  senderAccount  SenderAccount?  @relation(fields: [workspaceId, senderAccountId], references: [workspaceId, id], onDelete: Restrict)
+  outreach       Outreach?       @relation(fields: [outreachId], references: [id], onDelete: Cascade)
   emailEvents    EmailEvent[]
 
   @@index([workspaceId, campaignMemberId])
+  @@index([workspaceId, outreachId])
   @@index([workspaceId, status])
   @@index([workspaceId, scheduledAt])
   @@index([workspaceId, senderAccountId, createdAt])
@@ -781,6 +786,7 @@ model InboundReply {
   workspaceId      String  @map("workspace_id")
   campaignId       String? @map("campaign_id")
   campaignMemberId String? @map("campaign_member_id")
+  outreachId       String? @map("outreach_id")
 
   provider        String   @default("RESEND")
   providerEventId String   @map("provider_event_id")
@@ -807,9 +813,11 @@ model InboundReply {
   workspace      Workspace       @relation(fields: [workspaceId], references: [id])
   campaign       Campaign?       @relation(fields: [campaignId], references: [id])
   campaignMember CampaignMember? @relation(fields: [campaignMemberId], references: [id])
+  outreach       Outreach?       @relation(fields: [outreachId], references: [id])
 
   @@unique([workspaceId, provider, providerEventId])
   @@index([workspaceId])
+  @@index([workspaceId, outreachId])
   @@map("inbound_replies")
 }
 

@@ -85,7 +85,7 @@ describe('SendEmailUseCase', () => {
     };
 
     mockEligibilityService = {
-      checkEligibility: jest.fn().mockResolvedValue({
+      checkCampaignMemberEligibility: jest.fn().mockResolvedValue({
         canonicalEmail: 'lead@target.com',
         subject: 'Outreach Subject',
         body: 'Outreach message body that is long enough.',
@@ -276,7 +276,7 @@ describe('SendEmailUseCase', () => {
         message: 'Dispatch enqueued',
       });
       // Ensure eligibility check was bypassed because replay succeeded
-      expect(mockEligibilityService.checkEligibility).not.toHaveBeenCalled();
+      expect(mockEligibilityService.checkCampaignMemberEligibility).not.toHaveBeenCalled();
     });
   });
 

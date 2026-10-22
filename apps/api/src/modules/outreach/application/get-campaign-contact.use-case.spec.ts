@@ -61,7 +61,7 @@ describe('GetCampaignContactUseCase', () => {
       updatedAt,
       person: {
         id: 'con-1',
-        name: 'Sarah Connor',
+        firstName: 'Sarah', lastName: 'Connor',
         title: 'VP of Engineering',
         email: 'sarah@acme.com',
         personKind: 'PERSON',
@@ -114,7 +114,8 @@ describe('GetCampaignContactUseCase', () => {
 
     expect(result.id).toBe(campaignMemberId);
     expect(result.status).toBe('PENDING');
-    expect(result.name).toBe('Sarah Connor');
+    expect(result.person.firstName).toBe('Sarah');
+    expect(result.person.lastName).toBe('Connor');
     expect(result.person.emailConfidence).toBe('AVAILABLE');
     expect(result.campaign.name).toBe('Outreach — Acme');
     expect(result.evidence).toHaveLength(1);

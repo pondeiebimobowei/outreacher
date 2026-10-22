@@ -83,7 +83,7 @@ export class ContactValidator {
         seenEmails.add(sanitized.email);
         deduplicated.push(sanitized);
       } else {
-        const key = `${sanitized.firstName.toLowerCase()}:${sanitized.lastName.toLowerCase()}:${(sanitized.title || '').toLowerCase()}`;
+        const key = `${(sanitized.firstName || '' ).toLowerCase()}:${(sanitized.lastName || '' ).toLowerCase()}:${(sanitized.title || '').toLowerCase()}`;
         if (seenNameTitles.has(key)) continue;
         seenNameTitles.add(key);
         deduplicated.push(sanitized);

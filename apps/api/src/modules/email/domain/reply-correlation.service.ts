@@ -3,7 +3,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { InboundReply } from '@repo/db';
 
 export type CorrelationResult = 
-  | { status: 'CORRELATED'; campaignMemberId: string }
+  | { status: 'CORRELATED'; emailSendId: string; campaignMemberId: string | null; outreachId: string | null; campaignId: string | null; }
   | { status: 'UNCORRELATED' }
   | { status: 'AMBIGUOUS' };
 
@@ -30,13 +30,16 @@ export class ReplyCorrelationService {
           replyToToken: token
         },
         select: {
+          id: true,
           campaignMemberId: true,
+          outreachId: true,
+          campaignId: true,
           workspaceId: true
         }
       });
 
       if (send && send.workspaceId === workspaceId) {
-        return { status: 'CORRELATED', campaignMemberId: send.campaignMemberId };
+        return { status: 'CORRELATED', emailSendId: send.id, campaignMemberId: send.campaignMemberId, outreachId: send.outreachId, campaignId: send.campaignId };
       }
     }
 
@@ -48,15 +51,16 @@ export class ReplyCorrelationService {
           workspaceId: workspaceId,
           messageId: formattedInReplyTo
         },
-        select: { campaignMemberId: true },
-        distinct: ['campaignMemberId']
+        select: { id: true, campaignMemberId: true, outreachId: true, campaignId: true },
+        orderBy: { createdAt: 'desc' }
       });
 
-      if (sends.length === 1) {
-        return { status: 'CORRELATED', campaignMemberId: sends[0].campaignMemberId };
-      }
-      
-      if (sends.length > 1) {
+      if (sends.length > 0) {
+        // Find distinct send sources
+        const distinctSources = new Set(sends.map(s => `${s.campaignMemberId}-${s.outreachId}`));
+        if (distinctSources.size === 1) {
+          return { status: 'CORRELATED', emailSendId: sends[0].id, campaignMemberId: sends[0].campaignMemberId, outreachId: sends[0].outreachId, campaignId: sends[0].campaignId };
+        }
         return { status: 'AMBIGUOUS' };
       }
     }
@@ -69,15 +73,15 @@ export class ReplyCorrelationService {
           workspaceId: workspaceId,
           messageId: { in: formattedReferences }
         },
-        select: { campaignMemberId: true },
-        distinct: ['campaignMemberId']
+        select: { id: true, campaignMemberId: true, outreachId: true, campaignId: true },
+        orderBy: { createdAt: 'desc' }
       });
 
-      if (sends.length === 1) {
-        return { status: 'CORRELATED', campaignMemberId: sends[0].campaignMemberId };
-      }
-      
-      if (sends.length > 1) {
+      if (sends.length > 0) {
+        const distinctSources = new Set(sends.map(s => `${s.campaignMemberId}-${s.outreachId}`));
+        if (distinctSources.size === 1) {
+          return { status: 'CORRELATED', emailSendId: sends[0].id, campaignMemberId: sends[0].campaignMemberId, outreachId: sends[0].outreachId, campaignId: sends[0].campaignId };
+        }
         return { status: 'AMBIGUOUS' };
       }
     }

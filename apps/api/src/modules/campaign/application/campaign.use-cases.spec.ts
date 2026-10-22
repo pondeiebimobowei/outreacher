@@ -44,7 +44,7 @@ const mockCampaign = (overrides: Partial<Campaign> = {}): Campaign => ({
   name: 'Test Campaign',
   normalizedName: 'test campaign',
   status: 'DRAFT' as const,
-  sendingIdentity: null,
+  senderAccountId: null,
   followUpDelayBusinessDays: 4,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -117,31 +117,31 @@ describe('CreateCampaignUseCase', () => {
     );
   });
 
-  it('persists sendingIdentity as opaque string without validation', async () => {
+  it('persists senderAccountId as opaque string without validation', async () => {
     companyRepo.findById.mockResolvedValue(mockCompany());
     campaignRepo.create.mockResolvedValue(
-      mockCampaign({ sendingIdentity: 'identity-ref-abc' }),
+      mockCampaign({ senderAccountId: 'identity-ref-abc' }),
     );
 
     await useCase.execute(workspaceId, {
       name: 'Campaign',
       companyId,
-      sendingIdentity: 'identity-ref-abc',
+      senderAccountId: 'identity-ref-abc',
     });
 
     expect(campaignRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ sendingIdentity: 'identity-ref-abc' }),
+      expect.objectContaining({ senderAccountId: 'identity-ref-abc' }),
     );
   });
 
-  it('stores null when sendingIdentity is omitted', async () => {
+  it('stores null when senderAccountId is omitted', async () => {
     companyRepo.findById.mockResolvedValue(mockCompany());
     campaignRepo.create.mockResolvedValue(mockCampaign());
 
     await useCase.execute(workspaceId, { name: 'Campaign', companyId });
 
     expect(campaignRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ sendingIdentity: null }),
+      expect.objectContaining({ senderAccountId: null }),
     );
   });
 

@@ -48,14 +48,17 @@ export class SelectContactUseCase {
       );
     }
 
-    // if (contact.companyId !== companyId) {
-    //   this.logger.warn(
-    //     `Cross-entity selection rejected: Person ${personId} belongs to company ${contact.companyId}, not ${companyId}`,
-    //   );
-    //   throw new AppForbiddenException(
-    //     `Person ${personId} does not belong to target company ${companyId}.`,
-    //   );
-    // }
+    const association = await this.prisma.personCompanyAssociation.findFirst({
+      where: { personId, companyId }
+    });
+    if (!association) {
+      this.logger.warn(
+        `Cross-entity selection rejected: Person ${personId} does not belong to company ${companyId}`,
+      );
+      throw new AppForbiddenException(
+        `Person ${personId} does not belong to target company ${companyId}.`,
+      );
+    }
 
     // 3. Perform Atomic Selection Upsert
     const selection = await this.contactRepository.setCompanyContactSelection(

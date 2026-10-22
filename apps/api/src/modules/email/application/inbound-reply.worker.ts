@@ -182,11 +182,21 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
       await this.prisma.$transaction(async (tx: any) => {
         // Tenant safety check - although correlation already scopes by workspaceId, we double check
         if (correlation.status === 'CORRELATED') {
-           const contact = await tx.campaignMember.findUnique({
-             where: { id: correlation.campaignMemberId }
-           });
-           if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
-             throw new Error('Tenant safety violation: Correlated CampaignMember belongs to different workspace');
+           if (correlation.campaignMemberId) {
+             const contact = await tx.campaignMember.findUnique({
+               where: { id: correlation.campaignMemberId }
+             });
+             if (!contact || contact.workspaceId !== inboundReply.workspaceId) {
+               throw new Error('Tenant safety violation: Correlated CampaignMember belongs to different workspace');
+             }
+           }
+           if (correlation.outreachId) {
+             const outreach = await tx.outreach.findUnique({
+               where: { id: correlation.outreachId }
+             });
+             if (!outreach || outreach.workspaceId !== inboundReply.workspaceId) {
+               throw new Error('Tenant safety violation: Correlated Outreach belongs to different workspace');
+             }
            }
         }
 
@@ -201,8 +211,22 @@ export class InboundReplyWorker implements OnApplicationBootstrap {
             references: retrieved.references,
             status: correlation.status,
             campaignMemberId: correlation.status === 'CORRELATED' ? correlation.campaignMemberId : null,
+            outreachId: correlation.status === 'CORRELATED' ? correlation.outreachId : null,
+            campaignId: correlation.status === 'CORRELATED' ? correlation.campaignId : null,
           }
         });
+
+        if (correlation.status === 'CORRELATED' && correlation.outreachId) {
+          await tx.conversationMessage.create({
+            data: {
+              workspaceId: inboundReply.workspaceId,
+              outreachId: correlation.outreachId,
+              kind: 'INBOUND',
+              subject: inboundReply.subject || '',
+              body: retrieved.text || retrieved.html || '',
+            }
+          });
+        }
       });
 
       // 10D Transaction

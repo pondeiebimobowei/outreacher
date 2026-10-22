@@ -16,6 +16,7 @@ describe('SelectContactUseCase', () => {
     prisma = {
       company: { findFirst: jest.fn() },
       person: { findFirst: jest.fn() },
+      personCompanyAssociation: { findFirst: jest.fn() },
     };
     repository = {
       setCompanyContactSelection: jest.fn(),
@@ -35,7 +36,7 @@ describe('SelectContactUseCase', () => {
   it('rejects if target company does not exist in workspace', async () => {
     prisma.company.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1')).rejects.toThrow(
+    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1')).rejects.toThrow(
       AppNotFoundException,
     );
   });
@@ -47,7 +48,7 @@ describe('SelectContactUseCase', () => {
     });
     prisma.person.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-99')).rejects.toThrow(
+    await expect(useCase.execute('ws-1', 'comp-1', 'cont-99', 'assoc-1')).rejects.toThrow(
       AppNotFoundException,
     );
   });
@@ -60,10 +61,10 @@ describe('SelectContactUseCase', () => {
     prisma.person.findFirst.mockResolvedValue({
       id: 'cont-1',
       workspaceId: 'ws-1',
-      companyId: 'comp-OTHER', // Different company!
     });
+    prisma.personCompanyAssociation.findFirst.mockResolvedValue(null);
 
-    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1')).rejects.toThrow(
+    await expect(useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1')).rejects.toThrow(
       AppForbiddenException,
     );
   });
@@ -76,22 +77,25 @@ describe('SelectContactUseCase', () => {
     prisma.person.findFirst.mockResolvedValue({
       id: 'cont-1',
       workspaceId: 'ws-1',
-      companyId: 'comp-1',
+    });
+    prisma.personCompanyAssociation.findFirst.mockResolvedValue({
+      id: 'assoc-1',
     });
     repository.setCompanyContactSelection.mockResolvedValue({
       id: 'sel-1',
       workspaceId: 'ws-1',
       companyId: 'comp-1',
-            personId: 'cont-1',
-            companyAssociationId: 'temp',
+      personId: 'cont-1',
+      companyAssociationId: 'assoc-1',
     });
 
-    const result = await useCase.execute('ws-1', 'comp-1', 'cont-1');
+    const result = await useCase.execute('ws-1', 'comp-1', 'cont-1', 'assoc-1');
     expect(result.personId).toBe('cont-1');
     expect(repository.setCompanyContactSelection).toHaveBeenCalledWith(
       'ws-1',
       'comp-1',
       'cont-1',
+      'assoc-1',
     );
   });
 });

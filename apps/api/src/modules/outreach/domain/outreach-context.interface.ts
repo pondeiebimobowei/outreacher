@@ -2,7 +2,9 @@ import { PersonKind, OpportunityType, EvidenceClassification } from '@repo/db';
 
 export interface OutreachContext {
   workspaceId: string;
-  campaignMemberId: string;
+  campaignMemberId?: string;
+  outreachId?: string;
+
   person: {
     id: string;
     firstName: string; lastName: string;

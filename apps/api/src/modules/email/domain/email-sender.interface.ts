@@ -6,13 +6,16 @@ export const EMAIL_SENDER_TOKEN = 'IEmailSender';
 
 export interface SendEmailInput {
   workspaceId: string;
-  campaignMemberId: string;
+  senderAccountId: string;
+  emailSendId: string;
   toEmail: string;
+  fromName: string;
   fromEmail: string;
+  replyTo?: string;
   subject: string;
   bodyText: string;
   bodyHtml?: string;
-  replyToToken?: string;
+  replyToToken: string;
   idempotencyKey: string;
 }
 

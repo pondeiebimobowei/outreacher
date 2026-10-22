@@ -107,7 +107,8 @@ export class EmailDispatchWorker {
     const { job, claimedAttempt } = claimed;
     const payload = job.payload as Record<string, unknown> | null;
     const emailSendId = payload?.emailSendId as string;
-    const campaignMemberId = payload?.campaignMemberId as string;
+    const campaignMemberId = payload?.campaignMemberId as string | undefined;
+    const outreachId = payload?.outreachId as string | undefined;
     const workspaceId = job.workspaceId;
 
     let sendResult: SendEmailResult | null = null;
@@ -124,6 +125,9 @@ export class EmailDispatchWorker {
           },
           campaignMember: {
             include: { person: true, campaign: true },
+          },
+          outreach: {
+            include: { personCompanyAssociation: { include: { person: true } } },
           },
         },
       });
@@ -149,7 +153,7 @@ export class EmailDispatchWorker {
 
       const credentials = await this.secretResolver.resolve(workspaceId, senderAccount.integration.secretReference, providerStr);
 
-      const recipientEmail = emailSend.campaignMember?.person?.email;
+      const recipientEmail = emailSend.campaignMember?.person?.email || emailSend.outreach?.personCompanyAssociation?.person?.email;
       if (!recipientEmail) throw new Error('Person recipient email is missing');
       if (!emailSend.replyToToken) throw new Error('Opaque replyToToken is missing for EmailSend');
 
@@ -158,7 +162,6 @@ export class EmailDispatchWorker {
       sendResult = await adapter.sendEmail({
         workspaceId,
         senderAccountId: senderAccount.id,
-        campaignMemberId,
         emailSendId,
         toEmail: recipientEmail,
         fromName: senderAccount.fromName,
@@ -221,7 +224,7 @@ export class EmailDispatchWorker {
       // If we got here, the Job was successfully mutated and we own the lease lock. 
       // Now safe to mutate related entities.
       if (sendResult) {
-        await tx.emailSend.update({
+        const sendRecord = await tx.emailSend.update({
           where: { id: emailSendId },
           data: {
             status: 'SENT',
@@ -231,10 +234,29 @@ export class EmailDispatchWorker {
           },
         });
 
-        await tx.campaignMember.update({
-          where: { id: campaignMemberId },
-          data: { status: 'SENT' },
-        });
+        if (campaignMemberId) {
+          await tx.campaignMember.update({
+            where: { id: campaignMemberId },
+            data: { status: 'SENT' },
+          });
+        }
+        
+        if (outreachId) {
+          await tx.outreach.update({
+            where: { id: outreachId },
+            data: { status: 'SENT' },
+          });
+          
+          await tx.conversationMessage.create({
+            data: {
+              workspaceId,
+              outreachId,
+              kind: 'OUTBOUND',
+              subject: sendRecord.subject,
+              body: sendRecord.body,
+            },
+          });
+        }
         
         return true;
       }
@@ -250,10 +272,18 @@ export class EmailDispatchWorker {
             retryable: false,
           },
         });
-        await tx.campaignMember.update({
-          where: { id: campaignMemberId },
-          data: { status: 'FAILED' },
-        });
+        if (campaignMemberId) {
+          await tx.campaignMember.update({
+            where: { id: campaignMemberId },
+            data: { status: 'FAILED' },
+          });
+        }
+        if (outreachId) {
+          await tx.outreach.update({
+            where: { id: outreachId },
+            data: { status: 'FAILED' },
+          });
+        }
         return false;
       }
       
@@ -279,10 +309,18 @@ export class EmailDispatchWorker {
         },
       });
 
-      await tx.campaignMember.update({
-        where: { id: campaignMemberId },
-        data: { status: 'FAILED' },
-      });
+      if (campaignMemberId) {
+        await tx.campaignMember.update({
+          where: { id: campaignMemberId },
+          data: { status: 'FAILED' },
+        });
+      }
+      if (outreachId) {
+        await tx.outreach.update({
+          where: { id: outreachId },
+          data: { status: 'FAILED' },
+        });
+      }
 
       return false;
     });

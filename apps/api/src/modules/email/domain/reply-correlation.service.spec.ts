@@ -30,7 +30,7 @@ describe('ReplyCorrelationService', () => {
   } as any;
 
   it('Rule 1: Correlates by exact token match, ignoring In-Reply-To and References', async () => {
-    prismaMock.emailSend.findUnique.mockResolvedValue({ campaignMemberId: 'contact-a', workspaceId: 'ws-1' });
+    prismaMock.emailSend.findUnique.mockResolvedValue({ id: 'es-1', campaignMemberId: 'contact-a', workspaceId: 'ws-1' });
     
     const result = await service.correlate(mockInbound, 'reply+TOKEN123@domain.com', 'in-reply-to-b', ['ref-c']);
     
@@ -38,25 +38,22 @@ describe('ReplyCorrelationService', () => {
     expect((result as any).campaignMemberId).toBe('contact-a');
     expect(prismaMock.emailSend.findUnique).toHaveBeenCalledWith({ where: { replyToToken: 'TOKEN123' }, select: expect.any(Object) });
     expect(prismaMock.emailSend.findFirst).not.toHaveBeenCalled();
-    // it IS called now
   });
 
   it('Rule 2: Correlates by In-Reply-To if no token match, ignoring References', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
-    prismaMock.emailSend.findMany.mockResolvedValue([{ campaignMemberId: 'contact-a' }]);
+    prismaMock.emailSend.findMany.mockResolvedValue([{ id: 'es-1', campaignMemberId: 'contact-a' }]);
     
     const result = await service.correlate(mockInbound, 'normal@domain.com', '<msg-a>', ['msg-b']);
     
     expect(result.status).toBe('CORRELATED');
     expect((result as any).campaignMemberId).toBe('contact-a');
-    expect(prismaMock.emailSend.findMany).toHaveBeenCalledWith({ where: { workspaceId: 'ws-1', messageId: '<msg-a>' }, select: expect.any(Object), distinct: ['campaignMemberId'] });
-    
+    expect(prismaMock.emailSend.findMany).toHaveBeenCalledWith({ where: { workspaceId: 'ws-1', messageId: '<msg-a>' }, select: expect.any(Object), orderBy: { createdAt: 'desc' } });
   });
 
   it('Rule 3: Correlates by References if no token or In-Reply-To match', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
-    // removed findFirst mock
-    prismaMock.emailSend.findMany.mockResolvedValue([{ campaignMemberId: 'contact-a' }]);
+    prismaMock.emailSend.findMany.mockResolvedValue([{ id: 'es-1', campaignMemberId: 'contact-a' }]);
     
     const result = await service.correlate(mockInbound, 'normal@domain.com', null, ['<msg-a>', 'msg-b']);
     
@@ -65,7 +62,7 @@ describe('ReplyCorrelationService', () => {
     expect(prismaMock.emailSend.findMany).toHaveBeenCalledWith({
       where: { workspaceId: 'ws-1', messageId: { in: ['<msg-a>', '<msg-b>'] } },
       select: expect.any(Object),
-      distinct: ['campaignMemberId']
+      orderBy: { createdAt: 'desc' }
     });
   });
 
@@ -73,8 +70,8 @@ describe('ReplyCorrelationService', () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
     
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { campaignMemberId: 'contact-a' },
-      { campaignMemberId: 'contact-b' }
+      { id: 'es-1', campaignMemberId: 'contact-a' },
+      { id: 'es-2', campaignMemberId: 'contact-b' }
     ]);
     
     const result = await service.correlate(mockInbound, 'normal@domain.com', null, ['msg-a', 'msg-b']);
@@ -85,9 +82,9 @@ describe('ReplyCorrelationService', () => {
   it('Rule 3: Returns CORRELATED if References match multiple messages that map to the SAME contact', async () => {
     prismaMock.emailSend.findUnique.mockResolvedValue(null);
     
-    // Since distinct: ['campaignMemberId'] is used, prisma would return one record
     prismaMock.emailSend.findMany.mockResolvedValue([
-      { campaignMemberId: 'contact-a' }
+      { id: 'es-2', campaignMemberId: 'contact-a' },
+      { id: 'es-1', campaignMemberId: 'contact-a' }
     ]);
     
     const result = await service.correlate(mockInbound, 'normal@domain.com', null, ['msg-old-1', 'msg-old-2']);

@@ -72,7 +72,7 @@ export class SendEmailUseCase {
           }
         }
 
-        const eligibilityResult = await this.sendEligibilityService.checkEligibility({
+        const eligibilityResult = await this.sendEligibilityService.checkCampaignMemberEligibility({
           workspaceId,
           campaign: campaignMember.campaign,
           campaignMember,
