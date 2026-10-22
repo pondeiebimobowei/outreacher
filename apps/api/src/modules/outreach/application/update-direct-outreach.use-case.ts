@@ -8,6 +8,7 @@ export interface UpdateDirectOutreachCommand {
   outreachId: string;
   subject?: string;
   message?: string;
+  expectedUpdatedAt?: Date;
 }
 
 @Injectable()
@@ -15,7 +16,7 @@ export class UpdateDirectOutreachUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   public async execute(command: UpdateDirectOutreachCommand) {
-    const { workspaceId, outreachId, subject, message } = command;
+    const { workspaceId, outreachId, subject, message, expectedUpdatedAt } = command;
 
     const trimmedSubject = typeof subject === 'string' ? subject.trim() : subject;
     const trimmedMessage = typeof message === 'string' ? message.trim() : message;
@@ -37,6 +38,10 @@ export class UpdateDirectOutreachUseCase {
 
       if (!outreach || outreach.workspaceId !== workspaceId) {
         throw new AppNotFoundException(`Outreach ${outreachId} not found`);
+      }
+      
+      if (expectedUpdatedAt && outreach.updatedAt.getTime() !== new Date(expectedUpdatedAt).getTime()) {
+        throw new AppConflictException('CONCURRENCY_ERROR');
       }
 
       const allowedStatuses: OutreachStatus[] = ['DRAFT', 'FAILED'];

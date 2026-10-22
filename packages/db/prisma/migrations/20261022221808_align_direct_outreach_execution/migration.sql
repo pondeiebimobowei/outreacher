@@ -17,3 +17,6 @@ ALTER TABLE "email_sends" ADD CONSTRAINT "email_sends_outreach_id_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "inbound_replies" ADD CONSTRAINT "inbound_replies_outreach_id_fkey" FOREIGN KEY ("outreach_id") REFERENCES "outreaches"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Add CHECK constraint to enforce outreach_id XOR campaign_member_id
+ALTER TABLE "email_sends" ADD CONSTRAINT "email_sends_source_xor" CHECK ((campaign_member_id IS NULL) <> (outreach_id IS NULL));

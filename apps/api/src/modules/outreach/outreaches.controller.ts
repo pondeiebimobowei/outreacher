@@ -44,13 +44,14 @@ export class OutreachesController {
   public async updateDraft(
     @CurrentWorkspace() workspace: { id: string },
     @Param('id') outreachId: string,
-    @Body() body: { subject?: string; message?: string },
+    @Body() body: { subject?: string; message?: string; expectedUpdatedAt?: Date },
   ) {
     return this.updateDirectOutreachUseCase.execute({
       workspaceId: workspace.id,
       outreachId,
       subject: body.subject,
       message: body.message,
+      expectedUpdatedAt: body.expectedUpdatedAt,
     });
   }
 
